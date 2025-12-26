@@ -1,6 +1,6 @@
 'use client';
 
-import { useCopilotChatHeadless_c } from "@copilotkit/react-core";
+import { useCopilotChat } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Sparkles } from "lucide-react";
@@ -11,7 +11,7 @@ export function ChatInterface() {
     visibleMessages,
     appendMessage,
     isLoading,
-  } = useCopilotChatHeadless_c({
+  } = useCopilotChat({
     makeSystemMessage: () =>
       `You are a game asset planning assistant helping users plan what assets they need for their games.
 
@@ -58,9 +58,14 @@ Be detailed and actionable. Focus on practical asset requirements.`,
 
   const handleSendMessage = async (content: string) => {
     if (content.trim()) {
+      // CopilotKit headless chat expects just the content string
       await appendMessage(content);
     }
   };
+
+  // Only show loading state if there are messages (prevents initial loading state)
+  const hasMessages = visibleMessages && visibleMessages.length > 0;
+  const showLoading = isLoading && hasMessages;
 
   return (
     <div className="flex flex-col h-full">
@@ -94,7 +99,7 @@ Be detailed and actionable. Focus on practical asset requirements.`,
             </div>
           ))
         )}
-        {isLoading && (
+        {showLoading && (
           <div className="flex justify-start">
             <div className="glass-panel rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
@@ -114,7 +119,7 @@ Be detailed and actionable. Focus on practical asset requirements.`,
       {/* Input area - sticky at bottom */}
       <div className="sticky bottom-0 glass-panel border-t p-4">
         <div className="flex gap-2">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput onSend={handleSendMessage} disabled={showLoading} />
         </div>
       </div>
     </div>

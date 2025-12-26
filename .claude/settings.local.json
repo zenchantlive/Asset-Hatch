@@ -16,7 +16,13 @@
       "Bash(grep:*)",
       "Bash(bun run build:*)",
       "Bash(git checkout:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__plugin_serena_serena__replace_content",
+      "Bash(bun list:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:ai-sdk.dev)"
     ]
   }
 }

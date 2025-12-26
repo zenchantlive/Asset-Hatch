@@ -25,7 +25,6 @@ export default function RootLayout({
       >
         <CopilotKit
           runtimeUrl="/api/copilotkit"
-          publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_PUBLIC_KEY}
         >
           {children}
         </CopilotKit>
