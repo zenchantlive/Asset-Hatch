@@ -32,15 +32,15 @@ export class AssetHatchDB extends Dexie {
   constructor() {
     super('asset-hatch');
 
-    // Version 2: Add memory_files table
-    this.version(2).stores({
-      projects: 'id, phase, created_at',
-      memory_files: 'id, project_id, type, updated_at',
-    });
-
-    // Version 1: Original schema (for backward compatibility)
+    // Version 1: Original schema
     this.version(1).stores({
       projects: 'id, phase, created_at'
+    });
+
+    // Version 2: Add memory_files table and new indexes to projects
+    this.version(2).stores({
+      projects: 'id, name, phase, created_at, updated_at', // Add new indexed fields
+      memory_files: 'id, project_id, type, updated_at',
     });
   }
 }
