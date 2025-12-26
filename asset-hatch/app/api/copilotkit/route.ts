@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro-preview",
+      model: "google/gemini-2.5-pro",
       messages: messages.map((m: any) => ({
         role: m.role === "assistant" ? "assistant" : m.role,
         content: typeof m.content === "string" ? m.content : "",

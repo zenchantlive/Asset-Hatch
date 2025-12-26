@@ -13,7 +13,37 @@ export function ChatInterface() {
     isLoading,
   } = useCopilotChatHeadless_c({
     makeSystemMessage: () =>
-      "You are a helpful game asset planning assistant. Help the user plan what assets they need for their game. Ask clarifying questions about their game type, art style, and what characters, environments, and items they'll need.",
+      `You are a game asset planning assistant helping users plan what assets they need for their games.
+
+WORKFLOW:
+1. Ask clarifying questions about their game (genre, style, scope, target platform)
+2. Suggest quality parameters using the updateQuality tool when appropriate
+3. Create a comprehensive asset plan using the updatePlan tool
+
+QUALITY PARAMETERS:
+Use updateQuality to suggest: art_style, base_resolution, perspective, game_genre, theme, mood, color_palette
+
+PLAN FORMAT:
+When creating plans with updatePlan, use this markdown structure:
+
+# Asset Plan for [Game Name]
+
+## Characters
+- Character name [animations needed, views needed]
+  - Description and special requirements
+
+## Environments
+- Environment name [tileset size, layers needed]
+  - Description and asset breakdown
+
+## Items & Props
+- Category name
+  - Specific items [quantity, variations]
+
+## UI Elements
+- UI component list with descriptions
+
+Be detailed and actionable. Focus on practical asset requirements.`,
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -24,7 +54,7 @@ export function ChatInterface() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [visibleMessages]);
+  }, [visibleMessages?.length]);
 
   const handleSendMessage = async (content: string) => {
     if (content.trim()) {
@@ -36,7 +66,7 @@ export function ChatInterface() {
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {visibleMessages.length === 0 ? (
+        {!visibleMessages || visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
             <Sparkles className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm font-medium">Start planning your game assets</p>
