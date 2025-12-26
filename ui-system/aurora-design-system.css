@@ -1,0 +1,941 @@
+/**
+ * AURORA GLASSMORPHISM UI SYSTEM
+ * Ethereal, soft, and magical design system for game asset planning interface
+ * Theme: Northern lights at dusk - elegant, not cyberpunk
+ */
+
+/* ==========================================================================
+   1. COLOR PALETTE - Aurora-Inspired
+   ========================================================================== */
+
+:root {
+  /* Primary Aurora Colors - Base Palette */
+  --aurora-deep-purple: #2d1b4e;      /* Deep twilight purple */
+  --aurora-soft-purple: #4a3768;       /* Soft evening purple */
+  --aurora-lavender: #6b5b95;          /* Gentle lavender */
+  --aurora-twilight-blue: #1e3a5f;     /* Deep twilight blue */
+  --aurora-soft-blue: #3d5a80;         /* Soft ocean blue */
+  --aurora-sky-blue: #5b7fa6;          /* Ethereal sky blue */
+  --aurora-pink: #c27ba0;              /* Gentle rose pink */
+  --aurora-soft-pink: #d4a5c4;         /* Soft blush pink */
+  --aurora-teal: #4a7c7e;              /* Ethereal teal */
+  --aurora-aqua: #6ba3a6;              /* Soft aquamarine */
+  --aurora-mint: #88c5c7;              /* Gentle mint */
+
+  /* Gradient Colors with Opacity - For Overlays */
+  --aurora-purple-glass: rgba(74, 55, 104, 0.15);
+  --aurora-blue-glass: rgba(61, 90, 128, 0.12);
+  --aurora-pink-glass: rgba(194, 123, 160, 0.1);
+  --aurora-teal-glass: rgba(74, 124, 126, 0.13);
+
+  /* Background Gradients */
+  --bg-primary-gradient: linear-gradient(
+    135deg,
+    #1a0d2e 0%,
+    #2d1b4e 25%,
+    #1e3a5f 50%,
+    #2d1b4e 75%,
+    #1a0d2e 100%
+  );
+
+  --bg-secondary-gradient: linear-gradient(
+    165deg,
+    rgba(74, 55, 104, 0.3) 0%,
+    rgba(61, 90, 128, 0.2) 50%,
+    rgba(74, 124, 126, 0.25) 100%
+  );
+
+  --bg-aurora-shimmer: linear-gradient(
+    90deg,
+    rgba(194, 123, 160, 0.0) 0%,
+    rgba(194, 123, 160, 0.15) 25%,
+    rgba(107, 91, 149, 0.2) 50%,
+    rgba(91, 127, 166, 0.15) 75%,
+    rgba(136, 197, 199, 0.0) 100%
+  );
+
+  /* ==========================================================================
+     2. GLASSMORPHISM TOKENS
+     ========================================================================== */
+
+  /* Glass Background Colors */
+  --glass-bg-light: rgba(255, 255, 255, 0.05);
+  --glass-bg-medium: rgba(255, 255, 255, 0.08);
+  --glass-bg-strong: rgba(255, 255, 255, 0.12);
+  --glass-bg-hover: rgba(255, 255, 255, 0.15);
+
+  /* Glass with Tint */
+  --glass-purple-tint: rgba(107, 91, 149, 0.15);
+  --glass-blue-tint: rgba(91, 127, 166, 0.12);
+  --glass-pink-tint: rgba(194, 123, 160, 0.1);
+  --glass-teal-tint: rgba(106, 163, 166, 0.13);
+
+  /* Backdrop Blur Values */
+  --blur-subtle: blur(8px);
+  --blur-medium: blur(12px);
+  --blur-strong: blur(20px);
+  --blur-intense: blur(30px);
+
+  /* Glass Borders */
+  --glass-border-light: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-border-medium: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-border-gradient: 1px solid transparent;
+
+  /* Border Gradients */
+  --border-aurora-purple: linear-gradient(
+    135deg,
+    rgba(107, 91, 149, 0.3),
+    rgba(194, 123, 160, 0.2)
+  );
+
+  --border-aurora-blue: linear-gradient(
+    135deg,
+    rgba(91, 127, 166, 0.3),
+    rgba(106, 163, 166, 0.2)
+  );
+
+  --border-aurora-multi: linear-gradient(
+    90deg,
+    rgba(194, 123, 160, 0.2) 0%,
+    rgba(107, 91, 149, 0.3) 25%,
+    rgba(91, 127, 166, 0.3) 50%,
+    rgba(106, 163, 166, 0.2) 75%,
+    rgba(136, 197, 199, 0.15) 100%
+  );
+
+  /* ==========================================================================
+     3. GLOW & SHADOW EFFECTS
+     ========================================================================== */
+
+  /* Soft Glows (not harsh) */
+  --glow-soft-purple: 0 4px 20px rgba(107, 91, 149, 0.15),
+                       0 0 40px rgba(107, 91, 149, 0.08);
+
+  --glow-soft-blue: 0 4px 20px rgba(91, 127, 166, 0.15),
+                     0 0 40px rgba(91, 127, 166, 0.08);
+
+  --glow-soft-pink: 0 4px 20px rgba(194, 123, 160, 0.15),
+                     0 0 40px rgba(194, 123, 160, 0.08);
+
+  --glow-soft-teal: 0 4px 20px rgba(106, 163, 166, 0.15),
+                     0 0 40px rgba(106, 163, 166, 0.08);
+
+  --glow-aurora-mix: 0 4px 30px rgba(107, 91, 149, 0.12),
+                      0 8px 50px rgba(91, 127, 166, 0.08),
+                      0 0 80px rgba(106, 163, 166, 0.05);
+
+  /* Glass Shadows - Depth without Harshness */
+  --shadow-glass-sm: 0 2px 8px rgba(0, 0, 0, 0.1),
+                      0 4px 16px rgba(0, 0, 0, 0.05);
+
+  --shadow-glass-md: 0 4px 16px rgba(0, 0, 0, 0.15),
+                      0 8px 32px rgba(0, 0, 0, 0.08);
+
+  --shadow-glass-lg: 0 8px 32px rgba(0, 0, 0, 0.2),
+                      0 16px 64px rgba(0, 0, 0, 0.1);
+
+  /* Inner Glow for Interactive Elements */
+  --inner-glow-hover: inset 0 0 20px rgba(255, 255, 255, 0.1);
+
+  /* ==========================================================================
+     4. SPACING & SIZING
+     ========================================================================== */
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* ==========================================================================
+     5. TYPOGRAPHY
+     ========================================================================== */
+
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --text-disabled: rgba(255, 255, 255, 0.3);
+
+  /* Text with Aurora Glow */
+  --text-glow-purple: 0 0 10px rgba(107, 91, 149, 0.5);
+  --text-glow-blue: 0 0 10px rgba(91, 127, 166, 0.5);
+  --text-glow-pink: 0 0 10px rgba(194, 123, 160, 0.5);
+
+  /* ==========================================================================
+     6. TRANSITIONS & ANIMATIONS
+     ========================================================================== */
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-aurora: 3000ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* ==========================================================================
+   ANIMATIONS - AURORA EFFECTS
+   ========================================================================== */
+
+@keyframes aurora-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  25% {
+    background-position: 50% 25%;
+    opacity: 0.95;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 1;
+  }
+  75% {
+    background-position: 50% 75%;
+    opacity: 0.95;
+  }
+}
+
+@keyframes aurora-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.8;
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes soft-glow-pulse {
+  0%, 100% {
+    box-shadow: var(--glow-soft-purple);
+  }
+  33% {
+    box-shadow: var(--glow-soft-blue);
+  }
+  66% {
+    box-shadow: var(--glow-soft-pink);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fade-in-glass {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: var(--blur-medium);
+    transform: translateY(0);
+  }
+}
+
+@keyframes ripple-glass {
+  0% {
+    box-shadow: 0 0 0 0 var(--glass-bg-hover);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes border-aurora-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary-gradient);
+  background-size: 400% 400%;
+  animation: aurora-shift 20s ease infinite;
+  color: var(--text-primary);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Aurora Background Overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-secondary-gradient);
+  opacity: 0.6;
+  animation: aurora-pulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Shimmer Effect Overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-aurora-shimmer);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 15s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ==========================================================================
+   COMPONENT STYLES - GLASSMORPHISM
+   ========================================================================== */
+
+/* -------------------- Glass Container Base -------------------- */
+.glass-container {
+  background: var(--glass-bg-medium);
+  backdrop-filter: var(--blur-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+}
+
+/* -------------------- Quality Dropdowns Bar -------------------- */
+.quality-dropdowns-bar {
+  background: var(--glass-purple-tint);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  border: var(--glass-border-medium);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-glass-md), var(--glow-soft-purple);
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.quality-dropdowns-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-aurora-shimmer);
+  animation: shimmer-sweep 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.quality-dropdowns-bar:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--shadow-glass-lg), var(--glow-aurora-mix);
+  transform: translateY(-2px);
+}
+
+/* Individual Dropdown */
+.quality-dropdown {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-subtle);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  min-width: 120px;
+}
+
+.quality-dropdown::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: var(--border-aurora-multi);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  animation: border-aurora-flow 6s linear infinite;
+  pointer-events: none;
+}
+
+.quality-dropdown:hover {
+  background: var(--glass-bg-medium);
+  box-shadow: var(--glow-soft-blue);
+  transform: translateY(-1px);
+}
+
+.quality-dropdown:hover::after {
+  opacity: 0.5;
+}
+
+.quality-dropdown:focus {
+  outline: none;
+  box-shadow: var(--inner-glow-hover), var(--glow-soft-purple);
+}
+
+/* -------------------- Chat Message Bubble -------------------- */
+.chat-message {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-medium);
+  -webkit-backdrop-filter: var(--blur-medium);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-glass-sm);
+  animation: fade-in-glass 0.5s ease-out;
+  transition: all var(--transition-normal);
+  position: relative;
+  max-width: 80%;
+}
+
+.chat-message.user {
+  background: var(--glass-blue-tint);
+  margin-left: auto;
+  border-left: 2px solid rgba(91, 127, 166, 0.3);
+}
+
+.chat-message.assistant {
+  background: var(--glass-purple-tint);
+  margin-right: auto;
+  border-left: 2px solid rgba(107, 91, 149, 0.3);
+}
+
+.chat-message:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--shadow-glass-md), var(--glow-soft-purple);
+  transform: translateX(4px);
+}
+
+.chat-message::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+
+/* Message Text */
+.chat-message-text {
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Message Timestamp */
+.chat-message-time {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  margin-top: var(--space-xs);
+  display: block;
+}
+
+/* -------------------- Plan Preview Panel -------------------- */
+.plan-preview-panel {
+  background: var(--glass-bg-medium);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  border: var(--glass-border-medium);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-glass-lg), var(--glow-aurora-mix);
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-preview-panel::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--border-aurora-multi);
+  background-size: 200% 200%;
+  border-radius: var(--radius-xl);
+  opacity: 0.3;
+  animation: aurora-shift 15s ease infinite;
+  z-index: -1;
+}
+
+.plan-preview-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(107, 91, 149, 0.1),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.plan-preview-title {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+  text-shadow: var(--text-glow-purple);
+}
+
+.plan-preview-content {
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* -------------------- Glass Button -------------------- */
+.btn-glass {
+  background: var(--glass-bg-medium);
+  backdrop-filter: var(--blur-subtle);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-lg);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-glass:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glow-soft-blue);
+  transform: translateY(-2px);
+}
+
+.btn-glass:hover::before {
+  opacity: 1;
+}
+
+.btn-glass:active {
+  transform: translateY(0);
+  animation: ripple-glass 0.6s ease-out;
+}
+
+.btn-glass:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Button Variants */
+.btn-glass-primary {
+  background: var(--glass-purple-tint);
+  border-color: rgba(107, 91, 149, 0.3);
+}
+
+.btn-glass-primary:hover {
+  box-shadow: var(--glow-soft-purple);
+}
+
+.btn-glass-secondary {
+  background: var(--glass-blue-tint);
+  border-color: rgba(91, 127, 166, 0.3);
+}
+
+.btn-glass-secondary:hover {
+  box-shadow: var(--glow-soft-blue);
+}
+
+/* -------------------- Glass Input Field -------------------- */
+.input-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-subtle);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  color: var(--text-primary);
+  font-size: 15px;
+  width: 100%;
+  transition: all var(--transition-normal);
+  outline: none;
+}
+
+.input-glass::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input-glass:focus {
+  background: var(--glass-bg-medium);
+  border-color: rgba(107, 91, 149, 0.5);
+  box-shadow: var(--inner-glow-hover), var(--glow-soft-purple);
+}
+
+.input-glass:hover:not(:focus) {
+  background: var(--glass-bg-medium);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Textarea variant */
+.textarea-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-subtle);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  color: var(--text-primary);
+  font-size: 15px;
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  transition: all var(--transition-normal);
+  outline: none;
+  font-family: inherit;
+}
+
+.textarea-glass:focus {
+  background: var(--glass-bg-medium);
+  border-color: rgba(107, 91, 149, 0.5);
+  box-shadow: var(--inner-glow-hover), var(--glow-soft-purple);
+}
+
+/* -------------------- Glass Card -------------------- */
+.card-glass {
+  background: var(--glass-bg-medium);
+  backdrop-filter: var(--blur-medium);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-glass-md);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-aurora-multi);
+  background-size: 200% 100%;
+  animation: border-aurora-flow 8s linear infinite;
+}
+
+.card-glass:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--shadow-glass-lg), var(--glow-soft-purple);
+  transform: translateY(-4px);
+}
+
+.card-glass-title {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+
+.card-glass-content {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* -------------------- Glass Badge/Tag -------------------- */
+.badge-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-subtle);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.badge-glass:hover {
+  background: var(--glass-bg-medium);
+  box-shadow: var(--glow-soft-blue);
+}
+
+/* Badge Variants */
+.badge-glass-purple {
+  background: var(--glass-purple-tint);
+  border-color: rgba(107, 91, 149, 0.3);
+}
+
+.badge-glass-blue {
+  background: var(--glass-blue-tint);
+  border-color: rgba(91, 127, 166, 0.3);
+}
+
+.badge-glass-pink {
+  background: var(--glass-pink-tint);
+  border-color: rgba(194, 123, 160, 0.3);
+}
+
+.badge-glass-teal {
+  background: var(--glass-teal-tint);
+  border-color: rgba(106, 163, 166, 0.3);
+}
+
+/* -------------------- Glass Modal/Dialog -------------------- */
+.modal-glass-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 13, 46, 0.8);
+  backdrop-filter: var(--blur-intense);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in-glass 0.3s ease-out;
+}
+
+.modal-glass {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--blur-strong);
+  border: var(--glass-border-medium);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  max-width: 600px;
+  width: 90%;
+  box-shadow: var(--shadow-glass-lg), var(--glow-aurora-mix);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-glass::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--border-aurora-multi);
+  background-size: 200% 200%;
+  border-radius: var(--radius-xl);
+  opacity: 0.3;
+  animation: aurora-shift 12s ease infinite;
+  z-index: -1;
+}
+
+.modal-glass-title {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+  text-shadow: var(--text-glow-purple);
+}
+
+.modal-glass-close {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  background: var(--glass-bg-light);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modal-glass-close:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glow-soft-pink);
+  transform: rotate(90deg);
+}
+
+/* -------------------- Glass Tooltip -------------------- */
+.tooltip-glass {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--blur-medium);
+  border: var(--glass-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: var(--shadow-glass-md), var(--glow-soft-blue);
+  position: absolute;
+  z-index: 100;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fade-in-glass 0.2s ease-out;
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+.aurora-glow-purple {
+  animation: soft-glow-pulse 4s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+.aurora-glow-blue {
+  animation: soft-glow-pulse 4s ease-in-out infinite;
+  animation-delay: 1.3s;
+}
+
+.aurora-glow-pink {
+  animation: soft-glow-pulse 4s ease-in-out infinite;
+  animation-delay: 2.6s;
+}
+
+.float-gentle {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  margin: var(--space-lg) 0;
+}
+
+.text-glow-purple {
+  text-shadow: var(--text-glow-purple);
+}
+
+.text-glow-blue {
+  text-shadow: var(--text-glow-blue);
+}
+
+.text-glow-pink {
+  text-shadow: var(--text-glow-pink);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--blur-subtle);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glass-purple-tint);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--glass-bg-hover);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Selection Styling */
+::selection {
+  background: var(--glass-purple-tint);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background: var(--glass-purple-tint);
+  color: var(--text-primary);
+}

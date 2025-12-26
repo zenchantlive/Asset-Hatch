@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurora Glassmorphism Design System - Demo</title>
+  <link rel="stylesheet" href="aurora-design-system.css">
+  <style>
+    /* Demo-specific styles */
+    .demo-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 48px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .demo-section {
+      margin-bottom: 64px;
+    }
+
+    .demo-section-title {
+      color: var(--text-primary);
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      text-shadow: var(--text-glow-purple);
+    }
+
+    .demo-section-description {
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+      max-width: 800px;
+    }
+
+    .demo-grid {
+      display: grid;
+      gap: 24px;
+    }
+
+    .demo-grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .demo-grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .component-wrapper {
+      padding: 24px;
+      background: var(--glass-bg-light);
+      border: var(--glass-border-light);
+      border-radius: var(--radius-lg);
+      backdrop-filter: var(--blur-subtle);
+    }
+
+    .component-label {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .color-swatch {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .color-item {
+      text-align: center;
+    }
+
+    .color-box {
+      width: 100%;
+      height: 80px;
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .color-name {
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .color-hex {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chat-demo {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .form-demo {
+      max-width: 500px;
+    }
+
+    .form-field {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 24px;
+      margin-bottom: 64px;
+    }
+
+    .hero-title {
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-shadow: var(--text-glow-purple);
+      margin-bottom: 24px;
+      animation: float-gentle 6s ease-in-out infinite;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <!-- Hero Section -->
+    <div class="hero">
+      <h1 class="hero-title">Aurora Glassmorphism</h1>
+      <p class="hero-subtitle">
+        An ethereal, soft, and magical design system inspired by the northern lights.
+        Elegant glassmorphism meets dreamy aurora effects.
+      </p>
+      <div class="button-group" style="justify-content: center;">
+        <button class="btn-glass btn-glass-primary">Get Started</button>
+        <button class="btn-glass btn-glass-secondary">View Docs</button>
+        <button class="btn-glass">Learn More</button>
+      </div>
+    </div>
+
+    <!-- Color Palette Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Color Palette</h2>
+      <p class="demo-section-description">
+        Soft, ethereal colors inspired by the aurora borealis. Deep purples, gentle blues,
+        soft pinks, and tranquil teals create a dreamy atmosphere.
+      </p>
+
+      <div class="color-swatch">
+        <div class="color-item">
+          <div class="color-box" style="background: #2d1b4e;"></div>
+          <div class="color-name">Deep Purple</div>
+          <div class="color-hex">#2d1b4e</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #4a3768;"></div>
+          <div class="color-name">Soft Purple</div>
+          <div class="color-hex">#4a3768</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #6b5b95;"></div>
+          <div class="color-name">Lavender</div>
+          <div class="color-hex">#6b5b95</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #1e3a5f;"></div>
+          <div class="color-name">Twilight Blue</div>
+          <div class="color-hex">#1e3a5f</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #3d5a80;"></div>
+          <div class="color-name">Soft Blue</div>
+          <div class="color-hex">#3d5a80</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #5b7fa6;"></div>
+          <div class="color-name">Sky Blue</div>
+          <div class="color-hex">#5b7fa6</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #c27ba0;"></div>
+          <div class="color-name">Aurora Pink</div>
+          <div class="color-hex">#c27ba0</div>
+        </div>
+        <div class="color-item">
+          <div class="color-box" style="background: #4a7c7e;"></div>
+          <div class="color-name">Ethereal Teal</div>
+          <div class="color-hex">#4a7c7e</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quality Dropdowns Bar -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Quality Dropdowns Bar</h2>
+      <p class="demo-section-description">
+        Frosted glass navigation bar with animated aurora shimmer effect.
+        Hover to see the soft purple glow.
+      </p>
+
+      <div class="quality-dropdowns-bar">
+        <select class="quality-dropdown">
+          <option>Low Poly</option>
+          <option selected>High Poly</option>
+          <option>Ultra Poly</option>
+        </select>
+
+        <select class="quality-dropdown">
+          <option>512px</option>
+          <option>1024px</option>
+          <option selected>2048px</option>
+          <option>4096px</option>
+        </select>
+
+        <select class="quality-dropdown">
+          <option>PBR Basic</option>
+          <option selected>PBR Advanced</option>
+          <option>PBR Premium</option>
+        </select>
+
+        <select class="quality-dropdown">
+          <option>Metallic</option>
+          <option>Specular</option>
+          <option selected>Roughness</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Buttons Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Glass Buttons</h2>
+      <p class="demo-section-description">
+        Interactive buttons with soft glows and ripple effects. Available in multiple variants
+        for different actions.
+      </p>
+
+      <div class="demo-grid demo-grid-2">
+        <div class="component-wrapper">
+          <span class="component-label">Default Buttons</span>
+          <div class="button-group">
+            <button class="btn-glass">Default</button>
+            <button class="btn-glass">With Icon →</button>
+            <button class="btn-glass" disabled>Disabled</button>
+          </div>
+        </div>
+
+        <div class="component-wrapper">
+          <span class="component-label">Primary Variant (Purple)</span>
+          <div class="button-group">
+            <button class="btn-glass btn-glass-primary">Save Plan</button>
+            <button class="btn-glass btn-glass-primary">Generate Asset</button>
+            <button class="btn-glass btn-glass-primary">Apply Changes</button>
+          </div>
+        </div>
+
+        <div class="component-wrapper">
+          <span class="component-label">Secondary Variant (Blue)</span>
+          <div class="button-group">
+            <button class="btn-glass btn-glass-secondary">Export</button>
+            <button class="btn-glass btn-glass-secondary">Download</button>
+            <button class="btn-glass btn-glass-secondary">Share</button>
+          </div>
+        </div>
+
+        <div class="component-wrapper">
+          <span class="component-label">Size Variations</span>
+          <div class="button-group" style="align-items: center;">
+            <button class="btn-glass" style="padding: 6px 12px; font-size: 12px;">Small</button>
+            <button class="btn-glass">Medium (Default)</button>
+            <button class="btn-glass" style="padding: 16px 32px; font-size: 16px;">Large</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat Messages Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Chat Message Bubbles</h2>
+      <p class="demo-section-description">
+        Glass-effect message bubbles with color-coded borders for user and assistant.
+        Hover to see the gentle glow and slide animation.
+      </p>
+
+      <div class="chat-demo">
+        <div class="chat-message user">
+          <p class="chat-message-text">
+            Create a medieval sword with high detail and ornate guard
+          </p>
+          <span class="chat-message-time">2:34 PM</span>
+        </div>
+
+        <div class="chat-message assistant">
+          <p class="chat-message-text">
+            I'll create a high-poly medieval sword with intricate details on the guard and pommel.
+            The blade will feature realistic wear patterns and the textures will be 2048x2048 PBR.
+          </p>
+          <span class="chat-message-time">2:35 PM</span>
+        </div>
+
+        <div class="chat-message user">
+          <p class="chat-message-text">
+            Perfect! Can you also add some runes on the blade?
+          </p>
+          <span class="chat-message-time">2:36 PM</span>
+        </div>
+
+        <div class="chat-message assistant">
+          <p class="chat-message-text">
+            Absolutely! I'll add custom runic inscriptions along the fuller of the blade,
+            with proper normal mapping to make them look engraved.
+          </p>
+          <span class="chat-message-time">2:37 PM</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cards Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Glass Cards</h2>
+      <p class="demo-section-description">
+        Content containers with animated aurora top border. Perfect for displaying
+        information, stats, or grouped content.
+      </p>
+
+      <div class="demo-grid demo-grid-3">
+        <div class="card-glass">
+          <h3 class="card-glass-title">Recent Assets</h3>
+          <div class="card-glass-content">
+            <p style="margin-bottom: 8px;">Medieval Sword - 2048px</p>
+            <p style="margin-bottom: 8px;">Fantasy Shield - 1024px</p>
+            <p style="margin-bottom: 8px;">Ornate Helmet - 2048px</p>
+            <p style="margin-bottom: 0;">Magic Staff - 4096px</p>
+          </div>
+        </div>
+
+        <div class="card-glass">
+          <h3 class="card-glass-title">Statistics</h3>
+          <div class="card-glass-content">
+            <p style="margin-bottom: 8px;">Assets Generated: <strong>127</strong></p>
+            <p style="margin-bottom: 8px;">Total Polygons: <strong>1.2M</strong></p>
+            <p style="margin-bottom: 8px;">Textures Created: <strong>453</strong></p>
+            <p style="margin-bottom: 0;">Average Quality: <strong>High</strong></p>
+          </div>
+        </div>
+
+        <div class="card-glass aurora-glow-purple">
+          <h3 class="card-glass-title">Pro Features</h3>
+          <div class="card-glass-content">
+            <p style="margin-bottom: 8px;">✨ 4K Textures</p>
+            <p style="margin-bottom: 8px;">✨ Unlimited Exports</p>
+            <p style="margin-bottom: 8px;">✨ Custom Shaders</p>
+            <p style="margin-bottom: 0;">✨ Priority Support</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Badges Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Glass Badges & Tags</h2>
+      <p class="demo-section-description">
+        Small labels for categories, status indicators, or metadata. Available in
+        multiple color variants matching the aurora palette.
+      </p>
+
+      <div class="demo-grid demo-grid-2">
+        <div class="component-wrapper">
+          <span class="component-label">Quality Badges</span>
+          <div class="badge-group">
+            <span class="badge-glass badge-glass-purple">High Poly</span>
+            <span class="badge-glass badge-glass-blue">2048px</span>
+            <span class="badge-glass badge-glass-pink">PBR</span>
+            <span class="badge-glass badge-glass-teal">Metallic</span>
+          </div>
+        </div>
+
+        <div class="component-wrapper">
+          <span class="component-label">Status Badges</span>
+          <div class="badge-group">
+            <span class="badge-glass badge-glass-purple">In Progress</span>
+            <span class="badge-glass badge-glass-blue">Completed</span>
+            <span class="badge-glass badge-glass-pink">Pending Review</span>
+            <span class="badge-glass badge-glass-teal">Published</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Form Elements Section -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Form Elements</h2>
+      <p class="demo-section-description">
+        Glass-styled inputs and textareas with soft focus glow effects.
+        Minimal borders that illuminate on interaction.
+      </p>
+
+      <div class="form-demo">
+        <div class="form-field">
+          <label class="form-label" for="asset-name">Asset Name</label>
+          <input
+            id="asset-name"
+            type="text"
+            class="input-glass"
+            placeholder="Enter asset name..."
+          />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="asset-category">Category</label>
+          <select id="asset-category" class="quality-dropdown">
+            <option>Weapons</option>
+            <option>Armor</option>
+            <option>Props</option>
+            <option>Vehicles</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="asset-description">Description</label>
+          <textarea
+            id="asset-description"
+            class="textarea-glass"
+            placeholder="Describe your asset in detail..."
+          ></textarea>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Quality Settings</label>
+          <div class="badge-group">
+            <span class="badge-glass badge-glass-purple">High Poly</span>
+            <span class="badge-glass badge-glass-blue">2048px</span>
+            <span class="badge-glass badge-glass-pink">PBR Advanced</span>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn-glass btn-glass-primary">Generate Asset</button>
+          <button class="btn-glass btn-glass-secondary">Save Draft</button>
+          <button class="btn-glass">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Plan Preview Panel -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Plan Preview Panel</h2>
+      <p class="demo-section-description">
+        Large display panel with animated aurora border for showcasing detailed
+        asset generation plans. Features radial gradient overlay for depth.
+      </p>
+
+      <div class="plan-preview-panel">
+        <h2 class="plan-preview-title">Medieval Sword Asset Generation Plan</h2>
+        <div class="plan-preview-content">
+          <h3 style="color: var(--text-primary); font-size: 18px; margin: 24px 0 12px;">
+            Model Specifications
+          </h3>
+          <p style="margin-bottom: 8px;">
+            <strong>Polygon Count:</strong> 5,000 triangles (optimized for games)
+          </p>
+          <p style="margin-bottom: 8px;">
+            <strong>UV Mapping:</strong> Smart UV project with minimal seams
+          </p>
+          <p style="margin-bottom: 8px;">
+            <strong>LOD Levels:</strong> 3 levels (5K, 2.5K, 1K triangles)
+          </p>
+
+          <div class="glass-divider"></div>
+
+          <h3 style="color: var(--text-primary); font-size: 18px; margin: 24px 0 12px;">
+            Texture Details
+          </h3>
+          <p style="margin-bottom: 8px;">
+            <strong>Resolution:</strong> 2048x2048 pixels
+          </p>
+          <p style="margin-bottom: 8px;">
+            <strong>Workflow:</strong> PBR Metallic (Albedo, Normal, Metallic, Roughness, AO)
+          </p>
+          <p style="margin-bottom: 8px;">
+            <strong>Format:</strong> PNG (8-bit, sRGB color space)
+          </p>
+
+          <div class="glass-divider"></div>
+
+          <h3 style="color: var(--text-primary); font-size: 18px; margin: 24px 0 12px;">
+            Additional Features
+          </h3>
+          <p style="margin-bottom: 8px;">
+            ✦ Ornate guard with Celtic-inspired patterns
+          </p>
+          <p style="margin-bottom: 8px;">
+            ✦ Runic inscriptions along blade fuller
+          </p>
+          <p style="margin-bottom: 8px;">
+            ✦ Realistic wear and battle damage
+          </p>
+          <p style="margin-bottom: 8px;">
+            ✦ Leather-wrapped handle with metal wire binding
+          </p>
+          <p style="margin-bottom: 0;">
+            ✦ Pommel with gem inset option
+          </p>
+
+          <div style="margin-top: 32px;">
+            <div class="button-group">
+              <button class="btn-glass btn-glass-primary">Start Generation</button>
+              <button class="btn-glass btn-glass-secondary">Modify Plan</button>
+              <button class="btn-glass">Save for Later</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tooltips & Modals (示例按钮，实际模态框需要JS) -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Interactive Elements</h2>
+      <p class="demo-section-description">
+        Additional UI components for enhanced interactions. These demonstrate
+        the versatility of the glass effect across different use cases.
+      </p>
+
+      <div class="demo-grid demo-grid-2">
+        <div class="component-wrapper">
+          <span class="component-label">Tooltip Example</span>
+          <button class="btn-glass" style="position: relative;">
+            Hover Me
+            <div class="tooltip-glass" style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; display: none;">
+              This is a glass tooltip
+            </div>
+          </button>
+          <p style="color: var(--text-tertiary); font-size: 12px; margin-top: 8px;">
+            (Tooltip implementation requires JavaScript)
+          </p>
+        </div>
+
+        <div class="component-wrapper">
+          <span class="component-label">Glass Divider</span>
+          <p style="color: var(--text-secondary); margin-bottom: 16px;">
+            Section above
+          </p>
+          <div class="glass-divider"></div>
+          <p style="color: var(--text-secondary); margin-top: 16px; margin-bottom: 0;">
+            Section below
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Animation Examples -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Aurora Animations</h2>
+      <p class="demo-section-description">
+        Subtle, dreamy animations that bring the interface to life. All animations
+        are performance-optimized and respect user preferences for reduced motion.
+      </p>
+
+      <div class="demo-grid demo-grid-3">
+        <div class="card-glass aurora-glow-purple">
+          <h3 class="card-glass-title">Aurora Glow (Purple)</h3>
+          <div class="card-glass-content">
+            <p>This card pulses with a soft purple glow that cycles through aurora colors.</p>
+          </div>
+        </div>
+
+        <div class="card-glass aurora-glow-blue">
+          <h3 class="card-glass-title">Aurora Glow (Blue)</h3>
+          <div class="card-glass-content">
+            <p>Starting with blue, this card demonstrates the 4-second animation cycle.</p>
+          </div>
+        </div>
+
+        <div class="card-glass float-gentle">
+          <h3 class="card-glass-title">Gentle Float</h3>
+          <div class="card-glass-content">
+            <p>This card gently floats up and down, creating a dreamy, weightless effect.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Design Tokens Reference -->
+    <section class="demo-section">
+      <h2 class="demo-section-title">Design Tokens Quick Reference</h2>
+      <p class="demo-section-description">
+        CSS custom properties you can use throughout your application for consistency.
+      </p>
+
+      <div class="demo-grid demo-grid-2">
+        <div class="card-glass">
+          <h3 class="card-glass-title">Spacing Scale</h3>
+          <div class="card-glass-content" style="font-family: monospace; font-size: 13px;">
+            <p style="margin-bottom: 4px;">--space-xs: 4px</p>
+            <p style="margin-bottom: 4px;">--space-sm: 8px</p>
+            <p style="margin-bottom: 4px;">--space-md: 16px</p>
+            <p style="margin-bottom: 4px;">--space-lg: 24px</p>
+            <p style="margin-bottom: 4px;">--space-xl: 32px</p>
+            <p style="margin-bottom: 0;">--space-2xl: 48px</p>
+          </div>
+        </div>
+
+        <div class="card-glass">
+          <h3 class="card-glass-title">Border Radius</h3>
+          <div class="card-glass-content" style="font-family: monospace; font-size: 13px;">
+            <p style="margin-bottom: 4px;">--radius-sm: 8px</p>
+            <p style="margin-bottom: 4px;">--radius-md: 12px</p>
+            <p style="margin-bottom: 4px;">--radius-lg: 16px</p>
+            <p style="margin-bottom: 4px;">--radius-xl: 24px</p>
+            <p style="margin-bottom: 0;">--radius-full: 9999px</p>
+          </div>
+        </div>
+
+        <div class="card-glass">
+          <h3 class="card-glass-title">Blur Intensity</h3>
+          <div class="card-glass-content" style="font-family: monospace; font-size: 13px;">
+            <p style="margin-bottom: 4px;">--blur-subtle: blur(8px)</p>
+            <p style="margin-bottom: 4px;">--blur-medium: blur(12px)</p>
+            <p style="margin-bottom: 4px;">--blur-strong: blur(20px)</p>
+            <p style="margin-bottom: 0;">--blur-intense: blur(30px)</p>
+          </div>
+        </div>
+
+        <div class="card-glass">
+          <h3 class="card-glass-title">Transitions</h3>
+          <div class="card-glass-content" style="font-family: monospace; font-size: 13px;">
+            <p style="margin-bottom: 4px;">--transition-fast: 150ms</p>
+            <p style="margin-bottom: 4px;">--transition-normal: 300ms</p>
+            <p style="margin-bottom: 4px;">--transition-slow: 500ms</p>
+            <p style="margin-bottom: 0;">--transition-aurora: 3000ms</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 48px 0; margin-top: 64px;">
+      <div class="glass-divider" style="max-width: 600px; margin: 0 auto 32px;"></div>
+      <p style="color: var(--text-secondary); margin-bottom: 8px;">
+        Aurora Glassmorphism Design System
+      </p>
+      <p style="color: var(--text-tertiary); font-size: 14px;">
+        Ethereal • Elegant • Enchanting
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    // Simple tooltip demonstration
+    document.querySelectorAll('.btn-glass').forEach(btn => {
+      const tooltip = btn.querySelector('.tooltip-glass');
+      if (tooltip) {
+        btn.addEventListener('mouseenter', () => {
+          tooltip.style.display = 'block';
+        });
+        btn.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      }
+    });
+
+    // Log when animations complete (for debugging)
+    console.log('Aurora Glassmorphism Design System Demo Loaded');
+    console.log('Background animations active: aurora-shift (20s), aurora-pulse (8s)');
+    console.log('Shimmer sweep: 15s cycle on quality bar');
+  </script>
+</body>
+</html>

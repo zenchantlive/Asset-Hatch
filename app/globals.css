@@ -113,6 +113,35 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Aurora Glassmorphism Theme */
+  /* Aurora gradient colors - soft, ethereal, NOT neon */
+  --aurora-1: oklch(0.75 0.15 270); /* Soft purple */
+  --aurora-2: oklch(0.70 0.12 240); /* Gentle blue */
+  --aurora-3: oklch(0.72 0.10 300); /* Ethereal pink */
+  --aurora-4: oklch(0.68 0.13 200); /* Soft teal */
+
+  /* Glassmorphism surfaces */
+  --glass-bg: oklch(0.98 0 0 / 0.7);
+  --glass-border: oklch(1 0 0 / 0.15);
+  --glass-bg-dark: oklch(0.2 0 0 / 0.7);
+  --glass-border-dark: oklch(1 0 0 / 0.1);
+
+  /* Aurora glow effects */
+  --glow-soft: oklch(0.75 0.15 270 / 0.3);
+  --glow-medium: oklch(0.70 0.12 240 / 0.5);
+
+  /* Spacing scale (rem-based) */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Layout dimensions */
+  --header-height: 4rem;
+  --qualities-bar-height: 3.5rem;
 }
 
 @layer base {
@@ -121,5 +150,90 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Glassmorphism Utility Classes */
+@layer components {
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(1rem) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 0.5rem 2rem oklch(0 0 0 / 0.1);
+  }
+
+  .dark .glass-panel {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border-dark);
+    box-shadow: 0 0.5rem 2rem oklch(0 0 0 / 0.3);
+  }
+
+  .aurora-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--aurora-1),
+      var(--aurora-2),
+      var(--aurora-3),
+      var(--aurora-4)
+    );
+    background-size: 300% 300%;
+    animation: aurora-gradient 10s ease infinite;
+  }
+
+  .aurora-glow-hover {
+    transition: box-shadow 0.3s ease;
+  }
+
+  .aurora-glow-hover:hover {
+    animation: aurora-glow 2s ease-in-out infinite;
+  }
+
+  .glass-input {
+    background: var(--glass-bg);
+    backdrop-filter: blur(0.5rem);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .dark .glass-input {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border-dark);
+  }
+
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--aurora-1);
+    box-shadow: 0 0 0 3px var(--glow-soft);
+  }
+}
+
+/* Aurora Animations */
+@keyframes aurora-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes aurora-glow {
+  0%, 100% {
+    box-shadow: 0 0 1rem var(--glow-soft);
+  }
+  50% {
+    box-shadow: 0 0 2rem var(--glow-medium);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-gradient,
+  .aurora-glow-hover:hover {
+    animation: none;
   }
 }
