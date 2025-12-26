@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "mcp__plugin_serena_serena__get_current_config",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_serena_serena__check_onboarding_performed",
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(bun add:*)",
+      "mcp__plugin_claude-mem_mem-search__search"
+    ]
+  }
+}

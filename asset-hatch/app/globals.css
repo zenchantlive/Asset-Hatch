@@ -1,0 +1,219 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Premium Dark Theme Variables */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+
+  /* Sidebar & Panel Colors */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* UI Component Colors */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart Colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Aurora & Glass System */
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
+  --color-aurora-1: var(--aurora-1);
+  --color-aurora-2: var(--aurora-2);
+  --color-aurora-3: var(--aurora-3);
+  --color-aurora-4: var(--aurora-4);
+}
+
+:root {
+  /* Premium Dark Theme Base - Deep Violet/Blue shift */
+  --background: oklch(0.10 0.04 260);
+  /* Deep space blue */
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(0.12 0.04 260);
+  --card-foreground: oklch(0.98 0 0);
+
+  --popover: oklch(0.12 0.04 260);
+  --popover-foreground: oklch(0.98 0 0);
+
+  --primary: oklch(0.70 0.20 280);
+  /* Vivid purple/indigo accent */
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.20 0.06 260);
+  /* Muted blue-grey */
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.18 0.04 260);
+  --muted-foreground: oklch(0.70 0.04 260);
+
+  --accent: oklch(0.70 0.20 280 / 0.15);
+  /* Primary with transparency */
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.6 0.25 20);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.98 0 0 / 0.1);
+  --input: oklch(0.98 0 0 / 0.1);
+  --ring: oklch(0.70 0.20 280);
+
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar: oklch(0.08 0.04 260);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.70 0.20 280);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.15 0.05 260);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.98 0 0 / 0.05);
+  --sidebar-ring: oklch(0.70 0.20 280);
+
+  /* Charts */
+  --chart-1: oklch(0.70 0.20 280);
+  --chart-2: oklch(0.65 0.20 240);
+  --chart-3: oklch(0.60 0.20 200);
+  --chart-4: oklch(0.75 0.15 320);
+  --chart-5: oklch(0.80 0.15 340);
+
+  /* Aurora Palette - Adjusted for Deep Dark Theme */
+  --aurora-1: oklch(0.40 0.20 270 / 0.4);
+  /* Deep Purple */
+  --aurora-2: oklch(0.35 0.15 230 / 0.4);
+  /* Deep Blue */
+  --aurora-3: oklch(0.45 0.20 310 / 0.3);
+  /* Magenta */
+  --aurora-4: oklch(0.30 0.15 200 / 0.3);
+  /* Teal */
+
+  --glass-bg: oklch(0.12 0.04 260 / 0.4);
+  --glass-border: oklch(1 0 0 / 0.12);
+  --glass-highlight: oklch(1 0 0 / 0.05);
+}
+
+/* Force Dark Mode defaults since we want a "Space" theme primarily */
+.dark {
+  /* Inherits root values as they are already dark-first */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply text-foreground font-sans antialiased;
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(circle at 0% 0%, var(--aurora-1) 0%, transparent 50%),
+      radial-gradient(circle at 100% 0%, var(--aurora-2) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, var(--aurora-3) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, var(--aurora-4) 0%, transparent 50%);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+
+    /* Subtle noise texture for premium feel */
+    position: relative;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 50;
+  }
+}
+
+/* Premium Component Utilities */
+@layer components {
+
+  /* Glass Panel - The core building block */
+  .glass-panel {
+    @apply bg-glass-bg backdrop-blur-xl border border-glass-border shadow-2xl;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 0 var(--glass-highlight);
+  }
+
+  /* Interactive Glass - Hover states */
+  .glass-interactive {
+    @apply bg-glass-bg backdrop-blur-xl border border-glass-border shadow-2xl transition-all duration-300;
+  }
+
+  .glass-interactive:hover {
+    @apply bg-glass-bg/60 border-primary/30 shadow-primary/10;
+    transform: translateY(-1px);
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.2),
+      0 4px 6px -2px rgba(0, 0, 0, 0.1),
+      0 0 20px -5px var(--color-primary);
+  }
+
+  /* Neon Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70;
+  }
+
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-blue-400;
+  }
+}
+
+/* Animations */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
