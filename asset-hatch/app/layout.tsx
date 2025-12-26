@@ -23,7 +23,10 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} font-sans antialiased`}
       >
-        <CopilotKit runtimeUrl="/api/copilotkit">
+        <CopilotKit
+          runtimeUrl="/api/copilotkit"
+          publicApiKey={process.env.NEXT_PUBLIC_COPILOTKIT_PUBLIC_KEY}
+        >
           {children}
         </CopilotKit>
       </body>

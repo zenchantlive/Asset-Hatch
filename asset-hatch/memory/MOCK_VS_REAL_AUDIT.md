@@ -10,7 +10,7 @@
 ### Core Infrastructure
 - ✅ **Next.js 15 App Router** - Real, working
 - ✅ **CopilotKit v1.50** - Real AI chat integration
-- ✅ **OpenRouter + Gemini 2.5 Pro** - Real API endpoint (`/api/copilotkit/route.ts`)
+- ✅ **OpenRouter + gemini 3 Pro** - Real API endpoint (`/api/copilotkit/route.ts`)
 - ✅ **Dexie (IndexedDB)** - Real local database for projects
 - ✅ **Tailwind CSS + shadcn/ui** - Real component library
 - ✅ **Dark mode support** - Real theme switching
