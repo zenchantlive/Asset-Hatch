@@ -31,7 +31,13 @@ export default function PlanningPage() {
 
     setIsApproving(true)
     try {
-      const projectId = params.id as string
+      const projectId = params.id;
+      if (typeof projectId !== 'string') {
+        console.error("Plan approval failed: Invalid Project ID.");
+        // TODO: Add user-facing error notification (future enhancement)
+        setIsApproving(false);
+        return;
+      }
 
       // 1. Save plan to memory file as entities.json
       await saveMemoryFile(projectId, 'entities.json', planMarkdown)
