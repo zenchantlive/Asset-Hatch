@@ -1,12 +1,14 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-26
-**Session:** Planning Phase P1 - CopilotKit Runtime Debugging (BLOCKED)
+**Session:** UI Integration Phase - Plan Parser + Style Tools ✅ COMPLETE
+**Branch:** feat/add-style-phase-tools
 
 ---
 
 ## 📍 Current Focus
-> **RESOLVED:** CopilotKit runtime integration fixed by removing publicApiKey conflict. Ready to test chat + AI tools.
+
+> **🎉 UI INTEGRATION PROGRESS:** Successfully implemented plan parser, multi-mode tab navigation, and complete style phase AI tool integration. Planning page now supports Plan/Style/Generation modes with seamless AI-assisted workflow. Generation queue UI remains pending.
 
 ---
 
@@ -14,196 +16,319 @@
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
-| Database schema v2 | ✅ Complete | memory_files table added, quality fields on projects |
-| usePlanningTools hook | ✅ Written | 3 tools defined, ready to test |
-| useCopilotReadable | ✅ Written | Context sharing code present, ready to test |
-| Plan approval workflow | ✅ Written | DB save + phase transition logic complete, ready to test |
-| ChatInterface | ✅ FIXED | Removed publicApiKey conflict, awaiting user test |
-| CopilotKit runtime | ✅ FIXED | Self-hosted mode only (no cloud key) |
-| AI chat functionality | 🧪 READY TO TEST | Should work after restarting dev server |
-
---- | :--- | :--- |
-| Database schema v2 | ✅ Complete | memory_files table added, quality fields on projects |
-| usePlanningTools hook | ✅ Written | 3 tools defined, untested |
-| useCopilotReadable | ✅ Written | Context sharing code present, untested |
-| Plan approval workflow | ✅ Written | DB save + phase transition logic complete, untested |
-| ChatInterface | ❌ BROKEN | `message.isResultMessage is not a function` error |
-| CopilotKit runtime | ❌ BROKEN | Multiple integration attempts failed |
-| AI chat functionality | ❌ BROKEN | Cannot send messages, cannot get responses |
+| **Planning Phase P1** | ✅ Complete | Chat, tools, plan generation working |
+| **AI SDK v6 Migration** | ✅ Complete | All tool execution issues resolved |
+| **Database Schema v3** | ✅ Complete | style_anchors, character_registry, generated_assets tables |
+| **Image Utilities** | ✅ Complete | Blob ↔ base64 conversion, color extraction |
+| **Prompt Templates** | ✅ Complete | 6 asset-type templates with priority ordering |
+| **Prompt Builder** | ✅ Complete | buildAssetPrompt() with quality integration |
+| **AI Style Extraction** | ✅ Complete | Vision API route /api/analyze-style |
+| **Style Anchor Editor** | ✅ Complete | UI component with AI suggestions |
+| **Generation API** | ✅ Complete | /api/generate route with Flux.2 integration |
+| **Plan Parser** | ✅ Complete | Parse markdown → ParsedAsset[], composite/granular modes |
+| **Multi-Mode Planning Page** | ✅ Complete | Tab navigation, file viewer menu, mode switching |
+| **Style Phase AI Tools** | ✅ Complete | 4 tools integrated with ChatInterface |
+| **Generation Queue UI** | 🔴 TODO | Asset tree, prompt editor, status tracking |
 
 ---
 
-## 🔗 Recent Work (This Session)
+## 🎯 Critical Architectural Decisions
 
-### Files Created
-1. **`hooks/usePlanningTools.ts`** - CopilotKit actions for updateQuality, updatePlan, finalizePlan
-2. **`lib/db-utils.ts`** - Database helpers (saveMemoryFile, loadMemoryFile, updateProjectQualities)
+### **1. Single-Page Multi-Mode Design** ✅ DECIDED
+**Decision:** Keep user on `/project/[id]/planning` page, switch right panel modes instead of navigating to separate pages.
 
-### Files Modified
-1. **`lib/db.ts`** - Upgraded to v2 schema with memory_files table and quality fields
-2. **`app/project/[id]/planning/page.tsx`** - Added tools, context sharing, plan approval logic
-3. **`components/planning/ChatInterface.tsx`** - Multiple attempts to fix message handling
-4. **`app/layout.tsx`** - Toggled between cloud/self-hosted runtime configurations
-5. **`app/api/copilotkit/route.ts`** - Multiple implementation attempts (custom relay → official runtime → various adapters)
-
-### Git Commits
-- **b7c72f3** - "feat: Complete Planning Phase P1 implementation with CopilotKit tools"
-- **c59879c** - "chore: Add supporting files and configuration"
-
----
-
-## 🛑 Critical Blockers
-
-### 1. CopilotKit Runtime Integration (CRITICAL)
-**Error:** `message.isResultMessage is not a function`
-**Location:** `components/planning/ChatInterface.tsx:62`
-**Impact:** ALL AI features non-functional
-
-**Attempts made (8 total):**
-1. Custom streaming API relay → Agent registration errors
-2. CopilotKit cloud runtime → Can't use Gemini/OpenRouter
-3. Official CopilotRuntime + OpenAIAdapter → Server crashes (exit 58)
-4. copilotRuntimeNextJSAppRouterEndpoint → Server crashes
-5. Message format: `{role, content}` object → isResultMessage error
-6. Message format: string only → isResultMessage error
-7. `useCopilotChatHeadless_c` hook → isResultMessage error
-8. `useCopilotChat` hook → isResultMessage error (current)
-
-**Root cause:** Unknown. Possible version mismatch or OpenRouter incompatibility.
-
-**Time spent:** 4+ hours
-
----
-
-## 🔍 Environment Context
-
-### Package Versions
-- **CopilotKit:** @copilotkit/react-core@^1.50.1, @copilotkit/runtime@^1.50.1
-- **Next.js:** 16.1.1 (Turbopack)
-- **Bun:** v1.3.5
-- **React:** 19.2.3
-
-### Runtime Setup
-- **User OS:** Windows 11 (runs `bun dev` in PowerShell)
-- **AI environment:** WSL (cannot run bun)
-- **Dev server:** localhost:3000 (Turbopack hot reload)
-
-### Environment Variables
+**Implementation:**
 ```
-OPENROUTER_API_KEY=sk-or-v1-*** (valid)
-NEXT_PUBLIC_COPILOTKIT_PUBLIC_KEY=ck_pub_5cdd5559249effec5b50823aa47b4cfd (valid)
+┌────────────────────────────────────────────┐
+│ [Plan] [Style] [Generation]  📄 Files [▼] │ ← Tab navigation
+│  Chat (Left)   │   Right Panel (Mode)      │
+│                │   - Plan Mode: markdown   │
+│                │   - Style Mode: keywords  │
+│                │   - Gen Mode: queue       │
+└────────────────────────────────────────────┘
 ```
 
----
-
-## ⏭️ Next Session Options
-
-### Option A: Continue Debugging CopilotKit
-**Pros:**
-- Maintains ADR-001 decision (use CopilotKit)
-- Tools and context sharing already defined
-- Premium features (headless chat) available
-
-**Cons:**
-- 4+ hours spent, no resolution
-- Error cause unknown
-- Limited control over runtime internals
-- OpenRouter compatibility uncertain
-
-**Action items:**
-- Deep dive into CopilotKit v1.50 source code
-- Check for version mismatches (`bun list | grep copilot`)
-- Test with official CopilotKit examples
-- File GitHub issue with maintainers
-
-### Option B: Replace with Raw OpenAI SDK
-**Pros:**
-- Full control over message handling
-- Direct OpenRouter integration
-- Simpler debugging
-- Well-documented API
-
-**Cons:**
-- Breaks ADR-001 (use CopilotKit)
-- Must implement tools manually
-- Lose premium CopilotKit features
-- More boilerplate code
-
-**Action items:**
-- Remove CopilotKit dependencies
-- Install `openai` SDK or Vercel AI SDK
-- Implement custom chat component
-- Build tool calling with OpenAI function calling
-- Update ADR-001 or create ADR-005
-
-### Option C: Use Vercel AI SDK
-**Pros:**
-- Modern, Next.js-optimized
-- Built-in streaming support
-- Tool calling support
-- Active development
-
-**Cons:**
-- Another new framework to learn
-- Still requires custom implementation
-- No premium chat features
-
-**Action items:**
-- Install `ai` package from Vercel
-- Implement `useChat` hook
-- Configure OpenRouter as provider
-- Implement tools with `tools` option
+**Why:**
+- Consistent UX - user stays in same chat context
+- Natural workflow - continue conversation across phases
+- No page transitions - faster, smoother
+- File menu accessible - saved files visible at all times
 
 ---
 
-## 📝 Session Summary
+### **2. Flexible Editing with Version Tracking** ✅ DECIDED
+**Decision:** User can edit plan/style at any time. System tracks versions and marks affected assets as "outdated".
 
-### What We Built (Code Exists, Untested)
-- Database schema v2 with persistence layer
-- CopilotKit tools for AI-driven interactions
-- Context sharing for quality parameters
-- Plan approval workflow with DB save
-- Enhanced system prompts
+**Implementation:**
+```typescript
+interface MemoryFile {
+  version: number;        // Increments on save
+  updated_at: string;     // Last edit timestamp
+}
 
-### What Blocked Us
-- CopilotKit runtime integration failure
-- Unable to send chat messages
-- All AI features inaccessible
-- 8 different approaches attempted
+interface GeneratedAsset {
+  plan_version: number;   // Links to entities.json version
+  style_version: number;  // Links to style-anchor version
+  status: 'generated' | 'outdated' | 'approved';
+}
+```
 
-### What We Learned
-- CopilotKit v1.50 + OpenRouter may be incompatible
-- Self-hosted runtime more complex than expected
-- Headless chat hooks (`_c` variant) may be cloud-only
-- Exit code 58 in Bun indicates fatal Node.js error
+**Workflow:**
+1. User edits plan after generating 5 assets
+2. System shows warning: "This affects 5 existing assets"
+3. User chooses: Mark as outdated / Regenerate now / Cancel
+4. If marked outdated: Assets get status = 'outdated'
+5. Generation queue shows: ⚠️ warnings on outdated assets
+6. User can regenerate individually or batch
 
-### Time Breakdown
-- Database schema: 20 min ✅
-- Tools & hooks creation: 30 min ✅
-- Plan approval workflow: 15 min ✅
-- CopilotKit debugging: 4+ hours ❌
-
----
-
-## 🎯 Recommendation
-
-**Switch to Vercel AI SDK (Option C)**
-
-**Rationale:**
-1. CopilotKit debugging has low success probability
-2. Vercel AI SDK is Next.js-native
-3. Better documentation and community support
-4. Tool calling built-in
-5. Can keep the same UI components
-
-**Breaking changes:**
-- Replace `useCopilotChat` with Vercel's `useChat`
-- Remove CopilotKit provider from layout
-- Rewrite `/api/copilotkit` as `/api/chat`
-- Convert `useCopilotAction` to Vercel's `tools` format
-
-**Estimated time:** 2-3 hours (vs unknown time for CopilotKit)
+**Why:**
+- Flexibility - users can iterate freely
+- No data loss - old assets kept until user decides
+- Clear visibility - warnings show impact
+- User control - regenerate when ready, not forced
 
 ---
 
-**Next Session Starts Here:** Decide on AI SDK approach (CopilotKit vs Vercel AI SDK vs raw OpenAI). If switching, remove CopilotKit and implement Vercel AI SDK with OpenRouter + Gemini.
+### **3. Composite Sprite Sheets (DEFAULT)** ✅ DECIDED
+**Decision:** Default generation creates composite sprite sheets (multiple poses in one image), not individual frames.
+
+**Example:**
+```
+Input: "Farmer - Idle (4-direction)"
+
+DEFAULT (Composite):
+┌────────┬────────┬────────┬────────┐
+│ Front  │ Left   │ Right  │ Back   │  ← ONE image
+│  Idle  │  Idle  │  Idle  │  Idle  │
+└────────┴────────┴────────┴────────┘
+Prompt: "sprite sheet of farmer, 4 frames arranged horizontally,
+         idle animation, front/left/right/back views"
+
+OPTION (Granular - Studio Mode):
+Image 1: Farmer Idle Front (separate)
+Image 2: Farmer Idle Left (separate)
+Image 3: Farmer Idle Right (separate)
+Image 4: Farmer Idle Back (separate)
+```
+
+**Why DEFAULT is composite:**
+- Standard game dev format (sprite sheets are industry norm)
+- More efficient (1 API call vs 4)
+- Lower cost (1 generation vs 4)
+- LLM-friendly (when users give assets to AI coding agents later, they can see whole sheet)
+- Game engines expect sprite sheets
+
+**When to use GRANULAR:**
+- Professional studios wanting individual asset control
+- Manual editing of each variant
+- Precise approval/rejection per pose
+
+**Implementation:**
+```typescript
+// Project setting or generation page toggle
+const [generationMode, setGenerationMode] = useState<'composite' | 'granular'>('composite');
+
+// Plan parser expands based on mode:
+if (generationMode === 'composite') {
+  // "Idle (4-direction)" → ONE sprite-sheet task with 4 frames
+} else {
+  // "Idle (4-direction)" → FOUR character-sprite tasks
+}
+```
+
+---
+
+### **4. Style Anchor Image Upload - CRITICAL** ✅ DECIDED
+**Decision:** Style anchor reference image upload is REQUIRED (or highly recommended) for visual consistency.
+
+**Why Critical:**
+- Flux.2 uses reference images for style consistency
+- Every generation sends: `{ prompt, images: [styleAnchorBase64] }`
+- Without reference image: each asset looks different
+- With reference image: consistent art style across all assets
+
+**Workflow:**
+1. User uploads reference image OR describes style to AI
+2. AI analyzes image (vision model) → suggests keywords
+3. Client extracts color palette from image
+4. User edits AI suggestions
+5. Saves StyleAnchor to IndexedDB (with base64 cached)
+6. All generations include this image as reference
+
+**Implementation:**
+- `StyleAnchorEditor` component handles upload + AI analysis
+- `/api/analyze-style` uses GPT-4o vision to extract keywords
+- `lib/image-utils.ts` extracts color palette via canvas
+- Every `/api/generate` call includes `images: [styleAnchorBase64]`
+
+---
+
+## 🏗️ Architecture Summary
+
+### **Database Schema v3**
+```typescript
+// New tables in IndexedDB:
+style_anchors: {
+  reference_image_blob: Blob,
+  reference_image_base64: string, // Cached for API
+  style_keywords: string,
+  lighting_keywords: string,
+  color_palette: string[], // HEX codes
+}
+
+character_registry: {
+  base_description: string, // FULL description for consistency
+  successful_seed: number,
+  poses_generated: string[],
+  animations: Record<string, { seed, asset_id }>,
+}
+
+generated_assets: {
+  image_blob: Blob,
+  prompt_used: string,
+  plan_version: number,
+  style_version: number,
+  status: 'generated' | 'outdated' | 'approved',
+  generation_metadata: { model, seed, cost, duration_ms },
+}
+```
+
+### **Prompt Generation Flow**
+```
+1. Parse plan → ParsedAsset[]
+2. For each asset:
+   - Load project qualities
+   - Load style anchor
+   - Load character registry (if character)
+   - buildAssetPrompt() → priority-ordered prompt
+3. Call /api/generate with prompt + style anchor image
+4. Save GeneratedAsset to IndexedDB
+5. Update character registry with seed
+```
+
+### **Prompt Priority (CRITICAL)**
+Per FLUX2_PROMPT_ENGINEERING.md: **First 5 words carry highest weight**
+
+```typescript
+// ✅ CORRECT: Asset type + subject first
+"pixel art sprite of farmer character with straw hat, idle pose, 32x32..."
+
+// ❌ WRONG: Resolution/technical details first
+"32x32 pixel art idle farmer with straw hat sprite..."
+```
+
+Templates ensure correct priority ordering.
+
+---
+
+## 📦 Files Implemented (P0)
+
+### Created (7 new files)
+1. **lib/db.ts** - Schema v3 with 3 new tables (MODIFIED)
+2. **lib/image-utils.ts** - Blob/base64 conversion, color extraction
+3. **lib/prompt-templates.ts** - 6 asset-type templates
+4. **lib/prompt-builder.ts** - Priority-ordered prompt generation
+5. **app/api/analyze-style/route.ts** - AI vision analysis
+6. **components/style/StyleAnchorEditor.tsx** - Style anchor UI
+7. **app/api/generate/route.ts** - Generation API with Flux.2
+
+### Documentation (2 files)
+8. **memory/GENERATION_WORKFLOW_GAPS.md** - 13 critical gaps identified
+9. **memory/P0_GENERATION_IMPLEMENTATION_SUMMARY.md** - Complete guide
+
+**Total:** 2,904 lines added
+
+---
+
+## 🎯 Next Steps
+
+### **Completed This Session ✅**
+1. ✅ **Plan parser** - `lib/plan-parser.ts` (462 lines)
+   - Parse entities.json markdown → ParsedAsset[]
+   - Handle composite vs granular mode
+   - Expand animations (4-direction → 4 frames or 4 tasks)
+   - Auto-detect asset types from category and name
+
+2. ✅ **Multi-mode planning page** - `/app/project/[id]/planning/page.tsx`
+   - Tab navigation: [Plan] [Style] [Generation]
+   - Right panel mode state with conditional rendering
+   - File viewer menu in top-right dropdown
+   - StyleAnchorEditor integrated in Style mode
+
+3. ✅ **Style phase AI tools** - Complete integration
+   - 4 new Zod tools: updateStyleKeywords, updateLightingKeywords, updateColorPalette, saveStyleAnchor
+   - ChatInterface handles all style tool responses
+   - StyleAnchorEditor pre-fills with AI suggestions
+   - Full data flow: AI tools → ChatInterface → Planning page → StyleAnchorEditor
+
+### **Next Priority**
+1. **Create generation queue UI** - New components
+   - Asset queue tree (showing parsed assets from plan)
+   - Prompt editor (for reviewing/editing prompts)
+   - Generation status tracking (pending, generating, complete)
+   - Integration with `/api/generate` route
+
+### **Future Phases**
+- P1: Character registry UI, warning system
+- P2: Batch generation workflow, cost estimation
+- P3: Export phase, quality validation
+
+---
+
+## 📊 Project Completion
+
+| Phase | Completion | Status |
+|-------|-----------|--------|
+| Planning Phase P1 | 100% | ✅ Complete |
+| AI SDK v6 Migration | 100% | ✅ Complete |
+| P0 Generation Backend | 100% | ✅ Complete |
+| Plan Parser | 100% | ✅ Complete |
+| Multi-Mode UI | 100% | ✅ Complete |
+| Style Anchor Phase | 80% | 🟡 AI tools + UI complete, testing needed |
+| Generation Phase | 40% | 🟡 Backend + parser done, queue UI pending |
+| Export Phase | 0% | 🔴 Not started |
+
+**Overall: ~65%** ⬆️ (up from 55%)
+
+---
+
+## 🔑 Critical Implementation Notes
+
+### **Tool Execution (AI SDK v6)**
+```typescript
+// ALWAYS include for tool execution:
+stopWhen: stepCountIs(10)
+
+// ALWAYS use correct properties:
+toolCall.input (not .args)
+inputSchema (not parameters)
+
+// Handle flexible parameter formats (Gemini)
+if (input.qualityKey) { /* expected */ }
+else { Object.entries(input).forEach(...) } /* actual */
+```
+
+### **Character Consistency**
+```typescript
+// MUST include FULL description in EVERY pose:
+"pixel art sprite of farmer character with straw hat,
+weathered blue overalls, brown boots, [NEW POSE]"
+//                     ^--- Same base description ---^
+```
+
+### **Image Conversion**
+```typescript
+// Store as Blob in IndexedDB (efficient)
+image_blob: Blob
+
+// Convert to base64 for API calls (Flux.2 requirement)
+images: [await blobToBase64(styleAnchor.reference_image_blob)]
+
+// Cache base64 in database to avoid repeated conversion
+reference_image_base64: string
+```
+
+---
+
+**Status:** P0 generation infrastructure complete. Ready to build UI integration and plan parser.
+
