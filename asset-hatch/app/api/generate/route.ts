@@ -51,12 +51,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Load style anchor
-    const styleAnchors = await db.style_anchors
+    const styleAnchor = await db.style_anchors
       .where('project_id')
       .equals(projectId)
-      .toArray();
-
-    const styleAnchor = styleAnchors[0]; // Get most recent
+      .reverse() // Sort by primary key (id, which is likely time-based) or use a timestamp
+      .sortBy('created_at')
+      .then(anchors => anchors[0]); // Get the most recent one
     if (!styleAnchor) {
       return NextResponse.json(
         { error: 'No style anchor found for this project. Please create one first.' },
