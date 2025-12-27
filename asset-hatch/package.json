@@ -9,18 +9,17 @@
     "lint": "eslint",
     "test": "jest --watch",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:coverage": "jest --coverage --watchAll=false",
-    "prepare": "husky install"
+    "test:coverage": "jest --coverage --watchAll=false"
   },
   "dependencies": {
-    "@copilotkit/react-core": "^1.50.1",
-    "@copilotkit/react-ui": "^1.50.1",
-    "@copilotkit/runtime": "^1.50.1",
+    "@ai-sdk/react": "^3.0.3",
     "@langchain/openai": "^1.2.0",
+    "@openrouter/ai-sdk-provider": "^1.5.4",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "ai": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "colorthief": "^2.6.0",

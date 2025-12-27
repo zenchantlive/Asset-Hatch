@@ -1,49 +1,70 @@
 'use client';
 
-import { useCopilotChat } from "@copilotkit/react-core";
+import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  qualities: Record<string, string>;
+  projectId: string;
+  onQualityUpdate: (qualityKey: string, value: string) => void;
+  onPlanUpdate: (markdown: string) => void;
+  onPlanComplete: () => void;
+}
+
+export function ChatInterface({
+  qualities,
+  projectId,
+  onQualityUpdate,
+  onPlanUpdate,
+  onPlanComplete,
+}: ChatInterfaceProps) {
+  const [input, setInput] = useState("");
+  
   const {
-    visibleMessages,
-    appendMessage,
-    isLoading,
-  } = useCopilotChat({
-    makeSystemMessage: () =>
-      `You are a game asset planning assistant helping users plan what assets they need for their games.
-
-WORKFLOW:
-1. Ask clarifying questions about their game (genre, style, scope, target platform)
-2. Suggest quality parameters using the updateQuality tool when appropriate
-3. Create a comprehensive asset plan using the updatePlan tool
-
-QUALITY PARAMETERS:
-Use updateQuality to suggest: art_style, base_resolution, perspective, game_genre, theme, mood, color_palette
-
-PLAN FORMAT:
-When creating plans with updatePlan, use this markdown structure:
-
-# Asset Plan for [Game Name]
-
-## Characters
-- Character name [animations needed, views needed]
-  - Description and special requirements
-
-## Environments
-- Environment name [tileset size, layers needed]
-  - Description and asset breakdown
-
-## Items & Props
-- Category name
-  - Specific items [quantity, variations]
-
-## UI Elements
-- UI component list with descriptions
-
-Be detailed and actionable. Focus on practical asset requirements.`,
+    messages,
+    sendMessage,
+    status,
+  } = useChat({
+    api: '/api/chat',
+    body: {
+      qualities,
+      projectId,
+    },
+    onToolCall: ({ toolCall }) => {
+      // IMPORTANT: This fires when AI calls a tool
+      console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
+      
+      if (toolCall.toolName === 'updateQuality') {
+        const input = toolCall.input as any;
+        
+        // Handle expected format: {qualityKey: 'art_style', value: 'Pixel Art'}
+        if (input.qualityKey && input.value) {
+          console.log('✅ Updating quality:', input.qualityKey, '→', input.value);
+          onQualityUpdate(input.qualityKey, input.value);
+        } 
+        // Handle Gemini's format: {art_style: 'Pixel Art', game_genre: 'Platformer'}
+        else {
+          console.log('✅ Updating multiple qualities:', input);
+          Object.entries(input).forEach(([key, value]) => {
+            onQualityUpdate(key, value as string);
+          });
+        }
+      } else if (toolCall.toolName === 'updatePlan') {
+        const input = toolCall.input as any;
+        // Handle both 'planMarkdown' and 'markdown'
+        const markdown = input.planMarkdown || input.markdown;
+        if (markdown) {
+          console.log('✅ Updating plan, length:', markdown.length, 'chars');
+          onPlanUpdate(markdown);
+        }
+      } else if (toolCall.toolName === 'finalizePlan') {
+        console.log('✅ Finalizing plan');
+        onPlanComplete();
+      }
+    },
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,24 +75,26 @@ Be detailed and actionable. Focus on practical asset requirements.`,
 
   useEffect(() => {
     scrollToBottom();
-  }, [visibleMessages?.length]);
+  }, [messages.length]);
 
-  const handleSendMessage = async (content: string) => {
-    if (content.trim()) {
-      // CopilotKit headless chat expects just the content string
-      await appendMessage(content);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput("");
     }
   };
 
   // Only show loading state if there are messages (prevents initial loading state)
-  const hasMessages = visibleMessages && visibleMessages.length > 0;
+  const hasMessages = messages.length > 0;
+  const isLoading = status === 'in_progress';
   const showLoading = isLoading && hasMessages;
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {!visibleMessages || visibleMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
             <Sparkles className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm font-medium">Start planning your game assets</p>
@@ -80,24 +103,53 @@ Be detailed and actionable. Focus on practical asset requirements.`,
             </p>
           </div>
         ) : (
-          visibleMessages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+          messages.map((message, index) => {
+            // In AI SDK v6, messages have a parts array instead of content
+            // Extract text from text and reasoning parts
+            const textParts = message.parts?.filter((part: any) => 
+              part.type === 'text' || part.type === 'reasoning'
+            ) || [];
+            const textContent = textParts.map((part: any) => part.text).join('');
+            
+            // Debug: log message structure with part details
+            if (message.role === 'assistant') {
+              const parts = message.parts?.map((p: any) => {
+                if (p.type === 'tool-call') {
+                  return { type: p.type, toolName: p.toolName, input: p.input };
+                }
+                return { type: p.type, hasText: !!p.text };
+              });
+              console.log('Assistant message parts:', parts);
+            }
+            
+            // Skip messages with no text content
+            if (!textContent && textParts.length === 0) {
+              // Check if this is a message with only tool calls or other parts
+              const hasOtherParts = message.parts && message.parts.length > 0;
+              if (!hasOtherParts) return null;
+            }
+
+            return (
               <div
-                className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${
-                  message.role === "user"
-                    ? "aurora-gradient text-white"
-                    : "glass-panel aurora-glow-hover"
+                key={index}
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                <div
+                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${
+                    message.role === "user"
+                      ? "aurora-gradient text-white"
+                      : "glass-panel aurora-glow-hover"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {textContent || '(Tool calls or non-text content)'}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         {showLoading && (
           <div className="flex justify-start">
@@ -118,54 +170,26 @@ Be detailed and actionable. Focus on practical asset requirements.`,
 
       {/* Input area - sticky at bottom */}
       <div className="sticky bottom-0 glass-panel border-t p-4">
-        <div className="flex gap-2">
-          <ChatInput onSend={handleSendMessage} disabled={showLoading} />
-        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Describe your game idea..."
+            disabled={showLoading}
+            className="flex-1 glass-input"
+          />
+          <Button
+            type="submit"
+            disabled={showLoading || !input.trim()}
+            size="icon"
+            className="aurora-gradient text-white hover:opacity-90 transition-opacity"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
       </div>
     </div>
   );
 }
 
-function ChatInput({
-  onSend,
-  disabled,
-}: {
-  onSend: (content: string) => void;
-  disabled: boolean;
-}) {
-  const [input, setInput] = useState("");
 
-  return (
-    <>
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (input.trim()) {
-              onSend(input);
-              setInput("");
-            }
-          }
-        }}
-        placeholder="Describe your game idea..."
-        disabled={disabled}
-        className="flex-1 glass-input"
-      />
-      <Button
-        onClick={() => {
-          if (input.trim()) {
-            onSend(input);
-            setInput("");
-          }
-        }}
-        disabled={disabled || !input.trim()}
-        size="icon"
-        className="aurora-gradient text-white hover:opacity-90 transition-opacity"
-      >
-        <Send className="h-4 w-4" />
-      </Button>
-    </>
-  );
-}

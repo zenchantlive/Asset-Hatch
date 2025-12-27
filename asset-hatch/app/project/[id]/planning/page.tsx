@@ -2,11 +2,9 @@
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useCopilotReadable } from "@copilotkit/react-core"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
-import { usePlanningTools } from "@/hooks/usePlanningTools"
 import { db } from "@/lib/db"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
 
@@ -16,6 +14,22 @@ export default function PlanningPage() {
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
+
+  // Handler for quality updates from AI
+  const handleQualityUpdate = (qualityKey: string, value: string) => {
+    console.log('📝 Planning page received quality update:', qualityKey, '=', value);
+    setQualities(prev => {
+      const updated = { ...prev, [qualityKey]: value };
+      console.log('📊 Updated qualities:', updated);
+      return updated;
+    });
+  };
+
+  // Handler for plan updates from AI
+  const handlePlanUpdate = (markdown: string) => {
+    console.log('📋 Planning page received plan update, length:', markdown.length);
+    setPlanMarkdown(markdown);
+  };
 
   // Define handler functions first
   const handleEditPlan = () => {
@@ -61,31 +75,6 @@ export default function PlanningPage() {
     }
   }
 
-  // Initialize CopilotKit tools for AI-driven interactions
-  usePlanningTools(
-    qualities,
-    setQualities,
-    setPlanMarkdown,
-    handleApprovePlan
-  )
-
-  // Share current project qualities with AI for context-aware suggestions
-  useCopilotReadable({
-    description: "Current project quality selections for the game asset project",
-    value: qualities,
-  })
-
-  // Share project context with AI
-  useCopilotReadable({
-    description: "Current project context and progress",
-    value: {
-      projectId: params.id,
-      phase: "planning",
-      hasPlan: !!planMarkdown,
-      qualitiesSelected: Object.keys(qualities).length > 0,
-    },
-  })
-
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))] bg-transparent relative overflow-hidden">
       {/* Qualities Bar - Collapsible/Compact Header */}
@@ -100,7 +89,13 @@ export default function PlanningPage() {
       <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Left Panel - Chat (Interactive Focus) */}
         <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
-          <ChatInterface />
+          <ChatInterface
+            qualities={qualities}
+            projectId={typeof params.id === 'string' ? params.id : ''}
+            onQualityUpdate={handleQualityUpdate}
+            onPlanUpdate={handlePlanUpdate}
+            onPlanComplete={handleApprovePlan}
+          />
         </div>
 
         {/* Right Panel - Preview (Visual Confirmation) */}

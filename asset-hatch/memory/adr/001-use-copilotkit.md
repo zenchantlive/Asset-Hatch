@@ -1,7 +1,8 @@
 # ADR-001: Use CopilotKit for AI Chat Integration
 
-**Status:** Accepted
-**Date:** 2025-12-24
+**Status:** Superseded by ADR-005  
+**Date:** 2025-12-24  
+**Superseded:** 2025-12-26  
 **Deciders:** User + Claude
 
 ---

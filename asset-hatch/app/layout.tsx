@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { CopilotKit } from "@copilotkit/react-core";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -23,11 +22,7 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} font-sans antialiased`}
       >
-        <CopilotKit
-          runtimeUrl="/api/copilotkit"
-        >
-          {children}
-        </CopilotKit>
+        {children}
       </body>
     </html>
   );
