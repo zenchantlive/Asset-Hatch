@@ -74,7 +74,7 @@ export default function PlanningPage() {
         .equals(projectId)
         .toArray();
 
-      const fileNames = memoryFiles.map((file) => file.type);
+      const fileNames = memoryFiles.map((file) => file.file_name);
       setSavedFiles(fileNames);
     } catch (error) {
       console.error('Failed to load saved files:', error);
