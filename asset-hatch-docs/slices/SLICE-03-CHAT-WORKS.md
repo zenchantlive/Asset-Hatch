@@ -48,7 +48,7 @@ COPILOTKIT PROVIDER (app/layout.tsx):
 
 API ROUTE (app/api/copilotkit/route.ts):
 - Create POST handler for CopilotKit
-- Use OpenRouter with model "google/gemini-3-pro-preview-preview"
+- Use OpenRouter with model "google/gemini-3-pro-preview"
 - Get API key from process.env.OPENROUTER_API_KEY
 - Set up basic CopilotKit runtime
 - NO TOOLS YET - just basic chat
