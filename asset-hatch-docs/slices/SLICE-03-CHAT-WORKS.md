@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   const adapter = new OpenAIAdapter({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
-    model: "google/gemini-3-pro-preview-preview",
+    model: "google/gemini-3-pro-preview",
   });
 
   return runtime.streamHttpServerResponse(req, adapter);
