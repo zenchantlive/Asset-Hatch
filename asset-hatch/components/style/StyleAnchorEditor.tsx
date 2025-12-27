@@ -102,8 +102,7 @@ export function StyleAnchorEditor({
       setLightingKeywords(result.analysis.lighting_keywords);
 
       // 2. Client-side color extraction
-      const imageBlob = new Blob([await imageFile.arrayBuffer()], { type: imageFile.type });
-      const colors = await extractColorPalette(imageBlob, 8);
+      const colors = await extractColorPalette(imageFile, 8);
       setExtractedColors(colors);
       setSelectedColors(colors); // Default: select all
 
