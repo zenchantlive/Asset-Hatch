@@ -58,10 +58,9 @@ export default function PlanningPage() {
     setColorPalette(colors);
   };
 
-  const handleStyleAnchorSave = () => {
+  const handleStyleAnchorSave = async () => {
     console.log('💾 Planning page: Style anchor save requested');
-    // The StyleAnchorEditor handles the actual save, this is just a notification
-    loadSavedFiles();
+    await loadSavedFiles();
   };
 
   // Load saved files for file viewer menu
