@@ -1,13 +1,14 @@
 # 🧠 Active Session State
 
-**Last Updated:** 2025-12-26  
-**Session:** Planning Phase P1 - ✅ COMPLETE & WORKING
-**Branch:** feat/migrate-to-vercel-ai-sdk (ready to merge)
+**Last Updated:** 2025-12-26
+**Session:** UI Integration Phase - Plan Parser + Style Tools ✅ COMPLETE
+**Branch:** feat/add-style-phase-tools
 
 ---
 
 ## 📍 Current Focus
-> **🎉 FULLY FUNCTIONAL:** Successfully migrated from CopilotKit v1.50.1 to Vercel AI SDK v6. AI agent now actively calls tools and updates UI in real-time. Planning Phase P1 is 100% complete.
+
+> **🎉 UI INTEGRATION PROGRESS:** Successfully implemented plan parser, multi-mode tab navigation, and complete style phase AI tool integration. Planning page now supports Plan/Style/Generation modes with seamless AI-assisted workflow. Generation queue UI remains pending.
 
 ---
 
@@ -15,307 +16,319 @@
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
-| **Infrastructure** | | |
-| Database schema v2 | ✅ Complete | memory_files table, quality fields on projects |
-| Git branch | ✅ Created | feat/migrate-to-vercel-ai-sdk |
-| **Migration Tasks** | | |
-| Research & comparison | ✅ Complete | Vercel AI SDK v6 vs CopilotKit detailed analysis |
-| Package installation | ✅ Complete | Removed CopilotKit, installed ai@6.0.3 + @ai-sdk/react@3.0.3 + @openrouter/ai-sdk-provider@1.5.4 |
-| API route creation | ✅ Complete | Created /app/api/chat/route.ts with streamText + 3 Zod tools |
-| Tool conversion | ✅ Complete | Converted 3 tools to Zod schemas (updateQuality, updatePlan, finalizePlan) |
-| ChatInterface rewrite | ✅ Complete | Replaced useCopilotChat with useChat from @ai-sdk/react |
-| Context sharing | ✅ Complete | Replaced useCopilotReadable with body params |
-| Message conversion | ✅ Complete | Added convertToModelMessages for UIMessage → ModelMessage |
-| Testing | ✅ Complete | Chat sends/receives messages, AI responds with streaming, reasoning visible |
+| **Planning Phase P1** | ✅ Complete | Chat, tools, plan generation working |
+| **AI SDK v6 Migration** | ✅ Complete | All tool execution issues resolved |
+| **Database Schema v3** | ✅ Complete | style_anchors, character_registry, generated_assets tables |
+| **Image Utilities** | ✅ Complete | Blob ↔ base64 conversion, color extraction |
+| **Prompt Templates** | ✅ Complete | 6 asset-type templates with priority ordering |
+| **Prompt Builder** | ✅ Complete | buildAssetPrompt() with quality integration |
+| **AI Style Extraction** | ✅ Complete | Vision API route /api/analyze-style |
+| **Style Anchor Editor** | ✅ Complete | UI component with AI suggestions |
+| **Generation API** | ✅ Complete | /api/generate route with Flux.2 integration |
+| **Plan Parser** | ✅ Complete | Parse markdown → ParsedAsset[], composite/granular modes |
+| **Multi-Mode Planning Page** | ✅ Complete | Tab navigation, file viewer menu, mode switching |
+| **Style Phase AI Tools** | ✅ Complete | 4 tools integrated with ChatInterface |
+| **Generation Queue UI** | 🔴 TODO | Asset tree, prompt editor, status tracking |
 
 ---
 
-## ✅ Migration Complete - What Works
+## 🎯 Critical Architectural Decisions
 
-### Chat Functionality
-- ✅ **User messages** appear in chat interface
-- ✅ **AI responses** stream in real-time
-- ✅ **Reasoning parts** display (AI thinking process visible)
-- ✅ **Tool calls** execute (updateQuality, updatePlan, finalizePlan)
-- ✅ **Context passing** via request body (qualities, projectId)
-- ✅ **Loading states** show during AI processing
+### **1. Single-Page Multi-Mode Design** ✅ DECIDED
+**Decision:** Keep user on `/project/[id]/planning` page, switch right panel modes instead of navigating to separate pages.
 
-### Technical Implementation
-- ✅ **OpenRouter integration** with gemini-3-pro-preview working
-- ✅ **Message format conversion** (UIMessage ↔ ModelMessage) functional
-- ✅ **Streaming protocol** using toUIMessageStreamResponse()
-- ✅ **Part-based rendering** extracts text from message.parts array
+**Implementation:**
+```
+┌────────────────────────────────────────────┐
+│ [Plan] [Style] [Generation]  📄 Files [▼] │ ← Tab navigation
+│  Chat (Left)   │   Right Panel (Mode)      │
+│                │   - Plan Mode: markdown   │
+│                │   - Style Mode: keywords  │
+│                │   - Gen Mode: queue       │
+└────────────────────────────────────────────┘
+```
+
+**Why:**
+- Consistent UX - user stays in same chat context
+- Natural workflow - continue conversation across phases
+- No page transitions - faster, smoother
+- File menu accessible - saved files visible at all times
 
 ---
 
-## 📦 Final Package Versions
+### **2. Flexible Editing with Version Tracking** ✅ DECIDED
+**Decision:** User can edit plan/style at any time. System tracks versions and marks affected assets as "outdated".
 
-### Installed (New)
-```json
-{
-  "ai": "^6.0.3",
-  "@ai-sdk/react": "^3.0.3",
-  "@openrouter/ai-sdk-provider": "^1.5.4"
+**Implementation:**
+```typescript
+interface MemoryFile {
+  version: number;        // Increments on save
+  updated_at: string;     // Last edit timestamp
+}
+
+interface GeneratedAsset {
+  plan_version: number;   // Links to entities.json version
+  style_version: number;  // Links to style-anchor version
+  status: 'generated' | 'outdated' | 'approved';
 }
 ```
 
-### Removed
-```json
-{
-  "@copilotkit/react-core": "^1.50.1",  // DELETED
-  "@copilotkit/react-ui": "^1.50.1",     // DELETED
-  "@copilotkit/runtime": "^1.50.1"       // DELETED
+**Workflow:**
+1. User edits plan after generating 5 assets
+2. System shows warning: "This affects 5 existing assets"
+3. User chooses: Mark as outdated / Regenerate now / Cancel
+4. If marked outdated: Assets get status = 'outdated'
+5. Generation queue shows: ⚠️ warnings on outdated assets
+6. User can regenerate individually or batch
+
+**Why:**
+- Flexibility - users can iterate freely
+- No data loss - old assets kept until user decides
+- Clear visibility - warnings show impact
+- User control - regenerate when ready, not forced
+
+---
+
+### **3. Composite Sprite Sheets (DEFAULT)** ✅ DECIDED
+**Decision:** Default generation creates composite sprite sheets (multiple poses in one image), not individual frames.
+
+**Example:**
+```
+Input: "Farmer - Idle (4-direction)"
+
+DEFAULT (Composite):
+┌────────┬────────┬────────┬────────┐
+│ Front  │ Left   │ Right  │ Back   │  ← ONE image
+│  Idle  │  Idle  │  Idle  │  Idle  │
+└────────┴────────┴────────┴────────┘
+Prompt: "sprite sheet of farmer, 4 frames arranged horizontally,
+         idle animation, front/left/right/back views"
+
+OPTION (Granular - Studio Mode):
+Image 1: Farmer Idle Front (separate)
+Image 2: Farmer Idle Left (separate)
+Image 3: Farmer Idle Right (separate)
+Image 4: Farmer Idle Back (separate)
+```
+
+**Why DEFAULT is composite:**
+- Standard game dev format (sprite sheets are industry norm)
+- More efficient (1 API call vs 4)
+- Lower cost (1 generation vs 4)
+- LLM-friendly (when users give assets to AI coding agents later, they can see whole sheet)
+- Game engines expect sprite sheets
+
+**When to use GRANULAR:**
+- Professional studios wanting individual asset control
+- Manual editing of each variant
+- Precise approval/rejection per pose
+
+**Implementation:**
+```typescript
+// Project setting or generation page toggle
+const [generationMode, setGenerationMode] = useState<'composite' | 'granular'>('composite');
+
+// Plan parser expands based on mode:
+if (generationMode === 'composite') {
+  // "Idle (4-direction)" → ONE sprite-sheet task with 4 frames
+} else {
+  // "Idle (4-direction)" → FOUR character-sprite tasks
 }
 ```
 
-### Existing
-- Next.js: 16.1.1 (Turbopack)
-- React: 19.2.3
-- Zod: ^4.2.1
-- Bun: v1.3.5
+---
+
+### **4. Style Anchor Image Upload - CRITICAL** ✅ DECIDED
+**Decision:** Style anchor reference image upload is REQUIRED (or highly recommended) for visual consistency.
+
+**Why Critical:**
+- Flux.2 uses reference images for style consistency
+- Every generation sends: `{ prompt, images: [styleAnchorBase64] }`
+- Without reference image: each asset looks different
+- With reference image: consistent art style across all assets
+
+**Workflow:**
+1. User uploads reference image OR describes style to AI
+2. AI analyzes image (vision model) → suggests keywords
+3. Client extracts color palette from image
+4. User edits AI suggestions
+5. Saves StyleAnchor to IndexedDB (with base64 cached)
+6. All generations include this image as reference
+
+**Implementation:**
+- `StyleAnchorEditor` component handles upload + AI analysis
+- `/api/analyze-style` uses GPT-4o vision to extract keywords
+- `lib/image-utils.ts` extracts color palette via canvas
+- Every `/api/generate` call includes `images: [styleAnchorBase64]`
 
 ---
 
-## 🏗️ Architecture (Post-Migration)
+## 🏗️ Architecture Summary
 
-### Request Flow
+### **Database Schema v3**
+```typescript
+// New tables in IndexedDB:
+style_anchors: {
+  reference_image_blob: Blob,
+  reference_image_base64: string, // Cached for API
+  style_keywords: string,
+  lighting_keywords: string,
+  color_palette: string[], // HEX codes
+}
+
+character_registry: {
+  base_description: string, // FULL description for consistency
+  successful_seed: number,
+  poses_generated: string[],
+  animations: Record<string, { seed, asset_id }>,
+}
+
+generated_assets: {
+  image_blob: Blob,
+  prompt_used: string,
+  plan_version: number,
+  style_version: number,
+  status: 'generated' | 'outdated' | 'approved',
+  generation_metadata: { model, seed, cost, duration_ms },
+}
 ```
-User Input → ChatInterface (useChat from @ai-sdk/react)
-                ↓
-         sendMessage({ text: input })
-                ↓
-            POST /api/chat
-                ↓
-    convertToModelMessages(UIMessages)
-                ↓
-         OpenRouter Provider
-                ↓
-       gemini-3-pro-preview
-                ↓
-    Tool Execution (server-side)
-                ↓
-  toUIMessageStreamResponse() → SSE Stream
-                ↓
-   Frontend: Extract text from parts array
-                ↓
-        Display in ChatInterface
+
+### **Prompt Generation Flow**
+```
+1. Parse plan → ParsedAsset[]
+2. For each asset:
+   - Load project qualities
+   - Load style anchor
+   - Load character registry (if character)
+   - buildAssetPrompt() → priority-ordered prompt
+3. Call /api/generate with prompt + style anchor image
+4. Save GeneratedAsset to IndexedDB
+5. Update character registry with seed
 ```
 
-### Key Files Modified
-1. **app/api/chat/route.ts** - NEW
-   - Uses `streamText` with `convertToModelMessages`
-   - Returns `toUIMessageStreamResponse()`
-   - 3 tools defined with Zod schemas
+### **Prompt Priority (CRITICAL)**
+Per FLUX2_PROMPT_ENGINEERING.md: **First 5 words carry highest weight**
 
-2. **components/planning/ChatInterface.tsx** - REWRITTEN
-   - Uses `useChat` from `@ai-sdk/react`
-   - Manual input state with `useState`
-   - `sendMessage({ text })` instead of form submission
-   - Extracts text from `message.parts` (type: 'text' or 'reasoning')
+```typescript
+// ✅ CORRECT: Asset type + subject first
+"pixel art sprite of farmer character with straw hat, idle pose, 32x32..."
 
-3. **app/project/[id]/planning/page.tsx** - UPDATED
-   - Removed `usePlanningTools` hook
-   - Removed `useCopilotReadable` calls
-   - Added callback handlers for tools
-   - Passes props to ChatInterface
+// ❌ WRONG: Resolution/technical details first
+"32x32 pixel art idle farmer with straw hat sprite..."
+```
 
-4. **app/layout.tsx** - SIMPLIFIED
-   - Removed `<CopilotKit>` provider wrapper
-
-5. **package.json** - UPDATED
-   - Removed husky prepare script (git in parent dir)
-   - CopilotKit packages removed
-   - AI SDK v6 packages added
-
-### Files Deleted
-- `app/api/copilotkit/route.ts` - REMOVED
-- `hooks/usePlanningTools.ts` - REMOVED
+Templates ensure correct priority ordering.
 
 ---
 
-## 🔍 Environment Context
+## 📦 Files Implemented (P0)
 
-### Runtime Setup
-- **User OS:** Windows 11 (runs `bun dev` in PowerShell)
-- **AI environment:** WSL (can run bun commands)
-- **Dev server:** localhost:3000 (Turbopack hot reload)
+### Created (7 new files)
+1. **lib/db.ts** - Schema v3 with 3 new tables (MODIFIED)
+2. **lib/image-utils.ts** - Blob/base64 conversion, color extraction
+3. **lib/prompt-templates.ts** - 6 asset-type templates
+4. **lib/prompt-builder.ts** - Priority-ordered prompt generation
+5. **app/api/analyze-style/route.ts** - AI vision analysis
+6. **components/style/StyleAnchorEditor.tsx** - Style anchor UI
+7. **app/api/generate/route.ts** - Generation API with Flux.2
 
-### Environment Variables
-```bash
-OPENROUTER_API_KEY=sk-or-v1-*** (valid)
-```
+### Documentation (2 files)
+8. **memory/GENERATION_WORKFLOW_GAPS.md** - 13 critical gaps identified
+9. **memory/P0_GENERATION_IMPLEMENTATION_SUMMARY.md** - Complete guide
 
-### AI Models
-- **Chat/Tools:** google/gemini-3-pro-preview
-- **Image Gen:** black-forest-labs/flux.2-pro (for future Style Anchor phase)
-
----
-
-## 📊 Metrics
-
-### Migration Time
-- **Estimated:** 2.5 hours
-- **Actual:** ~3 hours (including troubleshooting AI SDK v6 API changes)
-
-### Code Changes
-- **Files modified:** 5
-- **Files deleted:** 2
-- **Files created:** 1
-- **Lines changed:** ~400
-
-### Success Criteria (All Met ✅)
-- [x] Chat sends messages successfully
-- [x] AI responds with streaming
-- [x] Tools execute correctly (visible in console)
-- [x] Context passed via body
-- [x] Streaming responses work
-- [x] Reasoning parts display
-- [x] No critical console errors
+**Total:** 2,904 lines added
 
 ---
 
 ## 🎯 Next Steps
 
-### Immediate (Same Session)
-1. ✅ Update memory documentation
-2. ✅ Update ADR-005 with completion status
-3. ✅ Create AI SDK v6 guide document
+### **Completed This Session ✅**
+1. ✅ **Plan parser** - `lib/plan-parser.ts` (462 lines)
+   - Parse entities.json markdown → ParsedAsset[]
+   - Handle composite vs granular mode
+   - Expand animations (4-direction → 4 frames or 4 tasks)
+   - Auto-detect asset types from category and name
 
-### Planning Phase P1 Completion
-1. **Test tool execution** - Verify updateQuality, updatePlan, finalizePlan
-2. **Test plan approval** - Verify DB save and phase transition
-3. **Polish UI feedback** - Show when tools are called
-4. **Commit migration** - Merge feat/migrate-to-vercel-ai-sdk branch
+2. ✅ **Multi-mode planning page** - `/app/project/[id]/planning/page.tsx`
+   - Tab navigation: [Plan] [Style] [Generation]
+   - Right panel mode state with conditional rendering
+   - File viewer menu in top-right dropdown
+   - StyleAnchorEditor integrated in Style mode
 
-### Future Enhancements
-- Add visual feedback for tool execution
-- Implement conversation persistence to DB
-- Add error handling for failed tool calls
-- Show tool call results in chat interface
-- Add retry logic for failed API requests
+3. ✅ **Style phase AI tools** - Complete integration
+   - 4 new Zod tools: updateStyleKeywords, updateLightingKeywords, updateColorPalette, saveStyleAnchor
+   - ChatInterface handles all style tool responses
+   - StyleAnchorEditor pre-fills with AI suggestions
+   - Full data flow: AI tools → ChatInterface → Planning page → StyleAnchorEditor
 
----
+### **Next Priority**
+1. **Create generation queue UI** - New components
+   - Asset queue tree (showing parsed assets from plan)
+   - Prompt editor (for reviewing/editing prompts)
+   - Generation status tracking (pending, generating, complete)
+   - Integration with `/api/generate` route
 
-## 📝 Lessons Learned
-
-### Critical Fixes for Tool Execution ⚠️ MUST KNOW
-
-#### 1. **Missing `stepCountIs()` - THE BLOCKER**
-**Problem:** Tools defined but NEVER executed
-```typescript
-// ❌ WRONG - Tools won't execute
-const result = streamText({
-  model: openrouter('google/gemini-3-pro-preview'),
-  tools: { /* defined tools */ },
-});
-
-// ✅ CORRECT - Enables multi-step tool execution
-const result = streamText({
-  model: openrouter('google/gemini-3-pro-preview'),
-  stopWhen: stepCountIs(10),  // ← CRITICAL!
-  tools: { /* defined tools */ },
-});
-```
-**Why:** Without `stopWhen`, the SDK receives tool proposals but doesn't execute them.
-
-#### 2. **Wrong Property: `toolCall.args` vs `toolCall.input`**
-**Problem:** Tool parameters always undefined
-```typescript
-// ❌ WRONG - input will be undefined
-onToolCall: ({ toolCall }) => {
-  const { qualityKey, value } = toolCall.args;  // undefined!
-}
-
-// ✅ CORRECT - Use .input property
-onToolCall: ({ toolCall }) => {
-  const { qualityKey, value } = toolCall.input;  // works!
-}
-```
-**Why:** AI SDK v6 uses `input` property, not `args`.
-
-#### 3. **Wrong Schema Property: `parameters` vs `inputSchema`**
-**Problem:** Tool validation doesn't work properly
-```typescript
-// ❌ WRONG
-tool({
-  description: '...',
-  parameters: z.object({ /* schema */ }),  // wrong property
-})
-
-// ✅ CORRECT
-tool({
-  description: '...',
-  inputSchema: z.object({ /* schema */ }),  // correct property
-})
-```
-**Why:** AI SDK v6 tool definitions use `inputSchema`, not `parameters`.
-
-#### 4. **Gemini Ignores Parameter Names - Handle Flexibly**
-**Problem:** Gemini sends different parameter structure than defined
-```typescript
-// What we defined:
-inputSchema: z.object({
-  qualityKey: z.enum(['art_style', ...]),
-  value: z.string(),
-})
-
-// What Gemini actually sends:
-{art_style: 'Pixel Art', game_genre: 'Platformer'}  // Multiple at once!
-```
-**Solution:** Handle both formats on frontend
-```typescript
-onToolCall: ({ toolCall }) => {
-  const input = toolCall.input;
-  
-  // Handle expected format
-  if (input.qualityKey && input.value) {
-    onQualityUpdate(input.qualityKey, input.value);
-  }
-  // Handle Gemini's actual format (multiple qualities at once)
-  else {
-    Object.entries(input).forEach(([key, value]) => {
-      onQualityUpdate(key, value);
-    });
-  }
-}
-```
-
-### AI SDK v6 Breaking Changes
-1. **React hooks split** - `useChat` now in `@ai-sdk/react`, not `ai/react`
-2. **No form helpers** - No `input`, `handleInputChange`, `handleSubmit` from hook
-3. **sendMessage API** - Changed from `{ role, content }` to `{ text }`
-4. **Message structure** - Messages have `parts` array, not `content` string
-5. **Streaming response** - Changed from `toDataStreamResponse()` to `toUIMessageStreamResponse()`
-6. **Message conversion** - Must use `convertToModelMessages()` (async!) for UIMessage → ModelMessage
-
-### Best Practices Discovered
-- Always await `convertToModelMessages()` - it's async
-- Extract text from both 'text' and 'reasoning' parts
-- Use `status === 'in_progress'` instead of `isLoading` boolean
-- Log message structure during development for debugging
-- Handle empty parts arrays gracefully
-- **ALWAYS include `stopWhen: stepCountIs(N)` for tool execution**
-- **Use `toolCall.input`, not `toolCall.args`**
-- **Use `inputSchema`, not `parameters` in tool definitions**
-- **Handle flexible parameter formats for different models**
+### **Future Phases**
+- P1: Character registry UI, warning system
+- P2: Batch generation workflow, cost estimation
+- P3: Export phase, quality validation
 
 ---
 
-## 🎯 Final Status
+## 📊 Project Completion
 
-**✅ Planning Phase P1: 100% COMPLETE**
-- User describes game → AI sets quality parameters automatically ✅
-- Dropdowns update in real-time as AI makes suggestions ✅
-- User asks for asset list → AI generates plan with updatePlan ✅
-- Plan appears in preview pane with markdown formatting ✅
-- Tools execute reliably and update UI state ✅
+| Phase | Completion | Status |
+|-------|-----------|--------|
+| Planning Phase P1 | 100% | ✅ Complete |
+| AI SDK v6 Migration | 100% | ✅ Complete |
+| P0 Generation Backend | 100% | ✅ Complete |
+| Plan Parser | 100% | ✅ Complete |
+| Multi-Mode UI | 100% | ✅ Complete |
+| Style Anchor Phase | 80% | 🟡 AI tools + UI complete, testing needed |
+| Generation Phase | 40% | 🟡 Backend + parser done, queue UI pending |
+| Export Phase | 0% | 🔴 Not started |
 
-**🚀 Ready for Next Phase:**
-- Merge feat/migrate-to-vercel-ai-sdk branch
-- Begin Style Anchor Phase (P2)
-
-**📊 Overall Project Completion: 45% → 50%**
+**Overall: ~65%** ⬆️ (up from 55%)
 
 ---
 
-**Status:** Migration complete, tested, and working perfectly. All tool execution issues resolved.
+## 🔑 Critical Implementation Notes
+
+### **Tool Execution (AI SDK v6)**
+```typescript
+// ALWAYS include for tool execution:
+stopWhen: stepCountIs(10)
+
+// ALWAYS use correct properties:
+toolCall.input (not .args)
+inputSchema (not parameters)
+
+// Handle flexible parameter formats (Gemini)
+if (input.qualityKey) { /* expected */ }
+else { Object.entries(input).forEach(...) } /* actual */
+```
+
+### **Character Consistency**
+```typescript
+// MUST include FULL description in EVERY pose:
+"pixel art sprite of farmer character with straw hat,
+weathered blue overalls, brown boots, [NEW POSE]"
+//                     ^--- Same base description ---^
+```
+
+### **Image Conversion**
+```typescript
+// Store as Blob in IndexedDB (efficient)
+image_blob: Blob
+
+// Convert to base64 for API calls (Flux.2 requirement)
+images: [await blobToBase64(styleAnchor.reference_image_blob)]
+
+// Cache base64 in database to avoid repeated conversion
+reference_image_base64: string
+```
+
+---
+
+**Status:** P0 generation infrastructure complete. Ready to build UI integration and plan parser.
+
