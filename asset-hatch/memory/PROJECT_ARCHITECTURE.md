@@ -336,7 +336,7 @@ asset-hatch/
 ```typescript
 updateQuality: tool({
   description: 'Update a specific quality parameter...',
-  parameters: z.object({
+  inputSchema: z.object({
     qualityKey: z.enum(['art_style', 'base_resolution', ...]),
     value: z.string().min(1),
   }),

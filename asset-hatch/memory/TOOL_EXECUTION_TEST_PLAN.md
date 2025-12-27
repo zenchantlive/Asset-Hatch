@@ -306,7 +306,7 @@ Planning Phase P1 is **TRULY COMPLETE** when:
 1. **Visual feedback when tools execute:**
    ```typescript
    onToolCall: ({ toolCall }) => {
-     toast.success(`Updated ${toolCall.args.qualityKey}`);
+     toast.success(`Updated ${toolCall.input.qualityKey}`);
      // Show animated checkmark on dropdown
    }
    ```

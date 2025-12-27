@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "jest --watch",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:coverage": "jest --coverage --watchAll=false"
+    "test:coverage": "jest --coverage --watchAll=false",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.3",
