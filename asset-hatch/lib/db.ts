@@ -1,5 +1,12 @@
 import Dexie, { Table } from 'dexie';
 
+// Add server-side support for IndexedDB if running in Node.js
+if (typeof window === 'undefined') {
+  const { indexedDB, IDBKeyRange } = require('fake-indexeddb');
+  Dexie.dependencies.indexedDB = indexedDB;
+  Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+}
+
 export interface Project {
   id: string;
   name: string;
