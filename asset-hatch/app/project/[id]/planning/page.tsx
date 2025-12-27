@@ -95,30 +95,25 @@ export default function PlanningPage() {
     }
 
     setIsApproving(true)
+    const projectId = params.id as string
     try {
-      const projectId = params.id;
-      if (typeof projectId !== 'string') {
-        console.error("Plan approval failed: Invalid Project ID.");
-        // TODO: Add user-facing error notification (future enhancement)
-        setIsApproving(false);
-        return;
-      }
+      await db.transaction('rw', db.memory_files, db.projects, async () => {
+        // 1. Save plan to memory file as entities.json
+        await saveMemoryFile(projectId, 'entities.json', planMarkdown)
 
-      // 1. Save plan to memory file as entities.json
-      await saveMemoryFile(projectId, 'entities.json', planMarkdown)
+        // 2. Save selected qualities to project
+        await updateProjectQualities(projectId, qualities)
 
-      // 2. Save selected qualities to project
-      await updateProjectQualities(projectId, qualities)
-
-      // 3. Update project phase to 'style'
-      await db.projects.update(projectId, {
-        phase: 'style',
-        updated_at: new Date().toISOString(),
+        // 3. Update project phase to 'style'
+        await db.projects.update(projectId, {
+          phase: 'style',
+          updated_at: new Date().toISOString(),
+        })
       })
 
       // 4. Switch to style mode (stay on same page)
       setMode('style')
-      
+
       // 5. Update saved files list
       await loadSavedFiles()
     } catch (error) {
@@ -146,31 +141,28 @@ export default function PlanningPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMode('plan')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                mode === 'plan'
+              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'plan'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                   : 'text-white/60 hover:text-white/80 hover:bg-white/5'
-              }`}
+                }`}
             >
               Plan
             </button>
             <button
               onClick={() => setMode('style')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                mode === 'style'
+              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'style'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                   : 'text-white/60 hover:text-white/80 hover:bg-white/5'
-              }`}
+                }`}
             >
               Style
             </button>
             <button
               onClick={() => setMode('generation')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                mode === 'generation'
+              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'generation'
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                   : 'text-white/60 hover:text-white/80 hover:bg-white/5'
-              }`}
+                }`}
             >
               Generation
             </button>
