@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useState, useEffect, useCallback } from "react"
+import { useParams } from "next/navigation"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
 import { StyleAnchorEditor } from "@/components/style/StyleAnchorEditor"
-import { db } from "@/lib/db"
+import { db } from "@/lib/client-db"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
 
 type PlanningMode = 'plan' | 'style' | 'generation'
@@ -54,7 +54,7 @@ export default function PlanningPage() {
   };
 
   // Load saved files for file viewer menu
-  const loadSavedFiles = async () => {
+  const loadSavedFiles = useCallback(async () => {
     try {
       const projectId = params.id;
       if (typeof projectId !== 'string') return;
@@ -64,16 +64,16 @@ export default function PlanningPage() {
         .equals(projectId)
         .toArray();
 
-      const fileNames = memoryFiles.map((file) => file.file_name);
+      const fileNames = memoryFiles.map((file) => file.type);
       setSavedFiles(fileNames);
     } catch (error) {
       console.error('Failed to load saved files:', error);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     loadSavedFiles();
-  }, [params.id]);
+  }, [loadSavedFiles]);
 
   const handleEditPlan = () => {
     console.log("Edit plan clicked")
@@ -82,7 +82,12 @@ export default function PlanningPage() {
   const handleApprovePlan = async () => {
     if (!planMarkdown) return;
     setIsApproving(true)
-    const projectId = params.id as string
+    const projectId = params.id;
+    if (typeof projectId !== 'string') {
+      console.error("Project ID is missing or invalid.");
+      setIsApproving(false);
+      return;
+    }
     try {
       await db.transaction('rw', db.memory_files, db.projects, async () => {
         await saveMemoryFile(projectId, 'entities.json', planMarkdown)

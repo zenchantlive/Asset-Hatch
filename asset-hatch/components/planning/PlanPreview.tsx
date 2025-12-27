@@ -122,7 +122,7 @@ export function PlanPreview({ markdown, onEdit, onApprove, isLoading }: PlanPrev
 
               <h3 className="text-xl font-bold mb-2 text-white">No Plan Yet</h3>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                Chat with the AI Assistant to discuss your game idea. We'll generate a comprehensive asset plan for you automatically.
+                Chat with the AI Assistant to discuss your game idea. We&apos;ll generate a comprehensive asset plan for you automatically.
               </p>
 
               <div className="flex gap-2 justify-center">

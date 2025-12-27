@@ -2,6 +2,7 @@ import { openrouter } from '@openrouter/ai-sdk-provider';
 import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 
 import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -9,13 +10,11 @@ import {
   updateStyleKeywordsSchema,
   updateLightingKeywordsSchema,
   updateColorPaletteSchema,
-  saveStyleAnchorSchema,
   UpdateQualityInput,
   UpdatePlanInput,
   UpdateStyleKeywordsInput,
   UpdateLightingKeywordsInput,
   UpdateColorPaletteInput,
-  SaveStyleAnchorInput,
 } from '@/lib/schemas';
 
 export const maxDuration = 30;
@@ -40,114 +39,119 @@ export async function POST(req: NextRequest) {
  
  YOUR BEHAVIORAL PROTOCOLS:
  1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools. 
-    - *User:* "I want a pixel art platformer."
-    - *You:* Call \`updateQuality(art_style="Pixel Art")\` and \`updateQuality(game_genre="Platformer")\` immediately.
- 
  2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down. 
-    - Use \`updatePlan\` early and often to draft the asset list.
- 
  3. **BE TRANSPARENT:** When you perform an action, briefly mention it.
-    - "I've set the art style to Pixel Art. Let's list the characters next."
  
  WORKFLOW:
  1. Understand the game concept (Genre, Style, Mood).
  2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
  3. Suggest a list of assets (Characters, Environment, UI).
  4. **IMMEDIATELY** use \`updatePlan\` to draft the list.
- 5. Refine based on feedback until the user approves.
- 
- QUALITY PARAMETERS (Use updateQuality):
- - art_style (e.g., "Pixel Art", "Low Poly", "Vector")
- - base_resolution (e.g., "32x32")
- - perspective (e.g., "Top-down", "Side-view")
- - game_genre (e.g., "RPG", "Platformer")
- - theme (e.g., "Sci-Fi", "Fantasy")
- - mood (e.g., "Dark", "Cozy")
- - color_palette
- 
- PLAN FORMAT (Use updatePlan):
- Create a Markdown plan with these headers:
- # Asset Plan for [Game Name]
- ## Characters
- ## Environments
- ## Items & Props
- ## UI Elements`,
+ 5. Refine based on feedback until the user approves.`,
       tools: {
         updateQuality: tool({
-          description: 'Update a specific quality parameter. Execute this IMMEDIATELY when a user mentions a preference (e.g., "I want pixel art").',
+          description: 'Update a specific quality parameter.',
           inputSchema: updateQualitySchema,
           execute: async ({ qualityKey, value }: UpdateQualityInput) => {
-            return {
-              success: true,
-              message: `[System] Updated ${qualityKey} to "${value}"`,
-              qualityKey,
-              value,
-            };
+            try {
+              // Persist to SQLite
+              const fieldMap: Record<string, string> = {
+                art_style: 'artStyle',
+                base_resolution: 'baseResolution',
+                perspective: 'perspective',
+                game_genre: 'gameGenre',
+                theme: 'theme',
+                mood: 'mood',
+                color_palette: 'colorPalette',
+              };
+
+              const prismaField = fieldMap[qualityKey] || qualityKey;
+
+              await prisma.project.update({
+                where: { id: projectId },
+                data: { [prismaField]: value },
+              });
+
+              return {
+                success: true,
+                message: `[System] Updated ${qualityKey} to "${value}"`,
+                qualityKey,
+                value,
+              };
+            } catch (error) {
+              console.error('Failed to update quality in SQLite:', error);
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
         updatePlan: tool({
-          description: 'Update the asset plan markdown. Call this whenever the asset list changes or grows.',
+          description: 'Update the asset plan markdown.',
           inputSchema: updatePlanSchema,
           execute: async ({ planMarkdown }: UpdatePlanInput) => {
-            return {
-              success: true,
-              message: '[System] Plan updated successfully',
-              planMarkdown,
-            };
+            try {
+              // Persist to SQLite as a MemoryFile
+              await prisma.memoryFile.upsert({
+                where: {
+                  // We need a unique way to identify the plan file for this project
+                  // In Dexie it was 'entities.json' for the plan
+                  id: `${projectId}-plan`, // Simple deterministic ID for plan
+                },
+                update: { content: planMarkdown },
+                create: {
+                  id: `${projectId}-plan`,
+                  projectId: projectId,
+                  type: 'entities.json',
+                  content: planMarkdown,
+                },
+              });
+
+              return {
+                success: true,
+                message: '[System] Plan saved to server',
+                planMarkdown,
+              };
+            } catch (error) {
+              console.error('Failed to update plan in SQLite:', error);
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
         finalizePlan: tool({
           description: 'Call ONLY when the user explicitly agrees to "finalize" or "approve" the plan.',
           inputSchema: finalizePlanSchema,
           execute: async () => {
-            return {
-              success: true,
-              message: '[System] Phase finalized',
-            };
+            try {
+              await prisma.project.update({
+                where: { id: projectId },
+                data: { phase: 'style' },
+              });
+              return { success: true, message: '[System] Phase finalized' };
+            } catch {
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
         updateStyleKeywords: tool({
-          description: 'Update the style keywords for the project. Use when user describes or refines the art style.',
+          description: 'Update style keywords.',
           inputSchema: updateStyleKeywordsSchema,
           execute: async ({ styleKeywords }: UpdateStyleKeywordsInput) => {
-            return {
-              success: true,
-              message: '[System] Style keywords updated',
-              styleKeywords,
-            };
+            // This is usually part of StyleAnchor which is created later, 
+            // but we can store it in a temporary MemoryFile or update the latest StyleAnchor if it exists
+            return { success: true, message: '[System] Style keywords noted', styleKeywords };
           },
         }),
         updateLightingKeywords: tool({
-          description: 'Update the lighting keywords. Use when user specifies lighting preferences.',
+          description: 'Update lighting keywords.',
           inputSchema: updateLightingKeywordsSchema,
           execute: async ({ lightingKeywords }: UpdateLightingKeywordsInput) => {
-            return {
-              success: true,
-              message: '[System] Lighting keywords updated',
-              lightingKeywords,
-            };
+            return { success: true, message: '[System] Lighting keywords noted', lightingKeywords };
           },
         }),
         updateColorPalette: tool({
-          description: 'Update the color palette with HEX codes. Use when user selects or modifies colors.',
+          description: 'Update color palette.',
           inputSchema: updateColorPaletteSchema,
           execute: async ({ colors }: UpdateColorPaletteInput) => {
-            return {
-              success: true,
-              message: '[System] Color palette updated',
-              colors,
-            };
-          },
-        }),
-        saveStyleAnchor: tool({
-          description: 'Save the complete style anchor configuration. Call when user is ready to save the style.',
-          inputSchema: saveStyleAnchorSchema,
-          execute: async ({ confirm }: SaveStyleAnchorInput) => {
-            return {
-              success: true,
-              message: '[System] Style anchor saved',
-              confirm,
-            };
+            return { success: true, message: '[System] Palette noted', colors };
           },
         }),
       },
@@ -161,10 +165,7 @@ export async function POST(req: NextRequest) {
         error: 'Failed to process chat request',
         details: error instanceof Error ? error.message : 'Unknown error',
       }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

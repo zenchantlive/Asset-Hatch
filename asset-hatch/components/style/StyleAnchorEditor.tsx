@@ -12,7 +12,8 @@
  */
 
 import { useState, useRef } from 'react';
-import { db, type StyleAnchor } from '@/lib/db';
+import Image from 'next/image';
+import { db, type StyleAnchor } from '@/lib/client-db';
 import { extractColorPalette, blobToBase64 } from '@/lib/image-utils';
 
 interface StyleAnalysisResult {
@@ -196,10 +197,12 @@ export function StyleAnchorEditor({
 
         {imagePreview && (
           <div className="relative w-full h-64 bg-black/20 rounded-md overflow-hidden">
-            <img
+            <Image
               src={imagePreview}
               alt="Style reference"
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
+              unoptimized
             />
           </div>
         )}
@@ -259,11 +262,10 @@ export function StyleAnchorEditor({
                   <button
                     key={color}
                     onClick={() => toggleColor(color)}
-                    className={`relative h-12 rounded-md transition-all ${
-                      selectedColors.includes(color)
-                        ? 'ring-2 ring-white scale-105'
-                        : 'opacity-50 hover:opacity-100'
-                    }`}
+                    className={`relative h-12 rounded-md transition-all ${selectedColors.includes(color)
+                      ? 'ring-2 ring-white scale-105'
+                      : 'opacity-50 hover:opacity-100'
+                      }`}
                     style={{ backgroundColor: color }}
                     title={color}
                   >

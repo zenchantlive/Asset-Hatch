@@ -1,7 +1,11 @@
+/**
+ * @jest-environment jsdom
+ */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import '@testing-library/jest-dom'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import QualitiesBar, { ProjectQualities } from '../QualitiesBar'
+import { QualitiesBar, ProjectQualities } from '../QualitiesBar'
 
 describe('QualitiesBar', () => {
   const mockQualities: ProjectQualities = {
@@ -29,9 +33,9 @@ describe('QualitiesBar', () => {
     )
 
     // Check for dropdown trigger buttons
-    expect(screen.getByText(/Art Style:/i)).toBeInTheDocument()
-    expect(screen.getByText(/Resolution:/i)).toBeInTheDocument()
-    expect(screen.getByText(/Perspective:/i)).toBeInTheDocument()
+    expect(screen.getByText(/Style:/i)).toBeInTheDocument()
+    expect(screen.getByText(/Res:/i)).toBeInTheDocument()
+    expect(screen.getByText(/View:/i)).toBeInTheDocument()
     expect(screen.getByText(/Genre:/i)).toBeInTheDocument()
     expect(screen.getByText(/Theme:/i)).toBeInTheDocument()
     expect(screen.getByText(/Mood:/i)).toBeInTheDocument()
@@ -63,7 +67,7 @@ describe('QualitiesBar', () => {
     )
 
     // Click the Art Style dropdown
-    const artStyleButton = screen.getByText(/Art Style:/i).closest('button')
+    const artStyleButton = screen.getByText(/Style:/i).closest('button')
     if (artStyleButton) {
       await user.click(artStyleButton)
     }
@@ -104,10 +108,10 @@ describe('QualitiesBar', () => {
     )
 
     // All dropdown buttons should have text content
-    const artStyleButton = screen.getByText(/Art Style:/i)
+    const artStyleButton = screen.getByText(/Style:/i)
     expect(artStyleButton).toBeInTheDocument()
 
-    const resolutionButton = screen.getByText(/Resolution:/i)
+    const resolutionButton = screen.getByText(/Res:/i)
     expect(resolutionButton).toBeInTheDocument()
   })
 })
