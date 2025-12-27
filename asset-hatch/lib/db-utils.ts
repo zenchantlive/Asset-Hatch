@@ -1,4 +1,4 @@
-import { db, MemoryFile, Project } from './db';
+import { db, MemoryFile, Project } from './client-db';
 
 /**
  * Save content to a memory file for a project

@@ -12,7 +12,8 @@
  */
 
 import { useState, useRef } from 'react';
-import { db, type StyleAnchor } from '@/lib/db';
+import Image from 'next/image';
+import { db, type StyleAnchor } from '@/lib/client-db';
 import { extractColorPalette, blobToBase64 } from '@/lib/image-utils';
 
 interface StyleAnalysisResult {
@@ -141,8 +142,30 @@ export function StyleAnchorEditor({
       });
       const imageBase64 = await blobToBase64(imageBlob);
 
+      // Save to Server (Prisma)
+      const serverResponse = await fetch('/api/style-anchors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          referenceImageName: selectedImage.name,
+          referenceImageBase64DataUrl: imageBase64,
+          styleKeywords,
+          lightingKeywords,
+          colorPalette: selectedColors,
+          fluxModel,
+          aiSuggested: Boolean(aiSuggestions),
+        }),
+      });
+
+      if (!serverResponse.ok) {
+        throw new Error('Failed to save style anchor to server');
+      }
+
+      const { styleAnchor: serverAnchor } = await serverResponse.json();
+
       const styleAnchor: StyleAnchor = {
-        id: crypto.randomUUID(),
+        id: serverAnchor.id, // Use server ID
         project_id: projectId,
         reference_image_name: selectedImage.name,
         reference_image_blob: imageBlob,
@@ -156,10 +179,10 @@ export function StyleAnchorEditor({
         updated_at: new Date().toISOString(),
       };
 
-      // Save to IndexedDB
+      // Save to IndexedDB (Cache)
       await db.style_anchors.add(styleAnchor);
 
-      console.log('✅ Style anchor saved:', styleAnchor.id);
+      console.log('✅ Style anchor saved to server and cache:', styleAnchor.id);
 
       // Callback
       onSave(styleAnchor);
@@ -196,10 +219,12 @@ export function StyleAnchorEditor({
 
         {imagePreview && (
           <div className="relative w-full h-64 bg-black/20 rounded-md overflow-hidden">
-            <img
+            <Image
               src={imagePreview}
               alt="Style reference"
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
+              unoptimized
             />
           </div>
         )}
@@ -259,11 +284,10 @@ export function StyleAnchorEditor({
                   <button
                     key={color}
                     onClick={() => toggleColor(color)}
-                    className={`relative h-12 rounded-md transition-all ${
-                      selectedColors.includes(color)
-                        ? 'ring-2 ring-white scale-105'
-                        : 'opacity-50 hover:opacity-100'
-                    }`}
+                    className={`relative h-12 rounded-md transition-all ${selectedColors.includes(color)
+                      ? 'ring-2 ring-white scale-105'
+                      : 'opacity-50 hover:opacity-100'
+                      }`}
                     style={{ backgroundColor: color }}
                     title={color}
                   >

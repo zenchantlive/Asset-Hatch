@@ -16,16 +16,18 @@
 ### State Management
 * **Props drilling initially**, migrate to Context API only when necessary
 * **Local state first** (`useState`), lift up only when multiple components need it
-* **Dexie for persistent storage** (not localStorage, not cloud initially)
+* **Hybrid Persistence Model**: Prisma/SQLite for server-side source of truth (API); Dexie for client-side state and caching.
 * **CopilotKit manages its own state** - Don't duplicate message history in React state
 
 ### Data Flow
 ```
-User Input → React State → CopilotKit Context → OpenRouter API → AI Response
+User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI Response
                 ↓                                                      ↓
           Local State Update ← Parse Response ← Stream Response ← LLM
                 ↓
-         IndexedDB (Dexie) ← Save on Approval
+          Prisma (API) → Server Source of Truth
+                ↓
+         IndexedDB (Dexie) ← Client-side Cache
 ```
 
 ### File Organization
@@ -45,7 +47,7 @@ User Input → React State → CopilotKit Context → OpenRouter API → AI Resp
 
 ### TypeScript
 * **Use `const` over `let`** (immutability by default)
-* **Strict mode enabled** - No implicit any, strict null checks
+* **Strict mode enabled** - No implicit any, strict null checks. Whitelisting in `tsconfig.json` to prevent library type conflicts.
 * **Interface over type** for object shapes (unless union/intersection needed)
 * **Explicit return types** for exported functions (implicit OK for internal)
 
@@ -176,10 +178,10 @@ User Input → React State → CopilotKit Context → OpenRouter API → AI Resp
 - [ ] Test with slow network (throttle to 3G)
 
 ### Automated Testing (Future)
-* **Unit tests:** Vitest + React Testing Library
-* **Integration tests:** Test CopilotKit flows
-* **E2E tests:** Playwright for full user journeys
-* **Visual regression:** Chromatic or Percy (when budget allows)
+* **Unit tests:** Vitest + React Testing Library.
+* **API Integration tests:** Jest with `node` environment.
+* **UI Component tests:** Jest with `jsdom` environment (add `/** @jest-environment jsdom */` per file).
+* **Environment Guards:** `jest.setup.js` must guard window-only mocks with `typeof window !== 'undefined'`.
 
 ---
 
