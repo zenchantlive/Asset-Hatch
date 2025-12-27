@@ -126,7 +126,9 @@ export function buildSpriteSheetPrompt(vars: TemplateVariables): string {
     `sprite sheet of ${vars.subject}`,
 
     // 2. Frame specification
-    vars.frameCount ? `${vars.frameCount} frames arranged ${vars.arrangementType}` : undefined,
+    vars.frameCount && vars.arrangementType
+      ? `${vars.frameCount} frames arranged ${vars.arrangementType}`
+      : undefined,
 
     // 3. Animation type
     vars.animationType ? `${vars.animationType} animation` : undefined,
