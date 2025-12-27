@@ -22,7 +22,13 @@
       "Bash(bun list:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:vercel.com)",
-      "WebFetch(domain:ai-sdk.dev)"
+      "WebFetch(domain:ai-sdk.dev)",
+      "mcp__plugin_serena_serena__create_text_file",
+      "mcp__plugin_serena_serena__read_memory",
+      "Bash(bun install:*)",
+      "Bash(pkill:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__get-library-docs"
     ]
   }
 }

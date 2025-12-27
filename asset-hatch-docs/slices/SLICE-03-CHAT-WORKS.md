@@ -48,7 +48,7 @@ COPILOTKIT PROVIDER (app/layout.tsx):
 
 API ROUTE (app/api/copilotkit/route.ts):
 - Create POST handler for CopilotKit
-- Use OpenRouter with model "google/gemini-2.5-pro-preview"
+- Use OpenRouter with model "google/gemini-3-pro-preview-preview"
 - Get API key from process.env.OPENROUTER_API_KEY
 - Set up basic CopilotKit runtime
 - NO TOOLS YET - just basic chat
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   const adapter = new OpenAIAdapter({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
-    model: "google/gemini-2.5-pro-preview",
+    model: "google/gemini-3-pro-preview-preview",
   });
 
   return runtime.streamHttpServerResponse(req, adapter);
