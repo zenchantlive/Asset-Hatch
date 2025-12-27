@@ -60,7 +60,7 @@ export function parsePlan(
     }
 
     // Main asset (- Farmer)
-    if (trimmed.match(/^-\s+[A-Z]/)) {
+    if (trimmed.match(/^-\s+\S/)) { // Match any non-whitespace character to start the name
       const text = trimmed.replace(/^-\s+/, '').trim();
       parsed.push({
         level: 1,
