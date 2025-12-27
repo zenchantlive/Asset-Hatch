@@ -38,10 +38,9 @@ export function ChatInterface({
       console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
       
       if (toolCall.toolName === 'updateQuality') {
-        const input = toolCall.input as any;
-        
+        const toolInput = toolCall.input as any;
         // Handle expected format: {qualityKey: 'art_style', value: 'Pixel Art'}
-        if (input.qualityKey && input.value) {
+        if (toolInput.qualityKey && toolInput.value) {
           console.log('✅ Updating quality:', input.qualityKey, '→', input.value);
           onQualityUpdate(input.qualityKey, input.value);
         } 
