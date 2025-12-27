@@ -1,6 +1,6 @@
 'use client';
 
-import { useCopilotChatHeadless_c } from "@copilotkit/react-core";
+import { useCopilotChat } from "@copilotkit/react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Sparkles } from "lucide-react";
@@ -11,9 +11,39 @@ export function ChatInterface() {
     visibleMessages,
     appendMessage,
     isLoading,
-  } = useCopilotChatHeadless_c({
+  } = useCopilotChat({
     makeSystemMessage: () =>
-      "You are a helpful game asset planning assistant. Help the user plan what assets they need for their game. Ask clarifying questions about their game type, art style, and what characters, environments, and items they'll need.",
+      `You are a game asset planning assistant helping users plan what assets they need for their games.
+
+WORKFLOW:
+1. Ask clarifying questions about their game (genre, style, scope, target platform)
+2. Suggest quality parameters using the updateQuality tool when appropriate
+3. Create a comprehensive asset plan using the updatePlan tool
+
+QUALITY PARAMETERS:
+Use updateQuality to suggest: art_style, base_resolution, perspective, game_genre, theme, mood, color_palette
+
+PLAN FORMAT:
+When creating plans with updatePlan, use this markdown structure:
+
+# Asset Plan for [Game Name]
+
+## Characters
+- Character name [animations needed, views needed]
+  - Description and special requirements
+
+## Environments
+- Environment name [tileset size, layers needed]
+  - Description and asset breakdown
+
+## Items & Props
+- Category name
+  - Specific items [quantity, variations]
+
+## UI Elements
+- UI component list with descriptions
+
+Be detailed and actionable. Focus on practical asset requirements.`,
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -24,19 +54,24 @@ export function ChatInterface() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [visibleMessages]);
+  }, [visibleMessages?.length]);
 
   const handleSendMessage = async (content: string) => {
     if (content.trim()) {
+      // CopilotKit headless chat expects just the content string
       await appendMessage(content);
     }
   };
+
+  // Only show loading state if there are messages (prevents initial loading state)
+  const hasMessages = visibleMessages && visibleMessages.length > 0;
+  const showLoading = isLoading && hasMessages;
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {visibleMessages.length === 0 ? (
+        {!visibleMessages || visibleMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
             <Sparkles className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm font-medium">Start planning your game assets</p>
@@ -64,7 +99,7 @@ export function ChatInterface() {
             </div>
           ))
         )}
-        {isLoading && (
+        {showLoading && (
           <div className="flex justify-start">
             <div className="glass-panel rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
@@ -84,7 +119,7 @@ export function ChatInterface() {
       {/* Input area - sticky at bottom */}
       <div className="sticky bottom-0 glass-panel border-t p-4">
         <div className="flex gap-2">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput onSend={handleSendMessage} disabled={showLoading} />
         </div>
       </div>
     </div>

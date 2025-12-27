@@ -10,7 +10,19 @@
       "Bash(cat:*)",
       "Bash(npm install:*)",
       "Bash(bun add:*)",
-      "mcp__plugin_claude-mem_mem-search__search"
+      "mcp__plugin_claude-mem_mem-search__search",
+      "Bash(find:*)",
+      "WebFetch(domain:docs.copilotkit.ai)",
+      "Bash(grep:*)",
+      "Bash(bun run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__plugin_serena_serena__replace_content",
+      "Bash(bun list:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:ai-sdk.dev)"
     ]
   }
 }
