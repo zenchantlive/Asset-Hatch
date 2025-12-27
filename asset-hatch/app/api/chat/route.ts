@@ -1,7 +1,22 @@
 import { openrouter } from '@openrouter/ai-sdk-provider';
 import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
-import { z } from 'zod';
+
 import { NextRequest } from 'next/server';
+import {
+  updateQualitySchema,
+  updatePlanSchema,
+  finalizePlanSchema,
+  updateStyleKeywordsSchema,
+  updateLightingKeywordsSchema,
+  updateColorPaletteSchema,
+  saveStyleAnchorSchema,
+  UpdateQualityInput,
+  UpdatePlanInput,
+  UpdateStyleKeywordsInput,
+  UpdateLightingKeywordsInput,
+  UpdateColorPaletteInput,
+  SaveStyleAnchorInput,
+} from '@/lib/schemas';
 
 export const maxDuration = 30;
 
@@ -60,19 +75,8 @@ export async function POST(req: NextRequest) {
       tools: {
         updateQuality: tool({
           description: 'Update a specific quality parameter. Execute this IMMEDIATELY when a user mentions a preference (e.g., "I want pixel art").',
-          inputSchema: z.object({
-            qualityKey: z.enum([
-              'art_style',
-              'base_resolution',
-              'perspective',
-              'game_genre',
-              'theme',
-              'mood',
-              'color_palette'
-            ]).describe('The specific parameter to update'),
-            value: z.string().min(1).describe('The value to set (e.g., "Pixel Art", "Platformer")'),
-          }),
-          execute: async ({ qualityKey, value }: { qualityKey: string; value: string }) => {
+          inputSchema: updateQualitySchema,
+          execute: async ({ qualityKey, value }: UpdateQualityInput) => {
             return {
               success: true,
               message: `[System] Updated ${qualityKey} to "${value}"`,
@@ -83,10 +87,8 @@ export async function POST(req: NextRequest) {
         }),
         updatePlan: tool({
           description: 'Update the asset plan markdown. Call this whenever the asset list changes or grows.',
-          inputSchema: z.object({
-            planMarkdown: z.string().min(10).describe('The full markdown content of the plan'),
-          }),
-          execute: async ({ planMarkdown }: { planMarkdown: string }) => {
+          inputSchema: updatePlanSchema,
+          execute: async ({ planMarkdown }: UpdatePlanInput) => {
             return {
               success: true,
               message: '[System] Plan updated successfully',
@@ -96,11 +98,55 @@ export async function POST(req: NextRequest) {
         }),
         finalizePlan: tool({
           description: 'Call ONLY when the user explicitly agrees to "finalize" or "approve" the plan.',
-          inputSchema: z.object({}),
+          inputSchema: finalizePlanSchema,
           execute: async () => {
             return {
               success: true,
               message: '[System] Phase finalized',
+            };
+          },
+        }),
+        updateStyleKeywords: tool({
+          description: 'Update the style keywords for the project. Use when user describes or refines the art style.',
+          inputSchema: updateStyleKeywordsSchema,
+          execute: async ({ styleKeywords }: UpdateStyleKeywordsInput) => {
+            return {
+              success: true,
+              message: '[System] Style keywords updated',
+              styleKeywords,
+            };
+          },
+        }),
+        updateLightingKeywords: tool({
+          description: 'Update the lighting keywords. Use when user specifies lighting preferences.',
+          inputSchema: updateLightingKeywordsSchema,
+          execute: async ({ lightingKeywords }: UpdateLightingKeywordsInput) => {
+            return {
+              success: true,
+              message: '[System] Lighting keywords updated',
+              lightingKeywords,
+            };
+          },
+        }),
+        updateColorPalette: tool({
+          description: 'Update the color palette with HEX codes. Use when user selects or modifies colors.',
+          inputSchema: updateColorPaletteSchema,
+          execute: async ({ colors }: UpdateColorPaletteInput) => {
+            return {
+              success: true,
+              message: '[System] Color palette updated',
+              colors,
+            };
+          },
+        }),
+        saveStyleAnchor: tool({
+          description: 'Save the complete style anchor configuration. Call when user is ready to save the style.',
+          inputSchema: saveStyleAnchorSchema,
+          execute: async ({ confirm }: SaveStyleAnchorInput) => {
+            return {
+              success: true,
+              message: '[System] Style anchor saved',
+              confirm,
             };
           },
         }),

@@ -5,6 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import {
+  updateQualitySchema,
+  updatePlanSchema,
+  finalizePlanSchema,
+  updateStyleKeywordsSchema,
+  updateLightingKeywordsSchema,
+  updateColorPaletteSchema,
+  saveStyleAnchorSchema,
+} from "@/lib/schemas";
+
+interface UIMessagePart {
+  type: 'text' | 'reasoning' | 'tool-call';
+  text?: string;
+  toolName?: string;
+  input?: unknown;
+}
 
 interface ChatInterfaceProps {
   qualities: Record<string, string>;
@@ -12,6 +28,10 @@ interface ChatInterfaceProps {
   onQualityUpdate: (qualityKey: string, value: string) => void;
   onPlanUpdate: (markdown: string) => void;
   onPlanComplete: () => void;
+  onStyleKeywordsUpdate?: (styleKeywords: string) => void;
+  onLightingKeywordsUpdate?: (lightingKeywords: string) => void;
+  onColorPaletteUpdate?: (colors: string[]) => void;
+  onStyleAnchorSave?: () => void;
 }
 
 export function ChatInterface({
@@ -20,49 +40,94 @@ export function ChatInterface({
   onQualityUpdate,
   onPlanUpdate,
   onPlanComplete,
+  onStyleKeywordsUpdate,
+  onLightingKeywordsUpdate,
+  onColorPaletteUpdate,
+  onStyleAnchorSave,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
-  
+
   const {
     messages,
     sendMessage,
     status,
   } = useChat({
-    api: '/api/chat',
+    // api: '/api/chat', // Default is /api/chat
     body: {
       qualities,
       projectId,
     },
-    onToolCall: ({ toolCall }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onToolCall: ({ toolCall }: { toolCall: any }) => {
       // IMPORTANT: This fires when AI calls a tool
       console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
-      
+
       if (toolCall.toolName === 'updateQuality') {
-        const input = toolCall.input as any;
-        
-        // Handle expected format: {qualityKey: 'art_style', value: 'Pixel Art'}
-        if (input.qualityKey && input.value) {
-          console.log('✅ Updating quality:', input.qualityKey, '→', input.value);
-          onQualityUpdate(input.qualityKey, input.value);
-        } 
-        // Handle Gemini's format: {art_style: 'Pixel Art', game_genre: 'Platformer'}
-        else {
-          console.log('✅ Updating multiple qualities:', input);
-          Object.entries(input).forEach(([key, value]) => {
-            onQualityUpdate(key, value as string);
-          });
+        const result = updateQualitySchema.safeParse(toolCall.input);
+
+        if (result.success) {
+          const { qualityKey, value } = result.data;
+          console.log('✅ Updating quality:', qualityKey, '→', value);
+          onQualityUpdate(qualityKey, value);
+        } else {
+          // Fallback for potential model hallucinations (e.g. multi-key objects)
+          console.warn('⚠️ Schema validation failed, attempting fallback parsing:', result.error);
+          const input = toolCall.input as Record<string, unknown>;
+          if (input && typeof input === 'object') {
+            Object.entries(input).forEach(([key, value]) => {
+              // Basic validation for string values
+              if (typeof value === 'string') {
+                console.log('✅ Updating multiple qualities (fallback):', key, '→', value);
+                onQualityUpdate(key, value);
+              }
+            });
+          }
         }
       } else if (toolCall.toolName === 'updatePlan') {
-        const input = toolCall.input as any;
-        // Handle both 'planMarkdown' and 'markdown'
-        const markdown = input.planMarkdown || input.markdown;
-        if (markdown) {
-          console.log('✅ Updating plan, length:', markdown.length, 'chars');
-          onPlanUpdate(markdown);
+        const result = updatePlanSchema.safeParse(toolCall.input);
+
+        if (result.success) {
+          console.log('✅ Updating plan, length:', result.data.planMarkdown.length, 'chars');
+          onPlanUpdate(result.data.planMarkdown);
+        } else {
+          // Fallback for 'markdown' key if model hallucinates
+          const input = toolCall.input as Record<string, unknown>;
+          const markdown = input?.planMarkdown || input?.markdown;
+          if (typeof markdown === 'string') {
+            console.log('✅ Updating plan (fallback), length:', markdown.length, 'chars');
+            onPlanUpdate(markdown);
+          }
         }
       } else if (toolCall.toolName === 'finalizePlan') {
-        console.log('✅ Finalizing plan');
-        onPlanComplete();
+        const result = finalizePlanSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Finalizing plan');
+          onPlanComplete();
+        }
+      } else if (toolCall.toolName === 'updateStyleKeywords') {
+        const result = updateStyleKeywordsSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Updating style keywords:', result.data.styleKeywords);
+          onStyleKeywordsUpdate?.(result.data.styleKeywords);
+        }
+      } else if (toolCall.toolName === 'updateLightingKeywords') {
+        const result = updateLightingKeywordsSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Updating lighting keywords:', result.data.lightingKeywords);
+          onLightingKeywordsUpdate?.(result.data.lightingKeywords);
+        }
+      } else if (toolCall.toolName === 'updateColorPalette') {
+        const result = updateColorPaletteSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Updating color palette:', result.data.colors);
+          onColorPaletteUpdate?.(result.data.colors);
+        }
+      } else if (toolCall.toolName === 'saveStyleAnchor') {
+        const result = saveStyleAnchorSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Saving style anchor');
+          onStyleAnchorSave?.();
+        }
       }
     },
   });
@@ -87,7 +152,7 @@ export function ChatInterface({
 
   // Only show loading state if there are messages (prevents initial loading state)
   const hasMessages = messages.length > 0;
-  const isLoading = status === 'in_progress';
+  const isLoading = status === 'submitted' || status === 'streaming';
   const showLoading = isLoading && hasMessages;
 
   return (
@@ -99,49 +164,45 @@ export function ChatInterface({
             <Sparkles className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm font-medium">Start planning your game assets</p>
             <p className="text-xs mt-2 max-w-xs">
-              Tell me about your game idea and I'll help you plan what assets you'll need
+              Tell me about your game idea and I&apos;ll help you plan what assets you&apos;ll need
             </p>
           </div>
         ) : (
           messages.map((message, index) => {
             // In AI SDK v6, messages have a parts array instead of content
             // Extract text from text and reasoning parts
-            const textParts = message.parts?.filter((part: any) => 
+            const parts = message.parts as UIMessagePart[] | undefined;
+            const textParts = parts?.filter((part) =>
               part.type === 'text' || part.type === 'reasoning'
             ) || [];
-            const textContent = textParts.map((part: any) => part.text).join('');
-            
-            // Debug: log message structure with part details
+            const textContent = textParts.map((part) => part.text).join('');
+
             if (message.role === 'assistant') {
-              const parts = message.parts?.map((p: any) => {
+              const debugParts = parts?.map((p) => {
                 if (p.type === 'tool-call') {
                   return { type: p.type, toolName: p.toolName, input: p.input };
                 }
                 return { type: p.type, hasText: !!p.text };
               });
-              console.log('Assistant message parts:', parts);
+              console.log('Assistant message parts:', debugParts);
             }
-            
+
             // Skip messages with no text content
-            if (!textContent && textParts.length === 0) {
-              // Check if this is a message with only tool calls or other parts
-              const hasOtherParts = message.parts && message.parts.length > 0;
-              if (!hasOtherParts) return null;
+            if (!textContent) {
+              return null;
             }
 
             return (
               <div
                 key={index}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${
-                    message.role === "user"
-                      ? "aurora-gradient text-white"
-                      : "glass-panel aurora-glow-hover"
-                  }`}
+                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${message.role === "user"
+                    ? "aurora-gradient text-white"
+                    : "glass-panel aurora-glow-hover"
+                    }`}
                 >
                   <p className="text-sm whitespace-pre-wrap leading-relaxed">
                     {textContent || '(Tool calls or non-text content)'}

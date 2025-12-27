@@ -26,12 +26,18 @@ interface StyleAnchorEditorProps {
   projectId: string;
   onSave: (styleAnchor: StyleAnchor) => void;
   onCancel?: () => void;
+  initialStyleKeywords?: string;
+  initialLightingKeywords?: string;
+  initialColorPalette?: string[];
 }
 
 export function StyleAnchorEditor({
   projectId,
   onSave,
   onCancel,
+  initialStyleKeywords,
+  initialLightingKeywords,
+  initialColorPalette,
 }: StyleAnchorEditorProps) {
   // Upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -43,10 +49,10 @@ export function StyleAnchorEditor({
   const [aiSuggestions, setAiSuggestions] = useState<StyleAnalysisResult | null>(null);
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
 
-  // Editable fields
-  const [styleKeywords, setStyleKeywords] = useState('');
-  const [lightingKeywords, setLightingKeywords] = useState('');
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  // Editable fields (pre-fill with AI chat suggestions if provided)
+  const [styleKeywords, setStyleKeywords] = useState(initialStyleKeywords || '');
+  const [lightingKeywords, setLightingKeywords] = useState(initialLightingKeywords || '');
+  const [selectedColors, setSelectedColors] = useState<string[]>(initialColorPalette || []);
   const [fluxModel, setFluxModel] = useState('black-forest-labs/flux-2-dev');
 
   // Save state

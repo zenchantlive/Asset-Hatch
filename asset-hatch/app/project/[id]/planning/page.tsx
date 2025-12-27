@@ -21,6 +21,11 @@ export default function PlanningPage() {
   const [savedFiles, setSavedFiles] = useState<string[]>([])
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
 
+  // Style phase state
+  const [styleKeywords, setStyleKeywords] = useState("")
+  const [lightingKeywords, setLightingKeywords] = useState("")
+  const [colorPalette, setColorPalette] = useState<string[]>([])
+
   // Handler for quality updates from AI
   const handleQualityUpdate = (qualityKey: string, value: string) => {
     console.log('📝 Planning page received quality update:', qualityKey, '=', value);
@@ -35,6 +40,28 @@ export default function PlanningPage() {
   const handlePlanUpdate = (markdown: string) => {
     console.log('📋 Planning page received plan update, length:', markdown.length);
     setPlanMarkdown(markdown);
+  };
+
+  // Style phase handlers
+  const handleStyleKeywordsUpdate = (keywords: string) => {
+    console.log('🎨 Planning page received style keywords update:', keywords);
+    setStyleKeywords(keywords);
+  };
+
+  const handleLightingKeywordsUpdate = (keywords: string) => {
+    console.log('💡 Planning page received lighting keywords update:', keywords);
+    setLightingKeywords(keywords);
+  };
+
+  const handleColorPaletteUpdate = (colors: string[]) => {
+    console.log('🎨 Planning page received color palette update:', colors);
+    setColorPalette(colors);
+  };
+
+  const handleStyleAnchorSave = () => {
+    console.log('💾 Planning page: Style anchor save requested');
+    // The StyleAnchorEditor handles the actual save, this is just a notification
+    loadSavedFiles();
   };
 
   // Load saved files for file viewer menu
@@ -202,6 +229,10 @@ export default function PlanningPage() {
             onQualityUpdate={handleQualityUpdate}
             onPlanUpdate={handlePlanUpdate}
             onPlanComplete={handleApprovePlan}
+            onStyleKeywordsUpdate={handleStyleKeywordsUpdate}
+            onLightingKeywordsUpdate={handleLightingKeywordsUpdate}
+            onColorPaletteUpdate={handleColorPaletteUpdate}
+            onStyleAnchorSave={handleStyleAnchorSave}
           />
         </div>
 
@@ -219,6 +250,9 @@ export default function PlanningPage() {
           {mode === 'style' && (
             <StyleAnchorEditor
               projectId={typeof params.id === 'string' ? params.id : ''}
+              initialStyleKeywords={styleKeywords}
+              initialLightingKeywords={lightingKeywords}
+              initialColorPalette={colorPalette}
               onSave={async (styleAnchor) => {
                 console.log('Style anchor saved:', styleAnchor.id);
                 await loadSavedFiles();
