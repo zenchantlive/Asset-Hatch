@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { ProjectQualities } from "./QualitiesBar";
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -23,7 +24,7 @@ interface UIMessagePart {
 }
 
 interface ChatInterfaceProps {
-  qualities: Record<string, string>;
+  qualities: ProjectQualities;
   projectId: string;
   onQualityUpdate: (qualityKey: string, value: string) => void;
   onPlanUpdate: (markdown: string) => void;
@@ -53,10 +54,12 @@ export function ChatInterface({
     status,
   } = useChat({
     // api: '/api/chat', // Default is /api/chat
+    // @ts-expect-error - body is supported by the API but missing from types
     body: {
       qualities,
       projectId,
-    },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onToolCall: ({ toolCall }: { toolCall: any }) => {
       // IMPORTANT: This fires when AI calls a tool

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         .trim();
 
       analysis = JSON.parse(cleanText);
-    } catch (parseError) {
+    } catch {
       console.error('❌ Failed to parse vision model response:', result.text);
       return NextResponse.json(
         {

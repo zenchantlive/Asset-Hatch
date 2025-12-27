@@ -5,15 +5,15 @@
  *
  * Workflow:
  * 1. Receive asset specification + project data
- * 2. Load style anchor from IndexedDB
+ * 2. Load style anchor from SQLite (Prisma)
  * 3. Build optimized Flux.2 prompt using prompt-builder
  * 4. Call OpenRouter image generation API with style anchor image
- * 5. Save generated asset to IndexedDB
+ * 5. Save generated asset to SQLite (Prisma)
  * 6. Return generated image to client
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import { buildAssetPrompt, calculateGenerationSize, FLUX_MODELS, type ParsedAsset } from '@/lib/prompt-builder';
 import { prepareStyleAnchorForAPI } from '@/lib/image-utils';
 
@@ -41,8 +41,11 @@ export async function POST(request: NextRequest) {
       model: modelKey,
     });
 
-    // 1. Load project from IndexedDB (server-side uses Dexie too)
-    const project = await db.projects.get(projectId);
+    // 1. Load project from SQLite
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
     if (!project) {
       return NextResponse.json(
         { error: 'Project not found' },
@@ -50,13 +53,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Map Prisma Project to Dexie-like Project for compatibility with prompt builder
+    const legacyProject = {
+      ...project,
+      base_resolution: project.baseResolution,
+    };
+
     // 2. Load style anchor
-    const styleAnchor = await db.style_anchors
-      .where('project_id')
-      .equals(projectId)
-      .reverse() // Sort by primary key (id, which is likely time-based) or use a timestamp
-      .sortBy('created_at')
-      .then(anchors => anchors[0]); // Get the most recent one
+    const styleAnchor = await prisma.styleAnchor.findFirst({
+      where: { projectId: projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+
     if (!styleAnchor) {
       return NextResponse.json(
         { error: 'No style anchor found for this project. Please create one first.' },
@@ -64,27 +72,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Map Prisma StyleAnchor to Dexie-like StyleAnchor
+    const legacyStyleAnchor = {
+      ...styleAnchor,
+      reference_image_blob: new Blob([styleAnchor.referenceImageBlob], { type: 'image/png' }),
+      reference_image_base64: styleAnchor.referenceImageBase64 || undefined,
+      style_keywords: styleAnchor.styleKeywords,
+      lighting_keywords: styleAnchor.lightingKeywords,
+      color_palette: JSON.parse(styleAnchor.colorPalette),
+      flux_model: styleAnchor.fluxModel,
+    };
+
     // 3. Load character registry (if applicable)
     let characterRegistry = undefined;
     if (asset.type === 'character-sprite' || asset.type === 'sprite-sheet') {
-      const characters = await db.character_registry
-        .where('project_id')
-        .equals(projectId)
-        .and((char) => char.name.toLowerCase() === asset.name.toLowerCase())
-        .toArray();
+      const char = await prisma.characterRegistry.findFirst({
+        where: {
+          projectId: projectId,
+          name: { equals: asset.name },
+        },
+      });
 
-      characterRegistry = characters[0];
+      if (char) {
+        characterRegistry = {
+          ...char,
+          color_hex: JSON.parse(char.colorHex),
+          style_keywords: char.styleKeywords,
+          successful_seed: char.successfulSeed || undefined,
+          poses_generated: JSON.parse(char.posesGenerated),
+          animations: JSON.parse(char.animations),
+        };
+      }
     }
 
     // 4. Build optimized prompt
-    const prompt = buildAssetPrompt(asset, project, styleAnchor, characterRegistry);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prompt = buildAssetPrompt(asset, legacyProject as any, legacyStyleAnchor as any, characterRegistry as any);
     console.log('📝 Generated prompt:', prompt);
 
     // 5. Prepare style anchor image for API
-    const styleAnchorBase64 = await prepareStyleAnchorForAPI(styleAnchor);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const styleAnchorBase64 = await prepareStyleAnchorForAPI(legacyStyleAnchor as any);
 
     // 6. Calculate generation size (2x for pixel-perfect downscaling)
-    const genSize = calculateGenerationSize(project.base_resolution || '32x32');
+    const genSize = calculateGenerationSize(project.baseResolution || '32x32');
 
     // 7. Get model config
     const model = FLUX_MODELS[modelKey];
@@ -109,12 +140,10 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: model.modelId,
         prompt: prompt,
-        // Include style anchor as reference image
         images: [styleAnchorBase64],
-        // Generation parameters
         size: `${genSize.width}x${genSize.height}`,
-        n: 1, // Number of images to generate
-        response_format: 'b64_json', // Return as base64
+        n: 1,
+        response_format: 'b64_json',
       }),
     });
 
@@ -133,16 +162,14 @@ export async function POST(request: NextRequest) {
     const result = await response.json();
     const duration = Date.now() - startTime;
 
-    // 9. Extract generated image (OpenRouter returns array of images)
     const generatedImageB64 = result.data?.[0]?.b64_json;
     if (!generatedImageB64) {
       return NextResponse.json(
-        { error: 'No image data in response', result },
+        { error: 'No image data in response' },
         { status: 500 }
       );
     }
 
-    // 10. Parse seed from response metadata (if available)
     const seed = result.data?.[0]?.seed || Math.floor(Math.random() * 1000000);
 
     console.log('✅ Image generated successfully:', {
@@ -151,63 +178,61 @@ export async function POST(request: NextRequest) {
       size: `${genSize.width}x${genSize.height}`,
     });
 
-    // 11. Save to IndexedDB
-    // Convert base64 to Blob
+    // 9. Save to SQLite
     const imageDataUrl = `data:image/png;base64,${generatedImageB64}`;
-    const response2 = await fetch(imageDataUrl);
-    const imageBlob = await response2.blob();
+    const imageBuffer = Buffer.from(generatedImageB64, 'base64');
 
-    const generatedAsset = {
-      id: `asset-${Date.now()}`,
-      project_id: projectId,
-      asset_id: asset.id,
-      variant_id: asset.variant.id,
-      image_blob: imageBlob,
-      image_base64: imageDataUrl, // Cache for display
-      prompt_used: prompt,
-      generation_metadata: {
-        model: model.modelId,
+    const createdAsset = await prisma.generatedAsset.create({
+      data: {
+        projectId: projectId,
+        assetId: asset.id,
+        variantId: asset.variant.id,
+        status: 'generated',
         seed: seed,
-        cost: model.costPerImage,
-        duration_ms: duration,
+        imageBlob: imageBuffer,
+        promptUsed: prompt,
+        metadata: JSON.stringify({
+          model: model.modelId,
+          cost: model.costPerImage,
+          duration_ms: duration,
+        }),
       },
-      status: 'generated' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    });
 
-    await db.generated_assets.add(generatedAsset);
+    console.log('💾 Saved to SQLite:', createdAsset.id);
 
-    console.log('💾 Saved to IndexedDB:', generatedAsset.id);
-
-    // 12. Update character registry if this is a new pose
+    // 10. Update character registry if this is a new pose
     if (characterRegistry && asset.variant.pose) {
-      if (!characterRegistry.poses_generated.includes(asset.variant.pose)) {
-        characterRegistry.poses_generated.push(asset.variant.pose);
-        characterRegistry.animations[asset.variant.pose] = {
+      const poses = characterRegistry.poses_generated as string[];
+      if (!poses.includes(asset.variant.pose)) {
+        poses.push(asset.variant.pose);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const animations = characterRegistry.animations as Record<string, any>;
+        animations[asset.variant.pose] = {
           prompt_suffix: asset.variant.pose,
           seed: seed,
-          asset_id: generatedAsset.id,
+          asset_id: createdAsset.id,
         };
 
-        // Store first successful seed
-        if (!characterRegistry.successful_seed) {
-          characterRegistry.successful_seed = seed;
-        }
-
-        characterRegistry.updated_at = new Date().toISOString();
-        await db.character_registry.update(characterRegistry.id, characterRegistry);
+        await prisma.characterRegistry.update({
+          where: { id: characterRegistry.id },
+          data: {
+            posesGenerated: JSON.stringify(poses),
+            animations: JSON.stringify(animations),
+            successfulSeed: characterRegistry.successful_seed || seed,
+          },
+        });
       }
     }
 
-    // 13. Return generated image to client
+    // 11. Return generated image to client
     return NextResponse.json({
       success: true,
       asset: {
-        id: generatedAsset.id,
-        image_url: imageDataUrl, // Base64 data URL for immediate display
+        id: createdAsset.id,
+        image_url: imageDataUrl,
         prompt: prompt,
-        metadata: generatedAsset.generation_metadata,
+        metadata: JSON.parse(createdAsset.metadata || '{}'),
       },
     });
   } catch (error) {
@@ -221,37 +246,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-/**
- * Example usage from frontend:
- *
- * ```typescript
- * const asset: ParsedAsset = {
- *   id: 'farmer-idle',
- *   category: 'Characters',
- *   name: 'Farmer',
- *   type: 'character-sprite',
- *   description: 'farmer character with straw hat and overalls',
- *   variant: {
- *     id: 'idle-front',
- *     name: 'Idle',
- *     pose: 'idle standing pose',
- *     direction: 'front',
- *   },
- * };
- *
- * const response = await fetch('/api/generate', {
- *   method: 'POST',
- *   headers: { 'Content-Type': 'application/json' },
- *   body: JSON.stringify({
- *     projectId: 'project-123',
- *     asset: asset,
- *     modelKey: 'flux-2-dev',
- *   }),
- * });
- *
- * const result = await response.json();
- * // result.asset.image_url = "data:image/png;base64,..."
- * // Display image: <img src={result.asset.image_url} />
- * ```
- */

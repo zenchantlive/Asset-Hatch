@@ -1,10 +1,34 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
+
+// Mock the prisma client
+jest.mock('@/lib/prisma', () => ({
+    prisma: {
+        project: {
+            findUnique: jest.fn(),
+            update: jest.fn(),
+        },
+        styleAnchor: {
+            findFirst: jest.fn(),
+        },
+        characterRegistry: {
+            findFirst: jest.fn(),
+            update: jest.fn(),
+        },
+        generatedAsset: {
+            create: jest.fn(),
+        },
+        memoryFile: {
+            upsert: jest.fn(),
+        },
+    },
+}));
 
 // Mock the image-utils and prompt-builder
 jest.mock('@/lib/image-utils', () => ({
     prepareStyleAnchorForAPI: jest.fn().mockResolvedValue('mock-base64-image'),
+    base64ToBlob: jest.fn().mockResolvedValue(new Blob(['image-data'])),
 }));
 
 jest.mock('@/lib/prompt-builder', () => ({
@@ -19,36 +43,39 @@ jest.mock('@/lib/prompt-builder', () => ({
 global.fetch = jest.fn() as jest.Mock;
 
 describe('POST /api/generate', () => {
-    beforeEach(async () => {
+    beforeEach(() => {
         jest.clearAllMocks();
-        // Clear the mock DB before each test
-        await db.projects.clear();
-        await db.style_anchors.clear();
     });
 
     it('successfully generates an asset', async () => {
-        // 1. Setup mock data in Dexie
-        await db.projects.add({
+        // 1. Setup mock data in Prisma mocks
+        const mockProject = {
             id: 'p1',
             name: 'Test Project',
             phase: 'planning',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        });
+            baseResolution: '32x32',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
 
-        await db.style_anchors.add({
+        const mockStyleAnchor = {
             id: 's1',
-            project_id: 'p1',
-            reference_image_name: 'ref.png',
-            reference_image_blob: new Blob([]),
-            style_keywords: 'pixel art',
-            lighting_keywords: 'flat',
-            color_palette: ['#000000'],
-            flux_model: 'flux-2-dev',
-            ai_suggested: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        });
+            projectId: 'p1',
+            referenceImageName: 'ref.png',
+            referenceImageBlob: Buffer.from([]),
+            referenceImageBase64: 'mock-base64',
+            styleKeywords: 'pixel art',
+            lightingKeywords: 'flat',
+            colorPalette: JSON.stringify(['#000000']),
+            fluxModel: 'flux-2-dev',
+            aiSuggested: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        (prisma.project.findUnique as jest.Mock).mockResolvedValue(mockProject);
+        (prisma.styleAnchor.findFirst as jest.Mock).mockResolvedValue(mockStyleAnchor);
+        (prisma.generatedAsset.create as jest.Mock).mockResolvedValue({ id: 'g1', metadata: '{}' });
 
         // 2. Mock OpenRouter response
         (global.fetch as jest.Mock)
@@ -57,10 +84,6 @@ describe('POST /api/generate', () => {
                 json: () => Promise.resolve({
                     data: [{ b64_json: 'mock-generated-image', seed: 123 }]
                 }),
-            })
-            // Second fetch is for converting base64 to blob in the route
-            .mockResolvedValueOnce({
-                blob: () => Promise.resolve(new Blob(['image-data'])),
             });
 
         const request = new NextRequest('http://localhost/api/generate', {
@@ -77,14 +100,14 @@ describe('POST /api/generate', () => {
 
         expect(response.status).toBe(200);
         expect(data.success).toBe(true);
-        expect(data.asset.id).toBeDefined();
-        expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('openrouter.ai'),
-            expect.any(Object)
-        );
+        expect(data.asset.id).toBe('g1');
+        expect(prisma.project.findUnique).toHaveBeenCalledWith({ where: { id: 'p1' } });
+        expect(prisma.generatedAsset.create).toHaveBeenCalled();
     });
 
     it('returns 404 if project is not found', async () => {
+        (prisma.project.findUnique as jest.Mock).mockResolvedValue(null);
+
         const request = new NextRequest('http://localhost/api/generate', {
             method: 'POST',
             body: JSON.stringify({
@@ -101,14 +124,8 @@ describe('POST /api/generate', () => {
     });
 
     it('returns 400 if no style anchor is found', async () => {
-        // Add project but NO style anchor
-        await db.projects.add({
-            id: 'p1',
-            name: 'Test Project',
-            phase: 'planning',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-        });
+        (prisma.project.findUnique as jest.Mock).mockResolvedValue({ id: 'p1' });
+        (prisma.styleAnchor.findFirst as jest.Mock).mockResolvedValue(null);
 
         const request = new NextRequest('http://localhost/api/generate', {
             method: 'POST',

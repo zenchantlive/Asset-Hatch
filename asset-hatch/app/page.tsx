@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Project } from '@/lib/db';
+import { db, Project } from '@/lib/client-db';
 import { ProjectCard } from '@/components/ProjectCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,7 @@ export default function Home() {
   const [newProjectName, setNewProjectName] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const projects = useLiveQuery(() => 
+  const projects = useLiveQuery(() =>
     db.projects.orderBy('created_at').reverse().toArray()
   );
 
@@ -52,7 +52,7 @@ export default function Home() {
               AI-Powered Game Asset Studio
             </p>
           </div>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="lg">New Project</Button>

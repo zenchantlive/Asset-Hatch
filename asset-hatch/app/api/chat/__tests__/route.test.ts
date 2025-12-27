@@ -14,6 +14,18 @@ jest.mock('@openrouter/ai-sdk-provider', () => ({
     openrouter: jest.fn(),
 }));
 
+// Mock prisma to prevent errors during tool execution if applicable
+jest.mock('@/lib/prisma', () => ({
+    prisma: {
+        project: {
+            update: jest.fn().mockResolvedValue({}),
+        },
+        memoryFile: {
+            upsert: jest.fn().mockResolvedValue({}),
+        },
+    },
+}));
+
 describe('POST /api/chat', () => {
     beforeEach(() => {
         jest.clearAllMocks();

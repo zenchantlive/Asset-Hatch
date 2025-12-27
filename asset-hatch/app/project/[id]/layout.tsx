@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Project } from '@/lib/db';
+import { db } from '@/lib/client-db';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';

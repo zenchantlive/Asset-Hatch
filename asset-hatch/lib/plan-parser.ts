@@ -98,16 +98,20 @@ export function parsePlan(
       // If no variants follow, create single asset
       const nextItem = parsed[i + 1];
       if (!nextItem || nextItem.level !== 2) {
-        assets.push(
-          createAsset({
-            category: currentAssetCategory,
-            name: currentAssetName,
-            variantText: '', // No specific variant
-            mode: options.mode,
-            projectId: options.projectId,
-            assetIndex: assetCounter++,
-          })
-        );
+        const newAsset = createAsset({
+          category: currentAssetCategory,
+          name: currentAssetName,
+          variantText: '', // No specific variant
+          mode: options.mode,
+          projectId: options.projectId,
+          assetIndex: assetCounter++,
+        });
+
+        if (Array.isArray(newAsset)) {
+          assets.push(...newAsset);
+        } else {
+          assets.push(newAsset);
+        }
       }
     } else if (item.level === 2) {
       // Variant line
@@ -178,7 +182,7 @@ function createAsset(spec: {
     } else {
       // GRANULAR: Individual assets for each direction
       const directions = ['front', 'left', 'right', 'back'];
-      return directions.slice(0, animationInfo.directionCount).map((dir, idx) => ({
+      return directions.slice(0, animationInfo.directionCount).map((dir) => ({
         id: `${baseId}-${dir}`,
         category,
         name,
