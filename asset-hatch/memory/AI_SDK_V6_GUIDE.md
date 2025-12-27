@@ -277,6 +277,34 @@ const textContent = message.parts
 
 ## Common Gotchas & Solutions
 
+### 🚨 CRITICAL: Tools Not Executing (Most Common Issue)
+
+**Symptom:** Tools are defined, AI mentions using them, but onToolCall never fires
+
+**Root Cause:** Missing `stopWhen: stepCountIs(N)` parameter
+
+**Solution:**
+```typescript
+// ❌ WRONG - Tools won't execute
+const result = streamText({
+  model: openrouter('google/gemini-3-pro-preview'),
+  messages: modelMessages,
+  tools: { updateQuality: tool({...}) },
+});
+
+// ✅ CORRECT - Enables tool execution
+const result = streamText({
+  model: openrouter('google/gemini-3-pro-preview'),
+  messages: modelMessages,
+  stopWhen: stepCountIs(10),  // ← CRITICAL! Allows up to 10 tool calls
+  tools: { updateQuality: tool({...}) },
+});
+```
+
+**Why it matters:** Without `stopWhen`, the SDK receives tool call proposals from the model but doesn't execute them. This is the #1 reason tools "don't work."
+
+---
+
 ### 1. "Module not found: Can't resolve 'ai/react'"
 
 **Problem:** Trying to import from `ai/react`
@@ -359,6 +387,84 @@ const result = streamText({ messages });
 // ✅ Correct
 const modelMessages = await convertToModelMessages(messages);
 const result = streamText({ messages: modelMessages });
+```
+
+---
+
+### 7. Tool parameters are undefined (toolCall.input is undefined)
+
+**Problem:** Using `toolCall.args` instead of `toolCall.input`
+
+**Solution:**
+```typescript
+// ❌ Wrong
+onToolCall: ({ toolCall }) => {
+  const { param1, param2 } = toolCall.args;  // undefined!
+}
+
+// ✅ Correct  
+onToolCall: ({ toolCall }) => {
+  const { param1, param2 } = toolCall.input;  // works!
+}
+```
+
+**Why:** AI SDK v6 uses `input` property, not `args`. This changed from earlier versions.
+
+---
+
+### 8. Tool schema validation doesn't work
+
+**Problem:** Using `parameters` instead of `inputSchema` in tool definition
+
+**Solution:**
+```typescript
+// ❌ Wrong
+tool({
+  description: 'My tool',
+  parameters: z.object({ key: z.string() }),  // wrong property
+})
+
+// ✅ Correct
+tool({
+  description: 'My tool',
+  inputSchema: z.object({ key: z.string() }),  // correct property
+})
+```
+
+---
+
+### 9. Model sends different parameter names than defined
+
+**Problem:** Gemini/some models don't respect exact Zod parameter names
+
+**Example:**
+```typescript
+// You defined:
+inputSchema: z.object({
+  qualityKey: z.enum(['art_style', 'game_genre']),
+  value: z.string(),
+})
+
+// Gemini sends:
+{art_style: 'Pixel Art', game_genre: 'Platformer'}  // Multiple at once!
+```
+
+**Solution:** Handle both formats flexibly on frontend
+```typescript
+onToolCall: ({ toolCall }) => {
+  const input = toolCall.input;
+  
+  // Handle expected format
+  if (input.qualityKey && input.value) {
+    updateQuality(input.qualityKey, input.value);
+  }
+  // Handle model's actual format
+  else {
+    Object.entries(input).forEach(([key, value]) => {
+      updateQuality(key, value);
+    });
+  }
+}
 ```
 
 ---

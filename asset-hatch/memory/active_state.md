@@ -1,13 +1,13 @@
 # 🧠 Active Session State
 
-**Last Updated:** 2025-12-26
-**Session:** Planning Phase P1 - Vercel AI SDK Migration ✅ COMPLETE
-**Branch:** feat/migrate-to-vercel-ai-sdk
+**Last Updated:** 2025-12-26  
+**Session:** Planning Phase P1 - ✅ COMPLETE & WORKING
+**Branch:** feat/migrate-to-vercel-ai-sdk (ready to merge)
 
 ---
 
 ## 📍 Current Focus
-> **✅ COMPLETED:** Successfully migrated from CopilotKit v1.50.1 to Vercel AI SDK v6. Chat interface is now functional with streaming AI responses and tool calling.
+> **🎉 FULLY FUNCTIONAL:** Successfully migrated from CopilotKit v1.50.1 to Vercel AI SDK v6. AI agent now actively calls tools and updates UI in real-time. Planning Phase P1 is 100% complete.
 
 ---
 
@@ -198,6 +198,88 @@ OPENROUTER_API_KEY=sk-or-v1-*** (valid)
 
 ## 📝 Lessons Learned
 
+### Critical Fixes for Tool Execution ⚠️ MUST KNOW
+
+#### 1. **Missing `stepCountIs()` - THE BLOCKER**
+**Problem:** Tools defined but NEVER executed
+```typescript
+// ❌ WRONG - Tools won't execute
+const result = streamText({
+  model: openrouter('google/gemini-3-pro-preview'),
+  tools: { /* defined tools */ },
+});
+
+// ✅ CORRECT - Enables multi-step tool execution
+const result = streamText({
+  model: openrouter('google/gemini-3-pro-preview'),
+  stopWhen: stepCountIs(10),  // ← CRITICAL!
+  tools: { /* defined tools */ },
+});
+```
+**Why:** Without `stopWhen`, the SDK receives tool proposals but doesn't execute them.
+
+#### 2. **Wrong Property: `toolCall.args` vs `toolCall.input`**
+**Problem:** Tool parameters always undefined
+```typescript
+// ❌ WRONG - input will be undefined
+onToolCall: ({ toolCall }) => {
+  const { qualityKey, value } = toolCall.args;  // undefined!
+}
+
+// ✅ CORRECT - Use .input property
+onToolCall: ({ toolCall }) => {
+  const { qualityKey, value } = toolCall.input;  // works!
+}
+```
+**Why:** AI SDK v6 uses `input` property, not `args`.
+
+#### 3. **Wrong Schema Property: `parameters` vs `inputSchema`**
+**Problem:** Tool validation doesn't work properly
+```typescript
+// ❌ WRONG
+tool({
+  description: '...',
+  parameters: z.object({ /* schema */ }),  // wrong property
+})
+
+// ✅ CORRECT
+tool({
+  description: '...',
+  inputSchema: z.object({ /* schema */ }),  // correct property
+})
+```
+**Why:** AI SDK v6 tool definitions use `inputSchema`, not `parameters`.
+
+#### 4. **Gemini Ignores Parameter Names - Handle Flexibly**
+**Problem:** Gemini sends different parameter structure than defined
+```typescript
+// What we defined:
+inputSchema: z.object({
+  qualityKey: z.enum(['art_style', ...]),
+  value: z.string(),
+})
+
+// What Gemini actually sends:
+{art_style: 'Pixel Art', game_genre: 'Platformer'}  // Multiple at once!
+```
+**Solution:** Handle both formats on frontend
+```typescript
+onToolCall: ({ toolCall }) => {
+  const input = toolCall.input;
+  
+  // Handle expected format
+  if (input.qualityKey && input.value) {
+    onQualityUpdate(input.qualityKey, input.value);
+  }
+  // Handle Gemini's actual format (multiple qualities at once)
+  else {
+    Object.entries(input).forEach(([key, value]) => {
+      onQualityUpdate(key, value);
+    });
+  }
+}
+```
+
 ### AI SDK v6 Breaking Changes
 1. **React hooks split** - `useChat` now in `@ai-sdk/react`, not `ai/react`
 2. **No form helpers** - No `input`, `handleInputChange`, `handleSubmit` from hook
@@ -212,7 +294,28 @@ OPENROUTER_API_KEY=sk-or-v1-*** (valid)
 - Use `status === 'in_progress'` instead of `isLoading` boolean
 - Log message structure during development for debugging
 - Handle empty parts arrays gracefully
+- **ALWAYS include `stopWhen: stepCountIs(N)` for tool execution**
+- **Use `toolCall.input`, not `toolCall.args`**
+- **Use `inputSchema`, not `parameters` in tool definitions**
+- **Handle flexible parameter formats for different models**
 
 ---
 
-**Status:** Migration complete and functional. Ready to continue with Planning Phase P1 feature development.
+## 🎯 Final Status
+
+**✅ Planning Phase P1: 100% COMPLETE**
+- User describes game → AI sets quality parameters automatically ✅
+- Dropdowns update in real-time as AI makes suggestions ✅
+- User asks for asset list → AI generates plan with updatePlan ✅
+- Plan appears in preview pane with markdown formatting ✅
+- Tools execute reliably and update UI state ✅
+
+**🚀 Ready for Next Phase:**
+- Merge feat/migrate-to-vercel-ai-sdk branch
+- Begin Style Anchor Phase (P2)
+
+**📊 Overall Project Completion: 45% → 50%**
+
+---
+
+**Status:** Migration complete, tested, and working perfectly. All tool execution issues resolved.
