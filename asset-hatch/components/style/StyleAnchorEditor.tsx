@@ -142,7 +142,7 @@ export function StyleAnchorEditor({
       const imageBase64 = await blobToBase64(imageBlob);
 
       const styleAnchor: StyleAnchor = {
-        id: `style-${Date.now()}`,
+        id: crypto.randomUUID(),
         project_id: projectId,
         reference_image_name: selectedImage.name,
         reference_image_blob: imageBlob,
