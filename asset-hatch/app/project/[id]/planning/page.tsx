@@ -30,29 +30,34 @@ export default function PlanningPage() {
     }
 
     setIsApproving(true)
+    const projectId = params.id as string
     try {
-      const projectId = params.id;
-      if (typeof projectId !== 'string') {
-        console.error("Plan approval failed: Invalid Project ID.");
-        // TODO: Add user-facing error notification (future enhancement)
-        setIsApproving(false);
-        return;
-      }
+      await db.transaction('rw', db.memory_files, db.projects, async () => {
+        // 1. Save plan to memory file as entities.json
+        await saveMemoryFile(projectId, 'entities.json', planMarkdown)
 
-      // 1. Save plan to memory file as entities.json
-      await saveMemoryFile(projectId, 'entities.json', planMarkdown)
+        // 2. Save selected qualities to project
+        await updateProjectQualities(projectId, qualities)
 
-      // 2. Save selected qualities to project
-      await updateProjectQualities(projectId, qualities)
-
-      // 3. Update project phase to 'style'
-      await db.projects.update(projectId, {
-        phase: 'style',
-        updated_at: new Date().toISOString(),
+        // 3. Update project phase to 'style'
+        await db.projects.update(projectId, {
+          phase: 'style',
+          updated_at: new Date().toISOString(),
+        })
       })
 
-      // 4. Navigate to style anchor phase
+      // 4. Navigate to style anchor phase after successful transaction
       router.push(`/project/${projectId}/style`)
+    } catch (error) {
+      console.error("Plan approval failed:", error)
+      // TODO: Add user-facing error notification (future enhancement)
+      setIsApproving(false) // Also set to false on error
+    } finally {
+      // Navigation is async, so we only set isApproving to false if it's not a success case with navigation
+      if (router.asPath === `/project/${projectId}/planning`) {
+        setIsApproving(false)
+      }
+    }
     } catch (error) {
       console.error("Plan approval failed:", error)
       // TODO: Add user-facing error notification (future enhancement)
