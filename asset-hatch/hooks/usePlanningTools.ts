@@ -26,10 +26,10 @@ export function usePlanningTools(
       },
     ],
     handler: async ({ qualityKey, value }) => {
-      onQualitiesChange({
-        ...qualities,
+      onQualitiesChange(prev => ({
+        ...prev,
         [qualityKey]: value,
-      });
+      }));
       return `Updated ${qualityKey} to "${value}"`;
     },
   });
