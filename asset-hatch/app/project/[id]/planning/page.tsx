@@ -22,20 +22,19 @@ export default function PlanningPage() {
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
 
   // Handler for quality updates from AI
-  const handleQualityUpdate = (qualityKey: string, value: string) => {
+  const handleQualityUpdate = useCallback((qualityKey: string, value: string) => {
     console.log('📝 Planning page received quality update:', qualityKey, '=', value);
     setQualities(prev => {
       const updated = { ...prev, [qualityKey]: value };
       console.log('📊 Updated qualities:', updated);
       return updated;
     });
-  };
+  }, []);
 
-  // Handler for plan updates from AI
-  const handlePlanUpdate = (markdown: string) => {
+  const handlePlanUpdate = useCallback((markdown: string) => {
     console.log('📋 Planning page received plan update, length:', markdown.length);
     setPlanMarkdown(markdown);
-  };
+  }, []);
 
   // Load saved files for file viewer menu
   const loadSavedFiles = async () => {

@@ -38,10 +38,9 @@ export function ChatInterface({
       console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
       
       if (toolCall.toolName === 'updateQuality') {
-        const input = toolCall.input as any;
-        
+        const toolInput = toolCall.input as any;
         // Handle expected format: {qualityKey: 'art_style', value: 'Pixel Art'}
-        if (input.qualityKey && input.value) {
+        if (toolInput.qualityKey && toolInput.value) {
           console.log('✅ Updating quality:', input.qualityKey, '→', input.value);
           onQualityUpdate(input.qualityKey, input.value);
         } 
@@ -110,21 +109,20 @@ export function ChatInterface({
               part.type === 'text' || part.type === 'reasoning'
             ) || [];
             const textContent = textParts.map((part: any) => part.text).join('');
-            
-            // Debug: log message structure with part details
-            if (message.role === 'assistant') {
-              const parts = message.parts?.map((p: any) => {
-                if (p.type === 'tool-call') {
-                  return { type: p.type, toolName: p.toolName, input: p.input };
-                }
-                return { type: p.type, hasText: !!p.text };
-              });
-              console.log('Assistant message parts:', parts);
+
+            // In AI SDK v6, assistant messages can contain just tool calls without any text.
+            // We should not render these messages to the user.
+            const hasOnlyToolCalls =
+              message.role === 'assistant' &&
+              textParts.length === 0 &&
+              message.parts?.every((part: any) => part.type === 'tool-call');
+
+            if (hasOnlyToolCalls) {
+              return null;
             }
-            
-            // Skip messages with no text content
+
+            // Skip messages with no text content, unless they have other displayable parts.
             if (!textContent && textParts.length === 0) {
-              // Check if this is a message with only tool calls or other parts
               const hasOtherParts = message.parts && message.parts.length > 0;
               if (!hasOtherParts) return null;
             }
