@@ -175,7 +175,7 @@ export function ChatInterface({
             const textParts = parts?.filter((part) =>
               part.type === 'text' || part.type === 'reasoning'
             ) || [];
-            const textContent = textParts.map((part) => part.text).join('');
+            const textContent = textParts.map((part) => part.text ?? '').join('');
 
             if (message.role === 'assistant') {
               const debugParts = parts?.map((p) => {
