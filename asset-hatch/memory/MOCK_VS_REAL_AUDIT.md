@@ -10,17 +10,17 @@
 
 ### Core Infrastructure
 - ✅ **Next.js 16.1.1 (Turbopack)** - Production app router
-- ✅ **Dexie v4.2.1** - IndexedDB wrapper, schema v2 with memory_files table
+- ✅ **Hybrid Persistence Layer** - Prisma/SQLite (Server) + Dexie (Client)
 - ✅ **Tailwind CSS + shadcn/ui** - Component library with glassmorphism theme
 - ✅ **Bun** - Package manager and runtime (Windows + WSL environment)
 
-### Database Schema (v3)
-- ✅ **Projects table** - With quality fields (art_style, base_resolution, perspective, game_genre, theme, mood, color_palette)
-- ✅ **Memory files table** - For storing plans, conversations, and JSON artifacts (with version tracking)
-- ✅ **Style anchors table** - Reference images, AI-extracted keywords, color palettes
-- ✅ **Character registry table** - Multi-pose consistency tracking, successful seeds
-- ✅ **Generated assets table** - Stored images as Blobs, prompt metadata, version links
-- ✅ **Database utilities** - Helper functions (saveMemoryFile, loadMemoryFile, updateProjectQualities)
+- ✅ **Hybrid Persistence** - Prisma/SQLite as server source of truth; Dexie as client cache
+- ✅ **Projects table** - Schema migrated to Prisma with relational integrity
+- ✅ **Memory files table** - Support for storing plans and conversation history (Prisma-backed)
+- ✅ **Style anchors table** - Images stored as Bytes in Prisma; dual-write from UI
+- ✅ **Character registry table** - Server-side storage for animation consistency
+- ✅ **Generated assets table** - Stored in Prisma for generation pipeline access
+- ✅ **Database utilities** - Refactored to use Prisma for server operations and `client-db.ts` for UI state.
 
 ### UI Components
 - ✅ **ChatInterface** - Aurora styling, streaming responses, reasoning display, tool execution
@@ -157,7 +157,7 @@ After 8 debugging attempts and 4+ hours:
 - ✅ **Editable keyword fields** - User can refine AI suggestions
 - ✅ **Color palette extraction** - Visual grid with click-to-toggle
 - ✅ **Model selection** - Flux.2 Dev vs Pro dropdown
-- ✅ **Save to IndexedDB** - With base64 caching
+- ✅ **Hybrid Save Policy** - Atomic POST to /api/style-anchors then Dexie cache update
 
 ### Generation API (app/api/generate/route.ts)
 - ✅ **Complete workflow** - Load project → build prompt → call Flux.2 → save asset
@@ -221,7 +221,7 @@ After 8 debugging attempts and 4+ hours:
 | Generation Phase | 2 | 0 | 2 | 4 | **50%** ⬆️ |
 | Export Phase | 0 | 0 | 3 | 3 | **0%** |
 
-**Overall Project Completion: ~65%** ⬆️ (up from 45%!)
+**Overall Project Completion: ~75%** ⬆️ (up from 65%!)
 
 **New This Session:**
 - Plan parser (composite/granular modes)

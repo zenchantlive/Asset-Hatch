@@ -7,7 +7,7 @@
  * This is the main entry point used by the generation API route.
  */
 
-import type { Project, StyleAnchor, CharacterRegistry } from './db';
+import type { Project, StyleAnchor, CharacterRegistry } from './types';
 import {
   type AssetType,
   type GamePerspective,

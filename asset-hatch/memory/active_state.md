@@ -1,14 +1,14 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-26
-**Session:** UI Integration Phase - Plan Parser + Style Tools ✅ COMPLETE
-**Branch:** feat/add-style-phase-tools
+**Session:** Hybrid Persistence & Test Fixes ✅ COMPLETE
+**Branch:** feat/api-integration-tests
 
 ---
 
 ## 📍 Current Focus
 
-> **🎉 UI INTEGRATION PROGRESS:** Successfully implemented plan parser, multi-mode tab navigation, and complete style phase AI tool integration. Planning page now supports Plan/Style/Generation modes with seamless AI-assisted workflow. Generation queue UI remains pending.
+> **🎉 HYBRID PERSISTENCE + STABILITY:** Successfully refactored database to a Hybrid model (Prisma + Dexie), resolved all Jest test environment issues (node/jsdom), and achieved 100% clean lint/typecheck. Server-side persistence is now the source of truth for generation.
 
 ---
 
@@ -28,7 +28,9 @@
 | **Plan Parser** | ✅ Complete | Parse markdown → ParsedAsset[], composite/granular modes |
 | **Multi-Mode Planning Page** | ✅ Complete | Tab navigation, file viewer menu, mode switching |
 | **Style Phase AI Tools** | ✅ Complete | 4 tools integrated with ChatInterface |
-| **Generation Queue UI** | 🔴 TODO | Asset tree, prompt editor, status tracking |
+| **Hybrid Persistence** | ✅ Complete | Prisma + Dexie sync for StyleAnchors |
+| **Test Coverage** | ✅ Complete | Integration tests for all API routes |
+| **Generation Queue UI** | 🟢 IN PROGRESS | Asset tree, prompt editor, status tracking |
 
 ---
 
@@ -152,8 +154,8 @@ if (generationMode === 'composite') {
 2. AI analyzes image (vision model) → suggests keywords
 3. Client extracts color palette from image
 4. User edits AI suggestions
-5. Saves StyleAnchor to IndexedDB (with base64 cached)
-6. All generations include this image as reference
+5. Saves StyleAnchor to Hybrid Storage (Prisma + Dexie cache)
+6. All generations include this image as reference via Prisma lookup
 
 **Implementation:**
 - `StyleAnchorEditor` component handles upload + AI analysis
@@ -230,7 +232,10 @@ Templates ensure correct priority ordering.
 4. **lib/prompt-builder.ts** - Priority-ordered prompt generation
 5. **app/api/analyze-style/route.ts** - AI vision analysis
 6. **components/style/StyleAnchorEditor.tsx** - Style anchor UI
-7. **app/api/generate/route.ts** - Generation API with Flux.2
+7. **app/api/generate/route.ts** - Generation API with Flux.2 (Prisma refactor)
+8. **app/api/style-anchors/route.ts** - Style anchor storage API
+9. **lib/client-db.ts** - Renamed from db.ts, client-only Dexie
+10. **lib/prisma.ts** - Prisma client singleton
 
 ### Documentation (2 files)
 8. **memory/GENERATION_WORKFLOW_GAPS.md** - 13 critical gaps identified
@@ -248,6 +253,12 @@ Templates ensure correct priority ordering.
    - Handle composite vs granular mode
    - Expand animations (4-direction → 4 frames or 4 tasks)
    - Auto-detect asset types from category and name
+
+4. ✅ **Hybrid Persistence & Stability**
+   - Separated persistence into `client-db.ts` (Dexie) and `prisma` (SQLite).
+   - Created `/api/style-anchors` for server-side persistence.
+   - Fixed Jest environments: `node` default, `jsdom` for UI.
+   - Unified TS types in `tsconfig.json` to prevent library resolution errors.
 
 2. ✅ **Multi-mode planning page** - `/app/project/[id]/planning/page.tsx`
    - Tab navigation: [Plan] [Style] [Generation]
@@ -284,11 +295,11 @@ Templates ensure correct priority ordering.
 | P0 Generation Backend | 100% | ✅ Complete |
 | Plan Parser | 100% | ✅ Complete |
 | Multi-Mode UI | 100% | ✅ Complete |
-| Style Anchor Phase | 80% | 🟡 AI tools + UI complete, testing needed |
-| Generation Phase | 40% | 🟡 Backend + parser done, queue UI pending |
+| Style Anchor Phase | 100% | ✅ Complete |
+| Generation Phase | 50% | 🟡 Backend done, Queue UI started |
 | Export Phase | 0% | 🔴 Not started |
 
-**Overall: ~65%** ⬆️ (up from 55%)
+**Overall: ~75%** ⬆️ (up from 65%)
 
 ---
 

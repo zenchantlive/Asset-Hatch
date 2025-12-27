@@ -146,7 +146,7 @@ Saved as `entities.json` in IndexedDB:
 - **Day/Night Indicator**
 ```
 
-This becomes the blueprint for Phase 3 (Generation).
+This becomes the blueprint for Phase 3 (Generation). Source of truth for API generation is stored in Prisma/SQLite under the `MemoryFile` model.
 
 ---
 
@@ -165,9 +165,9 @@ This becomes the blueprint for Phase 3 (Generation).
 - **Gemini 3 Pro Preview** (Current model for chat/tools)
 - **Flux.2 Pro** (Future model for image generation)
 
-### Data Layer
-- **IndexedDB** (Client-side database)
-- **Dexie v4.2.1** (IndexedDB wrapper with schema versioning)
+### Data Layer (Hybrid Persistence)
+- **IndexedDB (Dexie v4.2.1)**: Client-side database for UI state and local caching.
+- **SQLite (Prisma v7.2.0)**: Server-side database for authoritative data required by API routes.
 
 ### Development Environment
 - **Bun** (Package manager, runtime, dev server)

@@ -65,7 +65,11 @@ export async function POST(req: NextRequest) {
                 color_palette: 'colorPalette',
               };
 
-              const prismaField = fieldMap[qualityKey] || qualityKey;
+              const prismaField = fieldMap[qualityKey as keyof typeof fieldMap];
+
+              if (!prismaField) {
+                return { success: false, error: `Invalid quality key: ${qualityKey}` };
+              }
 
               await prisma.project.update({
                 where: { id: projectId },
