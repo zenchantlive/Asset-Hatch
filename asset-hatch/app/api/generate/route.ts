@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://asset-hatch.app', // Optional: for OpenRouter analytics
+        'Referer': 'https://asset-hatch.app',
         'X-Title': 'Asset Hatch',
       },
       body: JSON.stringify({
