@@ -12,6 +12,14 @@
  * @returns Promise resolving to base64 data URL (e.g., "data:image/png;base64,...")
  */
 export async function blobToBase64(blob: Blob): Promise<string> {
+  // Server‐side (Node) support via Buffer
+  if (typeof Buffer !== 'undefined' && typeof blob.arrayBuffer === 'function') {
+    const arrayBuffer = await blob.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const mime = blob.type || 'application/octet-stream';
+    return `data:${mime};base64,${base64}`;
+  }
+  // Fallback to browser FileReader
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
