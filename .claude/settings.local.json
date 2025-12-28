@@ -32,7 +32,9 @@
       "Bash(bun run typecheck:*)",
       "mcp__plugin_serena_serena__find_symbol",
       "mcp__plugin_serena_serena__search_for_pattern",
-      "Bash(bun run lint:*)"
+      "Bash(bun run lint:*)",
+      "Bash(bunx prisma generate:*)",
+      "mcp__plugin_serena_serena__list_dir"
     ]
   }
 }

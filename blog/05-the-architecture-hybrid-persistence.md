@@ -143,7 +143,15 @@ fetch('/api/generate', {
 
 **Verdict:** ✅ Best balance of velocity and robustness
 
-## Implementation: Hybrid Persistence
+## The Council's Solution: Hybrid Persistence
+
+I wasn't sure if this was the right path, so I summoned my **Council of AIs** (Sonnet 4, GPT-5.2, and Perplexity) to review the problem.
+
+Their consensus solution? **Hybrid Persistence.**
+
+![Council of AIs] (/images/ council-of-ais.png)
+
+### Implementation: Hybrid Persistence
 
 ### Step 1: Install Prisma
 

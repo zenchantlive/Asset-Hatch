@@ -324,7 +324,7 @@ cfe3cf1 - Complete UI redesign and premium cosmic aesthetic refactor
 
 One problem with AI chat sessions: **they forget everything when you close the browser**.
 
-We worked until Slice 3 with Sonnet 4, but the slice method wasn't working how I wanted. It was too narrow and didn't allow the AI to complete the logical gaps to reach the wireframes we'd created.
+We worked until Slice 3 with Sonnet 4, but the slice method wasn't working how I wanted. It was too narrow and didn't allow the AI to complete the logical gaps to reach the wireframes we'd created with Opus ";)".
 
 So I formed a "Council" of **Sonnet 4, GPT-5.2, and Perplexity** to devise a better solution. Together, we designed the `/memory` and `/memory/adr` system.
 
