@@ -77,7 +77,7 @@ export function SignInModal({
                 setIsLoading(false);
             } else {
                 // Redirect to dashboard on success
-                window.location.href = "/dashboard";
+                router.push("/dashboard");
             }
         } catch {
             setError("Sign in failed. Please try again.");
