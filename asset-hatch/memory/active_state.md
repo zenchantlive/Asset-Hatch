@@ -1,14 +1,134 @@
 # 🧠 Active Session State
 
-**Last Updated:** 2025-12-27
-**Session:** Individual Asset Generation Workflow - ✅ COMPLETE
+**Last Updated:** 2025-12-28
+**Session:** Code Review Fixes & Refactoring - ✅ COMPLETE
 **Branch:** feat/generation-queue-ui
+**Latest Commit:** ba63b15
 
 ---
 
 ## 📍 Current Focus
 
-> **✅ GENERATION WORKFLOW COMPLETE:** Implemented individual asset generation with prompt preview/editing, approval workflow, style anchor integration, and assets management panel. Users can now generate assets one-by-one with full control over prompts and approval.
+> **✅ CODE REVIEW COMPLETE:** Addressed all review feedback from commit ac88f7d. Fixed type safety issues, completed broken features, improved performance with direct function calls, and enhanced security with environment-aware logging. All changes pass type checking with zero errors.
+
+---
+
+## 🔥 Latest Session's Work (2025-12-28)
+
+### Code Review Fixes & Refactoring
+
+**Context:**
+- Review agents identified 6 issues in commit ac88f7d
+- 3 high-priority (type safety, broken features, performance)
+- 3 medium-priority (security, architecture)
+
+**Solution Implemented:**
+
+#### 1. Type Safety: Removed `as any` Casts ✅
+**Files:** `app/api/generate-style/route.ts`, `app/api/generate/route.ts`, `lib/style-anchor-generator.ts`
+
+**Issue:** Type casts `result.imageBuffer as any` suppressed type errors
+
+**Fix:** Changed to `Buffer.from(result.imageBuffer)` for proper Prisma Bytes type handling
+
+**Impact:** Eliminated type safety risks, improved maintainability
+
+---
+
+#### 2. Broken Feature: Completed Latest Asset Preview Logic ✅
+**Files:** `components/generation/GenerationProgress.tsx`, `app/api/assets/[id]/route.ts` (NEW)
+
+**Issue:** "Latest Generation" preview showed hardcoded empty `imageUrl: ''`
+
+**Fix:**
+- Created new API endpoint `/api/assets/[id]` to fetch individual assets
+- Replaced incomplete TODO with proper `useState` + `useEffect` implementation
+- Component now fetches actual asset data from database
+- Image preview displays correctly
+
+**Impact:** Fixed user-facing broken feature
+
+---
+
+#### 3. Performance: Refactored Internal Fetch to Direct Function Call ✅
+**Files:** `lib/style-anchor-generator.ts` (NEW), `app/api/chat/route.ts`, `app/api/generate-style/route.ts`
+
+**Issue:** Chat route called `/api/generate-style` via HTTP fetch (internal server-to-server)
+
+**Fix:**
+- Extracted style generation logic to `lib/style-anchor-generator.ts`
+- Updated chat route to call shared function directly (no HTTP)
+- Refactored API route to use shared logic
+
+**Benefits:**
+- ⚡ Eliminated HTTP roundtrip latency
+- 🛡️ Removed dependency on `NEXT_PUBLIC_APP_URL` env var
+- 🔧 Centralized business logic
+- 🔒 Improved security (no client-exposed env vars)
+
+---
+
+#### 4. Security: Improved DATABASE_URL Logging ✅
+**Files:** `lib/prisma.ts`
+
+**Issue:** Database URL logged in all environments (including production)
+
+**Fix:** Added environment check - only log in development mode
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  console.log('📦 Database URL:', databaseUrl);
+}
+```
+
+**Impact:** Prevents sensitive data exposure in production logs
+
+---
+
+#### 5. Security: Removed Client-Exposed Env Var Usage ✅
+**Status:** Already completed during performance refactor (Fix #3)
+
+**Impact:** No more `NEXT_PUBLIC_*` env vars used in server code
+
+---
+
+#### 6. Architecture: Documented API Route Consolidation Plan ✅
+**Files:** `memory/adr/010-api-route-consolidation.md` (NEW)
+
+**Issue:** Flat API structure (`/api/*`) difficult to scale and secure
+
+**Solution:** Created comprehensive ADR documenting:
+- Proposed RESTful structure: `/api/projects/[id]/*`
+- 4-phase migration strategy (non-breaking)
+- Complete route migration checklist
+- Timeline estimate: 6-8 hours
+
+**Recommendation:** Defer to dedicated refactoring session (not urgent for MVP)
+
+---
+
+## 📁 Files Modified/Created (This Session)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `lib/style-anchor-generator.ts` | **CREATE** | Shared style generation business logic |
+| `app/api/assets/[id]/route.ts` | **CREATE** | Individual asset fetch endpoint |
+| `memory/adr/010-api-route-consolidation.md` | **CREATE** | API refactor architecture plan |
+| `app/api/generate-style/route.ts` | **REFACTOR** | Uses shared style-anchor-generator |
+| `app/api/generate/route.ts` | **FIX** | Proper Buffer type handling |
+| `app/api/chat/route.ts` | **REFACTOR** | Direct function calls (no HTTP) |
+| `components/generation/GenerationProgress.tsx` | **FIX** | Completed latest asset fetch logic |
+| `lib/prisma.ts` | **FIX** | Environment-aware logging |
+
+---
+
+## ✅ Testing & Validation
+
+- ✅ TypeScript type checking: **Zero errors**
+- ✅ All fixes compile successfully
+- ✅ No breaking changes to existing functionality
+- ✅ Latest asset preview now displays images correctly
+- ✅ Style anchor generation performance improved (no HTTP overhead)
+- ✅ Production logs no longer expose sensitive database URLs
 
 ---
 
@@ -16,6 +136,10 @@
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
+| **Code Review Fixes** | ✅ Complete | All 6 items addressed |
+| **Type Safety** | ✅ Complete | No `as any` casts remaining |
+| **Performance** | ✅ Improved | Direct function calls, no HTTP |
+| **Security** | ✅ Enhanced | Env-aware logging, no client vars |
 | **Prompt Generation** | ✅ Complete | Real-time building with style anchor |
 | **Individual Asset Generation** | ✅ Complete | Generate Image button in PromptPreview |
 | **Asset Approval Workflow** | ✅ Complete | AssetApprovalCard with approve/reject |
@@ -24,278 +148,13 @@
 | **Generation Tab Layout** | ✅ Complete | Full-width, chat hidden |
 | **Planning Phase P1** | ✅ Complete | Chat, tools, plan generation working |
 | **Style Anchor Phase** | ✅ Complete | E2E flow with Flux.2 |
-| **Generation Phase** | 🟢 85% Complete | Core workflow functional |
-
----
-
-## 🔥 This Session's Work
-
-### Individual Asset Generation Workflow Implementation
-
-**Problem:**
-- User asked to implement prompt generation wiring and generation tab layout fix
-- After initial implementation, discovered we wired prompts but hadn't completed the full generation → approval → save flow
-- User clarified: wanted individual generation (not batch "Generate All")
-- Approval should work like style anchor (show image, approve/reject)
-- Approved assets should show in an "Assets panel" (like Files panel)
-
-**Solution Implemented:**
-
-#### 1. Prompt Generation Wiring
-**Files:** `lib/types/generation.ts`, `components/generation/GenerationQueue.tsx`, `components/generation/PromptPreview.tsx`, `components/generation/AssetTree.tsx`
-
-**Implementation:**
-- Added `generatedPrompts: Map<string, string>` state to GenerationQueue context
-- Created `generatePrompt()` function that:
-  - Fetches project from Dexie for quality parameters
-  - Fetches style anchor from Dexie (if exists)
-  - Fetches character registry for characters (if exists)
-  - Calls `buildAssetPrompt()` with all data
-  - Stores result in context Map
-- Updated PromptPreview to:
-  - Load or generate prompt on mount
-  - Show loading spinner during generation
-  - Allow editing with live update to context
-  - Show character count and optimization tips
-- Added "Generate Prompt" button to AssetTree
-  - Only shows if prompt not yet generated
-  - Auto-expands card after generation
-
-#### 2. Individual Asset Generation Flow
-**Files:** `lib/types/generation.ts`, `components/generation/GenerationQueue.tsx`, `components/generation/PromptPreview.tsx`
-
-**Implementation:**
-- Added `AssetGenerationState` discriminated union type:
-  ```typescript
-  | { status: 'pending' }
-  | { status: 'generating'; progress?: number }
-  | { status: 'awaiting_approval'; result: GeneratedAssetResult }
-  | { status: 'approved'; result: GeneratedAssetResult }
-  | { status: 'rejected' }
-  | { status: 'error'; error: Error }
-  ```
-- Added `assetStates: Map<string, AssetGenerationState>` to context
-- Created `generateImage()` function that:
-  - Fetches style anchor from Dexie
-  - Calls `/api/generate` with prompt and style anchor image
-  - Updates asset state through lifecycle
-  - Marks as 'awaiting_approval' on success
-- Added "Generate Image" button to PromptPreview:
-  - Shows "Generate Image" with Sparkles icon when ready
-  - Shows spinner and "Generating..." during generation
-  - Shows checkmark and "Generated" when complete
-  - Disabled if already generating or generated
-
-#### 3. Style Anchor Integration
-**Files:** `components/generation/GenerationQueue.tsx`
-
-**Implementation:**
-- Updated `generateImage()` to fetch style anchor before API call
-- Pass `styleAnchorImageUrl: styleAnchor?.reference_image_blob` in request
-- Ensures visual consistency across all generated assets
-- Falls back gracefully if no style anchor exists
-
-#### 4. Asset Approval Workflow
-**Files:** `components/generation/AssetApprovalCard.tsx` (NEW), `components/generation/GenerationProgress.tsx`, `components/generation/GenerationQueue.tsx`
-
-**AssetApprovalCard Features:**
-- Large image preview
-- Asset name and category
-- **Approve/Reject buttons at top** (user requirement)
-- Prompt used for generation
-- Metadata grid: model, seed, cost, duration
-- Regenerate option
-
-**GenerationProgress Updates:**
-- Added `assetsAwaitingApproval` useMemo to find pending approvals
-- Scrollable approval area with sticky heading
-- Maps through awaiting assets and renders AssetApprovalCard
-- Wired up approve/reject/regenerate handlers
-
-**Approval Handler (`approveAsset`):**
-- Converts data URL to Blob via fetch
-- Saves to Dexie with correct schema:
-  - `image_blob`: Blob (converted from data URL)
-  - `image_base64`: Data URL (for display)
-  - `prompt_used`, `generation_metadata`, `status: 'approved'`
-  - Includes `variant_id`, `created_at`, `updated_at`
-- Marks asset state as 'approved'
-
-**Reject Handler (`rejectAsset`):**
-- Marks asset as 'rejected'
-- Allows user to regenerate with different settings
-
-#### 5. Assets Panel
-**Files:** `components/ui/AssetsPanel.tsx` (NEW), `app/project/[id]/planning/page.tsx`
-
-**AssetsPanel Features:**
-- Slide-out panel (like FilesPanel) at 48rem width
-- Loads approved assets from Dexie
-- Grid display (2 columns) with image thumbnails
-- Click asset to see detail view with:
-  - Full-size image preview
-  - Complete prompt
-  - All metadata
-  - Edit prompt button (TODO)
-  - Regenerate button (TODO)
-- Debug logging to diagnose display issues
-
-**Planning Page Integration:**
-- Added "Assets" button next to "Files" button in header
-- Both buttons in flex container
-- AssetsPanel state management
-- Panel slides in from right when opened
-
-#### 6. Generation Tab Layout Fix
-**Files:** `app/project/[id]/planning/page.tsx`
-
-**Implementation:**
-- Conditional rendering based on mode
-- Generation mode: Full-width GenerationQueue only
-- Plan/Style modes: 50/50 split with ChatInterface
-- Chat interface hidden when in Generation mode
-- GenerationQueue has its own internal 50/50 layout (Asset Tree | Progress)
-
-#### 7. Batch Controls Cleanup
-**Files:** `components/generation/BatchControls.tsx`
-
-**Changes:**
-- Removed "Generate All" button (user requirement)
-- Removed unused imports (Sparkles, Pause, Play)
-- Removed unused context functions (startGeneration, pauseGeneration, resumeGeneration)
-- Removed unused handlers
-- Simplified to status indicators and model selector
-
-#### 8. Bug Fixes
-
-**Field Naming Consistency:**
-**File:** `app/api/generate/route.ts`
-- Fixed: API was returning `image_url` (snake_case)
-- Issue: TypeScript interface expected `imageUrl` (camelCase)
-- Result: Image wasn't displaying in approval card
-- Solution: Changed to `imageUrl` to match interface
-- Also added `seed` to metadata object
-
-**Type Errors:**
-**File:** `components/generation/GenerationQueue.tsx`
-- Fixed: `setPromptOverrides` reference (doesn't exist)
-- Changed to: `setGeneratedPrompts`
-- Added: `updated_at` field to GeneratedAsset creation
-
-**Assets Panel Display:**
-**File:** `components/ui/AssetsPanel.tsx`
-- Fixed: Using wrong field names from old draft
-- Changed: `image_blob` → `image_base64` (for display)
-- Changed: `asset.name` → `asset.asset_id` (correct field)
-- Changed: `asset.cost` → `asset.generation_metadata.cost`
-- Changed: `asset.prompt` → `asset.prompt_used`
-
-**UI/UX Improvements:**
-- Moved approve buttons to top of AssetApprovalCard (user request)
-- Made approval area scrollable with sticky heading
-- Added proper overflow handling
-
----
-
-## 📁 Files Modified/Created
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `lib/types/generation.ts` | **EDIT** | Added AssetGenerationState, updated context interface |
-| `components/generation/GenerationQueue.tsx` | **EDIT** | Added prompt/image generation, approval handlers |
-| `components/generation/PromptPreview.tsx` | **EDIT** | Real prompt generation, Generate Image button |
-| `components/generation/AssetTree.tsx` | **EDIT** | Generate Prompt button, auto-expand |
-| `components/generation/BatchControls.tsx` | **EDIT** | Removed Generate All button, cleanup |
-| `components/generation/GenerationProgress.tsx` | **EDIT** | Approval area with AssetApprovalCard |
-| `components/generation/AssetApprovalCard.tsx` | **CREATE** | Approval UI with image preview |
-| `components/ui/AssetsPanel.tsx` | **CREATE** | Slide-out panel for approved assets |
-| `app/project/[id]/planning/page.tsx` | **EDIT** | Assets button, conditional layout |
-| `app/api/generate/route.ts` | **EDIT** | Fixed field naming (imageUrl) |
-| `hooks/useBatchGeneration.ts` | **EDIT** | Accept custom prompts parameter |
-| `hooks/useAssetGeneration.ts` | **EDIT** | Accept custom prompt parameter |
-
----
-
-## ✅ Testing Completed
-
-1. ✅ Type checking passes (excluding pre-existing test errors)
-2. ✅ Prompt generation uses real project data (qualities, style anchor, character registry)
-3. ✅ Generate Image button triggers API call with style anchor
-4. ✅ Image displays in approval card after generation
-5. ✅ Approve buttons accessible at top of card
-6. ✅ Approval area is scrollable
-7. ✅ Approved assets save to Dexie with correct schema
-8. ✅ Assets panel displays approved assets
-9. ✅ Generation tab takes full width (chat hidden)
-10. ✅ Plan and Style tabs keep chat visible
-
----
-
-## 🎯 Implementation Journey
-
-### Initial Request
-User asked to implement:
-1. Prompt generation wiring
-2. Generation tab layout fix
-
-### Phase 1: Basic Implementation
-- Added prompt generation to context
-- Updated PromptPreview to use real buildAssetPrompt()
-- Added Generate Prompt button to AssetTree
-- Fixed layout to hide chat in Generation mode
-
-### Phase 2: User Clarifications
-User pointed out we wired prompts but hadn't completed the generation flow:
-- "there isn't a way to generate the actual image from the generated prompt"
-- "should appear just like the style anchor appeared on the right for approval"
-- "should show up in an asset menu just like the files menu"
-
-### Phase 3: Complete Generation Flow
-- Implemented individual generation (not batch)
-- Created AssetApprovalCard (like style anchor approval)
-- Added Assets panel (like Files panel)
-- Wired up complete lifecycle: generate → approve → save → view
-
-### Phase 4: Bug Fixes & Polish
-- Fixed field naming (image_url → imageUrl)
-- Fixed type errors (updated_at, setPromptOverrides)
-- Fixed Assets panel field names
-- Moved approve buttons to top
-- Made approval area scrollable
-
----
-
-## 🔑 Key Implementation Decisions
-
-### 1. Individual vs Batch Generation
-**Decision:** Individual asset generation with per-asset approve/reject
-**Reason:** User explicitly requested this workflow, better control
-
-### 2. Approval Location
-**Decision:** Show in GenerationProgress panel (right side)
-**Reason:** Similar to style anchor flow, keeps generation context visible
-
-### 3. Assets Panel Design
-**Decision:** Full-page slide-out panel like Files panel
-**Reason:** Consistent UX pattern, dedicated space for asset management
-
-### 4. Button Placement
-**Decision:** Approve/Reject at top of AssetApprovalCard
-**Reason:** User requirement for better accessibility (no scrolling needed)
-
-### 5. Style Anchor Integration
-**Decision:** Pass style anchor image with every generation request
-**Reason:** Ensures visual consistency via Flux.2 image conditioning
-
-### 6. Blob vs Data URL Storage
-**Decision:** Store both in Dexie (blob + base64)
-**Reason:** Blob for proper type safety, base64 for easy display
+| **Generation Phase** | 🟢 90% Complete | Core workflow + fixes complete |
 
 ---
 
 ## 📊 Completion Metrics
 
-**Generation Phase:** 85% Complete ✅
+**Generation Phase:** 90% Complete ✅
 
 **Core Features Complete:**
 - ✅ Plan loading and parsing
@@ -305,8 +164,12 @@ User pointed out we wired prompts but hadn't completed the generation flow:
 - ✅ Assets management panel
 - ✅ Style anchor integration
 - ✅ Generation tab layout
+- ✅ Latest asset preview (FIXED)
+- ✅ Type safety improvements
+- ✅ Performance optimizations
+- ✅ Security enhancements
 
-**Remaining Work (15%):**
+**Remaining Work (10%):**
 - Cost estimation display
 - Batch progress percentage
 - Character registry warnings
@@ -325,15 +188,50 @@ User pointed out we wired prompts but hadn't completed the generation flow:
 4. Add character registry validation warnings
 5. Build export/download functionality
 
+### Recommended Refactoring (When Ready)
+6. **API Route Consolidation** - Implement RESTful `/api/projects/[id]/*` structure (see ADR-010)
+7. **Additional Performance Wins** - Identify and optimize other internal HTTP calls
+
 ### Future Work (Phase 4)
-6. **Auth.js Integration** - GitHub OAuth for user accounts
-7. **User Dashboard** - Project history and resume functionality
-8. **Prisma Schema Updates** - Add User, Account, Session models
-9. **Project Sync** - Automated Dexie ↔ Prisma sync on auth
+8. **Auth.js Integration** - GitHub OAuth for user accounts
+9. **User Dashboard** - Project history and resume functionality
+10. **Prisma Schema Updates** - Add User, Account, Session models
+11. **Project Sync** - Automated Dexie ↔ Prisma sync on auth
 
 **See `GENERATION_WORKFLOW_GAPS.md` for detailed remaining specs.**
 
 ---
 
-**Status:** Individual Asset Generation Workflow is now **100% Complete and Tested**.
-Core generation functionality is fully operational! 🎉
+## 🎯 Previous Session Summary (2025-12-27)
+
+### Individual Asset Generation Workflow Implementation
+
+**Problem:**
+- User asked to implement prompt generation wiring and generation tab layout fix
+- After initial implementation, discovered we wired prompts but hadn't completed the full generation → approval → save flow
+- User clarified: wanted individual generation (not batch "Generate All")
+- Approval should work like style anchor (show image, approve/reject)
+- Approved assets should show in an "Assets panel" (like Files panel)
+
+**Solution Implemented:**
+- Prompt generation with real project data
+- Individual asset generation with "Generate Image" button
+- Asset approval workflow with AssetApprovalCard
+- Assets panel for viewing approved assets
+- Style anchor integration for visual consistency
+- Generation tab layout fix (full-width, chat hidden)
+- Batch controls cleanup (removed "Generate All")
+
+**Key Decisions:**
+- Individual vs batch generation: Per-asset control
+- Approval location: GenerationProgress panel (right side)
+- Assets panel design: Full-page slide-out (like Files panel)
+- Button placement: Approve/Reject at top of card
+- Style anchor integration: Passed with every request
+- Storage: Both Blob and base64 for flexibility
+
+---
+
+**Status:** Code review feedback fully addressed. Generation workflow is **90% complete** with enhanced type safety, performance, and security! 🎉
+
+**Latest Commit:** ba63b15 - "refactor: address code review feedback and fix broken features"
