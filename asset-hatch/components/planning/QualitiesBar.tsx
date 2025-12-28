@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { ChevronDown, Wand2, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, Wand2, SlidersHorizontal, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ export interface ProjectQualities {
 interface QualitiesBarProps {
   qualities: ProjectQualities
   onQualitiesChange: (qualities: ProjectQualities) => void
+  onSave?: () => void
   mode?: 'bar' | 'popover'
 }
 
@@ -109,12 +110,23 @@ const QUALITY_OPTIONS = {
 
 type QualityKey = keyof typeof QUALITY_OPTIONS
 
-export function QualitiesBar({ qualities, onQualitiesChange, mode = 'popover' }: QualitiesBarProps) {
+export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'popover' }: QualitiesBarProps) {
+  // Track if changes have been made to show save button highlight
+  const [hasChanges, setHasChanges] = React.useState(false)
+
   const handleChange = (key: QualityKey, value: string) => {
+    setHasChanges(true)
     onQualitiesChange({
       ...qualities,
       [key]: value,
     })
+  }
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave()
+      setHasChanges(false)
+    }
   }
 
   const activeCount = Object.keys(qualities).filter(k => !!qualities[k]).length
@@ -174,14 +186,32 @@ export function QualitiesBar({ qualities, onQualitiesChange, mode = 'popover' }:
         <h2 className="text-xs font-bold tracking-widest text-muted-foreground/70 uppercase font-heading">
           Asset Parameters
         </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
-        >
-          <Wand2 className="w-3.5 h-3.5" />
-          Suggest
-        </Button>
+        <div className="flex items-center gap-2">
+          {onSave && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSave}
+              className={cn(
+                "h-7 text-xs font-medium gap-1.5 transition-all",
+                hasChanges
+                  ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-600 animate-pulse"
+                  : "text-muted-foreground hover:text-primary"
+              )}
+            >
+              <Save className="w-3.5 h-3.5" />
+              Save
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            Suggest
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2.5">
@@ -234,6 +264,8 @@ export function QualitiesBar({ qualities, onQualitiesChange, mode = 'popover' }:
     <CollapsibleBar
       qualities={qualities}
       onQualitiesChange={onQualitiesChange}
+      onSave={handleSave}
+      hasChanges={hasChanges}
       activeCount={activeCount}
       renderPill={renderPill}
     />
@@ -243,12 +275,16 @@ export function QualitiesBar({ qualities, onQualitiesChange, mode = 'popover' }:
 // Extracted to separate component to use its own useState
 function CollapsibleBar({
   activeCount,
-  renderPill
+  renderPill,
+  onSave,
+  hasChanges
 }: {
   qualities: ProjectQualities
   onQualitiesChange: (q: ProjectQualities) => void
   activeCount: number
   renderPill: (key: QualityKey, label: string) => React.ReactNode
+  onSave: () => void
+  hasChanges: boolean
 }) {
   const [isExpanded, setIsExpanded] = React.useState(true)
 
@@ -275,15 +311,38 @@ function CollapsibleBar({
           )} />
         </button>
 
-        {/* Right side - Suggest button (not nested) */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
-        >
-          <Wand2 className="w-3 h-3" />
-          Suggest
-        </Button>
+        {/* Right side - Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Save Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onSave()
+            }}
+            className={cn(
+              "h-6 text-xs font-medium gap-1 transition-all",
+              hasChanges
+                ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-600 shadow-[0_0_10px_-4px_rgba(34,197,94,0.5)]"
+                : "text-muted-foreground hover:text-primary"
+            )}
+            title="Save changes and update plan"
+          >
+            <Save className="w-3 h-3" />
+            Save
+          </Button>
+
+          {/* Suggest Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
+          >
+            <Wand2 className="w-3 h-3" />
+            Suggest
+          </Button>
+        </div>
       </div>
 
       {/* Collapsible content */}

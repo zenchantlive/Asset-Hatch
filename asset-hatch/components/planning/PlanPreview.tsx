@@ -85,10 +85,17 @@ function parseMarkdown(markdown: string): React.ReactNode {
     }
     // Tree structure lines (├─, └─, │) - sub-items under categories
     else if (line.match(/^[├└│─\s]+/)) {
+      const match = line.match(/^([├└│─\s]+)(.*)/)
+      const prefix = match ? match[1] : ""
+      const content = match ? match[2] : line
+
       elements.push(
-        <pre key={index} className="font-mono text-sm mb-1.5 whitespace-pre text-cyan-300/80 pl-6 py-0.5">
-          {line}
-        </pre>
+        <div key={index} className="font-mono text-sm mb-1.5 pl-6 py-0.5 flex">
+          <span className="text-indigo-400/50 whitespace-pre select-none">{prefix}</span>
+          <span className="text-sky-300/90 font-medium tracking-wide ml-1">
+            {renderInlineMarkdown(content)}
+          </span>
+        </div>
       )
     }
     // Regular list items (category headers like "Player Character (Base):")

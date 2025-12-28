@@ -2,10 +2,12 @@
 
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import TextareaAutosize from 'react-textarea-autosize';
+import ReactMarkdown from 'react-markdown';
+import { Send, Sparkles, MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { ProjectQualities } from "./QualitiesBar";
+import { getPresetsForMode } from "@/lib/preset-prompts";
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -33,9 +35,14 @@ interface ChatInterfaceProps {
   onStyleDraftUpdate?: (draft: Partial<StyleDraft>) => void;
   onStyleAnchorGenerated?: (anchor: GeneratedStyleAnchor) => void;
   onStyleFinalized?: () => void;
+  mode?: 'plan' | 'style';
 }
 
-export function ChatInterface({
+export interface ChatInterfaceHandle {
+  sendMessage: (message: string) => void;
+}
+
+export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(({
   qualities,
   projectId,
   onQualityUpdate,
@@ -44,7 +51,8 @@ export function ChatInterface({
   onStyleDraftUpdate,
   onStyleAnchorGenerated,
   onStyleFinalized,
-}: ChatInterfaceProps) {
+  mode = 'plan',
+}, ref) => {
   const [input, setInput] = useState("");
 
   // Debug: Log projectId
@@ -137,6 +145,23 @@ export function ChatInterface({
       }
     },
   });
+
+  // Expose sendMessage to parent via ref
+  useImperativeHandle(ref, () => ({
+    sendMessage: (text: string) => {
+      console.log('📨 Sending message via ref:', text);
+      // We must pass body here too as it might have changed
+      sendMessage(
+        { text },
+        {
+          body: {
+            qualities,
+            projectId,
+          },
+        }
+      );
+    }
+  }));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -270,9 +295,11 @@ export function ChatInterface({
                     : "glass-panel aurora-glow-hover"
                     }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {textContent || '(Tool calls or non-text content)'}
-                  </p>
+                  <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                    <ReactMarkdown>
+                      {textContent || '(Tool calls or non-text content)'}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             );
@@ -297,13 +324,49 @@ export function ChatInterface({
 
       {/* Input area - floating style */}
       <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
-        <form onSubmit={handleSubmit} className="flex gap-3 relative max-w-3xl mx-auto w-full">
-          <Input
+
+        {/* Preset Prompts Row - Wrapped rows */}
+        {!isLoading && (
+          <div className="flex flex-wrap gap-2 mb-3 max-w-3xl mx-auto w-full">
+            {getPresetsForMode(mode).map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => setInput(preset.prompt)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap
+                  ${preset.id === 'style-infer'
+                    ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_10px_-4px_var(--color-primary)]'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-white/70 hover:text-white'
+                  }`}
+              >
+                <MessageSquare className={`w-3 h-3 ${preset.id === 'style-infer' ? 'text-primary' : 'opacity-60'}`} />
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <form
+          onSubmit={handleSubmit}
+          className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"
+        >
+          <TextareaAutosize
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (input.trim()) {
+                  // Create a synthetic event or just call sendMessage if we could. 
+                  // But handleSubmit expects FormEvent.
+                  // We can just call e.currentTarget.form?.requestSubmit()
+                  e.currentTarget.form?.requestSubmit();
+                }
+              }
+            }}
             placeholder="Type your ideas here..."
             disabled={showLoading}
-            className="flex-1 glass-panel h-12 px-4 rounded-xl border-white/10 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-all text-base shadow-lg"
+            minRows={1}
+            maxRows={10}
+            className="flex-1 glass-panel px-4 py-3 rounded-xl border-white/10 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all text-base shadow-lg resize-none custom-scrollbar bg-transparent placeholder:text-muted-foreground outline-none"
           />
           <Button
             type="submit"
@@ -317,6 +380,8 @@ export function ChatInterface({
       </div>
     </div>
   );
-}
+});
+
+ChatInterface.displayName = "ChatInterface";
 
 

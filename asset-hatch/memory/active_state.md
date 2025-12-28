@@ -60,6 +60,13 @@
 - Added `useEffect` to call `fetchAndSyncProject()` on mount
 - Fixed date handling in sync.ts for JSON API responses
 - GenerationQueue can now find project data reliably
+- Fixed date handling in sync.ts for JSON API responses
+
+#### 7. UI/UX Refinements (User Feedback) ✅
+**Files:** `ChatInterface.tsx`, `QualitiesBar.tsx`, `StylePreview.tsx`, `globals.css`
+- **Enhanced Chat:** Auto-expanding input, Markdown rendering, Preset prompts
+- **Workflow:** "Save" button for parameters with auto-reprompt, direct "Style Anchor" button
+- **Visuals:** Plan Preview colored ticks, Global dark scrollbars, Auto-minimizing logs
 
 ---
 
@@ -106,7 +113,8 @@
 
 ## 🚀 Next Steps
 
-1. **Test Generation Flow** (End-to-end with style anchor)
-2. **Polish Generation Features** (Cost estimation, batch progress)
-3. **Download/Export** (Zip file generation)
+1. **Session Auto-Save** (Google Docs style persistence)
+2. **Test Generation Flow** (End-to-end with style anchor)
+3. **Polish Generation Features** (Cost estimation, batch progress)
+4. **Download/Export** (Zip file generation)
 
