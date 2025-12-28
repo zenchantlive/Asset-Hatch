@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
-import { ChatInterface } from "@/components/planning/ChatInterface"
+import { ChatInterface, ChatInterfaceHandle } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
 import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnchor } from "@/components/style/StylePreview"
@@ -23,6 +23,7 @@ export default function PlanningPage() {
   const [mode, setMode] = useState<PlanningMode>('plan')
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
   const [assetsMenuOpen, setAssetsMenuOpen] = useState(false)
+  const chatRef = useRef<ChatInterfaceHandle>(null)
 
   // Style phase state
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
@@ -94,6 +95,40 @@ export default function PlanningPage() {
       console.error("Plan approval failed:", error)
     } finally {
       setIsApproving(false)
+    }
+  }
+
+  const handleParametersSave = async () => {
+    // 1. Save to DB
+    const projectId = params.id
+    if (typeof projectId === 'string') {
+      try {
+        await updateProjectQualities(projectId, qualities)
+        console.log('✅ Qualities saved to database')
+      } catch (error) {
+        console.error("Failed to save qualities:", error)
+      }
+    }
+
+    // 2. Reprompt AI if we have a chat ref (only in plan mode)
+    if (chatRef.current && mode === 'plan') {
+      const activeQualities = Object.entries(qualities)
+        .filter(([_, v]) => v)
+        .map(([k, v]) => `- ${k.replace('_', ' ')}: ${v}`)
+        .join('\n')
+
+      if (activeQualities) {
+        chatRef.current.sendMessage(
+          `I've updated the project parameters:\n${activeQualities}\n\nPlease update the asset plan to align with these new parameters.`
+        )
+      }
+    }
+  }
+
+  const handleGenerateStyleAnchor = () => {
+    if (chatRef.current) {
+      setIsGeneratingStyle(true)
+      chatRef.current.sendMessage("Please generate the style anchor image now using the current style draft.")
     }
   }
 
@@ -174,6 +209,7 @@ export default function PlanningPage() {
             <QualitiesBar
               qualities={qualities}
               onQualitiesChange={setQualities}
+              onSave={handleParametersSave}
               mode="popover"
             />
             <div className="flex items-center gap-2">
@@ -199,6 +235,7 @@ export default function PlanningPage() {
         <QualitiesBar
           qualities={qualities}
           onQualitiesChange={setQualities}
+          onSave={handleParametersSave}
           mode="bar"
         />
       </div>
@@ -212,6 +249,7 @@ export default function PlanningPage() {
           <>
             <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
               <ChatInterface
+                ref={chatRef}
                 qualities={qualities}
                 projectId={typeof params.id === 'string' ? params.id : ''}
                 onQualityUpdate={handleQualityUpdate}
@@ -220,6 +258,7 @@ export default function PlanningPage() {
                 onStyleDraftUpdate={handleStyleDraftUpdate}
                 onStyleAnchorGenerated={handleStyleAnchorGenerated}
                 onStyleFinalized={handleStyleFinalized}
+                mode={mode}
               />
             </div>
 
@@ -239,6 +278,7 @@ export default function PlanningPage() {
                   generatedAnchor={generatedAnchor}
                   isGenerating={isGeneratingStyle}
                   onFinalize={handleStyleFinalized}
+                  onGenerateStyleAnchor={handleGenerateStyleAnchor}
                 />
               )}
             </div>
