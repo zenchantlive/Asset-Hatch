@@ -35,8 +35,8 @@ export default async function ProjectLayout({
     redirect("/dashboard");
   }
 
-  // Check ownership (allow access to orphan projects for now)
-  if (project.userId && project.userId !== session.user.id) {
+  // Check ownership: project must have a userId and it must match the session user's id.
+  if (!project.userId || project.userId !== session.user.id) {
     redirect("/dashboard");
   }
 
