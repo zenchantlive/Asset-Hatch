@@ -3,6 +3,7 @@
 // Used by GenerationQueue to load plan data and FilesPanel to list all files
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from "@/auth";
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -69,6 +70,74 @@ export async function GET(
     // Return generic error message with 500 status
     return NextResponse.json(
       { success: false, error: 'Failed to fetch memory files' },
+    );
+  }
+}
+
+/**
+ * POST /api/projects/[id]/memory-files
+ *
+ * Upsert a memory file for a project
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: projectId } = await params;
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify ownership
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { type, content } = body;
+
+    if (!type || !content) {
+      return NextResponse.json({ error: "Missing type or content" }, { status: 400 });
+    }
+
+    // Manual upsert since no unique constraint on [projectId, type]
+    let memoryFile = await prisma.memoryFile.findFirst({
+      where: {
+        projectId,
+        type,
+      },
+    });
+
+    if (memoryFile) {
+      memoryFile = await prisma.memoryFile.update({
+        where: { id: memoryFile.id },
+        data: { content },
+      });
+    } else {
+      memoryFile = await prisma.memoryFile.create({
+        data: {
+          projectId,
+          type,
+          content,
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true, file: memoryFile });
+  } catch (error) {
+    console.error("Failed to save memory file:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to save memory file" },
       { status: 500 }
     );
   }

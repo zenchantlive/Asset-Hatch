@@ -213,3 +213,24 @@ export const reverseQualityFieldMap: Record<string, string> = {
     mood: "mood",
     colorPalette: "color_palette",
 };
+
+/**
+ * Sync a memory file from Dexie to Server (Prisma)
+ */
+export async function syncMemoryFileToServer(
+    projectId: string,
+    type: string,
+    content: string
+): Promise<void> {
+    try {
+        await fetch(`/api/projects/${projectId}/memory-files`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ type, content }),
+        });
+    } catch (error) {
+        console.error(`Failed to sync memory file ${type} to server:`, error);
+    }
+}
