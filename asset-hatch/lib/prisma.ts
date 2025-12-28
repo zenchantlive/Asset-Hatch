@@ -1,20 +1,20 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
-import { createClient } from '@libsql/client'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-// Create libsql client for SQLite
-const libsql = createClient({
-  url: process.env.DATABASE_URL || 'file:./dev.db',
-})
+// Get database URL - must be defined for libsql
+const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+console.log('📦 Database URL:', databaseUrl);
 
-// Create Prisma adapter
-const adapter = new PrismaLibSql(libsql)
+// Create Prisma adapter with config object
+// PrismaLibSql accepts either a Client or a Config with { url: string }
+const adapter = new PrismaLibSql({ url: databaseUrl })
 
 // Initialize Prisma client with adapter (Prisma 7 requirement)
 export const prisma =
-    globalForPrisma.prisma ||
-    new PrismaClient({ adapter })
+  globalForPrisma.prisma ||
+  new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+

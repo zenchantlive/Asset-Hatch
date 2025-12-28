@@ -248,7 +248,8 @@ export interface ModelConfig {
 
 export const FLUX_MODELS: Record<string, ModelConfig> = {
   'flux-2-dev': {
-    modelId: 'black-forest-labs/flux-2-dev',
+    // Note: OpenRouter uses dot notation (flux.2-) not dash (flux-2-)
+    modelId: 'black-forest-labs/flux.2-pro',  // No "dev" on OpenRouter, using pro for now
     provider: 'openrouter',
     costPerImage: 0.04,
     speedRating: 9,
@@ -256,7 +257,7 @@ export const FLUX_MODELS: Record<string, ModelConfig> = {
     maxContextImages: 8,
   },
   'flux-2-pro': {
-    modelId: 'black-forest-labs/flux-2-pro',
+    modelId: 'black-forest-labs/flux.2-pro',
     provider: 'openrouter',
     costPerImage: 0.15,
     speedRating: 5,

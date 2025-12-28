@@ -1,9 +1,9 @@
 # 📋 Project Brief - Asset Hatch
 
 **Project Name:** Asset Hatch
-**Version:** 0.1.1 (UI Refinement & Infrastructure Fixes)
-**Last Updated:** 2025-12-26
-**Status:** UI Redesign Complete, Moving to AI Integration
+**Version:** 0.2.0 (Style Anchor Image Generation)
+**Last Updated:** 2025-12-27
+**Status:** Style Anchor Phase Complete, Generation Queue Integration Next
 
 ---
 
@@ -23,45 +23,48 @@
 ## 🏗️ Tech Stack
 
 ### Frontend
-- **Framework:** Next.js 15 (App Router, React 19)
+- **Framework:** Next.js 16 (App Router, React 19)
 - **Styling:** Tailwind CSS v4 (with oklch colors)
 - **UI Library:** shadcn/ui + Radix UI primitives
 - **Theme:** Premium Dark / Cosmic theme (Glassmorphism + Aurora gradients)
 - **Typography:** Modern Sans-Serif (Outfit) via next/font
 
 ### AI Integration
-- **Chat Framework:** CopilotKit v1.50 (headless mode)
-- **LLM Provider:** OpenRouter (gemini 3 Pro Preview)
-- **Image Generation:** Replicate API (planned, not yet implemented)
+- **Chat Framework:** Vercel AI SDK v6 (@ai-sdk/react)
+- **LLM Provider:** OpenRouter (google/gemini-3-pro-preview)
+- **Image Generation:** OpenRouter (black-forest-labs/flux-dev, flux.2-pro)
+- **Vision Analysis:** OpenRouter (GPT-4o for style extraction)
 
 ### Data & State
-- **Local Database:** Dexie.js (IndexedDB wrapper)
-- **State Management:** React hooks + Context API (as needed)
-- **File Storage:** Browser (IndexedDB for now, cloud planned)
+- **Server Database:** Prisma with SQLite (source of truth)
+- **Client Cache:** Dexie.js (IndexedDB wrapper) for offline/fast access
+- **State Management:** React hooks + Context API
+- **Hybrid Persistence:** Dual-write pattern for projects, style anchors
 
 ### Development
-- **Package Manager:** Bun (user preference, npm fallback)
+- **Package Manager:** Bun (user preference)
 - **Language:** TypeScript (strict mode)
 - **Version Control:** Git
-- **Hosting:** TBD (likely Vercel)
+- **Hosting:** Vercel (planned)
 
 ---
 
 ## 🧭 Product Phases (Slices)
 
-### Phase 1: Planning (Slices 1-4) - **Current Phase**
+### Phase 1: Planning (Slices 1-4) - **✅ Complete**
 - Create project → Chat with AI → Define qualities → Generate asset plan
-- **Status:** Slice 3 complete, UX improvements needed
+- **Status:** All planning tools working, plan generation functional
 
-### Phase 2: Style Anchor (Slices 5-8)
-- Upload reference → AI extracts style → Approve → Style locked
-- **Status:** Not started
+### Phase 2: Style Anchor (Slices 5-8) - **✅ Complete**
+- Define style keywords → Generate reference image → Approve → Style locked
+- **Status:** Flux.2 image generation working, StylePreview displays image
+- **Key Feature:** AI-generated style anchor via OpenRouter Flux.2
 
-### Phase 3: Generation (Slices 9-12)
-- Queue assets → Generate via Replicate → Preview → Refine → Approve
-- **Status:** Not started
+### Phase 3: Generation (Slices 9-12) - **🟢 85% Complete**
+- Queue assets → Generate via Flux.2 → Preview → Refine → Approve
+- **Status:** Backend complete, UI components built, integration pending
 
-### Phase 4: Export (Slices 13-15)
+### Phase 4: Export (Slices 13-15) - **🔴 Not Started**
 - Organize → Generate sprite sheets → Download zip
 - **Status:** Not started
 
@@ -87,19 +90,18 @@
    - No unnecessary forms
 
 ### Technical Constraints
-1. **Client-Side First**
-   - IndexedDB for data (no backend required)
-   - Offload to cloud only when needed
+1. **Hybrid Persistence**
+   - Prisma/SQLite server-side (source of truth)
+   - Dexie client-side (cache, offline support)
 
-2. **Accessibility**
-   - WCAG 2.1 AA compliance
-   - Keyboard navigation
-   - Screen reader support
+2. **Token Limit Awareness**
+   - Large base64 images never sent through LLM context
+   - Client fetches images via separate API endpoints
 
 3. **Performance**
    - 60fps animations
    - <2s page loads
-   - Optimistic UI updates
+   - useRef for preventing infinite loops in effects
 
 ---
 
@@ -114,7 +116,7 @@
 
 ### Component Hierarchy
 - **Primitives:** Button, Input, Select, Dialog
-- **Composed:** ChatInterface, QualitiesBar, PlanPreview
+- **Composed:** ChatInterface, QualitiesBar, PlanPreview, StylePreview
 - **Layouts:** Two-column split, sticky headers, glass panels
 
 ---
@@ -122,11 +124,11 @@
 ## 📊 Success Metrics
 
 ### MVP Goals
-- [ ] Create project in <30 seconds
-- [ ] Generate asset plan via chat in <2 minutes
-- [ ] Approve plan and see placeholder style anchor
-- [ ] UI feels polished (animations, colors visible)
-- [ ] No critical bugs in planning phase
+- [x] Create project in <30 seconds
+- [x] Generate asset plan via chat in <2 minutes
+- [x] AI generates style anchor reference image
+- [x] UI feels polished (animations, colors visible)
+- [x] No critical bugs in planning/style phases
 
 ### Long-Term Goals
 - Generate 100 assets in <10 minutes
@@ -136,5 +138,14 @@
 
 ---
 
+## 🔑 Recent Technical Decisions (ADRs)
+
+- **ADR-005:** Replaced CopilotKit with Vercel AI SDK v6
+- **ADR-006:** Generation Architecture (composite sprites default)
+- **ADR-007:** Hybrid Persistence Model (Prisma + Dexie)
+- **ADR-008:** Style Anchor Image Generation via OpenRouter Flux.2
+
+---
+
 **Last Reviewed By:** Antigravity AI
-**Next Review:** Planning AI Integration Phase
+**Next Review:** Generation Queue Integration Phase

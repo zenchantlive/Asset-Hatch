@@ -10,11 +10,11 @@ import {
   updateQualitySchema,
   updatePlanSchema,
   finalizePlanSchema,
-  updateStyleKeywordsSchema,
-  updateLightingKeywordsSchema,
-  updateColorPaletteSchema,
-  saveStyleAnchorSchema,
+  updateStyleDraftSchema,
+  generateStyleAnchorSchema,
+  finalizeStyleSchema,
 } from "@/lib/schemas";
+import type { StyleDraft, GeneratedStyleAnchor } from "@/components/style/StylePreview";
 
 interface UIMessagePart {
   type: 'text' | 'reasoning' | 'tool-call';
@@ -29,10 +29,10 @@ interface ChatInterfaceProps {
   onQualityUpdate: (qualityKey: string, value: string) => void;
   onPlanUpdate: (markdown: string) => void;
   onPlanComplete: () => void;
-  onStyleKeywordsUpdate?: (styleKeywords: string) => void;
-  onLightingKeywordsUpdate?: (lightingKeywords: string) => void;
-  onColorPaletteUpdate?: (colors: string[]) => void;
-  onStyleAnchorSave?: () => void;
+  // Style phase callbacks
+  onStyleDraftUpdate?: (draft: Partial<StyleDraft>) => void;
+  onStyleAnchorGenerated?: (anchor: GeneratedStyleAnchor) => void;
+  onStyleFinalized?: () => void;
 }
 
 export function ChatInterface({
@@ -41,25 +41,22 @@ export function ChatInterface({
   onQualityUpdate,
   onPlanUpdate,
   onPlanComplete,
-  onStyleKeywordsUpdate,
-  onLightingKeywordsUpdate,
-  onColorPaletteUpdate,
-  onStyleAnchorSave,
+  onStyleDraftUpdate,
+  onStyleAnchorGenerated,
+  onStyleFinalized,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+
+  // Debug: Log projectId
+  console.log('🔧 ChatInterface projectId:', projectId);
 
   const {
     messages,
     sendMessage,
     status,
   } = useChat({
-    // api: '/api/chat', // Default is /api/chat
-    // @ts-expect-error - body is supported by the API but missing from types
-    body: {
-      qualities,
-      projectId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any,
+    // In AI SDK v6, body in hook config becomes stale
+    // We pass body in sendMessage instead
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onToolCall: ({ toolCall }: { toolCall: any }) => {
       // IMPORTANT: This fires when AI calls a tool
@@ -107,29 +104,35 @@ export function ChatInterface({
           console.log('✅ Finalizing plan');
           onPlanComplete();
         }
-      } else if (toolCall.toolName === 'updateStyleKeywords') {
-        const result = updateStyleKeywordsSchema.safeParse(toolCall.input);
+      } else if (toolCall.toolName === 'updateStyleDraft') {
+        // New style draft tool
+        const result = updateStyleDraftSchema.safeParse(toolCall.input);
         if (result.success) {
-          console.log('✅ Updating style keywords:', result.data.styleKeywords);
-          onStyleKeywordsUpdate?.(result.data.styleKeywords);
+          console.log('✅ Updating style draft:', result.data);
+          onStyleDraftUpdate?.(result.data);
         }
-      } else if (toolCall.toolName === 'updateLightingKeywords') {
-        const result = updateLightingKeywordsSchema.safeParse(toolCall.input);
+      } else if (toolCall.toolName === 'generateStyleAnchor') {
+        // Style anchor generation tool
+        const result = generateStyleAnchorSchema.safeParse(toolCall.input);
         if (result.success) {
-          console.log('✅ Updating lighting keywords:', result.data.lightingKeywords);
-          onLightingKeywordsUpdate?.(result.data.lightingKeywords);
+          console.log('✅ Style anchor generation triggered with prompt:', result.data.prompt);
+          // The server handles generation, but we notify on tool result
+          // The actual image URL comes back in the tool result
+          const toolResult = toolCall.result as { success: boolean; imageUrl?: string; styleAnchorId?: string; prompt?: string };
+          if (toolResult?.success && toolResult.imageUrl && toolResult.styleAnchorId) {
+            onStyleAnchorGenerated?.({
+              id: toolResult.styleAnchorId,
+              imageUrl: toolResult.imageUrl,
+              prompt: toolResult.prompt || result.data.prompt,
+            });
+          }
         }
-      } else if (toolCall.toolName === 'updateColorPalette') {
-        const result = updateColorPaletteSchema.safeParse(toolCall.input);
+      } else if (toolCall.toolName === 'finalizeStyle') {
+        // Style finalization tool
+        const result = finalizeStyleSchema.safeParse(toolCall.input);
         if (result.success) {
-          console.log('✅ Updating color palette:', result.data.colors);
-          onColorPaletteUpdate?.(result.data.colors);
-        }
-      } else if (toolCall.toolName === 'saveStyleAnchor') {
-        const result = saveStyleAnchorSchema.safeParse(toolCall.input);
-        if (result.success) {
-          console.log('✅ Saving style anchor');
-          onStyleAnchorSave?.();
+          console.log('✅ Style finalized, proceeding to generation');
+          onStyleFinalized?.();
         }
       }
     },
@@ -145,10 +148,66 @@ export function ChatInterface({
     scrollToBottom();
   }, [messages.length]);
 
+  // Track processed style anchor IDs to prevent infinite refetching
+  const processedStyleAnchorIds = useRef(new Set<string>());
+
+  // Watch for tool-result parts containing style anchor data
+  // In AI SDK v6, tool results come through the message stream, not onToolCall
+  // The imageUrl is NOT in the tool result (to avoid LLM token limits)
+  // We fetch it from the API using the styleAnchorId
+  useEffect(() => {
+    // Look through all messages for tool-result parts
+    for (const message of messages) {
+      if (message.role !== 'assistant') continue;
+
+      const parts = message.parts as Array<{ type: string; toolName?: string; output?: unknown }> | undefined;
+      if (!parts) continue;
+
+      for (const part of parts) {
+        // AI SDK v6 uses 'tool-{toolName}' format for tool parts
+        if (part.type === 'tool-generateStyleAnchor') {
+          // Use the ref-based Set to track processed IDs across renders
+          const toolPart = part as Record<string, unknown>;
+          const output = (toolPart.result || toolPart.output || toolPart) as { success?: boolean; styleAnchorId?: string } | undefined;
+          if (output?.success && output.styleAnchorId && !processedStyleAnchorIds.current.has(output.styleAnchorId)) {
+            processedStyleAnchorIds.current.add(output.styleAnchorId);
+            console.log('🖼️ Found style anchor ID, fetching image:', output.styleAnchorId);
+
+            // Fetch the image from the API
+            fetch(`/api/style-anchor?id=${output.styleAnchorId}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.imageUrl) {
+                  console.log('✅ Fetched style anchor image');
+                  onStyleAnchorGenerated?.({
+                    id: output.styleAnchorId!,
+                    imageUrl: data.imageUrl,
+                    prompt: '',
+                  });
+                }
+              })
+              .catch(err => {
+                console.error('Failed to fetch style anchor:', err);
+              });
+          }
+        }
+      }
+    }
+  }, [messages, onStyleAnchorGenerated]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
-      sendMessage({ text: input });
+      // Pass body with each message to avoid stale values (AI SDK v6)
+      sendMessage(
+        { text: input },
+        {
+          body: {
+            qualities,
+            projectId,
+          },
+        }
+      );
       setInput("");
     }
   };
