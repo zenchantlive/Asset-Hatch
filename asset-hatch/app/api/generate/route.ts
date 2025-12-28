@@ -10,19 +10,17 @@
  * 4. Call OpenRouter image generation API with style anchor image
  * 5. Save generated asset to SQLite (Prisma)
  * 6. Return generated image to client
+ * 
+ * Uses shared utility: lib/openrouter-image.ts for correct API handling
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { buildAssetPrompt, calculateGenerationSize, FLUX_MODELS, type ParsedAsset } from '@/lib/prompt-builder';
+import { buildAssetPrompt, calculateGenerationSize, type ParsedAsset } from '@/lib/prompt-builder';
 import { prepareStyleAnchorForAPI } from '@/lib/image-utils';
+import { generateFluxImage, OPENROUTER_FLUX_MODELS } from '@/lib/openrouter-image';
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-
-if (!OPENROUTER_API_KEY) {
-  console.warn('⚠️ OPENROUTER_API_KEY not set in environment variables');
-}
-
+// Request body interface
 interface GenerateRequest {
   projectId: string;
   asset: ParsedAsset;
@@ -117,8 +115,8 @@ export async function POST(request: NextRequest) {
     // 6. Calculate generation size (2x for pixel-perfect downscaling)
     const genSize = calculateGenerationSize(project.baseResolution || '32x32');
 
-    // 7. Get model config
-    const model = FLUX_MODELS[modelKey];
+    // 7. Get model config from shared utility
+    const model = OPENROUTER_FLUX_MODELS[modelKey];
     if (!model) {
       return NextResponse.json(
         { error: `Unknown model: ${modelKey}` },
@@ -126,62 +124,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Call OpenRouter image generation API
-    const startTime = Date.now();
-
-    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Referer': 'https://asset-hatch.app',
-        'X-Title': 'Asset Hatch',
-      },
-      body: JSON.stringify({
-        model: model.modelId,
-        prompt: prompt,
-        images: [styleAnchorBase64],
-        size: `${genSize.width}x${genSize.height}`,
-        n: 1,
-        response_format: 'b64_json',
-      }),
+    // 8. Call OpenRouter using shared utility (correct endpoint + response parsing)
+    const result = await generateFluxImage({
+      modelId: model.modelId,
+      prompt: prompt,
+      referenceImageBase64: styleAnchorBase64,
+      width: genSize.width,
+      height: genSize.height,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ OpenRouter API error:', errorData);
-      return NextResponse.json(
-        {
-          error: 'Image generation failed',
-          details: errorData,
-        },
-        { status: response.status }
-      );
-    }
-
-    const result = await response.json();
-    const duration = Date.now() - startTime;
-
-    const generatedImageB64 = result.data?.[0]?.b64_json;
-    if (!generatedImageB64) {
-      return NextResponse.json(
-        { error: 'No image data in response' },
-        { status: 500 }
-      );
-    }
-
-    const seed = result.data?.[0]?.seed || Math.floor(Math.random() * 1000000);
+    // Use seed from result or generate random fallback
+    const seed = result.seed || Math.floor(Math.random() * 1000000);
 
     console.log('✅ Image generated successfully:', {
-      duration: `${duration}ms`,
+      duration: `${result.durationMs}ms`,
       seed,
       size: `${genSize.width}x${genSize.height}`,
     });
 
     // 9. Save to SQLite
-    const imageDataUrl = `data:image/png;base64,${generatedImageB64}`;
-    const imageBuffer = Buffer.from(generatedImageB64, 'base64');
-
     const createdAsset = await prisma.generatedAsset.create({
       data: {
         projectId: projectId,
@@ -189,12 +150,13 @@ export async function POST(request: NextRequest) {
         variantId: asset.variant.id,
         status: 'generated',
         seed: seed,
-        imageBlob: imageBuffer,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageBlob: result.imageBuffer as any,
         promptUsed: prompt,
         metadata: JSON.stringify({
           model: model.modelId,
           cost: model.costPerImage,
-          duration_ms: duration,
+          duration_ms: result.durationMs,
         }),
       },
     });
@@ -230,7 +192,7 @@ export async function POST(request: NextRequest) {
       success: true,
       asset: {
         id: createdAsset.id,
-        image_url: imageDataUrl,
+        image_url: result.imageUrl,
         prompt: prompt,
         metadata: JSON.parse(createdAsset.metadata || '{}'),
       },
