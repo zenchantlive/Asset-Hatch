@@ -7,14 +7,13 @@ import {
   updateQualitySchema,
   updatePlanSchema,
   finalizePlanSchema,
-  updateStyleKeywordsSchema,
-  updateLightingKeywordsSchema,
-  updateColorPaletteSchema,
+  updateStyleDraftSchema,
+  generateStyleAnchorSchema,
+  finalizeStyleSchema,
   UpdateQualityInput,
   UpdatePlanInput,
-  UpdateStyleKeywordsInput,
-  UpdateLightingKeywordsInput,
-  UpdateColorPaletteInput,
+  UpdateStyleDraftInput,
+  GenerateStyleAnchorInput,
 } from '@/lib/schemas';
 
 export const maxDuration = 30;
@@ -22,6 +21,34 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   try {
     const { messages, qualities, projectId } = await req.json();
+
+    // Validate projectId is present
+    console.log('🔧 Chat API received projectId:', projectId);
+    if (!projectId || projectId === '') {
+      console.error('❌ Chat API: projectId is missing or empty');
+      return new Response(
+        JSON.stringify({ error: 'projectId is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Ensure project exists in SQLite (might only exist in IndexedDB)
+    // This handles the hybrid persistence model sync issue
+    const existingProject = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!existingProject) {
+      console.log('📦 Project not found in SQLite, creating...');
+      await prisma.project.create({
+        data: {
+          id: projectId,
+          name: 'Imported Project',
+          phase: 'planning',
+        },
+      });
+      console.log('✅ Project created in SQLite');
+    }
 
     // Convert UIMessages to ModelMessages for streamText
     const modelMessages = await convertToModelMessages(messages);
@@ -135,27 +162,119 @@ export async function POST(req: NextRequest) {
             }
           },
         }),
-        updateStyleKeywords: tool({
-          description: 'Update style keywords.',
-          inputSchema: updateStyleKeywordsSchema,
-          execute: async ({ styleKeywords }: UpdateStyleKeywordsInput) => {
-            // This is usually part of StyleAnchor which is created later, 
-            // but we can store it in a temporary MemoryFile or update the latest StyleAnchor if it exists
-            return { success: true, message: '[System] Style keywords noted', styleKeywords };
+        // Style Phase Tools
+        updateStyleDraft: tool({
+          description: 'Update the style draft with collected parameters. Call this whenever the user specifies style preferences.',
+          inputSchema: updateStyleDraftSchema,
+          execute: async (input: UpdateStyleDraftInput) => {
+            try {
+              // Load existing draft or create new one
+              const existingDraft = await prisma.memoryFile.findUnique({
+                where: { id: `${projectId}-style-draft` },
+              });
+
+              // Merge with existing draft data
+              const currentData = existingDraft
+                ? JSON.parse(existingDraft.content)
+                : { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+
+              const updatedData = {
+                styleKeywords: input.styleKeywords ?? currentData.styleKeywords,
+                lightingKeywords: input.lightingKeywords ?? currentData.lightingKeywords,
+                colorPalette: input.colorPalette ?? currentData.colorPalette,
+                fluxModel: input.fluxModel ?? currentData.fluxModel,
+              };
+
+              // Persist to SQLite
+              await prisma.memoryFile.upsert({
+                where: { id: `${projectId}-style-draft` },
+                update: { content: JSON.stringify(updatedData) },
+                create: {
+                  id: `${projectId}-style-draft`,
+                  projectId: projectId,
+                  type: 'style-draft.json',
+                  content: JSON.stringify(updatedData),
+                },
+              });
+
+              return {
+                success: true,
+                message: '[System] Style draft updated',
+                ...updatedData,
+              };
+            } catch (error) {
+              console.error('Failed to update style draft:', error);
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
-        updateLightingKeywords: tool({
-          description: 'Update lighting keywords.',
-          inputSchema: updateLightingKeywordsSchema,
-          execute: async ({ lightingKeywords }: UpdateLightingKeywordsInput) => {
-            return { success: true, message: '[System] Lighting keywords noted', lightingKeywords };
+        generateStyleAnchor: tool({
+          description: 'Generate the style anchor reference image. Call when user approves the style and wants to generate the reference image.',
+          inputSchema: generateStyleAnchorSchema,
+          execute: async ({ prompt }: GenerateStyleAnchorInput) => {
+            try {
+              // Load style draft
+              const styleDraftRecord = await prisma.memoryFile.findUnique({
+                where: { id: `${projectId}-style-draft` },
+              });
+
+              if (!styleDraftRecord) {
+                return { success: false, error: 'No style draft found. Collect style preferences first.' };
+              }
+
+              const styleDraft = JSON.parse(styleDraftRecord.content);
+
+              // Call the generate-style API internally
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+              const response = await fetch(`${baseUrl}/api/generate-style`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  projectId,
+                  prompt,
+                  styleKeywords: styleDraft.styleKeywords,
+                  lightingKeywords: styleDraft.lightingKeywords,
+                  colorPalette: styleDraft.colorPalette,
+                  fluxModel: styleDraft.fluxModel,
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                return { success: false, error: errorData.error || 'Generation failed' };
+              }
+
+              const result = await response.json();
+
+              // NOTE: We DO NOT return imageUrl to the LLM at all
+              // The imageUrl is a huge base64 string (~2MB) that would blow up the context
+              // The client must fetch the image from the database using styleAnchorId
+              console.log('✅ Style anchor generated:', result.styleAnchor.id);
+
+              return {
+                success: true,
+                message: '[System] Style anchor image has been generated and saved. The reference image is ready for user review. Ask the user if they are happy with the generated style.',
+                styleAnchorId: result.styleAnchor.id,
+              };
+            } catch (error) {
+              console.error('Failed to generate style anchor:', error);
+              return { success: false, error: 'Style anchor generation failed' };
+            }
           },
         }),
-        updateColorPalette: tool({
-          description: 'Update color palette.',
-          inputSchema: updateColorPaletteSchema,
-          execute: async ({ colors }: UpdateColorPaletteInput) => {
-            return { success: true, message: '[System] Palette noted', colors };
+        finalizeStyle: tool({
+          description: 'Finalize the style phase and proceed to generation. Call ONLY when user explicitly approves the generated style anchor image.',
+          inputSchema: finalizeStyleSchema,
+          execute: async () => {
+            try {
+              await prisma.project.update({
+                where: { id: projectId },
+                data: { phase: 'generation' },
+              });
+              return { success: true, message: '[System] Style finalized, proceeding to generation phase' };
+            } catch {
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
       },

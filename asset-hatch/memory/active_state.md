@@ -1,14 +1,14 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-27
-**Session:** Generation Queue UI - Phase 1 UI Components ✅ COMPLETE
-**Branch:** feat/generation-queue-ui
+**Session:** Style Anchor Image Generation - ✅ COMPLETE
+**Branch:** feat/generation-queue-ui (or current working branch)
 
 ---
 
 ## 📍 Current Focus
 
-> **✅ GENERATION QUEUE UI - PHASE 1 COMPLETE:** Built complete UI layer for generation phase. Created 4 major components (AssetTree, PromptPreview, BatchControls, GenerationProgress) and wired them into GenerationQueue layout. All TypeScript strict, ESLint clean, fully commented. Uses React Context for state management, useMemo for performance, refs to avoid stale closures. Ready for integration into planning page. Next: Integrate into planning page and test end-to-end workflow.
+> **✅ STYLE ANCHOR IMAGE GENERATION COMPLETE:** Implemented end-to-end flow for generating style anchor reference images via OpenRouter Flux.2 API. Fixed multiple integration issues including correct model IDs, response parsing, token limit avoidance, AI SDK v6 message part detection, and infinite loop prevention. Image now displays correctly in StylePreview panel.
 
 ---
 
@@ -31,264 +31,111 @@
 | **Hybrid Persistence** | ✅ Complete | Prisma + Dexie sync for StyleAnchors |
 | **Test Coverage** | ✅ Complete | Integration tests for all API routes |
 | **Generation Queue UI** | 🟢 85% Complete | All components built & wired, pending planning page integration |
+| **Style Anchor Generation** | ✅ Complete | OpenRouter Flux.2 → DB → StylePreview display |
 
 ---
 
-## 🎯 Critical Architectural Decisions
+## 🔥 This Session's Work
 
-### **1. Single-Page Multi-Mode Design** ✅ DECIDED
-**Decision:** Keep user on `/project/[id]/planning` page, switch right panel modes instead of navigating to separate pages.
+### Style Anchor Image Generation (ADR-008)
 
-**Implementation:**
-```
-┌────────────────────────────────────────────┐
-│ [Plan] [Style] [Generation]  📄 Files [▼] │ ← Tab navigation
-│  Chat (Left)   │   Right Panel (Mode)      │
-│                │   - Plan Mode: markdown   │
-│                │   - Style Mode: keywords  │
-│                │   - Gen Mode: queue       │
-└────────────────────────────────────────────┘
-```
+**Goal:** Generate a reference image via Flux.2 and display it in StylePreview.
 
-**Why:**
-- Consistent UX - user stays in same chat context
-- Natural workflow - continue conversation across phases
-- No page transitions - faster, smoother
-- File menu accessible - saved files visible at all times
+**What Changed:**
 
----
+1. **`/api/generate-style/route.ts`**
+   - Fixed OpenRouter model IDs (`black-forest-labs/flux-dev`, `black-forest-labs/flux.2-pro`)
+   - Updated to use `/api/v1/chat/completions` with `modalities: ['image', 'text']`
+   - Fixed response parsing to extract from `message.images[].image_url.url`
+   - Saves base64 image to Prisma `StyleAnchor` table
 
-### **2. Flexible Editing with Version Tracking** ✅ DECIDED
-**Decision:** User can edit plan/style at any time. System tracks versions and marks affected assets as "outdated".
+2. **`/api/chat/route.ts`**
+   - `generateStyleAnchor` tool calls `/api/generate-style` internally
+   - Returns only `styleAnchorId` (NOT the base64 image) to avoid 1M+ token error
+   - LLM gets small response, client fetches image separately
 
-**Implementation:**
-```typescript
-interface MemoryFile {
-  version: number;        // Increments on save
-  updated_at: string;     // Last edit timestamp
-}
+3. **`/api/style-anchor/route.ts`** (NEW)
+   - GET endpoint to fetch style anchor by ID
+   - Returns full data including `imageUrl` for client display
 
-interface GeneratedAsset {
-  plan_version: number;   // Links to entities.json version
-  style_version: number;  // Links to style-anchor version
-  status: 'generated' | 'outdated' | 'approved';
-}
-```
+4. **`components/planning/ChatInterface.tsx`**
+   - Fixed AI SDK v6 tool part detection: `tool-generateStyleAnchor` not `tool-result`
+   - Uses `part.result` not `part.output`
+   - Added `useRef` to persist processed IDs across renders (prevents infinite loops)
+   - Fetches image from `/api/style-anchor?id=...` when styleAnchorId detected
 
-**Workflow:**
-1. User edits plan after generating 5 assets
-2. System shows warning: "This affects 5 existing assets"
-3. User chooses: Mark as outdated / Regenerate now / Cancel
-4. If marked outdated: Assets get status = 'outdated'
-5. Generation queue shows: ⚠️ warnings on outdated assets
-6. User can regenerate individually or batch
+5. **`components/style/StylePreview.tsx`**
+   - Added collapsible style details section (auto-collapses when image shown)
+   - Displays generated image prominently at top
+   - Shows "Proceed to Generation" button when image ready
 
-**Why:**
-- Flexibility - users can iterate freely
-- No data loss - old assets kept until user decides
-- Clear visibility - warnings show impact
-- User control - regenerate when ready, not forced
+### Debugging Journey (What Didn't Work)
 
----
-
-### **3. Composite Sprite Sheets (DEFAULT)** ✅ DECIDED
-**Decision:** Default generation creates composite sprite sheets (multiple poses in one image), not individual frames.
-
-**Example:**
-```
-Input: "Farmer - Idle (4-direction)"
-
-DEFAULT (Composite):
-┌────────┬────────┬────────┬────────┐
-│ Front  │ Left   │ Right  │ Back   │  ← ONE image
-│  Idle  │  Idle  │  Idle  │  Idle  │
-└────────┴────────┴────────┴────────┘
-Prompt: "sprite sheet of farmer, 4 frames arranged horizontally,
-         idle animation, front/left/right/back views"
-
-OPTION (Granular - Studio Mode):
-Image 1: Farmer Idle Front (separate)
-Image 2: Farmer Idle Left (separate)
-Image 3: Farmer Idle Right (separate)
-Image 4: Farmer Idle Back (separate)
-```
-
-**Why DEFAULT is composite:**
-- Standard game dev format (sprite sheets are industry norm)
-- More efficient (1 API call vs 4)
-- Lower cost (1 generation vs 4)
-- LLM-friendly (when users give assets to AI coding agents later, they can see whole sheet)
-- Game engines expect sprite sheets
-
-**When to use GRANULAR:**
-- Professional studios wanting individual asset control
-- Manual editing of each variant
-- Precise approval/rejection per pose
-
-**Implementation:**
-```typescript
-// Project setting or generation page toggle
-const [generationMode, setGenerationMode] = useState<'composite' | 'granular'>('composite');
-
-// Plan parser expands based on mode:
-if (generationMode === 'composite') {
-  // "Idle (4-direction)" → ONE sprite-sheet task with 4 frames
-} else {
-  // "Idle (4-direction)" → FOUR character-sprite tasks
-}
-```
-
----
-
-### **4. Style Anchor Image Upload - CRITICAL** ✅ DECIDED
-**Decision:** Style anchor reference image upload is REQUIRED (or highly recommended) for visual consistency.
-
-**Why Critical:**
-- Flux.2 uses reference images for style consistency
-- Every generation sends: `{ prompt, images: [styleAnchorBase64] }`
-- Without reference image: each asset looks different
-- With reference image: consistent art style across all assets
-
-**Workflow:**
-1. User uploads reference image OR describes style to AI
-2. AI analyzes image (vision model) → suggests keywords
-3. Client extracts color palette from image
-4. User edits AI suggestions
-5. Saves StyleAnchor to Hybrid Storage (Prisma + Dexie cache)
-6. All generations include this image as reference via Prisma lookup
-
-**Implementation:**
-- `StyleAnchorEditor` component handles upload + AI analysis
-- `/api/analyze-style` uses GPT-4o vision to extract keywords
-- `lib/image-utils.ts` extracts color palette via canvas
-- Every `/api/generate` call includes `images: [styleAnchorBase64]`
+| Attempt | What We Tried | Why It Failed |
+|---------|---------------|---------------|
+| 1 | `/api/v1/images/generations` endpoint | 405 - Deprecated in OpenRouter |
+| 2 | Model ID `flux.2-dev` | 400 - Correct ID is `flux-dev` |
+| 3 | Parse image from `message.content` | Empty - Image is in `message.images` |
+| 4 | Return imageUrl in tool result | Token limit (2MB base64 = 1M+ tokens) |
+| 5 | Detect `part.type === 'tool-result'` | Never matches - AI SDK v6 uses `tool-{name}` |
+| 6 | Access `part.output` | Undefined - Property is `part.result` |
+| 7 | `processedIds` Set inside useEffect | Infinite loop - Resets every render |
 
 ---
 
 ## 🏗️ Architecture Summary
 
-### **Database Schema v3**
-```typescript
-// New tables in IndexedDB:
-style_anchors: {
-  reference_image_blob: Blob,
-  reference_image_base64: string, // Cached for API
-  style_keywords: string,
-  lighting_keywords: string,
-  color_palette: string[], // HEX codes
-}
+### Style Anchor Generation Flow
 
-character_registry: {
-  base_description: string, // FULL description for consistency
-  successful_seed: number,
-  poses_generated: string[],
-  animations: Record<string, { seed, asset_id }>,
-}
-
-generated_assets: {
-  image_blob: Blob,
-  prompt_used: string,
-  plan_version: number,
-  style_version: number,
-  status: 'generated' | 'outdated' | 'approved',
-  generation_metadata: { model, seed, cost, duration_ms },
-}
+```
+User: "Generate style anchor"
+        ↓
+/api/chat → LLM executes generateStyleAnchor tool
+        ↓
+Tool calls /api/generate-style internally
+        ↓
+OpenRouter Flux.2 generates image
+        ↓
+Image saved to Prisma StyleAnchor table
+        ↓
+Returns { styleAnchorId } to LLM (NO image data)
+        ↓
+ChatInterface useEffect detects tool-generateStyleAnchor
+        ↓
+Client fetches /api/style-anchor?id=xxx
+        ↓
+onStyleAnchorGenerated callback → StylePreview displays image
 ```
 
-### **Prompt Generation Flow**
-```
-1. Parse plan → ParsedAsset[]
-2. For each asset:
-   - Load project qualities
-   - Load style anchor
-   - Load character registry (if character)
-   - buildAssetPrompt() → priority-ordered prompt
-3. Call /api/generate with prompt + style anchor image
-4. Save GeneratedAsset to IndexedDB
-5. Update character registry with seed
-```
+### Key Files Modified This Session
 
-### **Prompt Priority (CRITICAL)**
-Per FLUX2_PROMPT_ENGINEERING.md: **First 5 words carry highest weight**
-
-```typescript
-// ✅ CORRECT: Asset type + subject first
-"pixel art sprite of farmer character with straw hat, idle pose, 32x32..."
-
-// ❌ WRONG: Resolution/technical details first
-"32x32 pixel art idle farmer with straw hat sprite..."
-```
-
-Templates ensure correct priority ordering.
-
----
-
-## 📦 Files Implemented (P0)
-
-### Created (7 new files)
-1. **lib/db.ts** - Schema v3 with 3 new tables (MODIFIED)
-2. **lib/image-utils.ts** - Blob/base64 conversion, color extraction
-3. **lib/prompt-templates.ts** - 6 asset-type templates
-4. **lib/prompt-builder.ts** - Priority-ordered prompt generation
-5. **app/api/analyze-style/route.ts** - AI vision analysis
-6. **components/style/StyleAnchorEditor.tsx** - Style anchor UI
-7. **app/api/generate/route.ts** - Generation API with Flux.2 (Prisma refactor)
-8. **app/api/style-anchors/route.ts** - Style anchor storage API
-9. **lib/client-db.ts** - Renamed from db.ts, client-only Dexie
-10. **lib/prisma.ts** - Prisma client singleton
-
-### Documentation (2 files)
-8. **memory/GENERATION_WORKFLOW_GAPS.md** - 13 critical gaps identified
-9. **memory/P0_GENERATION_IMPLEMENTATION_SUMMARY.md** - Complete guide
-
-**Total:** 2,904 lines added
+| File | Changes |
+|------|---------|
+| `app/api/generate-style/route.ts` | Fixed model IDs, response parsing, modalities param |
+| `app/api/chat/route.ts` | Token limit fix - return ID not image |
+| `app/api/style-anchor/route.ts` | New GET endpoint for client fetch |
+| `components/planning/ChatInterface.tsx` | AI SDK v6 part detection, useRef fix |
+| `components/style/StylePreview.tsx` | Collapsible details, image display |
+| `lib/prompt-builder.ts` | Fixed FLUX_MODELS export |
+| `lib/prisma.ts` | DATABASE_URL env var handling |
 
 ---
 
 ## 🎯 Next Steps
 
-### **Completed This Session ✅**
-1. ✅ **Generation UI Components** - 4 major components + integration
-   - `components/generation/BatchControls.tsx` (155 lines) - Toolbar with controls
-   - `components/generation/GenerationProgress.tsx` (295 lines) - Progress panel with ETA
-   - Wired all components into `GenerationQueue.tsx` two-panel layout
-   - Updated `lib/types/generation.ts` to add `assetId` to GenerationLogEntry
-   - All TypeScript strict mode, ESLint clean, no any/unknown types
-   - Used refs to avoid stale closures, useMemo for performance
-   - setInterval pattern for ETA updates (time-based subscription)
+### Completed This Session ✅
+1. ✅ **Style anchor image generation** - Full E2E flow working
+2. ✅ **Token limit issue** - Solved via separate fetch endpoint
+3. ✅ **AI SDK v6 integration** - Correct part type and property names
+4. ✅ **Infinite loop prevention** - useRef for processed IDs
 
-2. ✅ **Plan parser** - `lib/plan-parser.ts` (462 lines)
-   - Parse entities.json markdown → ParsedAsset[]
-   - Handle composite vs granular mode
-   - Expand animations (4-direction → 4 frames or 4 tasks)
-   - Auto-detect asset types from category and name
+### Immediate Next Steps
+1. **Run typecheck and lint** - Ensure all code passes
+2. **Commit changes** - Document what was done
+3. **Add regenerate button** - Allow user to regenerate style anchor
+4. **Add style finalization** - Confirm style before proceeding
 
-4. ✅ **Hybrid Persistence & Stability**
-   - Separated persistence into `client-db.ts` (Dexie) and `prisma` (SQLite).
-   - Created `/api/style-anchors` for server-side persistence.
-   - Fixed Jest environments: `node` default, `jsdom` for UI.
-   - Unified TS types in `tsconfig.json` to prevent library resolution errors.
-
-2. ✅ **Multi-mode planning page** - `/app/project/[id]/planning/page.tsx`
-   - Tab navigation: [Plan] [Style] [Generation]
-   - Right panel mode state with conditional rendering
-   - File viewer menu in top-right dropdown
-   - StyleAnchorEditor integrated in Style mode
-
-3. ✅ **Style phase AI tools** - Complete integration
-   - 4 new Zod tools: updateStyleKeywords, updateLightingKeywords, updateColorPalette, saveStyleAnchor
-   - ChatInterface handles all style tool responses
-   - StyleAnchorEditor pre-fills with AI suggestions
-   - Full data flow: AI tools → ChatInterface → Planning page → StyleAnchorEditor
-
-### **Next Priority**
-1. **Create generation queue UI** - New components
-   - Asset queue tree (showing parsed assets from plan)
-   - Prompt editor (for reviewing/editing prompts)
-   - Generation status tracking (pending, generating, complete)
-   - Integration with `/api/generate` route
-
-### **Future Phases**
+### Future Phases
 - P1: Character registry UI, warning system
 - P2: Batch generation workflow, cost estimation
 - P3: Export phase, quality validation
@@ -308,47 +155,46 @@ Templates ensure correct priority ordering.
 | Generation Phase | 85% | 🟢 Backend + UI done, integration pending |
 | Export Phase | 0% | 🔴 Not started |
 
-**Overall: ~80%** ⬆️ (up from 75%)
+**Overall: ~85%** ⬆️ (up from 80%)
 
 ---
 
 ## 🔑 Critical Implementation Notes
 
-### **Tool Execution (AI SDK v6)**
+### OpenRouter Flux.2 Integration
 ```typescript
-// ALWAYS include for tool execution:
-stopWhen: stepCountIs(10)
+// CORRECT model IDs:
+'black-forest-labs/flux-dev'    // Fast development
+'black-forest-labs/flux.2-pro'  // High quality
 
-// ALWAYS use correct properties:
-toolCall.input (not .args)
-inputSchema (not parameters)
+// Image is in message.images, NOT content:
+const imageUrl = message.images[0].image_url.url;
 
-// Handle flexible parameter formats (Gemini)
-if (input.qualityKey) { /* expected */ }
-else { Object.entries(input).forEach(...) } /* actual */
+// Must include modalities for image generation:
+modalities: ['image', 'text']
 ```
 
-### **Character Consistency**
+### AI SDK v6 Tool Parts
 ```typescript
-// MUST include FULL description in EVERY pose:
-"pixel art sprite of farmer character with straw hat,
-weathered blue overalls, brown boots, [NEW POSE]"
-//                     ^--- Same base description ---^
+// Part type format:
+part.type === 'tool-generateStyleAnchor'  // NOT 'tool-result'
+
+// Result property:
+const result = part.result;  // NOT part.output
 ```
 
-### **Image Conversion**
+### Preventing Infinite Loops
 ```typescript
-// Store as Blob in IndexedDB (efficient)
-image_blob: Blob
+// Use useRef, not local Set:
+const processedIds = useRef(new Set<string>());
 
-// Convert to base64 for API calls (Flux.2 requirement)
-images: [await blobToBase64(styleAnchor.reference_image_blob)]
-
-// Cache base64 in database to avoid repeated conversion
-reference_image_base64: string
+// Check and add atomically:
+if (!processedIds.current.has(id)) {
+  processedIds.current.add(id);
+  // fetch...
+}
 ```
 
 ---
 
-**Status:** P0 generation infrastructure complete. Ready to build UI integration and plan parser.
-
+**Status:** Style anchor image generation is **100% complete and working**. Ready for commit and next features.

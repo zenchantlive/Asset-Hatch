@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
-import { StyleAnchorEditor } from "@/components/style/StyleAnchorEditor"
+import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnchor } from "@/components/style/StylePreview"
 import { GenerationQueue } from "@/components/generation/GenerationQueue"
 import { db } from "@/lib/client-db"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
@@ -22,13 +22,13 @@ export default function PlanningPage() {
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
 
   // Style phase state
-  const [styleKeywords, setStyleKeywords] = useState("")
-  const [lightingKeywords, setLightingKeywords] = useState("")
-  const [colorPalette, setColorPalette] = useState<string[]>([])
+  const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
+  const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
+  const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
 
   // Handler for quality updates from AI
   const handleQualityUpdate = (qualityKey: string, value: string) => {
-    console.log('📝 Planning page received quality update:', qualityKey, '=', value);
+    console.log('\ud83d\udcdd Planning page received quality update:', qualityKey, '=', value);
     setQualities(prev => ({ ...prev, [qualityKey]: value }));
   };
 
@@ -37,21 +37,23 @@ export default function PlanningPage() {
     setPlanMarkdown(markdown);
   };
 
-  // Style phase handlers
-  const handleStyleKeywordsUpdate = (keywords: string) => {
-    setStyleKeywords(keywords);
+  // Handler for style draft updates from AI
+  const handleStyleDraftUpdate = (draft: Partial<StyleDraft>) => {
+    console.log('📝 Planning page received style draft update:', draft);
+    setStyleDraft(prev => ({ ...prev, ...draft }));
   };
 
-  const handleLightingKeywordsUpdate = (keywords: string) => {
-    setLightingKeywords(keywords);
+  // Handler for style anchor generation
+  const handleStyleAnchorGenerated = (anchor: GeneratedStyleAnchor) => {
+    console.log('🎨 Style anchor generated:', anchor.id);
+    setGeneratedAnchor(anchor);
+    setIsGeneratingStyle(false);
   };
 
-  const handleColorPaletteUpdate = (colors: string[]) => {
-    setColorPalette(colors);
-  };
-
-  const handleStyleAnchorSave = async () => {
-    await loadSavedFiles();
+  // Handler for style finalization
+  const handleStyleFinalized = () => {
+    console.log('✅ Style finalized, switching to generation mode');
+    setMode('generation');
   };
 
   // Load saved files for file viewer menu
@@ -182,10 +184,9 @@ export default function PlanningPage() {
             onQualityUpdate={handleQualityUpdate}
             onPlanUpdate={handlePlanUpdate}
             onPlanComplete={handleApprovePlan}
-            onStyleKeywordsUpdate={handleStyleKeywordsUpdate}
-            onLightingKeywordsUpdate={handleLightingKeywordsUpdate}
-            onColorPaletteUpdate={handleColorPaletteUpdate}
-            onStyleAnchorSave={handleStyleAnchorSave}
+            onStyleDraftUpdate={handleStyleDraftUpdate}
+            onStyleAnchorGenerated={handleStyleAnchorGenerated}
+            onStyleFinalized={handleStyleFinalized}
           />
         </div>
 
@@ -200,14 +201,11 @@ export default function PlanningPage() {
           )}
 
           {mode === 'style' && (
-            <StyleAnchorEditor
-              projectId={typeof params.id === 'string' ? params.id : ''}
-              initialStyleKeywords={styleKeywords}
-              initialLightingKeywords={lightingKeywords}
-              initialColorPalette={colorPalette}
-              onSave={async () => {
-                await loadSavedFiles();
-              }}
+            <StylePreview
+              styleDraft={styleDraft}
+              generatedAnchor={generatedAnchor}
+              isGenerating={isGeneratingStyle}
+              onFinalize={handleStyleFinalized}
             />
           )}
 
