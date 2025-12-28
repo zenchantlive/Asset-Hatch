@@ -23,7 +23,7 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const project = await prisma.project.findUnique({
+        const project = await prisma.project.findFirst({
             where: {
                 id: params.id,
                 userId: session.user.id, // Enforce ownership
@@ -66,7 +66,7 @@ export async function DELETE(
         }
 
         // Verify ownership before deleting
-        const project = await prisma.project.findUnique({
+        const project = await prisma.project.findFirst({
             where: {
                 id: params.id,
                 userId: session.user.id,

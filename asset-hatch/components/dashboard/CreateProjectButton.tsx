@@ -52,13 +52,14 @@ export function CreateProjectButton({
             });
 
             if (!response.ok) {
-                throw new Error("Failed to create project");
+                const data = await response.json();
+                throw new Error(data.error || "Failed to create project");
             }
 
-            const { project } = await response.json();
+            const { project: { id: newProjectId } } = await response.json();
 
-            // Close modal and refresh dashboard data
-            setIsOpen(false);
+            // Sync will happen on redirect/dashboard load
+            router.push(`/project/${newProjectId}`);
             setName("");
             router.refresh();
 
