@@ -222,10 +222,10 @@ export function ChatInterface({
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-            <Sparkles className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm font-medium">Start planning your game assets</p>
-            <p className="text-xs mt-2 max-w-xs">
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-80">
+            <Sparkles className="w-12 h-12 mb-6 text-primary/50" />
+            <p className="text-2xl font-bold font-heading mb-2">Start planning your game assets</p>
+            <p className="text-muted-foreground max-w-sm">
               Tell me about your game idea and I&apos;ll help you plan what assets you&apos;ll need
             </p>
           </div>

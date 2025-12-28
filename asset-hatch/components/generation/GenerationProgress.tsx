@@ -97,6 +97,7 @@ export function GenerationProgress() {
    */
   useEffect(() => {
     if (!latestAssetId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLatestAsset(null)
       return
     }

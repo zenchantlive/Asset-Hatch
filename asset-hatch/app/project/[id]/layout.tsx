@@ -1,67 +1,44 @@
-'use client';
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/client-db';
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { use } from 'react';
+// -----------------------------------------------------------------------------
+// Project Layout (Server Component)
+// Validates project access and provides context to child pages
+// -----------------------------------------------------------------------------
 
-export default function ProjectLayout({
+export default async function ProjectLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  const project = useLiveQuery(() => db.projects.get(id));
+  // Get session server-side
+  const session = await auth();
 
-  if (!project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center glass-panel p-8">
-          <h1 className="text-2xl font-bold mb-4">
-            Project not found
-          </h1>
-          <Link
-            href="/"
-            className="text-primary hover:underline transition-colors"
-          >
-            Back to Projects
-          </Link>
-        </div>
-      </div>
-    );
+  // Redirect if not authenticated
+  if (!session?.user?.id) {
+    redirect("/");
   }
 
-  return (
-    <div className="min-h-screen">
-      <header className="glass-panel border-b" style={{ height: 'var(--header-height)' }}>
-        <div className="container mx-auto px-4 h-full">
-          <div className="flex items-center justify-between h-full">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 transition-opacity"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Projects
-              </Link>
-              <div className="h-6 w-px bg-border" />
-              <h1 className="text-2xl font-bold">
-                {project.name}
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge className="capitalize">{project.phase}</Badge>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </header>
-      <main>{children}</main>
-    </div>
-  );
+  // Get project ID from params
+  const { id } = await params;
+
+  // Verify project exists and belongs to user (or has no owner for legacy projects)
+  const project = await prisma.project.findUnique({
+    where: { id },
+    select: { id: true, userId: true, name: true, phase: true },
+  });
+
+  if (!project) {
+    redirect("/dashboard");
+  }
+
+  // Check ownership: project must have a userId and it must match the session user's id.
+  if (!project.userId || project.userId !== session.user.id) {
+    redirect("/dashboard");
+  }
+
+  return <>{children}</>;
 }
