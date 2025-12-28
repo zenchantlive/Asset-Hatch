@@ -100,7 +100,7 @@ export function RegisterModal({
                 onSwitchToSignIn();
             } else {
                 // Redirect to dashboard on success
-                window.location.href = "/dashboard";
+                router.push("/dashboard");
             }
         } catch {
             setError("Registration failed. Please try again.");
