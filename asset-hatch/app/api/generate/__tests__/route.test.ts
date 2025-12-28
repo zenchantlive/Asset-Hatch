@@ -40,7 +40,7 @@ jest.mock('@/lib/prompt-builder', () => ({
 }));
 
 // Mock fetch for OpenRouter API call
-global.fetch = jest.fn() as jest.Mock;
+global.fetch = jest.fn() as unknown as typeof fetch;
 
 describe('POST /api/generate', () => {
     beforeEach(() => {
@@ -78,13 +78,13 @@ describe('POST /api/generate', () => {
         (prisma.generatedAsset.create as jest.Mock).mockResolvedValue({ id: 'g1', metadata: '{}' });
 
         // 2. Mock OpenRouter response
-        (global.fetch as jest.Mock)
+        (global.fetch as jest.MockedFunction<typeof fetch>)
             .mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve({
                     data: [{ b64_json: 'mock-generated-image', seed: 123 }]
                 }),
-            });
+            } as Response);
 
         const request = new NextRequest('http://localhost/api/generate', {
             method: 'POST',
