@@ -232,6 +232,24 @@ model StyleAnchor {
 
   @@map("style_anchors")
 }
+
+model GeneratedAsset {
+  id                  String   @id @default(uuid())
+  projectId           String   @map("project_id")
+  assetId             String   @map("asset_id")
+  variantId           String?  @map("variant_id")
+  imageBlob           Bytes    @map("image_blob")
+  imageBase64         String?  @map("image_base64")
+  promptUsed          String   @map("prompt_used")
+  status              String   @default("generated")
+  generationMetadata  String   @map("generation_metadata") // JSON
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("generated_assets")
+}
 ```
 
 **Run migration:**
