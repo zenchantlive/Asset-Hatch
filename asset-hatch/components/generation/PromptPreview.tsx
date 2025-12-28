@@ -15,12 +15,13 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Copy, RotateCcw, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useGenerationContext } from './GenerationQueue'
-import { buildAssetPrompt } from '@/lib/prompt-builder'
+// TODO: Import buildAssetPrompt when ready to integrate
+// import { buildAssetPrompt } from '@/lib/prompt-builder'
 import type { ParsedAsset } from '@/lib/prompt-builder'
 
 /**
@@ -39,33 +40,16 @@ export function PromptPreview({ asset }: PromptPreviewProps) {
   // Get project context (will need project data for buildAssetPrompt)
   const { updatePrompt } = useGenerationContext()
   
+  // Generate the default prompt once on mount
+  // TODO: Replace with buildAssetPrompt() when project data is available
+  const defaultPrompt = generatePlaceholderPrompt(asset)
+  
   // Local state for prompt editing
-  const [customPrompt, setCustomPrompt] = useState<string>('')
-  const [defaultPrompt, setDefaultPrompt] = useState<string>('')
+  const [customPrompt, setCustomPrompt] = useState<string>(defaultPrompt)
   const [isEdited, setIsEdited] = useState(false)
   
   // Copy to clipboard state
   const [isCopied, setIsCopied] = useState(false)
-
-  /**
-   * Generate the default prompt for this asset
-   * 
-   * Note: In a real implementation, this would call buildAssetPrompt()
-   * with the full project context (qualities, style anchor, character registry)
-   * 
-   * For now, we'll create a placeholder prompt
-   */
-  useEffect(() => {
-    // TODO: Load project data and call buildAssetPrompt()
-    // const project = await loadProject(projectId)
-    // const styleAnchor = await loadStyleAnchor(projectId)
-    // const prompt = buildAssetPrompt(asset, project, styleAnchor)
-    
-    // Placeholder implementation
-    const placeholder = generatePlaceholderPrompt(asset)
-    setDefaultPrompt(placeholder)
-    setCustomPrompt(placeholder)
-  }, [asset])
 
   /**
    * Handle prompt text change
@@ -197,7 +181,6 @@ function generatePlaceholderPrompt(asset: ParsedAsset): string {
   
   // Extract key information
   const assetType = type || 'character-sprite'
-  const variantName = variant?.name || 'default'
   const pose = variant?.pose || 'standing pose'
   const frameCount = variant?.frameCount
   
