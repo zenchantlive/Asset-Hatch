@@ -5,7 +5,11 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
 // Get database URL - must be defined for libsql
 const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
-console.log('📦 Database URL:', databaseUrl);
+
+// Only log database URL in development (avoid exposing in production logs)
+if (process.env.NODE_ENV === 'development') {
+  console.log('📦 Database URL:', databaseUrl);
+}
 
 // Create Prisma adapter with config object
 // PrismaLibSql accepts either a Client or a Config with { url: string }

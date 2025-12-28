@@ -76,32 +76,49 @@ export function GenerationProgress() {
   const logContainerRef = useRef<HTMLDivElement>(null)
 
   /**
-   * Compute latest completed asset from log (useMemo to avoid recalculating)
+   * Track the latest completed asset ID from log
    */
-  const latestAsset = useMemo<GeneratedAssetResult | null>(() => {
+  const latestAssetId = useMemo<string | null>(() => {
     // Find last successful generation in log
     const lastSuccess = [...log].reverse().find(entry =>
       entry.message.includes('✅ Generated') && entry.assetId
     )
 
-    if (!lastSuccess || !lastSuccess.assetId) {
-      return null
+    return lastSuccess?.assetId || null
+  }, [log])
+
+  /**
+   * State to store the fetched latest asset data
+   */
+  const [latestAsset, setLatestAsset] = useState<GeneratedAssetResult | null>(null)
+
+  /**
+   * Fetch asset data when latestAssetId changes
+   */
+  useEffect(() => {
+    if (!latestAssetId) {
+      setLatestAsset(null)
+      return
     }
 
-    // TODO: Fetch asset data from API to get image URL
-    // For now, return minimal data
-    return {
-      id: lastSuccess.assetId,
-      imageUrl: '', // Will be populated from API
-      prompt: '',
-      metadata: {
-        model: 'flux-2-dev',
-        seed: 0,
-        cost: 0,
-        duration_ms: 0,
-      },
+    // Fetch asset from API
+    const fetchAsset = async () => {
+      try {
+        const response = await fetch(`/api/assets/${latestAssetId}`)
+        if (!response.ok) {
+          console.error('Failed to fetch asset:', response.statusText)
+          return
+        }
+
+        const assetData = await response.json()
+        setLatestAsset(assetData)
+      } catch (error) {
+        console.error('Error fetching latest asset:', error)
+      }
     }
-  }, [log])
+
+    fetchAsset()
+  }, [latestAssetId])
 
   /**
    * Find assets awaiting approval
@@ -252,16 +269,22 @@ export function GenerationProgress() {
             <h4 className="font-semibold text-white/90 sticky top-0 bg-black/40 backdrop-blur-sm py-2 z-10">
               Awaiting Approval
             </h4>
-            {assetsAwaitingApproval.map(({ assetId, asset, result }) => (
-              <AssetApprovalCard
-                key={assetId}
-                asset={asset}
-                result={result}
-                onApprove={() => approveAsset(assetId)}
-                onReject={() => rejectAsset(assetId)}
-                onRegenerate={() => generateImage(assetId)}
-              />
-            ))}
+            {assetsAwaitingApproval.map(({ assetId, asset, state }) => {
+              // Extract result from state (only exists when status is 'awaiting_approval')
+              const result = state.status === 'awaiting_approval' ? state.result : null;
+              if (!result) return null;
+
+              return (
+                <AssetApprovalCard
+                  key={assetId}
+                  asset={asset}
+                  result={result}
+                  onApprove={() => approveAsset(assetId)}
+                  onReject={() => rejectAsset(assetId)}
+                  onRegenerate={() => generateImage(assetId)}
+                />
+              );
+            })}
           </div>
         </div>
       )}
