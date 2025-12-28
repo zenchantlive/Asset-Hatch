@@ -19,6 +19,7 @@ export interface ProjectQualities {
   theme?: string
   mood?: string
   color_palette?: string
+  [key: string]: string | undefined
 }
 
 interface QualitiesBarProps {

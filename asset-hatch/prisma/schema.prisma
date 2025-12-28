@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id              String         @id @default(uuid())
+  name            String
+  phase           String         @default("planning")
+  artStyle        String?
+  baseResolution  String?
+  perspective     String?
+  gameGenre       String?
+  theme           String?
+  mood            String?
+  colorPalette    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  memoryFiles     MemoryFile[]
+  styleAnchors    StyleAnchor[]
+  generatedAssets GeneratedAsset[]
+  characterRegistry CharacterRegistry[]
+}
+
+model MemoryFile {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  type      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StyleAnchor {
+  id                   String   @id @default(uuid())
+  projectId             String
+  project              Project  @relation(fields: [projectId], references: [id])
+  referenceImageName   String
+  referenceImageBlob   Bytes
+  referenceImageBase64 String?
+  styleKeywords        String
+  lightingKeywords     String
+  colorPalette         String   // Stored as JSON string
+  fluxModel            String
+  aiSuggested          Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model CharacterRegistry {
+  id               String   @id @default(uuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id])
+  name             String
+  baseDescription  String
+  colorHex         String   // Stored as JSON string
+  styleKeywords    String
+  successfulSeed   Int?
+  posesGenerated   String   // Stored as comma-separated or JSON
+  animations       String   // Stored as JSON string
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model GeneratedAsset {
+  id             String   @id @default(uuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id])
+  assetId        String
+  status         String
+  seed           Int?
+  imageBlob      Bytes
+  metadata       String?  // Stored as JSON string
+  promptUsed     String?
+  variantId      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
