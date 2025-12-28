@@ -30,7 +30,11 @@ A slice is a **vertically integrated feature** that touches every layer of the s
 **Not a slice:** "Build the ChatInterface component"
 **A slice:** "User can send a message and see AI response"
 
-I created slice documents in `/asset-hatch-docs/slices/`:
+After finishing the initial planning with Opus locally, I started a **new chat with Opus** specifically to determine the best coding methodology for the app. It weighed the options and chose **Vertical Slices**.
+
+![Vertical Slices Decision](TODO: Insert Screenshot of Opus Vertical Slice Decision)
+
+I had it create the slice documents in `/asset-hatch-docs/slices/`:
 
 ```
 SLICE-00: Project runs (dev server, basic routing)
@@ -276,9 +280,15 @@ The dopamine hit of seeing that first AI response stream in was unreal.
 
 ### The Cosmic UI Redesign
 
-The default chat interface was functional but ugly. I'm a developer, not a designer, but I know when something looks amateur.
+The initial UI was... humble. To put it mildly. It started as a "white on grey, no CSS looking website".
 
-I spent the next 4 hours implementing a glassmorphism/aurora theme:
+![UI v1](TODO: Insert Screenshot of White/Grey UI)
+
+We iterated through two more designs, trying to find the right vibe.
+
+![UI Iterations](TODO: Insert Carousel/Grid of Intermediate UI Designs)
+
+Finally, I spent 4 hours adhering to the final glassmorphism/aurora theme:
 
 ```typescript
 // Cosmic gradient background
@@ -314,7 +324,11 @@ cfe3cf1 - Complete UI redesign and premium cosmic aesthetic refactor
 
 One problem with AI chat sessions: **they forget everything when you close the browser**.
 
-I needed persistent context. Enter the memory system.
+We worked until Slice 3 with Sonnet 4, but the slice method wasn't working how I wanted. It was too narrow and didn't allow the AI to complete the logical gaps to reach the wireframes we'd created.
+
+So I formed a "Council" of **Sonnet 4, GPT-5.2, and Perplexity** to devise a better solution. Together, we designed the `/memory` and `/memory/adr` system.
+
+![GPT-5.2 & Perplexity Logic](TODO: Insert Screenshot of Council of AIs Memory Design)
 
 ### Memory Files
 
