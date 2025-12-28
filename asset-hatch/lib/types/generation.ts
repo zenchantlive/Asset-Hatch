@@ -82,6 +82,7 @@ export interface GenerationLogEntry {
   timestamp: string
   level: 'info' | 'success' | 'error'
   message: string
+  assetId?: string // Optional asset ID for asset-specific logs
 }
 
 /**

@@ -21,6 +21,9 @@ import type {
   GenerationContextValue,
   GenerationLogEntry,
 } from '@/lib/types/generation'
+import { BatchControls } from './BatchControls'
+import { AssetTree } from './AssetTree'
+import { GenerationProgress } from './GenerationProgress'
 
 /**
  * React Context for sharing generation state across components
@@ -266,19 +269,25 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     )
   }
 
-  // Main UI (to be built in next steps)
+  // Main UI - Complete generation interface
   return (
     <GenerationContext.Provider value={contextValue}>
       <div className="flex flex-col h-full bg-glass-bg/10">
-        {/* TODO: Add BatchControls component */}
-        <div className="glass-panel p-4 m-4">
-          <p className="text-white/80">Generation Queue UI - Work in Progress</p>
-          <p className="text-sm text-white/60 mt-2">
-            {parsedAssets.length} assets ready to generate
-          </p>
-        </div>
+        {/* Toolbar with generation controls and model selector */}
+        <BatchControls />
 
-        {/* TODO: Add two-panel layout (AssetTree | GenerationProgress) */}
+        {/* Two-panel layout: Asset tree (left) | Generation progress (right) */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left panel: Asset tree with hierarchical view */}
+          <div className="w-1/2 border-r border-white/10 overflow-auto">
+            <AssetTree />
+          </div>
+
+          {/* Right panel: Generation progress and live updates */}
+          <div className="w-1/2 overflow-auto">
+            <GenerationProgress />
+          </div>
+        </div>
       </div>
     </GenerationContext.Provider>
   )

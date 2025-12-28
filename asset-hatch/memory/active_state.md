@@ -1,14 +1,14 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-27
-**Session:** Generation Queue UI - Phase 1 Foundation 🔨 IN PROGRESS
+**Session:** Generation Queue UI - Phase 1 UI Components ✅ COMPLETE
 **Branch:** feat/generation-queue-ui
 
 ---
 
 ## 📍 Current Focus
 
-> **🔨 GENERATION QUEUE UI - FOUNDATION COMPLETE:** Built foundational hooks and container for generation phase. Created useAssetGeneration (single asset), useBatchGeneration (queue management with pause/resume), generation type definitions, and GenerationQueue container with React Context. All code type-safe, linted, and commented. Next: Building UI components (AssetTree, PromptPreview, BatchControls, GenerationProgress).
+> **✅ GENERATION QUEUE UI - PHASE 1 COMPLETE:** Built complete UI layer for generation phase. Created 4 major components (AssetTree, PromptPreview, BatchControls, GenerationProgress) and wired them into GenerationQueue layout. All TypeScript strict, ESLint clean, fully commented. Uses React Context for state management, useMemo for performance, refs to avoid stale closures. Ready for integration into planning page. Next: Integrate into planning page and test end-to-end workflow.
 
 ---
 
@@ -30,7 +30,7 @@
 | **Style Phase AI Tools** | ✅ Complete | 4 tools integrated with ChatInterface |
 | **Hybrid Persistence** | ✅ Complete | Prisma + Dexie sync for StyleAnchors |
 | **Test Coverage** | ✅ Complete | Integration tests for all API routes |
-| **Generation Queue UI** | 🟡 30% Complete | Foundation hooks + container done, UI components next |
+| **Generation Queue UI** | 🟢 85% Complete | All components built & wired, pending planning page integration |
 
 ---
 
@@ -248,7 +248,16 @@ Templates ensure correct priority ordering.
 ## 🎯 Next Steps
 
 ### **Completed This Session ✅**
-1. ✅ **Plan parser** - `lib/plan-parser.ts` (462 lines)
+1. ✅ **Generation UI Components** - 4 major components + integration
+   - `components/generation/BatchControls.tsx` (155 lines) - Toolbar with controls
+   - `components/generation/GenerationProgress.tsx` (295 lines) - Progress panel with ETA
+   - Wired all components into `GenerationQueue.tsx` two-panel layout
+   - Updated `lib/types/generation.ts` to add `assetId` to GenerationLogEntry
+   - All TypeScript strict mode, ESLint clean, no any/unknown types
+   - Used refs to avoid stale closures, useMemo for performance
+   - setInterval pattern for ETA updates (time-based subscription)
+
+2. ✅ **Plan parser** - `lib/plan-parser.ts` (462 lines)
    - Parse entities.json markdown → ParsedAsset[]
    - Handle composite vs granular mode
    - Expand animations (4-direction → 4 frames or 4 tasks)
@@ -296,10 +305,10 @@ Templates ensure correct priority ordering.
 | Plan Parser | 100% | ✅ Complete |
 | Multi-Mode UI | 100% | ✅ Complete |
 | Style Anchor Phase | 100% | ✅ Complete |
-| Generation Phase | 50% | 🟡 Backend done, Queue UI started |
+| Generation Phase | 85% | 🟢 Backend + UI done, integration pending |
 | Export Phase | 0% | 🔴 Not started |
 
-**Overall: ~75%** ⬆️ (up from 65%)
+**Overall: ~80%** ⬆️ (up from 75%)
 
 ---
 
