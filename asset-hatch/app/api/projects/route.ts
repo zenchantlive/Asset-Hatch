@@ -13,7 +13,6 @@ import { z } from "zod";
 // =============================================================================
 
 const createProjectSchema = z.object({
-    id: z.string().uuid().optional(),
     name: z.string().min(1, "Name is required"),
 });
 
@@ -100,12 +99,11 @@ export async function POST(
             );
         }
 
-        const { id, name } = parsed.data;
+        const { name } = parsed.data;
 
         // Create project with user ownership
         const project = await prisma.project.create({
             data: {
-                id: id || undefined, // Use provided ID or let Prisma generate
                 name,
                 userId: session.user.id,
                 phase: "planning",
