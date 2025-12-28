@@ -6,6 +6,7 @@ import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
 import { StyleAnchorEditor } from "@/components/style/StyleAnchorEditor"
+import { GenerationQueue } from "@/components/generation/GenerationQueue"
 import { db } from "@/lib/client-db"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
 
@@ -211,15 +212,7 @@ export default function PlanningPage() {
           )}
 
           {mode === 'generation' && (
-            <div className="flex items-center justify-center h-full text-white/40">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-4 text-purple-500/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-lg font-medium">Generation Queue</p>
-                <p className="text-sm mt-2">Coming soon - asset generation interface</p>
-              </div>
-            </div>
+            <GenerationQueue projectId={params.id as string} />
           )}
         </div>
       </div>
