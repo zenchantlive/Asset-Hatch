@@ -59,7 +59,7 @@ export async function GET(): Promise<NextResponse<ProjectResponse | { projects: 
             },
         });
 
-        return NextResponse.json({ projects });
+        return NextResponse.json({ success: true, projects });
     } catch (error) {
         console.error("Failed to fetch projects:", error);
         return NextResponse.json(
