@@ -10,11 +10,13 @@
  * 3. Call OpenRouter Flux API
  * 4. Create StyleAnchor record with generated image
  * 5. Return image URL to client
+ * 
+ * Uses shared utility: lib/openrouter-image.ts for correct API handling
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { FLUX_MODELS } from '@/lib/prompt-builder';
+import { generateFluxImage, OPENROUTER_FLUX_MODELS } from '@/lib/openrouter-image';
 
 // OpenRouter API key from environment
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -138,8 +140,8 @@ export async function POST(request: NextRequest) {
 
         console.log('📝 Optimized prompt:', optimizedPrompt);
 
-        // Get model configuration
-        const model = FLUX_MODELS[fluxModel];
+        // Get model configuration from shared utility
+        const model = OPENROUTER_FLUX_MODELS[fluxModel];
         if (!model) {
             return NextResponse.json(
                 { error: `Unknown model: ${fluxModel}` },
@@ -147,153 +149,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Call OpenRouter API using chat/completions with image modality
-        const startTime = Date.now();
-
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://asset-hatch.app',
-                'X-Title': 'Asset Hatch',
-            },
-            body: JSON.stringify({
-                model: model.modelId,
-                messages: [
-                    {
-                        role: 'user',
-                        content: optimizedPrompt,
-                    }
-                ],
-                // Request image output - must include both 'image' and 'text' per OpenRouter docs
-                modalities: ['image', 'text'],
-                // Image generation parameters
-                provider: {
-                    only: ['black-forest-labs'],
-                },
-            }),
+        // Call OpenRouter API using shared utility
+        const result = await generateFluxImage({
+            modelId: model.modelId,
+            prompt: optimizedPrompt,
+            // No reference image for style anchor generation (this IS the reference)
         });
-
-        // Handle API errors
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('❌ OpenRouter API error:', response.status, errorData);
-            return NextResponse.json(
-                {
-                    error: 'Image generation failed',
-                    details: errorData,
-                },
-                { status: response.status }
-            );
-        }
-
-        // Parse response - chat/completions returns different format
-        const result = await response.json();
-        const duration = Date.now() - startTime;
-
-        // Log message structure (truncate base64 to avoid flooding console)
-        const message = result.choices?.[0]?.message;
-        console.log('📦 OpenRouter message keys:', message ? Object.keys(message) : 'undefined');
-        console.log('📦 OpenRouter message role:', message?.role);
-        console.log('📦 OpenRouter message content type:', typeof message?.content);
-
-        if (typeof message?.content === 'string') {
-            console.log('📦 Content string length:', message.content.length);
-            console.log('📦 Content starts with:', message.content.substring(0, 50));
-        } else if (Array.isArray(message?.content)) {
-            console.log('📦 OpenRouter message content (array) length:', message.content.length);
-            message.content.forEach((part: Record<string, unknown>, i: number) => {
-                console.log(`📦 Part ${i}:`, JSON.stringify(part).substring(0, 200));
-            });
-        } else if (message?.content) {
-            console.log('📦 Content (other):', JSON.stringify(message.content).substring(0, 200));
-        }
-
-        // Extract image from response
-        // OpenRouter Flux returns images in message.images array, NOT content
-        let imageDataUrl: string | undefined;
-
-        // Check message.images first (OpenRouter Flux format)
-        if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
-            const firstImage = message.images[0];
-            console.log('📦 Found images array, first image type:', typeof firstImage);
-            if (typeof firstImage === 'string') {
-                if (firstImage.startsWith('data:image')) {
-                    imageDataUrl = firstImage;
-                } else if (firstImage.startsWith('http')) {
-                    // It's a URL - we need to fetch it or use it directly
-                    imageDataUrl = firstImage;
-                } else {
-                    // Assume raw base64
-                    imageDataUrl = `data:image/png;base64,${firstImage}`;
-                }
-            } else if (typeof firstImage === 'object' && firstImage !== null) {
-                // Log the actual keys to understand the structure
-                console.log('📦 Image object keys:', Object.keys(firstImage));
-                // Could be { url: string } or { data: string } or { b64_json: string }
-                if ('url' in firstImage) {
-                    imageDataUrl = firstImage.url as string;
-                } else if ('data' in firstImage) {
-                    imageDataUrl = `data:image/png;base64,${firstImage.data}`;
-                } else if ('b64_json' in firstImage) {
-                    imageDataUrl = `data:image/png;base64,${firstImage.b64_json}`;
-                } else if ('image_url' in firstImage && typeof firstImage.image_url === 'object') {
-                    // Nested format: { image_url: { url: string } }
-                    imageDataUrl = (firstImage.image_url as { url: string }).url;
-                }
-            }
-            console.log('📦 Extracted image URL length:', imageDataUrl?.length || 0);
-        }
-
-        // Fallback to content parsing (other models)
-        if (!imageDataUrl) {
-            const imageContent = message?.content;
-            if (Array.isArray(imageContent)) {
-                for (const part of imageContent) {
-                    if (part.type === 'image_url' && part.image_url?.url) {
-                        imageDataUrl = part.image_url.url;
-                        break;
-                    } else if (part.type === 'image' && part.url) {
-                        imageDataUrl = part.url;
-                        break;
-                    } else if (part.type === 'image' && part.data) {
-                        imageDataUrl = `data:image/png;base64,${part.data}`;
-                        break;
-                    }
-                }
-            } else if (typeof imageContent === 'string') {
-                if (imageContent.startsWith('data:image')) {
-                    imageDataUrl = imageContent;
-                } else if (imageContent.length > 100 && /^[A-Za-z0-9+/=]+$/.test(imageContent.substring(0, 100))) {
-                    imageDataUrl = `data:image/png;base64,${imageContent}`;
-                }
-            }
-        }
-
-        if (!imageDataUrl) {
-            console.error('❌ No image in response. Message:', JSON.stringify({
-                keys: Object.keys(message || {}),
-                images: message?.images?.length || 0,
-                contentType: typeof message?.content,
-                contentLength: typeof message?.content === 'string' ? message.content.length : 'N/A',
-            }));
-            return NextResponse.json(
-                { error: 'No image data in response', details: result },
-                { status: 500 }
-            );
-        }
 
         console.log('✅ Style reference image generated:', {
-            duration: `${duration}ms`,
+            duration: `${result.durationMs}ms`,
+            seed: result.seed,
         });
-
-        // Extract base64 from data URL
-        const base64Match = imageDataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
-        const generatedImageB64 = base64Match ? base64Match[1] : '';
-
-        // Create buffer for storage
-        const imageBuffer = Buffer.from(generatedImageB64, 'base64');
 
         // Create StyleAnchor record in database
         const styleAnchor = await prisma.styleAnchor.create({
@@ -301,8 +167,8 @@ export async function POST(request: NextRequest) {
                 projectId: projectId,
                 referenceImageName: 'ai-generated-style-anchor.png',
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                referenceImageBlob: imageBuffer as any,
-                referenceImageBase64: imageDataUrl,
+                referenceImageBlob: result.imageBuffer as any,
+                referenceImageBase64: result.imageUrl,
                 styleKeywords: styleKeywords || '',
                 lightingKeywords: lightingKeywords || '',
                 colorPalette: JSON.stringify(colorPalette || []),
@@ -318,12 +184,12 @@ export async function POST(request: NextRequest) {
             success: true,
             styleAnchor: {
                 id: styleAnchor.id,
-                imageUrl: imageDataUrl,
+                imageUrl: result.imageUrl,
                 prompt: optimizedPrompt,
                 metadata: {
                     model: model.modelId,
                     cost: model.costPerImage,
-                    durationMs: duration,
+                    durationMs: result.durationMs,
                 },
             },
         });
