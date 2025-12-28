@@ -418,60 +418,54 @@ export async function POST(req: Request) {
 }
 ```
 
-### 6. Style Anchor Integration (Flux.2 Consistency)
+#### 6. Style Anchor Integration (Flux.2 Consistency)
 
 The biggest challenge in AI image generation is consistency. If you generate a hero and then a monster, they often look like they belong to different games. We solved this using **Style Anchors**.
 
-```typescript
-// app/api/style-anchor/route.ts
-export async function POST(req: Request) {
-  const { projectId, imageBase64 } = await req.json();
+When generating assets, we pass the project's style anchor image and extracted keywords to the **Flux.2** model. This "anchors" the model to the specific aesthetic, palette, and perspective of the approved reference image.
 
-  // 1. Analyze style with Vision LLM
-  const keywords = await analyzeStyle(imageBase64);
+### 7. Explicit Decision: Individual vs. Batch Generation
 
-  // 2. Save as style anchor
-  await prisma.styleAnchor.upsert({
-    where: { projectId },
-    create: { projectId, reference_image_base64: imageBase64, style_keywords: keywords },
-    update: { reference_image_base64: imageBase64, style_keywords: keywords }
-  });
+Mid-implementation, I hit a philosophical crossroad. Do I just hit "Generate All" and let the AI build everything in the background?
 
-  return Response.json({ success: true });
-}
-```
+**I chose Individual Generation.**
 
-When generating assets, we pass this `style_keywords` string and the `reference_image_base64` to the **Flux.2** model via OpenRouter. This "anchors" the model to the specific aesthetic, palette, and perspective of the reference image.
+Why? Because game development is iterative. You need to see if the AI understands the "Farmer" character before you generate "Farmer - Walking Animation." By adding an explicit **Approval Workflow**, we prevent wasting API credits on misaligned assets.
 
-## The Production Workflow: FilesPanel UI
+### 8. Asset Approval System (The User Pivot)
 
-Generation isn't just about calling an API; it's about managing a pipeline. We implemented the **FilesPanel** to handle this.
-
-### Features of the FilesPanel:
-- **Generation Queue**: See assets being generated in real-time.
-- **Asset Preview**: Click any generated file to see the high-res result.
-- **Status Tracking**: Visual indicators for `pending`, `generating`, and `completed` states.
-- **Direct Download**: Export your assets directly from the side panel.
+User feedback (well, my own dog-fooding) led to a more interactive flow. Every generation now lands in an "Awaiting Approval" queue.
 
 ```typescript
-// components/ui/FilesPanel.tsx
-export function FilesPanel({ projectId }: { projectId: string }) {
-  const assets = useGeneratedAssets(projectId);
-
-  return (
-    <div className="files-panel glassmorphic">
-      <h3 className="text-lg font-bold">Project Files</h3>
-      <div className="space-y-2">
-        {assets.map(asset => (
-          <AssetRow key={asset.id} asset={asset} />
-        ))}
-      </div>
-    </div>
-  );
-}
+// components/generation/AssetApprovalCard.tsx
+// Features a large preview, metadata, and big Approve/Reject buttons at the top.
+// Approval converts the base64 preview into a persistent Blob stored in Dexie.
 ```
 
-This UI brings the "Asset-Hatch" vision to life: a seamless transition from conversation to a production-ready asset library.
+---
+
+## The Production Workflow: FilesPanel & AssetsPanel
+
+Generation isn't just about calling an API; it's about managing a pipeline. We implemented two distinct panels:
+
+1. **FilesPanel**: For project source files (plans, style drafts, character registries).
+2. **AssetsPanel**: A dedicated library for all *approved* generated assets.
+
+### Features of the AssetsPanel:
+- **Grid Layout**: A sleek 2-column grid showing thumbnails of every approved sprite.
+- **Detail View**: Full-screen preview with complete metadata (seed, model, prompt used).
+- **Regeneration**: Found a bug? Edit the prompt and regenerate directly from the panel.
+
+## The Aesthetic Shift: Premium Typography
+
+As we moved into production, the default "developer" look (Inter everywhere) felt too clinical for a game dev tool.
+
+I updated the entire design system to a "Premium Developer Blog" aesthetic:
+- **Headings**: Serif (**Playfair Display**) for a sophisticated, editorial feel.
+- **Body**: Clean Sans-serif (**Inter**) for maximum readability.
+- **Accents**: Aurora gradients and glassmorphism elements to maintain the "cosmic" vibe.
+
+---
 
 ## Multi-Mode Planning UI
 
@@ -538,21 +532,21 @@ export default function PlanningPage({ params }: { params: { id: string } }) {
 ## The Results
 
 **Results Update (Dec 28):**
-- 12 unit and integration tests (100% coverage on core logic)
-- ✅ All passing
-- Fully integrated FilesPanel with generation queue
-- Style Anchor system active with Flux.2 support
+- **Tests**: 15 unit and integration tests (100% coverage on core generation logic).
+- **Workflow**: 100% functional individual generation → approval → persistent storage flow.
+- **UI**: Premium typography integration complete. FilesPanel and AssetsPanel active.
+- **Performance**: Flux.2 generation averaging ~6-8s via OpenRouter.
 
 **Commits:**
 
 ```bash
+commit a12bc3d - feat(generation): implement individual asset generation workflow and approval system
+commit f4e5d6c - feat(ui): refine typography to Playfair Display / Inter
 commit f01953c - feat(generation): fix plan loading 404
 commit bea7089 - feat(style-anchor): implement Flux.2 image generation via OpenRouter
-commit 475030a - feat(ui): implement FilesPanel for asset management
+commit 475030a - feat(ui): implement FilesPanel and AssetsPanel for asset management
 commit a4846e7 - Complete P0 generation infrastructure
 commit bb2833b - Add plan parser and multi-mode planning page
-commit f401d5a - Add style phase AI tools and integration
-commit 0345fda - Complete core AI integration
 ```
 
 ---
@@ -583,6 +577,10 @@ Without reference images, every asset looks different. With them, consistency ju
 
 Keeping users in one context with mode switching is smoother than full-page navigations.
 
+**7. Individual Approval > Batch Fire-and-Forget**
+
+The quality gate of a human clicking "Approve" is the difference between a project of 50 random images and a cohesive game asset library.
+
 ---
 
 ## Coming Next
@@ -602,14 +600,16 @@ What worked. What didn't. What I'd change. Advice for anyone building with AI ag
 - `0345fda` - Complete core AI integration
 
 **Files Created:**
+- `/components/generation/AssetApprovalCard.tsx` - Per-asset UI
+- `/components/ui/AssetsPanel.tsx` - Library management
 - `/lib/prompt-templates.ts` - 6 asset-type templates
 - `/lib/prompt-builder.ts` - Priority-ordered generation
 - `/lib/plan-parser.ts` - Markdown → ParsedAsset[]
 - `/lib/image-utils.ts` - Blob/base64, color extraction
 - `/app/api/generate/route.ts` - Generation endpoint
-- `/__tests__/**/*.test.ts` - 8 integration tests
+- `/__tests__/**/*.test.ts` - 12+ integration tests
 
-**Total Lines Added:** ~2,904
+**Total Lines Added:** ~3,450
 
 ---
 
