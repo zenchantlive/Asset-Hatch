@@ -65,7 +65,7 @@ Me: ✅ IT WORKS
 - Debugging subtle bugs (the `isResultMessage` error took manual digging)
 - Knowing when to pivot (AI kept suggesting CopilotKit workarounds)
 
-**Lesson:** AI excels at *implementation* once you make the *decision*.
+**Lesson:** Single AIs excel at *implementation*. A **Council of AIs**, however, can excel at *architecture*. When I used the Sonnet 4 / GPT-5.2 / Perplexity swarm, they successfully designed the Hybrid Persistence model that saved Part 5.
 
 ### 2. Framework Lock-in is More Dangerous with AI
 
@@ -252,6 +252,16 @@ Vercel AI SDK succeeded: 2M+ downloads, Vercel team, v6 mature, docs excellent.
 - Iterate rapidly once you know what you want
 
 **The sweet spot:** You design. AI implements. You validate. Repeat.
+
+### The Ecosystem of Agents
+
+One AI doesn't do it all. I use a specialized team:
+
+*   **PR Reviewers**: **Qodo** and **Gemini Code Assist** bots critique every PR. They catch what I miss.
+*   **Junior Dev / Researcher**: **Perplexity**. I have it read my logs and errors directly in the browser. It's my research workhorse for finding accurate info fast.
+*   **Senior Devs / Workhorses**: **Claude Code** and **Antigravity** (Google's new IDE). These are the heavy lifters that build the products.
+
+And looking forward, we're aiming for **Nano Banana** (Google's high-end image model) as the gold standard for asset generation, even if we develop with Flux.2 for now to keep costs down.
 
 ## The Final Reflection
 

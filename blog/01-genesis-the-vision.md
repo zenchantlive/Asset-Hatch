@@ -70,21 +70,21 @@ Game assets aren't just individual images. They're a **system**. A character isn
 
 When you ask an AI coding agent to generate these, it treats each request independently. You end up with a Frankenstein's monster of visual styles that no amount of clever prompting can fix.
 
-## The Solution: Leveraging Nano Banana
+## The Solution: Leveraging style retention
 
-I was reading through the Flux.2 Pro Prompting Handbook and realized I could apply a known concept: **Nano Banana** (style retention). But I needed to adapt it for a conversational agent workflow.
+I realized I could apply a known concept: **style retention**. But I needed to adapt it for a conversational agent workflow and taior the output to work well with AI Agents and AAA game development workflows.
 
 > "Flux.2 can use reference images to maintain style consistency across generations. Including a style anchor image in your request ensures all outputs match the aesthetic."
 
-**Style anchor image.** This was the key to applying Nano Banana in this context.
+**Style anchor image.** This was the key to applying image style retention in this context.
 
 ### The Mental Model Shift
 
 What if you separated the asset creation workflow into phases?
 
-**Phase 1: Planning** — Describe your game, let an AI agent (Opus) build a complete asset list (which we did in the Desktop app first).
+**Phase 1: Planning** — Describe your game, let an AI agent (Asset-Hatch) build a complete asset list.
 **Phase 2: Style Anchoring** — Upload (or generate) ONE reference image that defines the visual style.
-**Phase 3: Generation** — Generate ALL assets using that style anchor.
+**Phase 3: Generation** — Generate ALL assets using the style anchor.
 **Phase 4: Export** — Package everything with manifest files.
 
 Suddenly, the consistency problem had a solution: **persistent visual context across all generations**.
