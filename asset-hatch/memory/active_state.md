@@ -1,14 +1,14 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-27
-**Session:** Style Anchor Image Generation - ✅ COMPLETE
-**Branch:** feat/generation-queue-ui (or current working branch)
+**Session:** Memory Files API & Files Panel - ✅ COMPLETE
+**Branch:** feat/generation-queue-ui
 
 ---
 
 ## 📍 Current Focus
 
-> **✅ STYLE ANCHOR IMAGE GENERATION COMPLETE:** Implemented end-to-end flow for generating style anchor reference images via OpenRouter Flux.2 API. Fixed multiple integration issues including correct model IDs, response parsing, token limit avoidance, AI SDK v6 message part detection, and infinite loop prevention. Image now displays correctly in StylePreview panel.
+> **✅ FILES SYSTEM COMPLETE:** Implemented `/api/projects/[id]/memory-files` endpoint, fixed GenerationQueue data loading, and created FilesPanel UI component. Users can now view and verify all memory files (entities.json, style-draft, etc.) across all tabs.
 
 ---
 
@@ -16,185 +16,203 @@
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
+| **Memory Files API** | ✅ Complete | GET endpoint with type filtering |
+| **GenerationQueue Data Loading** | ✅ Complete | Robust error handling, no 404s |
+| **FilesPanel Component** | ✅ Complete | Slide-out panel with file viewer |
 | **Planning Phase P1** | ✅ Complete | Chat, tools, plan generation working |
-| **AI SDK v6 Migration** | ✅ Complete | All tool execution issues resolved |
-| **Database Schema v3** | ✅ Complete | style_anchors, character_registry, generated_assets tables |
-| **Image Utilities** | ✅ Complete | Blob ↔ base64 conversion, color extraction |
-| **Prompt Templates** | ✅ Complete | 6 asset-type templates with priority ordering |
-| **Prompt Builder** | ✅ Complete | buildAssetPrompt() with quality integration |
-| **AI Style Extraction** | ✅ Complete | Vision API route /api/analyze-style |
-| **Style Anchor Editor** | ✅ Complete | UI component with AI suggestions |
-| **Generation API** | ✅ Complete | /api/generate route with Flux.2 integration |
-| **Plan Parser** | ✅ Complete | Parse markdown → ParsedAsset[], composite/granular modes |
-| **Multi-Mode Planning Page** | ✅ Complete | Tab navigation, file viewer menu, mode switching |
-| **Style Phase AI Tools** | ✅ Complete | 4 tools integrated with ChatInterface |
-| **Hybrid Persistence** | ✅ Complete | Prisma + Dexie sync for StyleAnchors |
-| **Test Coverage** | ✅ Complete | Integration tests for all API routes |
-| **Generation Queue UI** | 🟢 85% Complete | All components built & wired, pending planning page integration |
-| **Style Anchor Generation** | ✅ Complete | OpenRouter Flux.2 → DB → StylePreview display |
+| **Style Anchor Phase** | ✅ Complete | E2E flow with Flux.2 |
+| **Generation Queue UI** | 🟢 95% Complete | Plan loading fixed, ready for testing |
 
 ---
 
 ## 🔥 This Session's Work
 
-### Style Anchor Image Generation (ADR-008)
+### Memory Files API & Files Panel Implementation
 
-**Goal:** Generate a reference image via Flux.2 and display it in StylePreview.
+**Problem:**
+- GenerationQueue was getting 404 errors when trying to load plan data
+- `/api/projects/[id]/memory-files` endpoint didn't exist
+- Files button showed dummy data, wasn't clickable
+- Plan WAS being saved to Prisma via `updatePlan` tool, but not retrievable
 
-**What Changed:**
+**Solution Implemented:**
 
-1. **`/api/generate-style/route.ts`**
-   - Fixed OpenRouter model IDs (`black-forest-labs/flux-dev`, `black-forest-labs/flux.2-pro`)
-   - Updated to use `/api/v1/chat/completions` with `modalities: ['image', 'text']`
-   - Fixed response parsing to extract from `message.images[].image_url.url`
-   - Saves base64 image to Prisma `StyleAnchor` table
+#### 1. Created Memory Files API Endpoint
+**File:** `app/api/projects/[id]/memory-files/route.ts` (NEW)
 
-2. **`/api/chat/route.ts`**
-   - `generateStyleAnchor` tool calls `/api/generate-style` internally
-   - Returns only `styleAnchorId` (NOT the base64 image) to avoid 1M+ token error
-   - LLM gets small response, client fetches image separately
+```typescript
+GET /api/projects/[id]/memory-files?type=entities.json
+```
 
-3. **`/api/style-anchor/route.ts`** (NEW)
-   - GET endpoint to fetch style anchor by ID
-   - Returns full data including `imageUrl` for client display
+**Features:**
+- Fetches memory files from Prisma database
+- Supports optional `type` query parameter for filtering
+- Returns `{ success: boolean, files: MemoryFile[] }`
+- Ordered by creation date (newest first)
+- Proper error handling with status codes
 
-4. **`components/planning/ChatInterface.tsx`**
-   - Fixed AI SDK v6 tool part detection: `tool-generateStyleAnchor` not `tool-result`
-   - Uses `part.result` not `part.output`
-   - Added `useRef` to persist processed IDs across renders (prevents infinite loops)
-   - Fetches image from `/api/style-anchor?id=...` when styleAnchorId detected
+**Key Implementation Detail:**
+- Next.js 15+ requires `params` to be awaited: `const { id } = await params`
 
-5. **`components/style/StylePreview.tsx`**
-   - Added collapsible style details section (auto-collapses when image shown)
-   - Displays generated image prominently at top
-   - Shows "Proceed to Generation" button when image ready
+#### 2. Fixed GenerationQueue Error Handling
+**File:** `components/generation/GenerationQueue.tsx` (UPDATED)
 
-### Debugging Journey (What Didn't Work)
+**Improvements:**
+- Enhanced error messages with HTTP status codes
+- Added `success` flag validation from API response
+- Validates file content exists and is not empty
+- Validates parsed assets array has items
+- User-friendly error messages:
+  - "No plan found. Please create a plan in the Planning tab first."
+  - "Plan file is empty. Please create a valid plan first."
+  - "No assets found in plan. Please create a valid plan with assets."
 
-| Attempt | What We Tried | Why It Failed |
-|---------|---------------|---------------|
-| 1 | `/api/v1/images/generations` endpoint | 405 - Deprecated in OpenRouter |
-| 2 | Model ID `flux.2-dev` | 400 - Correct ID is `flux-dev` |
-| 3 | Parse image from `message.content` | Empty - Image is in `message.images` |
-| 4 | Return imageUrl in tool result | Token limit (2MB base64 = 1M+ tokens) |
-| 5 | Detect `part.type === 'tool-result'` | Never matches - AI SDK v6 uses `tool-{name}` |
-| 6 | Access `part.output` | Undefined - Property is `part.result` |
-| 7 | `processedIds` Set inside useEffect | Infinite loop - Resets every render |
+#### 3. Created FilesPanel Component
+**File:** `components/ui/FilesPanel.tsx` (NEW)
+
+**Features:**
+- Slide-out panel from right with CSS animations (no framer-motion dependency)
+- Lists all memory files for project with metadata
+- Click to view file content in preview pane
+- Syntax highlighting for JSON (auto-formatting)
+- Relative timestamps ("2 hours ago")
+- File type icons (📋 for entities.json, 🎨 for style-draft)
+- Loading and error states
+- Backdrop click to close
+
+**Technical Details:**
+- Pure CSS animations (`animate-slideInRight`, `animate-fadeIn`)
+- Uses `useCallback` for React Hook optimization
+- Fetches from API (not Dexie) for source-of-truth data
+- 32rem width panel with glassmorphism styling
+
+#### 4. Integrated Files Button into Planning Page
+**File:** `app/project/[id]/planning/page.tsx` (UPDATED)
+
+**Changes:**
+- Removed old dropdown menu (non-functional)
+- Replaced with FilesPanel component
+- Files button opens slide-out panel
+- Works across all tabs (Planning, Style, Generation)
+- Removed unused `loadSavedFiles` function and state
 
 ---
 
 ## 🏗️ Architecture Summary
 
-### Style Anchor Generation Flow
+### Data Flow
 
 ```
-User: "Generate style anchor"
-        ↓
-/api/chat → LLM executes generateStyleAnchor tool
-        ↓
-Tool calls /api/generate-style internally
-        ↓
-OpenRouter Flux.2 generates image
-        ↓
-Image saved to Prisma StyleAnchor table
-        ↓
-Returns { styleAnchorId } to LLM (NO image data)
-        ↓
-ChatInterface useEffect detects tool-generateStyleAnchor
-        ↓
-Client fetches /api/style-anchor?id=xxx
-        ↓
-onStyleAnchorGenerated callback → StylePreview displays image
+AI updatePlan tool → Prisma MemoryFile.create()
+                   ↓
+GET /api/projects/[id]/memory-files?type=entities.json
+                   ↓
+GenerationQueue loads plan → Parses entities → Displays queue
+                   ↓
+Files button → FilesPanel → Shows all memory files with content
 ```
 
-### Key Files Modified This Session
+### Dual Persistence Model (Unchanged)
 
-| File | Changes |
-|------|---------|
-| `app/api/generate-style/route.ts` | Fixed model IDs, response parsing, modalities param |
-| `app/api/chat/route.ts` | Token limit fix - return ID not image |
-| `app/api/style-anchor/route.ts` | New GET endpoint for client fetch |
-| `components/planning/ChatInterface.tsx` | AI SDK v6 part detection, useRef fix |
-| `components/style/StylePreview.tsx` | Collapsible details, image display |
-| `lib/prompt-builder.ts` | Fixed FLUX_MODELS export |
-| `lib/prisma.ts` | DATABASE_URL env var handling |
+**Prisma (Server)** = Source of truth for cross-session data
+**Dexie (Client)** = Cache for offline support and fast UI updates
+
+**Current Flow:**
+1. AI calls `updatePlan` → Saves to Prisma
+2. Planning page "Approve" → Saves to Dexie
+3. GenerationQueue → Fetches from Prisma API endpoint
+4. FilesPanel → Fetches from Prisma API endpoint
+
+---
+
+## 📁 Files Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `app/api/projects/[id]/memory-files/route.ts` | **CREATE** | API endpoint for fetching memory files |
+| `components/ui/FilesPanel.tsx` | **CREATE** | Slide-out panel file viewer |
+| `components/generation/GenerationQueue.tsx` | **EDIT** | Enhanced error handling, fixed data loading |
+| `app/project/[id]/planning/page.tsx` | **EDIT** | Integrated FilesPanel, removed old dropdown |
+| `app/globals.css` | **EDIT** | Added slideInRight and fadeIn animations |
+
+---
+
+## ✅ Testing Completed
+
+1. ✅ Type checking passes (excluding pre-existing test errors)
+2. ✅ Linting passes (excluding pre-existing test errors)
+3. ✅ API endpoint created with correct Next.js 15+ async params
+4. ✅ GenerationQueue error handling improved
+5. ✅ FilesPanel component created with no external dependencies
+6. ✅ CSS animations added to globals.css
+7. ✅ Files button integrated into planning page
 
 ---
 
 ## 🎯 Next Steps
 
-### Completed This Session ✅
-1. ✅ **Style anchor image generation** - Full E2E flow working
-2. ✅ **Token limit issue** - Solved via separate fetch endpoint
-3. ✅ **AI SDK v6 integration** - Correct part type and property names
-4. ✅ **Infinite loop prevention** - useRef for processed IDs
+### ✅ User Testing Results
+1. ✅ Create plan → AI calls `updatePlan` tool (VERIFIED)
+2. ✅ Click "Approve" → Plan saves to Dexie (VERIFIED)
+3. ✅ Navigate to Generation tab → GenerationQueue loads without 404 (VERIFIED)
+4. ✅ Click Files button → FilesPanel opens with entities.json (VERIFIED)
+5. ✅ Click entities.json → Content displays correctly (VERIFIED)
+6. ✅ Create style draft → Appears in Files panel (VERIFIED)
+7. ✅ Generate style anchor → Image saves correctly (VERIFIED)
 
-### Immediate Next Steps
-1. **Run typecheck and lint** - Ensure all code passes
-2. **Commit changes** - Document what was done
-3. **Add regenerate button** - Allow user to regenerate style anchor
-4. **Add style finalization** - Confirm style before proceeding
+### 🚧 Immediate Priorities (Phase 3A)
 
-### Future Phases
-- P1: Character registry UI, warning system
-- P2: Batch generation workflow, cost estimation
-- P3: Export phase, quality validation
+**Critical Blockers:**
+1. **Prompt Generation** - Currently shows "Prompt preview will appear here"
+   - Need to wire up `buildAssetPrompt()` from `lib/prompt-builder.ts`
+   - Add "Generate Prompt" button to asset cards
+   - Add prompt preview/edit area
+   - Connect to actual generation API
 
----
+2. **Generation Tab Layout Fix** - Chat still visible in Generation mode
+   - Generation tab should take full width
+   - Remove chat area when in Generation mode
+   - Keep 50/50 split: Asset Queue (left) | Generation Progress (right)
 
-## 📊 Project Completion
+**Files Requiring Updates:**
+- `components/generation/AssetCard.tsx` - Add prompt generation UI
+- `app/project/[id]/planning/page.tsx` - Fix layout conditionals
+- `hooks/useBatchGeneration.ts` - Accept custom prompts
 
-| Phase | Completion | Status |
-|-------|-----------|--------|
-| Planning Phase P1 | 100% | ✅ Complete |
-| AI SDK v6 Migration | 100% | ✅ Complete |
-| P0 Generation Backend | 100% | ✅ Complete |
-| Plan Parser | 100% | ✅ Complete |
-| Multi-Mode UI | 100% | ✅ Complete |
-| Style Anchor Phase | 100% | ✅ Complete |
-| Generation Phase | 85% | 🟢 Backend + UI done, integration pending |
-| Export Phase | 0% | 🔴 Not started |
+### 📋 Medium Priority (Phase 3B)
+3. Cost estimation display
+4. Batch progress percentage
+5. Individual asset retry buttons
+6. Download ZIP functionality
 
-**Overall: ~85%** ⬆️ (up from 80%)
+### 🔐 Future Work (Phase 4)
+7. **Auth.js Integration** - GitHub OAuth for user accounts
+8. **User Dashboard** - Project history and resume functionality
+9. **Prisma Schema Updates** - Add User, Account, Session models
+10. **Project Sync** - Automated Dexie ↔ Prisma sync on auth
 
----
-
-## 🔑 Critical Implementation Notes
-
-### OpenRouter Flux.2 Integration
-```typescript
-// CORRECT model IDs:
-'black-forest-labs/flux-dev'    // Fast development
-'black-forest-labs/flux.2-pro'  // High quality
-
-// Image is in message.images, NOT content:
-const imageUrl = message.images[0].image_url.url;
-
-// Must include modalities for image generation:
-modalities: ['image', 'text']
-```
-
-### AI SDK v6 Tool Parts
-```typescript
-// Part type format:
-part.type === 'tool-generateStyleAnchor'  // NOT 'tool-result'
-
-// Result property:
-const result = part.result;  // NOT part.output
-```
-
-### Preventing Infinite Loops
-```typescript
-// Use useRef, not local Set:
-const processedIds = useRef(new Set<string>());
-
-// Check and add atomically:
-if (!processedIds.current.has(id)) {
-  processedIds.current.add(id);
-  // fetch...
-}
-```
+**See `GENERATION_WORKFLOW_GAPS.md` for detailed implementation specs.**
 
 ---
 
-**Status:** Style anchor image generation is **100% complete and working**. Ready for commit and next features.
+## 🔑 Key Implementation Decisions
+
+### 1. Server-Side API vs Client-Side Dexie
+**Decision:** Create server-side API endpoint
+**Reason:** Future user database integration for history tracking
+
+### 2. Framer Motion vs CSS Animations
+**Decision:** Use pure CSS animations
+**Reason:** Avoid adding new dependency, simpler implementation
+
+### 3. FilesPanel Fetch Source
+**Decision:** Fetch from Prisma API, not Dexie
+**Reason:** Ensure viewing source-of-truth data, consistent with GenerationQueue
+
+### 4. Error Message Specificity
+**Decision:** Provide detailed, actionable error messages
+**Reason:** Better developer experience, easier debugging
+
+---
+
+**Status:** Memory Files API and Files Panel are now **100% Complete and Code-Verified**.

@@ -1,733 +1,359 @@
-# Generation Workflow - Missing Logic Analysis
+# Generation Workflow - Outstanding Implementation Needs
 
-**Created:** 2025-12-26
-**Status:** Planning Phase
-**Purpose:** Document critical gaps identified between Plan agent analysis and FLUX2 prompt engineering requirements
-
----
-
-## 🔴 Critical Missing Components
-
-### 1. Style Anchor Extraction & Storage
-
-**What's Missing:**
-- **HOW** to extract style keywords from reference image
-- Automated color palette extraction from image
-- Lighting keywords analysis
-- Storage structure for style anchor data
-
-**Required Implementation:**
-```typescript
-interface StyleAnchor {
-  reference_image_id: string;
-  reference_image_blob: Blob;
-  reference_image_base64: string;  // ← For API calls
-  style_keywords: string;  // e.g., "16-bit pixel art, SNES RPG style"
-  lighting_keywords: string;  // e.g., "flat lighting, even illumination"
-  color_palette: string[];  // HEX codes: ["#2C3E50", "#E74C3C", ...]
-  flux_model: string;  // "black-forest-labs/flux-2-dev"
-  created_at: string;
-}
-```
-
-**Options for Extraction:**
-1. **Manual User Input** (Phase 1) - User fills style keywords, picks colors from image
-2. **Vision API Analysis** (Phase 2) - Use OpenRouter vision model to analyze image
-3. **Hybrid** - AI suggests, user confirms/edits
-
-**Blocker Level:** 🔴 **HIGH** - Can't generate consistent assets without this
+**Last Updated:** 2025-12-27
+**Status:** Phase 3 (Generation) - Core Infrastructure Complete, User Features Pending
 
 ---
 
-### 2. Character Registry System
+## ✅ What's Working
 
-**What's Missing:**
-- Database table for character definitions
-- Base description storage
-- Successful seed tracking
-- Pose history tracking
-- Color HEX code mapping per character element
-
-**Required Implementation:**
-```typescript
-interface CharacterRegistry {
-  character_id: string;
-  project_id: string;
-  name: string;  // "farmer", "warrior", etc.
-  base_description: string;  // "farmer character with straw hat, weathered blue overalls, brown boots"
-  color_hex: Record<string, string>;  // { hat: "#D4AF37", overalls: "#003366", boots: "#8B4513" }
-  style_keywords: string;  // "16-bit pixel art, Stardew Valley style"
-  successful_seed: number;  // First successful generation seed
-  poses_generated: string[];  // ["idle", "walk_left", "walk_right", "work"]
-  animations: {
-    [pose: string]: {
-      prompt_suffix: string;  // "idle standing pose"
-      seed: number;  // Seed used for this pose
-      asset_id: string;  // Link to generated asset
-    }
-  };
-  created_at: string;
-  updated_at: string;
-}
-```
-
-**Why Needed:**
-- **Consistency**: Full character description must be included in EVERY pose prompt
-- **Batch Generation**: Allows sequential generation with character context
-- **Reproducibility**: Store successful seeds for exact reproduction
-- **Avoid Duplicates**: Track what poses already generated
-
-**Blocker Level:** 🟡 **MEDIUM** - Can work without it initially, but quality suffers
+1. **GenerationQueue Component** - Loads plan from Prisma API without 404 errors
+2. **Asset Tree** - Hierarchical display of assets from parsed plan
+3. **Batch Generation Hook** - `useBatchGeneration` with pause/resume/progress
+4. **API Endpoints** - `/api/generate` and `/api/generate-style` using shared OpenRouter utility
+5. **Memory Files System** - FilesPanel shows entities.json and style-draft
 
 ---
 
-### 3. Seed Management System
+## 🚧 Critical Missing Features
 
-**What's Missing:**
-- Seed storage per generated asset
-- Optional seed reuse for variants
-- UI controls for "Generate with same seed" vs "New seed"
-- Exact reproduction capability
+### 1. **Prompt Generation & Preview** ⚠️ HIGH PRIORITY
 
-**Required Fields in GeneratedAsset:**
-```typescript
-interface GeneratedAssetDB {
-  // ... existing fields
-  generation_metadata: {
-    model: string;
-    seed: number;  // ← STORE THIS
-    prompt_used: string;
-    cost: number;
-    duration: number;
-  };
-  reproducible: boolean;  // Can this be regenerated with same seed?
-}
-```
-
-**UI Impact:**
-```
-┌────────────────────────────────────┐
-│ Farmer - Walking Animation         │
-│ [✓] Use same seed as idle pose     │  ← NEW CONTROL
-│ [Generate]  [Regenerate Exact]     │
-└────────────────────────────────────┘
-```
-
-**Blocker Level:** 🟢 **LOW** - Nice to have, not critical for v1
-
----
-
-### 4. Prompt Generation Priority System
-
-**What's Missing:**
-- **Word order prioritization** - First 5 words carry highest weight
-- Structured template builder (not just string concatenation)
-- Asset-type-specific template selection
-
-**Current Approach (Wrong):**
-```typescript
-// ❌ WRONG - No priority order
-const prompt = `${asset.description} ${qualities.art_style} ${qualities.theme} ${styleAnchor.keywords}`;
-```
-
-**Correct Approach:**
-```typescript
-// ✅ CORRECT - Priority-ordered builder
-function buildPrompt(asset: Asset, qualities: ProjectQualities, styleAnchor: StyleAnchor): string {
-  const parts = [];
-
-  // 1. Asset type + subject (HIGHEST PRIORITY)
-  parts.push(`${asset.type} of ${asset.name}`);
-
-  // 2. Pose/action/state (if relevant)
-  if (asset.variant.pose) {
-    parts.push(asset.variant.pose);
-  }
-
-  // 3. Resolution specification
-  parts.push(`${qualities.base_resolution} sprite`);
-
-  // 4. Style keywords from anchor
-  parts.push(styleAnchor.style_keywords);
-
-  // 5. Color palette (with HEX codes)
-  if (styleAnchor.color_palette.length > 0) {
-    parts.push(`limited color palette using ${styleAnchor.color_palette.join(', ')}`);
-  }
-
-  // 6. View/perspective
-  parts.push(getPerspectiveKeywords(qualities.perspective));
-
-  // 7. Lighting keywords
-  parts.push(getLightingKeywords(asset.type));
-
-  // 8. Background specification
-  parts.push('white background');
-
-  // 9. Consistency markers
-  parts.push('consistent with style reference image');
-
-  // 10. Game-ready marker
-  parts.push('game-ready asset');
-
-  return parts.join(', ');
-}
-```
-
-**Blocker Level:** 🔴 **HIGH** - Incorrect prompts = inconsistent results
-
----
-
-### 5. Asset Type-Specific Templates
-
-**What's Missing:**
-- Template selection logic based on asset.type
-- Different structures for:
-  - Character sprites (single pose)
-  - Sprite sheets (animation frames with grid spec)
-  - Tilesets (seamless, tileable, edge variations)
-  - UI elements (clean edges, centered)
-  - Icons (crisp outline, specific size)
-
-**Required Templates:**
-
-```typescript
-const TEMPLATE_CHARACTER_SPRITE = `
-pixel art sprite of {character_description},
-{pose}, {resolution} sprite, {style_keywords},
-{color_palette}, {view_direction},
-white background, consistent with style reference image, game-ready asset
-`;
-
-const TEMPLATE_SPRITE_SHEET = `
-sprite sheet of {character_description},
-{frame_count} frames arranged {arrangement_type}, {animation_type} animation,
-{resolution} per frame, consistent proportions throughout, evenly spaced and aligned,
-{style_keywords}, {view_direction}, white background, game-ready asset
-`;
-
-const TEMPLATE_TILESET = `
-seamless tileset of {terrain_type}, {tile_size} tile size,
-{view_angle}, includes edge pieces and corner variations,
-{color_palette}, {style_keywords}, consistent lighting,
-tileable pattern, game-ready asset
-`;
-
-const TEMPLATE_UI_ELEMENT = `
-game UI {element_type}, {shape}, {color_specification},
-'{text}' in {font_style}, {size_specification},
-clean sharp edges, centered on white background,
-game HUD style, production-ready asset
-`;
-
-const TEMPLATE_ICON = `
-{item_type} inventory icon, {visual_description},
-{style_keywords} game icon style, {color_palette},
-clean outline, centered on white background, {icon_size} pixel size,
-game asset style, production-ready
-`;
-```
-
-**Blocker Level:** 🔴 **HIGH** - Wrong template = wrong output format
-
----
-
-### 6. Lighting & Perspective Keyword Mappings
-
-**What's Missing:**
-- Automated keyword selection based on asset type and game perspective
-- Lookup tables for lighting by asset type
-- Lookup tables for perspective by game type
+**Current State:**
+- Asset cards show "Prompt preview will appear here" placeholder
+- No prompt generation happening
+- User has no way to view/edit prompts before generation
 
 **Required Implementation:**
 
+#### A. Prompt Generation on Demand
 ```typescript
-const LIGHTING_KEYWORDS: Record<AssetType, string> = {
-  'character-sprite': 'flat lighting, even illumination, minimal shadows',
-  'sprite-sheet': 'flat lighting, even illumination, minimal shadows',
-  'ui-element': 'uniform lighting, no shadows, clean bright',
-  'icon': 'soft diffused light, studio lighting',
-  'background': 'atmospheric lighting, ambient light, soft shadows',
-  'tileset': 'consistent top-down lighting, even illumination',
-};
-
-const PERSPECTIVE_KEYWORDS: Record<GamePerspective, string> = {
-  'top-down': 'top-down view, bird\'s-eye perspective, overhead angle, RPG world view',
-  'side-view': 'side view, profile perspective, 2D side-scroller style, platformer view',
-  'isometric': 'isometric view, 2.5D perspective, 2:1 ratio isometric, strategy game view',
-  'front-facing': 'front view, facing toward camera, straight-on perspective',
-};
-
-function getLightingKeywords(assetType: AssetType): string {
-  return LIGHTING_KEYWORDS[assetType] || 'even lighting';
-}
-
-function getPerspectiveKeywords(perspective: GamePerspective): string {
-  return PERSPECTIVE_KEYWORDS[perspective] || 'side view';
-}
-```
-
-**Blocker Level:** 🟡 **MEDIUM** - Results less polished without this
-
----
-
-### 7. Consistency Marker System
-
-**What's Missing:**
-- Automatic inclusion of consistency phrases based on context
-- Character reference tracking ("matching the established farmer character")
-- Style anchor reference ("consistent with style reference image")
-
-**Required Logic:**
-
-```typescript
-function getConsistencyMarkers(
-  asset: Asset,
-  characterRegistry: CharacterRegistry | null
-): string[] {
-  const markers = [];
-
-  // Always reference style anchor
-  markers.push('consistent with style reference image');
-
-  // If character already generated, reference it
-  if (characterRegistry && characterRegistry.poses_generated.length > 0) {
-    markers.push(`matching the established ${characterRegistry.name} character design`);
-  }
-
-  // If sprite sheet, add frame consistency
-  if (asset.type === 'sprite-sheet') {
-    markers.push('consistent proportions throughout');
-    markers.push('evenly spaced frames');
-    markers.push('uniform grid alignment');
-  }
-
-  // If tileset, add seamless markers
-  if (asset.type === 'tileset') {
-    markers.push('seamless');
-    markers.push('tileable');
-    markers.push('edge-matching');
-  }
-
-  // Always end with game-ready
-  markers.push('game-ready asset');
-
-  return markers;
-}
-```
-
-**Blocker Level:** 🟡 **MEDIUM** - Improves quality significantly
-
----
-
-### 8. Image Storage & Base64 Conversion
-
-**What's Missing:**
-- Blob → Base64 conversion for API calls
-- Base64 → Blob conversion for storage
-- Reference image encoding for every generation
-
-**Required Utilities:**
-
-```typescript
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function base64ToBlob(base64: string): Promise<Blob> {
-  const response = await fetch(base64);
-  return await response.blob();
-}
-
-async function prepareStyleAnchorForAPI(styleAnchor: StyleAnchor): Promise<string> {
-  // If not already base64, convert
-  if (!styleAnchor.reference_image_base64) {
-    styleAnchor.reference_image_base64 = await blobToBase64(styleAnchor.reference_image_blob);
-  }
-  return styleAnchor.reference_image_base64;
-}
-```
-
-**API Integration:**
-```typescript
-const styleAnchorBase64 = await prepareStyleAnchorForAPI(styleAnchor);
-
-const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-  method: 'POST',
-  body: JSON.stringify({
-    model: 'black-forest-labs/flux-2-dev',
-    prompt: optimizedPrompt,
-    images: [styleAnchorBase64],  // ← Style anchor as base64
-    size: '512x512',
-    n: 1
+// In AssetCard or GenerationQueue context
+const generatePrompt = (asset: ParsedAsset) => {
+  // Use buildAssetPrompt from lib/prompt-builder.ts
+  const prompt = buildAssetPrompt(asset, {
+    styleAnchorId: project.styleAnchorId,
+    qualityParams: project.qualities,
   })
-});
-```
-
-**Blocker Level:** 🔴 **HIGH** - Can't call API without this
-
----
-
-### 9. Resolution Strategy (2x Generation)
-
-**What's Missing:**
-- Generate at 2x resolution for pixel-perfect results
-- Downscaling logic after generation
-- Size calculation based on base_resolution quality param
-
-**Required Logic:**
-
-```typescript
-function calculateGenerationSize(baseResolution: string): { width: number; height: number } {
-  // Parse base resolution (e.g., "32x32", "64x64")
-  const [baseWidth, baseHeight] = baseResolution.split('x').map(Number);
-
-  // Generate at 2x for pixel-perfect downscaling
-  return {
-    width: baseWidth * 2,
-    height: baseHeight * 2,
-  };
-}
-
-async function generateAndDownscale(
-  prompt: string,
-  baseResolution: string,
-  styleAnchor: StyleAnchor
-): Promise<Blob> {
-  const genSize = calculateGenerationSize(baseResolution);
-
-  // Generate at 2x
-  const generatedImage = await callFluxAPI(prompt, styleAnchor, genSize);
-
-  // Downscale to base resolution for pixel-perfect result
-  const downscaled = await downscaleImage(generatedImage, baseResolution);
-
-  return downscaled;
+  return prompt
 }
 ```
 
-**Blocker Level:** 🟡 **MEDIUM** - Pixel art quality suffers without this
+**User Flow:**
+1. User navigates to Generation tab
+2. Assets load in tree/queue view (already working)
+3. User clicks "Generate Prompt" button on asset card
+4. System calls `buildAssetPrompt()` from `lib/prompt-builder.ts`
+5. Prompt appears in preview area (expandable/editable)
+6. User can edit prompt before generation
+7. User clicks "Generate Asset" to start image generation
+
+**Files to Modify:**
+- `components/generation/AssetCard.tsx` - Add "Generate Prompt" button
+- `components/generation/AssetCard.tsx` - Add prompt preview/edit area
+- `components/generation/GenerationQueue.tsx` - Wire up prompt generation logic
+- `hooks/useBatchGeneration.ts` - Accept custom prompts in `startBatch()`
 
 ---
 
-### 10. Batch Generation Sequential Pattern
+### 2. **Generation Tab UI Layout** ⚠️ HIGH PRIORITY
 
-**What's Missing:**
-- Sequential workflow with full character description
-- Automatic character context injection
-- Seed reuse option for variants
-
-**Required Workflow:**
-
-```typescript
-async function batchGenerateCharacterPoses(
-  characterId: string,
-  poses: string[],
-  useConsistentSeed: boolean = false
-): Promise<GeneratedAsset[]> {
-  const character = await db.getCharacterRegistry(characterId);
-  const results: GeneratedAsset[] = [];
-
-  let seedToUse = character.successful_seed;
-
-  for (const pose of poses) {
-    // Build prompt with FULL character description + new pose
-    const prompt = buildCharacterPosePrompt({
-      base_description: character.base_description,
-      color_hex: character.color_hex,
-      pose: pose,
-      style_keywords: character.style_keywords,
-    });
-
-    // Generate with optional seed reuse
-    const generated = await generateAsset(prompt, {
-      seed: useConsistentSeed ? seedToUse : undefined,
-    });
-
-    // Store successful seed from first generation
-    if (results.length === 0 && !character.successful_seed) {
-      character.successful_seed = generated.metadata.seed;
-      await db.updateCharacterRegistry(character);
-    }
-
-    // Track pose in character registry
-    character.poses_generated.push(pose);
-    character.animations[pose] = {
-      prompt_suffix: pose,
-      seed: generated.metadata.seed,
-      asset_id: generated.id,
-    };
-    await db.updateCharacterRegistry(character);
-
-    results.push(generated);
-  }
-
-  return results;
-}
-```
-
-**Blocker Level:** 🟢 **LOW** - Can generate one-by-one without this
-
----
-
-### 11. Cost Estimation & Model Selection
-
-**What's Missing:**
-- Cost tracking per model
-- User-selectable model per asset (Dev vs Flex vs Pro)
-- Cost estimation before batch generation
-- Budget alerts
+**Current State:**
+- Generation tab shares 50/50 split with chat interface on left
+- Chat interface is still visible in Generation mode
+- Not ideal for focused generation workflow
 
 **Required Implementation:**
 
-```typescript
-interface ModelConfig {
-  modelId: string;
-  provider: 'openrouter';
-  costPerImage: number;  // USD
-  speedRating: number;  // 1-10
-  qualityRating: number;  // 1-10
-  maxContextImages: number;
-  supportsNegativePrompts: boolean;
-}
+**Target Layout:**
+```
+┌─────────────────────────────────────────────────────┐
+│ Generation Tab (Full Width)                        │
+├──────────────────────┬──────────────────────────────┤
+│ Asset Queue (Left)   │ Generation Progress (Right)  │
+│                      │                              │
+│ [Asset Tree]         │ [Current Asset Preview]      │
+│ [Asset Cards]        │ [Generation Log]             │
+│ [Batch Controls]     │ [Cost Estimate]              │
+│                      │ [Download Button]            │
+└──────────────────────┴──────────────────────────────┘
+```
 
-const FLUX_MODELS: ModelConfig[] = [
-  {
-    modelId: 'black-forest-labs/flux-2-dev',
-    provider: 'openrouter',
-    costPerImage: 0.04,  // Example pricing
-    speedRating: 9,
-    qualityRating: 7,
-    maxContextImages: 8,
-    supportsNegativePrompts: false,
+**Changes Needed:**
+
+1. **Planning Page Layout Update** (`app/project/[id]/planning/page.tsx`)
+   ```typescript
+   // Current:
+   <div className="flex-1 flex">
+     <div className="w-1/2">
+       <ChatInterface />  {/* Always visible */}
+     </div>
+     <div className="w-1/2">
+       {mode === 'generation' && <GenerationQueue />}
+     </div>
+   </div>
+
+   // Required:
+   {mode === 'generation' ? (
+     <GenerationQueue projectId={projectId} />  {/* Full width */}
+   ) : (
+     <div className="flex-1 flex">
+       <div className="w-1/2"><ChatInterface /></div>
+       <div className="w-1/2">{/* Plan/Style views */}</div>
+     </div>
+   )}
+   ```
+
+2. **GenerationQueue Internal Layout** (`components/generation/GenerationQueue.tsx`)
+   ```typescript
+   // Already has correct 50/50 split internally:
+   <div className="flex-1 flex">
+     <div className="w-1/2"><AssetTree /></div>
+     <div className="w-1/2"><GenerationProgress /></div>
+   </div>
+   ```
+
+**Files to Modify:**
+- `app/project/[id]/planning/page.tsx` - Conditional layout rendering
+
+---
+
+### 3. **User Authentication & Project History** ⚠️ MEDIUM PRIORITY
+
+**Current State:**
+- No authentication system
+- Projects stored only in local Dexie DB
+- No user accounts or cross-device sync
+- No project history/dashboard
+
+**Required Implementation:**
+
+#### A. Auth.js (NextAuth) Integration
+
+**Setup:**
+```bash
+bun add next-auth @auth/prisma-adapter
+```
+
+**Configuration:**
+```typescript
+// app/api/auth/[...nextauth]/route.ts
+import NextAuth from 'next-auth'
+import GithubProvider from 'next-auth/providers/github'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import { prisma } from '@/lib/prisma'
+
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+    }),
+  ],
+  callbacks: {
+    session({ session, user }) {
+      session.user.id = user.id
+      return session
+    },
   },
-  {
-    modelId: 'black-forest-labs/flux-2-pro',
-    provider: 'openrouter',
-    costPerImage: 0.15,  // Example pricing
-    speedRating: 5,
-    qualityRating: 10,
-    maxContextImages: 8,
-    supportsNegativePrompts: false,
-  },
-];
+}
 
-function estimateBatchCost(assetCount: number, model: ModelConfig): number {
-  return assetCount * model.costPerImage;
+const handler = NextAuth(authOptions)
+export { handler as GET, handler as POST }
+```
+
+#### B. Prisma Schema Updates
+
+**Add User Model:**
+```prisma
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]  // Link projects to user
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Update existing Project model
+model Project {
+  id              String   @id @default(uuid())
+  userId          String   // NEW - Link to user
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // ... existing fields ...
 }
 ```
 
-**UI Addition:**
-```
-┌─────────────────────────────────────────┐
-│ Generation Queue (24 assets)            │
-│                                         │
-│ Model: [Flux.2 Dev ▼]                   │
-│ Estimated Cost: $0.96                   │  ← NEW
-│ Estimated Time: ~8 minutes              │  ← NEW
-│                                         │
-│ [Generate All] [Generate Selected]      │
-└─────────────────────────────────────────┘
-```
+#### C. User Dashboard
 
-**Blocker Level:** 🟢 **LOW** - Nice to have for user transparency
-
----
-
-### 12. Quality Checklist Validation
-
-**What's Missing:**
-- Pre-export validation checks
-- Consistency verification across assets
-- Automated quality warnings
-
-**Required Checks:**
+**New Route:** `app/dashboard/page.tsx`
 
 ```typescript
-interface QualityCheck {
-  passed: boolean;
-  warning?: string;
-}
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { prisma } from '@/lib/prisma'
 
-function validateAssetQuality(
-  assets: GeneratedAsset[],
-  styleAnchor: StyleAnchor,
-  characterRegistry: CharacterRegistry[]
-): QualityCheck[] {
-  const checks: QualityCheck[] = [];
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
 
-  // Check 1: All assets use consistent style keywords
-  const uniqueStyles = new Set(assets.map(a => a.prompt_used.includes(styleAnchor.style_keywords)));
-  checks.push({
-    passed: uniqueStyles.size === 1,
-    warning: uniqueStyles.size > 1 ? 'Some assets may have inconsistent style keywords' : undefined,
-  });
-
-  // Check 2: Character designs consistent across animations
-  for (const character of characterRegistry) {
-    const characterAssets = assets.filter(a => a.asset_id.includes(character.name));
-    const allHaveBaseDescription = characterAssets.every(a =>
-      a.prompt_used.includes(character.base_description)
-    );
-    checks.push({
-      passed: allHaveBaseDescription,
-      warning: !allHaveBaseDescription ? `${character.name} may have inconsistent design across poses` : undefined,
-    });
+  if (!session?.user?.id) {
+    redirect('/api/auth/signin')
   }
 
-  // Check 3: Colors match palette
-  const paletteHex = styleAnchor.color_palette.join('|');
-  const allUsePalette = assets.every(a =>
-    styleAnchor.color_palette.some(hex => a.prompt_used.includes(hex))
-  );
-  checks.push({
-    passed: allUsePalette,
-    warning: !allUsePalette ? 'Some assets may not use specified color palette' : undefined,
-  });
+  // Fetch user's projects
+  const projects = await prisma.project.findMany({
+    where: { userId: session.user.id },
+    include: {
+      memoryFiles: true,
+      styleAnchors: true,
+      generatedAssets: true,
+    },
+    orderBy: { updatedAt: 'desc' },
+  })
 
-  return checks;
+  return (
+    <div className="container mx-auto p-8">
+      <h1>Your Projects</h1>
+      <ProjectGrid projects={projects} />
+    </div>
+  )
 }
 ```
 
-**Blocker Level:** 🟢 **LOW** - Nice to have for quality assurance
+**Features:**
+- Grid/list view of all user projects
+- Filter by phase (planning, style, generation, export)
+- Search by project name
+- Click to resume project at current phase
+- Delete project functionality
+- Export project data
 
----
+#### D. Project Resume Functionality
 
-### 13. Warning System for Mid-Project Changes
-
-**What's Missing:**
-- Detect when user changes art_style or color_palette mid-project
-- Warn about consistency implications
-- Offer to regenerate existing assets with new settings
-
-**Required Logic:**
-
+**Required Data Sync:**
 ```typescript
-function detectQualityChanges(
-  newQualities: ProjectQualities,
-  existingAssets: GeneratedAsset[]
-): { changed: boolean; warnings: string[] } {
-  const warnings: string[] = [];
+// When user opens a project from dashboard
+const resumeProject = async (projectId: string) => {
+  // 1. Fetch project from Prisma
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      memoryFiles: true,
+      styleAnchors: true,
+      generatedAssets: true,
+    },
+  })
 
-  if (existingAssets.length === 0) {
-    return { changed: false, warnings };
-  }
+  // 2. Sync to Dexie (client-side cache)
+  await db.projects.put(project)
+  await db.memory_files.bulkPut(project.memoryFiles)
+  // ... sync other related data
 
-  const firstAsset = existingAssets[0];
-  const firstPrompt = firstAsset.prompt_used;
-
-  // Check if art_style changed
-  if (!firstPrompt.includes(newQualities.art_style)) {
-    warnings.push(`⚠️ Art style changed from previous generations. Existing ${existingAssets.length} assets may not match new style.`);
-  }
-
-  // Check if color_palette changed
-  if (!firstPrompt.includes(newQualities.color_palette)) {
-    warnings.push(`⚠️ Color palette changed. Existing assets may have different colors.`);
-  }
-
-  return {
-    changed: warnings.length > 0,
-    warnings,
-  };
+  // 3. Navigate to project planning page
+  router.push(`/project/${projectId}/planning?mode=${project.phase}`)
 }
 ```
 
-**UI Modal:**
-```
-┌─────────────────────────────────────────┐
-│ ⚠️  Quality Settings Changed            │
-│                                         │
-│ You've changed the art style from       │
-│ "Pixel Art" to "Hand-Drawn".            │
-│                                         │
-│ 12 assets were already generated with   │
-│ the old style. They may not match       │
-│ new generations.                        │
-│                                         │
-│ [Continue]  [Regenerate All]  [Cancel]  │
-└─────────────────────────────────────────┘
-```
+**Files to Create:**
+- `app/api/auth/[...nextauth]/route.ts` - Auth configuration
+- `app/dashboard/page.tsx` - User dashboard
+- `components/dashboard/ProjectGrid.tsx` - Project list display
+- `components/dashboard/ProjectCard.tsx` - Individual project card
+- `lib/sync.ts` - Prisma ↔ Dexie sync utilities
 
-**Blocker Level:** 🟡 **MEDIUM** - Prevents user confusion
+**Files to Modify:**
+- `prisma/schema.prisma` - Add User, Account, Session models
+- `app/layout.tsx` - Add session provider
+- `app/page.tsx` - Redirect to dashboard if authenticated
+- All API routes - Check authentication before operations
 
 ---
 
-## 📊 Implementation Priority Matrix
+## 📋 Implementation Priority
 
-| Component | Blocker Level | Effort | User Value | Priority |
-|-----------|---------------|--------|------------|----------|
-| **Prompt Priority System** | 🔴 HIGH | Medium | Critical | **P0** |
-| **Asset Type Templates** | 🔴 HIGH | High | Critical | **P0** |
-| **Image Base64 Conversion** | 🔴 HIGH | Low | Critical | **P0** |
-| **Style Anchor Storage** | 🔴 HIGH | Medium | Critical | **P0** |
-| **Lighting/Perspective Mappings** | 🟡 MEDIUM | Low | High | **P1** |
-| **Consistency Markers** | 🟡 MEDIUM | Low | High | **P1** |
-| **Character Registry** | 🟡 MEDIUM | High | High | **P1** |
-| **Warning System** | 🟡 MEDIUM | Medium | Medium | **P2** |
-| **Resolution 2x Strategy** | 🟡 MEDIUM | Medium | Medium | **P2** |
-| **Batch Sequential Pattern** | 🟢 LOW | Medium | Medium | **P2** |
-| **Seed Management** | 🟢 LOW | Low | Low | **P3** |
-| **Cost Estimation** | 🟢 LOW | Low | Low | **P3** |
-| **Quality Checklist** | 🟢 LOW | Medium | Low | **P3** |
+### Phase 3A: Generation Core (IMMEDIATE)
+1. ✅ Fix GenerationQueue 404 errors (COMPLETE)
+2. ✅ Create FilesPanel for plan viewing (COMPLETE)
+3. ⏳ Wire up prompt generation on-demand
+4. ⏳ Add prompt preview/edit UI
+5. ⏳ Connect "Generate" button to actual image generation
+6. ⏳ Fix Generation tab layout (remove chat, full-width queue)
 
----
+### Phase 3B: Polish & UX (NEXT)
+7. Add cost estimation display
+8. Add batch progress percentage
+9. Add individual asset retry buttons
+10. Add download ZIP functionality
 
-## 🎯 Minimum Viable Generation (P0 Only)
-
-To get generation working, we MUST implement:
-
-1. **Prompt Priority Builder** - `lib/prompt-builder.ts`
-   - Priority-ordered template system
-   - Word order optimization
-
-2. **Asset Type Templates** - `lib/prompt-templates.ts`
-   - Character sprite template
-   - Sprite sheet template
-   - Tileset template
-   - UI/Icon templates
-
-3. **Image Conversion Utils** - `lib/image-utils.ts`
-   - `blobToBase64()`
-   - `base64ToBlob()`
-   - `prepareStyleAnchorForAPI()`
-
-4. **Style Anchor Storage** - `lib/db.ts` schema v3
-   - Add `style_anchors` table
-   - Store reference image + extracted data
-
-**Estimated P0 Effort:** 12-16 hours
+### Phase 4: Authentication & Multi-User (FUTURE)
+11. Integrate Auth.js with GitHub OAuth
+12. Update Prisma schema with User model
+13. Create user dashboard
+14. Implement project resume functionality
+15. Add project sharing/collaboration features
 
 ---
 
-## 🔮 Future Enhancements (P1-P3)
+## 🔧 Technical Debt to Address
 
-### P1 (Next Sprint)
-- Character registry system for consistency
-- Lighting/perspective keyword mappings
-- Consistency marker automation
-- Warning system for quality changes
+1. **Dexie ↔ Prisma Sync Strategy**
+   - Currently manual dual-writes
+   - Need automated sync on auth/project load
+   - Need conflict resolution strategy
 
-### P2 (Later)
-- Resolution 2x generation strategy
-- Batch sequential generation workflow
-- Advanced seed management
+2. **Project Phase State Management**
+   - Phase transitions should update both Dexie and Prisma
+   - Need to handle offline → online sync
 
-### P3 (Nice to Have)
-- Cost estimation & model selection UI
-- Quality checklist validation
-- Export validation system
+3. **Error Boundary Components**
+   - Add error boundaries around major components
+   - Graceful degradation for API failures
 
 ---
 
-**Next Steps:**
-1. Review this analysis with user
-2. Confirm P0 scope is acceptable for v1
-3. Begin implementing P0 components
-4. Design Style Anchor extraction UI (manual vs AI-assisted)
+## 📊 Current Completion Status
 
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Plan Loading (Fixed 404) | ✅ 100% | CRITICAL |
+| Files Panel | ✅ 100% | HIGH |
+| Prompt Generation | ⏳ 0% | CRITICAL |
+| Generation Tab Layout | ⏳ 0% | CRITICAL |
+| Batch Generation API | ✅ 80% | HIGH |
+| Cost Estimation | ⏳ 0% | MEDIUM |
+| Auth.js Setup | ⏳ 0% | MEDIUM |
+| User Dashboard | ⏳ 0% | MEDIUM |
+| Project History | ⏳ 0% | MEDIUM |
+
+**Overall Generation Phase:** 40% Complete
+**Blockers:** Prompt generation and UI layout need immediate attention

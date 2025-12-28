@@ -32,7 +32,7 @@
 ### AI Integration
 - **Chat Framework:** Vercel AI SDK v6 (@ai-sdk/react)
 - **LLM Provider:** OpenRouter (google/gemini-3-pro-preview)
-- **Image Generation:** OpenRouter (black-forest-labs/flux-dev, flux.2-pro)
+- **Image Generation:** OpenRouter (black-forest-labs/flux.2-pro, flux.2-pro)
 - **Vision Analysis:** OpenRouter (GPT-4o for style extraction)
 
 ### Data & State

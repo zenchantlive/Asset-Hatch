@@ -97,18 +97,22 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   useEffect(() => {
     async function loadPlan() {
       try {
-        // Fetch the entities.json file from the server
+        // Fetch the entities.json file from the server via our new API endpoint
+        // This endpoint returns { success: boolean, files: MemoryFile[] }
         const response = await fetch(`/api/projects/${projectId}/memory-files?type=entities.json`)
-        
+
+        // Check HTTP status - provide detailed error message including status code
         if (!response.ok) {
-          throw new Error('Failed to load plan')
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
+        // Parse the JSON response
         const data = await response.json()
 
-        // Check if entities.json exists
-        if (!data.files || data.files.length === 0) {
-          setLoadError('No plan found. Please create a plan first.')
+        // Validate API response structure
+        // Check both 'success' flag and 'files' array existence
+        if (!data.success || !data.files || data.files.length === 0) {
+          setLoadError('No plan found. Please create a plan in the Planning tab first.')
           setIsLoading(false)
           return
         }
@@ -116,22 +120,41 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         // Get the first (should be only) entities.json file
         const entitiesFile = data.files[0]
 
+        // Validate file content exists
+        if (!entitiesFile.content || entitiesFile.content.trim() === '') {
+          setLoadError('Plan file is empty. Please create a valid plan first.')
+          setIsLoading(false)
+          return
+        }
+
         // Parse the markdown plan into structured assets
         // Use 'composite' mode by default (sprite sheets)
+        // This will throw if the plan format is invalid
         const parsed = parsePlan(entitiesFile.content, {
           mode: 'composite',
           projectId,
         })
 
+        // Validate parsed assets
+        if (!parsed || parsed.length === 0) {
+          setLoadError('No assets found in plan. Please create a valid plan with assets.')
+          setIsLoading(false)
+          return
+        }
+
+        // Update state with parsed assets
         setParsedAssets(parsed)
-        
-        // Add log entry
+
+        // Add success log entry
         addLogEntry('info', `Loaded ${parsed.length} assets from plan`)
-        
+
+        // Clear loading state
         setIsLoading(false)
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setLoadError(errorMessage)
+        // Handle any errors during fetch or parsing
+        // Provide user-friendly error messages
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+        setLoadError(`Failed to load plan: ${errorMessage}`)
         addLogEntry('error', `Failed to load plan: ${errorMessage}`)
         setIsLoading(false)
       }

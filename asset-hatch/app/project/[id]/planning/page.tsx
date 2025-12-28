@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { useParams } from "next/navigation"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
 import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnchor } from "@/components/style/StylePreview"
 import { GenerationQueue } from "@/components/generation/GenerationQueue"
-import { db } from "@/lib/client-db"
+import { FilesPanel } from "@/components/ui/FilesPanel"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
+import { db } from "@/lib/client-db"
 
 type PlanningMode = 'plan' | 'style' | 'generation'
 
@@ -18,7 +19,6 @@ export default function PlanningPage() {
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
   const [mode, setMode] = useState<PlanningMode>('plan')
-  const [savedFiles, setSavedFiles] = useState<string[]>([])
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
 
   // Style phase state
@@ -56,28 +56,6 @@ export default function PlanningPage() {
     setMode('generation');
   };
 
-  // Load saved files for file viewer menu
-  const loadSavedFiles = useCallback(async () => {
-    try {
-      const projectId = params.id;
-      if (typeof projectId !== 'string') return;
-
-      const memoryFiles = await db.memory_files
-        .where('project_id')
-        .equals(projectId)
-        .toArray();
-
-      const fileNames = memoryFiles.map((file) => file.type);
-      setSavedFiles(fileNames);
-    } catch (error) {
-      console.error('Failed to load saved files:', error);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    loadSavedFiles();
-  }, [loadSavedFiles]);
-
   const handleEditPlan = () => {
     console.log("Edit plan clicked")
   }
@@ -101,7 +79,6 @@ export default function PlanningPage() {
         })
       })
       setMode('style')
-      await loadSavedFiles()
     } catch (error) {
       console.error("Plan approval failed:", error)
     } finally {
@@ -141,38 +118,16 @@ export default function PlanningPage() {
             </button>
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setFilesMenuOpen(!filesMenuOpen)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              Files
-            </button>
-
-            {filesMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-glass-bg/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
-                {savedFiles.length === 0 ? (
-                  <div className="px-4 py-3 text-white/40 text-sm">No saved files yet</div>
-                ) : (
-                  savedFiles.map((fileName) => (
-                    <button
-                      key={fileName}
-                      className="w-full px-4 py-2 text-left text-white/80 hover:bg-purple-500/20 transition-all duration-200 flex items-center gap-2"
-                      onClick={() => setFilesMenuOpen(false)}
-                    >
-                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {fileName}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+          {/* Files button - opens side panel with file viewer */}
+          <button
+            onClick={() => setFilesMenuOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Files
+          </button>
         </div>
       </div>
 
@@ -214,6 +169,13 @@ export default function PlanningPage() {
           )}
         </div>
       </div>
+
+      {/* Files panel - slide-out from right side */}
+      <FilesPanel
+        projectId={typeof params.id === 'string' ? params.id : ''}
+        isOpen={filesMenuOpen}
+        onClose={() => setFilesMenuOpen(false)}
+      />
     </div>
   )
 }
