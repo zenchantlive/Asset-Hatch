@@ -59,17 +59,17 @@ export async function POST(req: NextRequest) {
       messages: modelMessages,
       stopWhen: stepCountIs(10),
       system: `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
- 
+
  CURRENT PROJECT CONTEXT:
  - Project ID: ${projectId}
  - Phase: Planning
  - Current Qualities: ${JSON.stringify(qualities, null, 2)}
- 
+
  YOUR BEHAVIORAL PROTOCOLS:
- 1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools. 
- 2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down. 
+ 1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools.
+ 2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down.
  3. **BE TRANSPARENT:** When you perform an action, briefly mention it.
- 
+
  WORKFLOW:
  1. Understand the game concept (Genre, Style, Mood).
  2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
@@ -174,10 +174,16 @@ export async function POST(req: NextRequest) {
                 where: { id: `${projectId}-style-draft` },
               });
 
-              // Merge with existing draft data
-              const currentData = existingDraft
-                ? JSON.parse(existingDraft.content)
-                : { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              // Merge with existing draft data (with improved error handling)
+              const defaultData = { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              let currentData;
+              try {
+                currentData = existingDraft && existingDraft.content
+                  ? JSON.parse(existingDraft.content)
+                  : defaultData;
+              } catch {
+                currentData = defaultData;
+              }
 
               const updatedData = {
                 styleKeywords: input.styleKeywords ?? currentData.styleKeywords,
