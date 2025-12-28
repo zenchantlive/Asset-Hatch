@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
           model: model.modelId,
           cost: model.costPerImage,
           duration_ms: result.durationMs,
+          seed: seed,
         }),
       },
     });
