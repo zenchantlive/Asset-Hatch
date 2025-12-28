@@ -3,7 +3,7 @@ title: "Part 6: Productionization - Tests & Infrastructure"
 series: "Building Asset Hatch with AI Agents"
 part: 6
 date: 2025-12-26
-updated: 2025-12-27
+updated: 2025-12-28
 tags: [Testing, Jest, Flux.2, Prompt Engineering, Infrastructure, Next.js]
 reading_time: "12 min"
 status: published
@@ -153,8 +153,10 @@ describe('POST /api/chat', () => {
 - ✅ `/api/chat` - Tool calling, quality updates, plan updates
 - ✅ `/api/analyze-style` - Style keyword extraction
 - ✅ `/api/generate` - Prompt building, OpenRouter integration
+- ✅ `lib/image-utils.ts` - Blob/base64, color extraction, and grid processing
+- ✅ `lib/openrouter-image.ts` - Flux.2 generation via OpenRouter API
 
-**Total:** 8 integration tests across 3 API routes
+**Total:** 12 unit and integration tests across 5 critical logic files
 
 ## Generation Infrastructure (The P0 Build)
 
@@ -415,6 +417,61 @@ export async function POST(req: Request) {
 }
 ```
 
+### 6. Style Anchor Integration (Flux.2 Consistency)
+
+The biggest challenge in AI image generation is consistency. If you generate a hero and then a monster, they often look like they belong to different games. We solved this using **Style Anchors**.
+
+```typescript
+// app/api/style-anchor/route.ts
+export async function POST(req: Request) {
+  const { projectId, imageBase64 } = await req.json();
+
+  // 1. Analyze style with Vision LLM
+  const keywords = await analyzeStyle(imageBase64);
+
+  // 2. Save as style anchor
+  await prisma.styleAnchor.upsert({
+    where: { projectId },
+    create: { projectId, reference_image_base64: imageBase64, style_keywords: keywords },
+    update: { reference_image_base64: imageBase64, style_keywords: keywords }
+  });
+
+  return Response.json({ success: true });
+}
+```
+
+When generating assets, we pass this `style_keywords` string and the `reference_image_base64` to the **Flux.2** model via OpenRouter. This "anchors" the model to the specific aesthetic, palette, and perspective of the reference image.
+
+## The Production Workflow: FilesPanel UI
+
+Generation isn't just about calling an API; it's about managing a pipeline. We implemented the **FilesPanel** to handle this.
+
+### Features of the FilesPanel:
+- **Generation Queue**: See assets being generated in real-time.
+- **Asset Preview**: Click any generated file to see the high-res result.
+- **Status Tracking**: Visual indicators for `pending`, `generating`, and `completed` states.
+- **Direct Download**: Export your assets directly from the side panel.
+
+```typescript
+// components/ui/FilesPanel.tsx
+export function FilesPanel({ projectId }: { projectId: string }) {
+  const assets = useGeneratedAssets(projectId);
+
+  return (
+    <div className="files-panel glassmorphic">
+      <h3 className="text-lg font-bold">Project Files</h3>
+      <div className="space-y-2">
+        {assets.map(asset => (
+          <AssetRow key={asset.id} asset={asset} />
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+This UI brings the "Asset-Hatch" vision to life: a seamless transition from conversation to a production-ready asset library.
+
 ## Multi-Mode Planning UI
 
 One last architectural decision: **Keep users in one page, switch modes** instead of navigating between separate pages.
@@ -479,26 +536,18 @@ export default function PlanningPage({ params }: { params: { id: string } }) {
 
 ## The Results
 
-**Test Coverage:**
-- 8 integration tests
-- 100% coverage on API routes
+**Results Update (Dec 28):**
+- 12 unit and integration tests (100% coverage on core logic)
 - ✅ All passing
-
-**Generation Infrastructure:**
-- 6 prompt templates
-- Priority-ordered prompt builder
-- Plan parser (composite + granular modes)
-- Image utilities (blob conversion, color extraction)
-- Full `/api/generate` route
-
-**Architecture:**
-- Single-page multi-mode UI
-- Hybrid persistence working smoothly
-- ~2,904 lines of production code added in one day
+- Fully integrated FilesPanel with generation queue
+- Style Anchor system active with Flux.2 support
 
 **Commits:**
 
 ```bash
+commit f01953c - feat(generation): fix plan loading 404
+commit bea7089 - feat(style-anchor): implement Flux.2 image generation via OpenRouter
+commit 475030a - feat(ui): implement FilesPanel for asset management
 commit a4846e7 - Complete P0 generation infrastructure
 commit bb2833b - Add plan parser and multi-mode planning page
 commit f401d5a - Add style phase AI tools and integration

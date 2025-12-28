@@ -192,9 +192,12 @@ export async function POST(request: NextRequest) {
       success: true,
       asset: {
         id: createdAsset.id,
-        image_url: result.imageUrl,
+        imageUrl: result.imageUrl,  // ← Fixed to camelCase
         prompt: prompt,
-        metadata: JSON.parse(createdAsset.metadata || '{}'),
+        metadata: {
+          ...JSON.parse(createdAsset.metadata || '{}'),
+          seed: seed,  // Add seed to metadata
+        },
       },
     });
   } catch (error) {

@@ -15,9 +15,10 @@
 
 import type { JSX } from 'react'
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, RefreshCw, Eye } from 'lucide-react'
+import { ChevronDown, ChevronRight, RefreshCw, Eye, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useGenerationContext } from './GenerationQueue'
+import { PromptPreview } from './PromptPreview'
 import type { ParsedAsset } from '@/lib/prompt-builder'
 
 /**
@@ -87,21 +88,35 @@ function getStatusBadge(
  * Displays a single asset with status and action buttons
  */
 function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
-  const { completed, failed, currentAsset, regenerateAsset } = useGenerationContext()
+  const { completed, failed, currentAsset, regenerateAsset, generatePrompt, generatedPrompts } = useGenerationContext()
   const [isExpanded, setIsExpanded] = useState(false)
-  
+
   // Check if this asset is currently being generated
   const currentAssetId = currentAsset?.id || null
-  
+
+  // Check if prompt has been generated for this asset
+  const hasPrompt = generatedPrompts.has(asset.id)
+
   // Get variant display name
   const variantName = asset.variant?.name || 'Default'
-  
+
   // Handle regenerate click
   const handleRegenerate = async (e: React.MouseEvent) => {
     e.stopPropagation() // Prevent expanding when clicking button
     await regenerateAsset(asset.id)
   }
-  
+
+  // Handle generate prompt click
+  const handleGeneratePrompt = async (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent expanding when clicking button
+    try {
+      await generatePrompt(asset)
+      setIsExpanded(true) // Auto-expand to show the generated prompt
+    } catch (err) {
+      console.error('Failed to generate prompt:', err)
+    }
+  }
+
   // Handle view/expand click
   const handleToggleExpand = () => {
     setIsExpanded(!isExpanded)
@@ -140,6 +155,19 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
           
           {/* Right: Action buttons */}
           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Generate Prompt button - only show if prompt hasn't been generated yet */}
+            {!hasPrompt && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleGeneratePrompt}
+                className="text-xs aurora-gradient"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                Generate Prompt
+              </Button>
+            )}
+
             <Button
               size="sm"
               variant="ghost"
@@ -149,7 +177,7 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
               <Eye className="w-3 h-3 mr-1" />
               View
             </Button>
-            
+
             {completed.has(asset.id) && (
               <Button
                 size="sm"
@@ -164,13 +192,10 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
           </div>
         </div>
         
-        {/* Expanded: Show PromptPreview (placeholder for now) */}
+        {/* Expanded: Show PromptPreview */}
         {isExpanded && (
           <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-sm text-white/60">
-              {/* TODO: Add PromptPreview component here */}
-              Prompt preview will appear here
-            </p>
+            <PromptPreview asset={asset} />
           </div>
         )}
       </div>

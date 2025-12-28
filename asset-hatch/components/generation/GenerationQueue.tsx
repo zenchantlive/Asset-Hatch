@@ -15,7 +15,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { parsePlan } from '@/lib/plan-parser'
 import { useBatchGeneration } from '@/hooks/useBatchGeneration'
-import type { ParsedAsset } from '@/lib/prompt-builder'
+import { buildAssetPrompt, type ParsedAsset } from '@/lib/prompt-builder'
+import { db } from '@/lib/client-db'
 import type {
   GenerationQueueProps,
   GenerationContextValue,
@@ -65,8 +66,11 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   // Selected model for generation
   const [selectedModel, setSelectedModel] = useState<'flux-2-dev' | 'flux-2-pro'>('flux-2-dev')
 
-  // Custom prompt overrides (assetId → customPrompt)
-  const [promptOverrides, setPromptOverrides] = useState<Map<string, string>>(new Map())
+  // Generated prompts for assets (assetId → generatedPrompt)
+  const [generatedPrompts, setGeneratedPrompts] = useState<Map<string, string>>(new Map())
+
+  // Individual asset generation states (assetId → AssetGenerationState)
+  const [assetStates, setAssetStates] = useState<Map<string, import('@/lib/types/generation').AssetGenerationState>>(new Map())
 
   // Generation log for the console
   const [log, setLog] = useState<GenerationLogEntry[]>([])
@@ -165,27 +169,27 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
   /**
    * Start batch generation with current settings
-   * 
+   *
    * Initiates generation of all assets using the selected model
-   * and any custom prompt overrides.
+   * and any custom/generated prompts.
    */
   const startGeneration = useCallback(async () => {
     addLogEntry('info', `Starting batch generation with ${selectedModel}`)
-    
-    // Apply custom prompts if any
-    const assetsWithCustomPrompts = parsedAssets.map(asset => {
-      const customPrompt = promptOverrides.get(asset.id)
-      return customPrompt ? { ...asset, customPrompt } : asset
-    })
 
     try {
-      await batchGeneration.startBatch(assetsWithCustomPrompts, selectedModel)
+      // Pass generated prompts to batch generation
+      // The hook will use these if available, otherwise generate defaults
+      await batchGeneration.startBatch(
+        parsedAssets,
+        selectedModel,
+        generatedPrompts // Pass the prompts map
+      )
       addLogEntry('success', 'Batch generation completed')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       addLogEntry('error', `Batch generation failed: ${errorMessage}`)
     }
-  }, [parsedAssets, selectedModel, promptOverrides, batchGeneration, addLogEntry])
+  }, [parsedAssets, selectedModel, generatedPrompts, batchGeneration, addLogEntry])
 
   /**
    * Pause the current batch generation
@@ -225,17 +229,240 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
   /**
    * Update the custom prompt for an asset
-   * 
+   *
    * @param assetId - ID of the asset
    * @param customPrompt - Custom prompt override
    */
   const updatePrompt = useCallback((assetId: string, customPrompt: string) => {
-    setPromptOverrides(prev => {
+    setGeneratedPrompts(prev => {
       const next = new Map(prev)
       next.set(assetId, customPrompt)
       return next
     })
   }, [])
+
+  /**
+   * Generate a prompt for an asset using buildAssetPrompt
+   *
+   * Fetches project data, style anchor, and character registry from Dexie,
+   * then builds an optimized Flux.2 prompt using the prompt builder.
+   *
+   * @param asset - The parsed asset to generate a prompt for
+   * @returns The generated prompt string
+   * @throws Error if project not found
+   */
+  const generatePrompt = useCallback(async (asset: ParsedAsset): Promise<string> => {
+    try {
+      // Fetch project from Dexie to get quality parameters
+      const project = await db.projects.get(projectId)
+      if (!project) {
+        throw new Error('Project not found')
+      }
+
+      // Fetch style anchor from Dexie (if exists)
+      const styleAnchor = await db.style_anchors
+        .where('project_id')
+        .equals(projectId)
+        .first()
+
+      // Fetch character registry if this is a character asset
+      let characterRegistry = undefined
+      if (asset.category === 'Characters') {
+        characterRegistry = await db.character_registry
+          .where('project_id')
+          .equals(projectId)
+          .filter(reg => reg.name.toLowerCase() === asset.name.toLowerCase())
+          .first()
+      }
+
+      // Build the prompt using the imported buildAssetPrompt function
+      const prompt = buildAssetPrompt(asset, project, styleAnchor, characterRegistry)
+
+      // Store the generated prompt in state
+      setGeneratedPrompts(prev => {
+        const next = new Map(prev)
+        next.set(asset.id, prompt)
+        return next
+      })
+
+      addLogEntry('info', `Generated prompt for ${asset.name}`)
+
+      return prompt
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      addLogEntry('error', `Failed to generate prompt: ${errorMessage}`)
+      throw err
+    }
+  }, [projectId, addLogEntry])
+
+  /**
+   * Generate image for a single asset
+   * 
+   * Calls the /api/generate endpoint with the asset and its prompt.
+   * Updates asset state through the generation lifecycle.
+   * 
+   * @param assetId - ID of the asset to generate
+   */
+  const generateImage = useCallback(async (assetId: string) => {
+    const asset = parsedAssets.find(a => a.id === assetId)
+    if (!asset) {
+      addLogEntry('error', `Asset not found: ${assetId}`)
+      return
+    }
+
+    // Get the custom or generated prompt
+    const prompt = generatedPrompts.get(assetId)
+    if (!prompt) {
+      addLogEntry('error', `No prompt found for asset: ${asset.name}`)
+      return
+    }
+
+    // Fetch style anchor image for visual consistency
+    const styleAnchor = await db.style_anchors
+      .where('project_id')
+      .equals(projectId)
+      .first()
+
+    // Mark as generating
+    setAssetStates(prev => {
+      const next = new Map(prev)
+      next.set(assetId, { status: 'generating' })
+      return next
+    })
+
+    addLogEntry('info', `Generating image for: ${asset.name}`)
+
+    try {
+      // Call the generation API endpoint
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          asset,
+          modelKey: selectedModel,
+          customPrompt: prompt,
+          styleAnchorImageUrl: styleAnchor?.reference_image_blob, // Pass style anchor for visual consistency
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Generation failed' }))
+        throw new Error(errorData.error || `HTTP ${response.status}: Generation failed`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success || !data.asset) {
+        throw new Error('Invalid response format from generation API')
+      }
+
+      // Mark as awaiting approval
+      setAssetStates(prev => {
+        const next = new Map(prev)
+        next.set(assetId, {
+          status: 'awaiting_approval',
+          result: data.asset,
+        })
+        return next
+      })
+
+      addLogEntry('success', `Image generated for: ${asset.name}`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      
+      // Mark as error
+      setAssetStates(prev => {
+        const next = new Map(prev)
+        next.set(assetId, {
+          status: 'error',
+          error: err instanceof Error ? err : new Error(String(err)),
+        })
+        return next
+      })
+
+      addLogEntry('error', `Generation failed for ${asset.name}: ${errorMessage}`)
+    }
+  }, [parsedAssets, generatedPrompts, projectId, selectedModel, addLogEntry])
+
+  /**
+   * Approve a generated asset
+   * 
+   * Saves the generated asset to Dexie database for later export.
+   * Converts the result to the GeneratedAsset format and persists it.
+   * 
+   * @param assetId - ID of the asset to approve
+   */
+  const approveAsset = useCallback(async (assetId: string) => {
+    const asset = parsedAssets.find(a => a.id === assetId)
+    const state = assetStates.get(assetId)
+
+    if (!asset || !state || state.status !== 'awaiting_approval') {
+      addLogEntry('error', 'Cannot approve asset: invalid state')
+      return
+    }
+
+    addLogEntry('info', `Approving asset: ${asset.name}`)
+
+    try {
+      // Convert data URL to Blob
+      const response = await fetch(state.result.imageUrl)
+      const blob = await response.blob()
+
+      // Save to Dexie
+      const now = new Date().toISOString()
+      await db.generated_assets.add({
+        id: state.result.id,
+        project_id: projectId,
+        asset_id: assetId,
+        variant_id: asset.variant?.id || '', // Use variant ID if exists
+        image_blob: blob, // Convert data URL to Blob
+        image_base64: state.result.imageUrl, // Cache for display
+        prompt_used: state.result.prompt,
+        generation_metadata: state.result.metadata,
+        status: 'approved',
+        created_at: now,
+        updated_at: now,
+      })
+
+      // Mark as approved
+      setAssetStates(prev => {
+        const next = new Map(prev)
+        next.set(assetId, {
+          status: 'approved',
+          result: state.result,
+        })
+        return next
+      })
+
+      addLogEntry('success', `Asset approved: ${asset.name}`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      addLogEntry('error', `Failed to approve asset: ${errorMessage}`)
+    }
+  }, [parsedAssets, assetStates, projectId, addLogEntry])
+
+  /**
+   * Reject a generated asset
+   * 
+   * Marks the asset as rejected, allowing the user to regenerate with different settings.
+   * 
+   * @param assetId - ID of the asset to reject
+   */
+  const rejectAsset = useCallback((assetId: string) => {
+    const asset = parsedAssets.find(a => a.id === assetId)
+    if (!asset) return
+
+    setAssetStates(prev => {
+      const next = new Map(prev)
+      next.set(assetId, { status: 'rejected' })
+      return next
+    })
+
+    addLogEntry('info', `Asset rejected: ${asset.name}`)
+  }, [parsedAssets, addLogEntry])
 
   // Build the context value
   const contextValue: GenerationContextValue = {
@@ -247,6 +474,12 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     failed: batchGeneration.failed,
     log,
     selectedModel,
+    generatedPrompts,
+    assetStates,
+    generatePrompt,
+    generateImage,
+    approveAsset,
+    rejectAsset,
     startGeneration,
     pauseGeneration,
     resumeGeneration,

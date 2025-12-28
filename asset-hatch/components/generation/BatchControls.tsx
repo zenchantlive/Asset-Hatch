@@ -1,20 +1,20 @@
 /**
  * BatchControls Component
  * 
- * Toolbar for batch generation controls and settings.
- * Provides the main actions for starting, pausing, and configuring generation.
+ * Toolbar for generation controls and settings.
+ * Provides model selection and generation status display.
  * 
  * Features:
- * - "Generate All" button (primary CTA)
- * - Pause/Resume buttons (shown during generation)
- * - "Regenerate Failed" button (shown when failures exist)
  * - Model selector (Flux.2 Dev vs Pro)
  * - Progress indicator showing completion count
+ * - Failed assets indicator
+ * 
+ * Note: Individual asset generation is triggered from the PromptPreview component.
  */
 
 'use client'
 
-import { Sparkles, Pause, Play, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -32,79 +32,23 @@ import { useGenerationContext } from './GenerationQueue'
  */
 export function BatchControls() {
   const {
-    status,
     progress,
     failed,
     selectedModel,
     setSelectedModel,
-    startGeneration,
-    pauseGeneration,
-    resumeGeneration,
   } = useGenerationContext()
 
   // Calculate counts
-  const pendingCount = progress.total - progress.completed - progress.failed
   const hasFailures = failed.size > 0
-
-  /**
-   * Handle Generate All button click
-   * Starts batch generation for all pending assets
-   */
-  const handleGenerateAll = async () => {
-    await startGeneration()
-  }
-
-  /**
-   * Handle Pause button click
-   * Pauses the current batch generation
-   */
-  const handlePause = () => {
-    pauseGeneration()
-  }
-
-  /**
-   * Handle Resume button click
-   * Resumes a paused batch generation
-   */
-  const handleResume = () => {
-    resumeGeneration()
-  }
 
   return (
     <div className="glass-panel p-4 m-4 flex items-center justify-between gap-4">
-      {/* Left side: Action buttons */}
+      {/* Left side: Status indicators */}
       <div className="flex items-center gap-3">
-        {/* Generate All button */}
-        {(status === 'idle' || status === 'completed') && pendingCount > 0 && (
-          <Button
-            className="aurora-gradient font-semibold"
-            onClick={handleGenerateAll}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Generate All ({pendingCount})
-          </Button>
-        )}
-
-        {/* Pause button (shown during generation) */}
-        {status === 'generating' && (
-          <Button variant="outline" onClick={handlePause}>
-            <Pause className="w-4 h-4 mr-2" />
-            Pause
-          </Button>
-        )}
-
-        {/* Resume button (shown when paused) */}
-        {status === 'paused' && (
-          <Button variant="outline" onClick={handleResume} className="aurora-gradient">
-            <Play className="w-4 h-4 mr-2" />
-            Resume
-          </Button>
-        )}
-
-        {/* Progress indicator (shown during generation) */}
-        {status === 'generating' && (
+        {/* Progress indicator */}
+        {progress.completed > 0 && (
           <span className="text-sm text-white/80 font-medium">
-            {progress.completed} / {progress.total} completed
+            {progress.completed} / {progress.total} generated
           </span>
         )}
 

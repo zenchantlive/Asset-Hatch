@@ -22,7 +22,11 @@ import type { BatchStatus, BatchProgress } from '@/lib/types/generation'
  */
 interface UseBatchGenerationReturn {
   // Control functions
-  startBatch: (assets: ParsedAsset[], modelKey?: string) => Promise<void>
+  startBatch: (
+    assets: ParsedAsset[],
+    modelKey?: string,
+    customPrompts?: Map<string, string>
+  ) => Promise<void>
   pause: () => void
   resume: () => void
   retryFailed: (modelKey?: string) => Promise<void>
@@ -65,16 +69,18 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
 
   /**
    * Start batch generation for a list of assets
-   * 
+   *
    * Processes assets sequentially (not parallel) to avoid overwhelming
    * the API and to provide predictable progress updates.
-   * 
+   *
    * @param assets - Array of parsed assets to generate
    * @param modelKey - Optional model override for all assets
+   * @param customPrompts - Optional map of custom prompts (assetId → prompt)
    */
   const startBatch = useCallback(async (
     assets: ParsedAsset[],
-    modelKey: string = 'flux-2-dev'
+    modelKey: string = 'flux-2-dev',
+    customPrompts?: Map<string, string>
   ): Promise<void> => {
     // Initialize state for new batch
     setQueue(assets)
@@ -96,8 +102,11 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
       setCurrentAsset(asset)
 
       try {
-        // Attempt to generate this asset
-        await generate(asset, modelKey)
+        // Use custom prompt if available, otherwise generate will build default
+        const customPrompt = customPrompts?.get(asset.id)
+
+        // Attempt to generate this asset with optional custom prompt
+        await generate(asset, modelKey, customPrompt)
 
         // Mark as completed on success
         setCompleted(prev => {

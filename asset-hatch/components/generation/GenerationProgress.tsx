@@ -21,7 +21,9 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useGenerationContext } from './GenerationQueue'
 import { Button } from '@/components/ui/button'
-import type { GeneratedAssetResult } from '@/lib/types/generation'
+import { AssetApprovalCard } from './AssetApprovalCard'
+import type { GeneratedAssetResult, AssetGenerationState } from '@/lib/types/generation'
+import type { ParsedAsset } from '@/lib/prompt-builder'
 
 /**
  * Format duration in milliseconds to human-readable string
@@ -57,6 +59,11 @@ export function GenerationProgress() {
     log,
     progress,
     regenerateAsset,
+    assetStates,
+    parsedAssets,
+    approveAsset,
+    rejectAsset,
+    generateImage,
   } = useGenerationContext()
 
   // Track generation start time using ref (doesn't trigger re-renders)
@@ -95,6 +102,24 @@ export function GenerationProgress() {
       },
     }
   }, [log])
+
+  /**
+   * Find assets awaiting approval
+   */
+  const assetsAwaitingApproval = useMemo(() => {
+    const awaiting: Array<{ assetId: string; asset: ParsedAsset; state: AssetGenerationState }> = []
+
+    assetStates.forEach((state, assetId) => {
+      if (state.status === 'awaiting_approval') {
+        const asset = parsedAssets.find(a => a.id === assetId)
+        if (asset) {
+          awaiting.push({ assetId, asset, state })
+        }
+      }
+    })
+
+    return awaiting
+  }, [assetStates, parsedAssets])
 
   /**
    * Track start time and update ETA periodically
@@ -217,6 +242,27 @@ export function GenerationProgress() {
               <span className="text-white/60"> • {currentAsset.variant.name}</span>
             )}
           </p>
+        </div>
+      )}
+
+      {/* Assets awaiting approval - scrollable */}
+      {assetsAwaitingApproval.length > 0 && (
+        <div className="flex-1 overflow-y-auto mb-4 min-h-0">
+          <div className="space-y-4">
+            <h4 className="font-semibold text-white/90 sticky top-0 bg-black/40 backdrop-blur-sm py-2 z-10">
+              Awaiting Approval
+            </h4>
+            {assetsAwaitingApproval.map(({ assetId, asset, result }) => (
+              <AssetApprovalCard
+                key={assetId}
+                asset={asset}
+                result={result}
+                onApprove={() => approveAsset(assetId)}
+                onReject={() => rejectAsset(assetId)}
+                onRegenerate={() => generateImage(assetId)}
+              />
+            ))}
+          </div>
         </div>
       )}
 

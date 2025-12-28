@@ -93,6 +93,17 @@ export interface GenerationQueueProps {
 }
 
 /**
+ * State for individual asset generation lifecycle
+ */
+export type AssetGenerationState =
+  | { status: 'pending' } // Not started
+  | { status: 'generating'; progress?: number } // In progress
+  | { status: 'awaiting_approval'; result: GeneratedAssetResult } // Needs approval
+  | { status: 'approved'; result: GeneratedAssetResult } // Saved to DB
+  | { status: 'rejected' } // User rejected
+  | { status: 'error'; error: Error } // Failed
+
+/**
  * Context value for the Generation Provider
  * Manages global generation state across all components
  */
@@ -107,7 +118,17 @@ export interface GenerationContextValue {
   log: GenerationLogEntry[]
   selectedModel: 'flux-2-dev' | 'flux-2-pro'
 
+  // Prompt generation state
+  generatedPrompts: Map<string, string>
+
+  // Individual asset generation state
+  assetStates: Map<string, AssetGenerationState>
+
   // Actions
+  generatePrompt: (asset: ParsedAsset) => Promise<string>
+  generateImage: (assetId: string) => Promise<void>
+  approveAsset: (assetId: string) => Promise<void>
+  rejectAsset: (assetId: string) => void
   startGeneration: () => Promise<void>
   pauseGeneration: () => void
   resumeGeneration: () => void

@@ -1,5 +1,5 @@
 import { describe, test, expect, mock, beforeAll, afterAll } from 'bun:test';
-import type { FluxGenerationOptions, FluxGenerationResult } from './openrouter-image';
+import type { FluxGenerationOptions } from './openrouter-image';
 
 // Mock process.env
 const originalEnv = process.env;
@@ -9,8 +9,7 @@ const mockFetch = mock();
 
 describe('openrouter-image', () => {
     beforeAll(() => {
-        process.env.OPENROUTER_API_KEY = 'test-key';
-        global.fetch = mockFetch;
+        global.fetch = mockFetch as unknown as typeof fetch;
     });
 
     afterAll(() => {

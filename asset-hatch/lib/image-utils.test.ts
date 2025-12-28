@@ -47,7 +47,6 @@ describe('image-utils', () => {
         };
 
         // Mock document (for canvas)
-        // @ts-expect-error - Mocking global document
         global.document = {
             createElement: (tag: string) => {
                 if (tag === 'canvas') {

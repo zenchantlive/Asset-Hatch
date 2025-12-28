@@ -15,13 +15,11 @@
 
 'use client'
 
-import { useState } from 'react'
-import { Copy, RotateCcw, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Copy, RotateCcw, Check, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useGenerationContext } from './GenerationQueue'
-// TODO: Import buildAssetPrompt when ready to integrate
-// import { buildAssetPrompt } from '@/lib/prompt-builder'
 import type { ParsedAsset } from '@/lib/prompt-builder'
 
 /**
@@ -37,19 +35,57 @@ interface PromptPreviewProps {
  * Editable prompt display with controls
  */
 export function PromptPreview({ asset }: PromptPreviewProps) {
-  // Get project context (will need project data for buildAssetPrompt)
-  const { updatePrompt } = useGenerationContext()
-  
-  // Generate the default prompt once on mount
-  // TODO: Replace with buildAssetPrompt() when project data is available
-  const defaultPrompt = generatePlaceholderPrompt(asset)
-  
+  // Get context including prompt generation functions
+  const { generatedPrompts, generatePrompt, updatePrompt, generateImage, assetStates } = useGenerationContext()
+
   // Local state for prompt editing
-  const [customPrompt, setCustomPrompt] = useState<string>(defaultPrompt)
+  const [customPrompt, setCustomPrompt] = useState<string>('')
+  const [defaultPrompt, setDefaultPrompt] = useState<string>('')
   const [isEdited, setIsEdited] = useState(false)
-  
+  const [isGenerating, setIsGenerating] = useState(false)
+
   // Copy to clipboard state
   const [isCopied, setIsCopied] = useState(false)
+
+  // Get current asset generation state
+  const assetState = assetStates.get(asset.id)
+  const isGeneratingImage = assetState?.status === 'generating'
+  const hasGeneratedImage = assetState?.status === 'awaiting_approval' || assetState?.status === 'approved'
+
+  /**
+   * Load or generate prompt on mount
+   * Checks if prompt already exists, otherwise generates a new one
+   */
+  useEffect(() => {
+    async function loadPrompt() {
+      // Check if prompt already generated for this asset
+      const existing = generatedPrompts.get(asset.id)
+      if (existing) {
+        setCustomPrompt(existing)
+        setDefaultPrompt(existing)
+        return
+      }
+
+      // Generate new prompt using real project data
+      setIsGenerating(true)
+      try {
+        const prompt = await generatePrompt(asset)
+        setCustomPrompt(prompt)
+        setDefaultPrompt(prompt)
+      } catch (err) {
+        console.error('Failed to generate prompt:', err)
+        // Set a fallback message on error
+        const fallback = `Failed to generate prompt. Error: ${err instanceof Error ? err.message : 'Unknown error'}`
+        setCustomPrompt(fallback)
+        setDefaultPrompt(fallback)
+      } finally {
+        setIsGenerating(false)
+      }
+    }
+
+    loadPrompt()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asset.id, generatedPrompts, generatePrompt])
 
   /**
    * Handle prompt text change
@@ -73,6 +109,17 @@ export function PromptPreview({ asset }: PromptPreviewProps) {
   }
 
   /**
+   * Generate image for this asset
+   */
+  const handleGenerateImage = async () => {
+    try {
+      await generateImage(asset.id)
+    } catch (err) {
+      console.error('Failed to generate image:', err)
+    }
+  }
+
+  /**
    * Copy prompt to clipboard
    */
   const handleCopy = async () => {
@@ -90,6 +137,18 @@ export function PromptPreview({ asset }: PromptPreviewProps) {
   // Calculate character count
   const charCount = customPrompt.length
 
+  // Show loading state while generating prompt
+  if (isGenerating) {
+    return (
+      <div className="glass-panel p-4">
+        <div className="text-center py-4">
+          <div className="inline-block w-6 h-6 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-2" />
+          <p className="text-sm text-white/60">Generating optimized prompt...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="glass-panel p-4 space-y-3">
       {/* Header with controls */}
@@ -102,6 +161,32 @@ export function PromptPreview({ asset }: PromptPreviewProps) {
         </div>
         
         <div className="flex gap-2">
+          {/* Generate Image button */}
+          <Button
+            size="sm"
+            onClick={handleGenerateImage}
+            disabled={isGeneratingImage || !customPrompt || hasGeneratedImage}
+            className="text-xs aurora-gradient"
+            title="Generate image from this prompt"
+          >
+            {isGeneratingImage ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                Generating...
+              </>
+            ) : hasGeneratedImage ? (
+              <>
+                <Check className="w-3 h-3 mr-1" />
+                Generated
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3 h-3 mr-1" />
+                Generate Image
+              </>
+            )}
+          </Button>
+          
           {/* Copy button */}
           <Button
             size="sm"
@@ -169,63 +254,3 @@ export function PromptPreview({ asset }: PromptPreviewProps) {
   )
 }
 
-/**
- * Generate a placeholder prompt for display
- * (Until we integrate with buildAssetPrompt and load project data)
- * 
- * @param asset - The parsed asset
- * @returns Placeholder prompt string
- */
-function generatePlaceholderPrompt(asset: ParsedAsset): string {
-  const { name, type, variant } = asset
-  
-  // Extract key information
-  const assetType = type || 'character-sprite'
-  const pose = variant?.pose || 'standing pose'
-  const frameCount = variant?.frameCount
-  
-  // Build a reasonable placeholder
-  const parts: string[] = []
-  
-  // Priority 1: Asset type + subject (HIGHEST WEIGHT)
-  if (assetType === 'sprite-sheet') {
-    parts.push(`sprite sheet of ${name.toLowerCase()} character`)
-  } else if (assetType === 'character-sprite') {
-    parts.push(`pixel art sprite of ${name.toLowerCase()} character`)
-  } else if (assetType === 'tileset') {
-    parts.push(`seamless tileset of ${name.toLowerCase()}`)
-  } else if (assetType === 'icon') {
-    parts.push(`${name.toLowerCase()} icon`)
-  } else if (assetType === 'background') {
-    parts.push(`${name.toLowerCase()} background scene`)
-  } else {
-    parts.push(`${name.toLowerCase()} game asset`)
-  }
-  
-  // Priority 2: Pose/action
-  if (pose) {
-    parts.push(pose)
-  }
-  
-  // Priority 3: Frame arrangement (for sprite sheets)
-  if (frameCount && frameCount > 1) {
-    parts.push(`${frameCount} frames arranged horizontally`)
-  }
-  
-  // Priority 4: Style (placeholder)
-  parts.push('16-bit pixel art style')
-  
-  // Priority 5: Resolution
-  parts.push('32x32 base resolution')
-  
-  // Priority 6: Lighting (placeholder)
-  parts.push('flat lighting')
-  
-  // Priority 7: Background
-  parts.push('transparent background')
-  
-  // Priority 8: Consistency marker
-  parts.push('game-ready asset')
-  
-  return parts.join(', ')
-}

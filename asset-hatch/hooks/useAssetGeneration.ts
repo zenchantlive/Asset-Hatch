@@ -17,7 +17,11 @@ import type { GenerationStatus, GeneratedAssetResult } from '@/lib/types/generat
  * Return type for the useAssetGeneration hook
  */
 interface UseAssetGenerationReturn {
-  generate: (asset: ParsedAsset, modelKey?: string) => Promise<GeneratedAssetResult>
+  generate: (
+    asset: ParsedAsset,
+    modelKey?: string,
+    customPrompt?: string
+  ) => Promise<GeneratedAssetResult>
   status: GenerationStatus
   result: GeneratedAssetResult | null
   error: Error | null
@@ -35,18 +39,20 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
 
   /**
    * Generate a single asset
-   * 
+   *
    * Calls the /api/generate endpoint with the parsed asset data
    * and handles the full lifecycle: request → response → state updates
-   * 
+   *
    * @param asset - The parsed asset to generate
    * @param modelKey - Optional model override (defaults to 'flux-2-dev')
+   * @param customPrompt - Optional custom prompt to use instead of auto-generated
    * @returns Promise resolving to the generated asset result
    * @throws Error if generation fails
    */
   const generate = async (
     asset: ParsedAsset,
-    modelKey: string = 'flux-2-dev'
+    modelKey: string = 'flux-2-dev',
+    customPrompt?: string
   ): Promise<GeneratedAssetResult> => {
     // Reset error state from any previous attempts
     setError(null)
@@ -65,6 +71,7 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
           projectId,
           asset,
           modelKey,
+          customPrompt, // Include custom prompt if provided
         }),
       })
 
