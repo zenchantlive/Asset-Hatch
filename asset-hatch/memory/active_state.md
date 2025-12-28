@@ -1,49 +1,65 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-28
-**Session:** Code Review Fixes & Refactoring - ✅ COMPLETE
-**Branch:** feat/generation-queue-ui
-**Latest Commit:** ba63b15
+**Session:** UI Refinements & Data Sync - ✅ COMPLETE
+**Branch:** feat/ui-refinement-premium
+**Latest Commit:** (Pending)
 
 ---
 
 ## 📍 Current Focus
 
-> **✅ CODE REVIEW COMPLETE:** Addressed all review feedback from commit ac88f7d. Fixed type safety issues, completed broken features, improved performance with direct function calls, and enhanced security with environment-aware logging. All changes pass type checking with zero errors.
+> **✅ UI REFINEMENTS COMPLETE:** Fixed typography, mobile layout, OAuth account linking, and Prisma→Dexie data sync. All changes pass type checking. See ADR 011 for architectural details.
 
 ---
 
-## 🔥 Latest Session's Work (2025-12-28) - Part 2
+## 🔥 Latest Session's Work (2025-12-28) - Part 3
 
-### Authentication System & UI Polish
+### UI Refinements & Data Sync Architecture
 
 **Context:**
-- Project required robust user authentication and a proper project management flow.
-- UI needed refinement to match the "premium" aesthetic (typography, layout, spacing).
-- Critical bug: Database tables for Auth were missing despite schema definition.
+- Typography (Playfair Display serif) looked out of place for a dev tool
+- Mobile toolbar layout was broken with overlapping elements  
+- Parameters bar should be visible and minimizable
+- "Project not found" error in GenerationQueue due to Prisma→Dexie sync gap
+- OAuth sign-in failed when email already registered with credentials
 
 **Solution Implemented:**
 
-#### 1. Authentication System (Auth.js v5) ✅
-**Files:** `auth.ts`, `app/api/auth/[...nextauth]/route.ts`, `types/next-auth.d.ts`
-- **Setup:** Configured GitHub OAuth and Credentials providers.
-- **Database:** Ran `prisma db push` to create missing `User`, `Account`, `Session` tables.
-- **Protection:** Implemented server-side route protection for `/dashboard` and `/project/*`.
-- **Types:** Added module augmentation for type-safe `session.user.id`.
+#### 1. Typography & Fonts ✅
+**Files:** `app/layout.tsx`, `app/globals.css`
+- Replaced Playfair Display with **Space Grotesk** (geometric sans)
+- Updated heading styles to `font-semibold tracking-tight`
 
-#### 2. Project Management Flow ✅
-**Files:** `app/dashboard/page.tsx`, `components/dashboard/CreateProjectButton.tsx`, `app/api/projects/route.ts`
-- **Dashboard:** Created user-specific project dashboard (fetches from Prisma).
-- **Creation:** Implemented `CreateProjectButton` with modal for naming new projects.
-- **Ownership:** Enforced user ownership on project creation and access.
+#### 2. Responsive Mobile Layout ✅
+**Files:** `app/project/[id]/planning/page.tsx`
+- Desktop (lg+): Single horizontal toolbar with centered tabs
+- Mobile (<lg): Stacked layout (tabs row 1, buttons row 2)
+- Removed redundant Parameters popover from toolbar
 
-#### 3. UI/UX Refinement ✅
-**Files:** `components/layout/Header.tsx`, `app/layout.tsx`, `app/page.tsx`, `app/globals.css`
-- **Global Header:** Created sticky, glassmorphic header with unified auth controls.
-- **Landing Page:** Converted `app/page.tsx` to a pure marketing landing page.
-- **Layout:** Refactored root layout to `flex-col` to fix body scrolling issues.
-- **Typography:** Updated `Instrument Sans` usage in Chat and QualitiesBar for premium feel.
-- **Visuals:** Fixed avatar aspect ratio (pill -> circle) and sticky positioning of asset parameters.
+#### 3. Collapsible Parameters Bar ✅
+**Files:** `components/planning/QualitiesBar.tsx`
+- Added `CollapsibleBar` component with toggle
+- Expanded by default, shows count when minimized
+- Prominent "ASSET PARAMETERS" label
+
+#### 4. Plan Preview Styling ✅
+**Files:** `components/planning/PlanPreview.tsx`
+- H1: Gradient text (primary → purple → blue)
+- H2: Purple accent borders
+- Category items: Purple bullets with ring glow
+- Tree sub-items: Cyan text for contrast
+
+#### 5. OAuth Account Linking ✅
+**Files:** `auth.ts`
+- Enabled `allowDangerousEmailAccountLinking: true` for GitHub
+- Users can now sign in with GitHub if already registered with email
+
+#### 6. Prisma → Dexie Sync ✅
+**Files:** `app/project/[id]/planning/page.tsx`, `lib/sync.ts`
+- Added `useEffect` to call `fetchAndSyncProject()` on mount
+- Fixed date handling in sync.ts for JSON API responses
+- GenerationQueue can now find project data reliably
 
 ---
 
@@ -51,24 +67,27 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `components/layout/Header.tsx` | **CREATE** | Global navigation and auth controls |
-| `components/dashboard/CreateProjectButton.tsx` | **CREATE** | Modal-based project creation |
-| `types/next-auth.d.ts` | **CREATE** | TypeScript session augmentation |
-| `app/layout.tsx` | **MODIFY** | Added SessionProvider, Header, flex-col layout |
-| `app/page.tsx` | **MODIFY** | Landing page conversion |
-| `app/project/[id]/layout.tsx` | **MODIFY** | Server-side auth checks |
-| `auth.ts` | **MODIFY** | Route protection callback |
-| `proxy.ts` | **DELETE** | Removed broken middleware proxy |
+| `app/layout.tsx` | **MODIFY** | Swap to Space Grotesk fonts |
+| `app/globals.css` | **MODIFY** | Heading typography styles |
+| `app/project/[id]/planning/page.tsx` | **MODIFY** | Responsive toolbar, data sync |
+| `components/planning/QualitiesBar.tsx` | **MODIFY** | Collapsible bar mode |
+| `components/planning/PlanPreview.tsx` | **MODIFY** | Color improvements |
+| `components/planning/ChatInterface.tsx` | **MODIFY** | Visual polish |
+| `components/ui/popover.tsx` | **CREATE** | Radix popover wrapper |
+| `components/project/ProjectSyncProvider.tsx` | **CREATE** | Sync wrapper (unused) |
+| `auth.ts` | **MODIFY** | OAuth account linking |
+| `lib/sync.ts` | **MODIFY** | Date handling fixes |
+| `memory/adr/011-ui-refinements-and-data-sync.md` | **CREATE** | Architecture documentation |
 
 ---
 
 ## ✅ Testing & Validation
 
-- ✅ **Auth:** Registration (Email/GitHub), Login, Logout work correctly.
-- ✅ **Protection:** Unauthenticated access to `/dashboard` redirects to home.
-- ✅ **Flow:** creating a project redirects to the planning workspace.
-- ✅ **UI:** Header is sticky, avatar is circular, no double scrollbars.
-- ✅ **Code:** `bun run typecheck && bun run lint` passed (Exit code 0).
+- ✅ **Auth:** GitHub OAuth with existing email works
+- ✅ **Mobile:** Toolbar responsive at all breakpoints
+- ✅ **Parameters:** Collapsible, visible by default
+- ✅ **Sync:** GenerationQueue finds project data
+- ✅ **Code:** `bun run typecheck` passes (Exit code 0)
 
 ---
 
@@ -76,18 +95,18 @@
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
-| **Authentication** | ✅ Complete | GitHub + Creds, RBAC basics |
-| **User Dashboard** | ✅ Complete | Project list, Creation flow |
-| **Project Ownership** | ✅ Complete | Prisma schema linked |
-| **Global UI/Layout** | ✅ Complete | Premium header, typography |
-| **Generation Workflow** | 🟢 90% Complete | (Previous session work) |
-| **Prompt Generation** | ✅ Complete | (Previous session work) |
-| **Asset Approval** | ✅ Complete | (Previous session work) |
+| **Authentication** | ✅ Complete | OAuth linking enabled |
+| **UI/Typography** | ✅ Complete | Space Grotesk, responsive |
+| **Parameters Bar** | ✅ Complete | Collapsible, visible |
+| **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
+| **Plan Preview** | ✅ Complete | Colorful, readable |
+| **Generation Workflow** | 🟢 90% Complete | Ready for testing |
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Polish Generation Features** (Cost estimation, Batch progress)
-2. **Project Sync** (Automate Dexie ↔ Prisma sync)
+1. **Test Generation Flow** (End-to-end with style anchor)
+2. **Polish Generation Features** (Cost estimation, batch progress)
 3. **Download/Export** (Zip file generation)
+

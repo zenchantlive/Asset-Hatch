@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { ChevronDown, Wand2 } from "lucide-react"
+import { ChevronDown, Wand2, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -10,6 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 export interface ProjectQualities {
   art_style?: string
@@ -25,6 +30,7 @@ export interface ProjectQualities {
 interface QualitiesBarProps {
   qualities: ProjectQualities
   onQualitiesChange: (qualities: ProjectQualities) => void
+  mode?: 'bar' | 'popover'
 }
 
 const QUALITY_OPTIONS = {
@@ -103,13 +109,15 @@ const QUALITY_OPTIONS = {
 
 type QualityKey = keyof typeof QUALITY_OPTIONS
 
-export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps) {
+export function QualitiesBar({ qualities, onQualitiesChange, mode = 'popover' }: QualitiesBarProps) {
   const handleChange = (key: QualityKey, value: string) => {
     onQualitiesChange({
       ...qualities,
       [key]: value,
     })
   }
+
+  const activeCount = Object.keys(qualities).filter(k => !!qualities[k]).length
 
   const renderPill = (key: QualityKey, label: string) => {
     const selectedValue = qualities[key]
@@ -139,9 +147,9 @@ export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="bg-glass-panel border-glass-border backdrop-blur-xl p-1"
+          className="bg-glass-panel border-glass-border backdrop-blur-xl p-1 z-50"
         >
-          <div className="max-h-[300px] overflow-y-auto px-1">
+          <div className="max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
             {QUALITY_OPTIONS[key].map((option) => (
               <DropdownMenuItem
                 key={option}
@@ -160,9 +168,9 @@ export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps
     )
   }
 
-  return (
-    <div className="w-full px-6 py-4 border-b border-white/5 bg-glass-bg/10 backdrop-blur-md">
-      <div className="flex items-center justify-between mb-4">
+  const Content = (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold tracking-widest text-muted-foreground/70 uppercase font-heading">
           Asset Parameters
         </h2>
@@ -187,4 +195,112 @@ export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps
       </div>
     </div>
   )
+
+  if (mode === 'popover') {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-9 gap-2 px-3 transition-all duration-300 font-heading tracking-wide",
+              activeCount > 0
+                ? "text-primary hover:text-primary hover:bg-primary/10"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Parameters</span>
+            {activeCount > 0 && (
+              <span className="flex items-center justify-center w-5 h-5 ml-1 text-[10px] font-bold rounded-full bg-primary/20 text-primary">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-[400px] p-5 glass-panel border-glass-border rounded-xl mt-2"
+          align="end"
+          sideOffset={8}
+        >
+          {Content}
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
+  // Compact collapsible bar mode
+  return (
+    <CollapsibleBar
+      qualities={qualities}
+      onQualitiesChange={onQualitiesChange}
+      activeCount={activeCount}
+      renderPill={renderPill}
+    />
+  )
 }
+
+// Extracted to separate component to use its own useState
+function CollapsibleBar({
+  activeCount,
+  renderPill
+}: {
+  qualities: ProjectQualities
+  onQualitiesChange: (q: ProjectQualities) => void
+  activeCount: number
+  renderPill: (key: QualityKey, label: string) => React.ReactNode
+}) {
+  const [isExpanded, setIsExpanded] = React.useState(true)
+
+  return (
+    <div className="w-full px-6 py-2 bg-glass-bg/5 backdrop-blur-sm">
+      {/* Header row - Always visible */}
+      <div className="flex items-center justify-between py-1">
+        {/* Left side - clickable to toggle */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-3 group"
+        >
+          <h2 className="text-sm font-semibold tracking-wide text-foreground/90 uppercase font-heading">
+            Asset Parameters
+          </h2>
+          {!isExpanded && activeCount > 0 && (
+            <span className="text-xs text-primary">
+              {activeCount} set
+            </span>
+          )}
+          <ChevronDown className={cn(
+            "w-4 h-4 text-muted-foreground transition-transform duration-200",
+            isExpanded ? "rotate-180" : ""
+          )} />
+        </button>
+
+        {/* Right side - Suggest button (not nested) */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
+        >
+          <Wand2 className="w-3 h-3" />
+          Suggest
+        </Button>
+      </div>
+
+      {/* Collapsible content */}
+      {isExpanded && (
+        <div className="pt-2 pb-1">
+          <div className="flex flex-wrap gap-2">
+            {renderPill("art_style", "Style")}
+            {renderPill("base_resolution", "Res")}
+            {renderPill("perspective", "View")}
+            {renderPill("game_genre", "Genre")}
+            {renderPill("theme", "Theme")}
+            {renderPill("mood", "Mood")}
+            {renderPill("color_palette", "Palette")}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+

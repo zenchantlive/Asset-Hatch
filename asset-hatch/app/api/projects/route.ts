@@ -100,12 +100,41 @@ export async function POST(
         }
 
         const { name } = parsed.data;
+        const userId = session.user.id;
+        const userEmail = session.user.email;
+
+        // Verify user exists in DB to prevent Foreign Key errors (P2003)
+        // This handles cases where the DB was reset but the user has a valid session cookie
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!existingUser) {
+            console.log(`User ${userId} not found in DB (stale session?). Re-creating user.`);
+            if (userEmail) {
+                // Re-create the user if we have their email
+                // We use connectOrCreate/upsert logic usually, but here distinct check is safer
+                await prisma.user.create({
+                    data: {
+                        id: userId,
+                        email: userEmail,
+                        name: session.user.name,
+                        image: session.user.image,
+                    },
+                });
+            } else {
+                return NextResponse.json(
+                    { success: false, error: "User record missing and no email in session to re-create" },
+                    { status: 500 }
+                );
+            }
+        }
 
         // Create project with user ownership
         const project = await prisma.project.create({
             data: {
                 name,
-                userId: session.user.id,
+                userId: userId,
                 phase: "planning",
             },
         });
@@ -121,8 +150,17 @@ export async function POST(
         });
     } catch (error) {
         console.error("Failed to create project:", error);
+        // Log specifics if it's a Prisma error
+        if ((error as any).code) {
+            console.error("Prisma Error Code:", (error as any).code);
+            console.error("Prisma Error Message:", (error as any).message);
+        }
         return NextResponse.json(
-            { success: false, error: "Failed to create project" },
+            {
+                success: false,
+                error: "Failed to create project",
+                details: (error as any).message
+            },
             { status: 500 }
         );
     }

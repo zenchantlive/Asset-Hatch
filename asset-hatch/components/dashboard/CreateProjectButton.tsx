@@ -59,7 +59,7 @@ export function CreateProjectButton({
             const { project: { id: newProjectId } } = await response.json();
 
             // Sync will happen on redirect/dashboard load
-            router.push(`/project/${newProjectId}`);
+            router.push(`/project/${newProjectId}/planning`);
             setName("");
             router.refresh();
 
