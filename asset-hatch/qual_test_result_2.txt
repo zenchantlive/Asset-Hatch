@@ -1,0 +1,1051 @@
+ FAIL  components/planning/__tests__/QualitiesBar.test.tsx
+  QualitiesBar
+    ├ù renders all quality dropdown buttons (152 ms)
+    ΓêÜ displays current quality values (59 ms)
+    ├ù calls onQualitiesChange when a quality is selected (63 ms)
+    ΓêÜ displays empty state when no qualities are set (113 ms)
+    ├ù has accessible labels for all dropdowns (55 ms)
+
+  ΓùÅ QualitiesBar ΓÇ║ renders all quality dropdown buttons
+
+    TestingLibraryElementError: Unable to find an element with the text: /Art Style:/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    <body>
+      <div>
+        <div
+          class="w-full"
+        >
+          <div
+            class="flex items-center justify-between mb-4 px-1"
+          >
+            <h2
+              class="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Asset Parameters
+            </h2>
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-accent/50 rounded-md px-3 has-[>svg]:px-2.5 h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+              data-size="sm"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-wand-sparkles w-3.5 h-3.5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"
+                />
+                <path
+                  d="m14 7 3 3"
+                />
+                <path
+                  d="M5 6v4"
+                />
+                <path
+                  d="M19 14v4"
+                />
+                <path
+                  d="M10 2v2"
+                />
+                <path
+                  d="M7 8H3"
+                />
+                <path
+                  d="M21 16h-4"
+                />
+                <path
+                  d="M11 3H9"
+                />
+              </svg>
+              Suggest from Chat
+            </button>
+          </div>
+          <div
+            class="flex flex-wrap gap-2"
+          >
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_0_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Style
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Pixel Art (16-bit)
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_2_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Res
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                64x64
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_4_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                View
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Side-scrolling
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_6_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Genre
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Platformer
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_8_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Theme
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Fantasy
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_a_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Mood
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Adventurous
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_c_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Palette
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Vibrant
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </body>
+
+      33 |
+      34 |     // Check for dropdown trigger buttons
+    > 35 |     expect(screen.getByText(/Art Style:/i)).toBeInTheDocument()
+         |                   ^
+      36 |     expect(screen.getByText(/Resolution:/i)).toBeInTheDocument()
+      37 |     expect(screen.getByText(/Perspective:/i)).toBeInTheDocument()
+      38 |     expect(screen.getByText(/Genre:/i)).toBeInTheDocument()
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.getByText (components/planning/__tests__/QualitiesBar.test.tsx:35:19)
+
+  ΓùÅ QualitiesBar ΓÇ║ calls onQualitiesChange when a quality is selected
+
+    TestingLibraryElementError: Unable to find an element with the text: /Art Style:/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    <body>
+      <div>
+        <div
+          class="w-full"
+        >
+          <div
+            class="flex items-center justify-between mb-4 px-1"
+          >
+            <h2
+              class="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Asset Parameters
+            </h2>
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-accent/50 rounded-md px-3 has-[>svg]:px-2.5 h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+              data-size="sm"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-wand-sparkles w-3.5 h-3.5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"
+                />
+                <path
+                  d="m14 7 3 3"
+                />
+                <path
+                  d="M5 6v4"
+                />
+                <path
+                  d="M19 14v4"
+                />
+                <path
+                  d="M10 2v2"
+                />
+                <path
+                  d="M7 8H3"
+                />
+                <path
+                  d="M21 16h-4"
+                />
+                <path
+                  d="M11 3H9"
+                />
+              </svg>
+              Suggest from Chat
+            </button>
+          </div>
+          <div
+            class="flex flex-wrap gap-2"
+          >
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_s_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Style
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Pixel Art (16-bit)
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_u_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Res
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                64x64
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_10_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                View
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Side-scrolling
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_12_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Genre
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Platformer
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_14_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Theme
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Fantasy
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_16_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Mood
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Adventurous
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_18_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Palette
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Vibrant
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </body>
+
+      67 |
+      68 |     // Click the Art Style dropdown
+    > 69 |     const artStyleButton = screen.getByText(/Art Style:/i).closest('button')
+         |                                   ^
+      70 |     if (artStyleButton) {
+      71 |       await user.click(artStyleButton)
+      72 |     }
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.getByText (components/planning/__tests__/QualitiesBar.test.tsx:69:35)
+
+  ΓùÅ QualitiesBar ΓÇ║ has accessible labels for all dropdowns
+
+    TestingLibraryElementError: Unable to find an element with the text: /Art Style:/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    <body>
+      <div>
+        <div
+          class="w-full"
+        >
+          <div
+            class="flex items-center justify-between mb-4 px-1"
+          >
+            <h2
+              class="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              Asset Parameters
+            </h2>
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-accent/50 rounded-md px-3 has-[>svg]:px-2.5 h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+              data-size="sm"
+              data-slot="button"
+              data-variant="ghost"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-wand-sparkles w-3.5 h-3.5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"
+                />
+                <path
+                  d="m14 7 3 3"
+                />
+                <path
+                  d="M5 6v4"
+                />
+                <path
+                  d="M19 14v4"
+                />
+                <path
+                  d="M10 2v2"
+                />
+                <path
+                  d="M7 8H3"
+                />
+                <path
+                  d="M21 16h-4"
+                />
+                <path
+                  d="M11 3H9"
+                />
+              </svg>
+              Suggest from Chat
+            </button>
+          </div>
+          <div
+            class="flex flex-wrap gap-2"
+          >
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_1o_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Style
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Pixel Art (16-bit)
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_1q_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Res
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                64x64
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_1s_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                View
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Side-scrolling
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_1u_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Genre
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Platformer
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_20_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Theme
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Fantasy
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_22_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Mood
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Adventurous
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+            <button
+              aria-expanded="false"
+              aria-haspopup="menu"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
+              data-state="closed"
+              id="radix-_r_24_"
+              type="button"
+            >
+              <span
+                class="opacity-70"
+              >
+                Palette
+                :
+              </span>
+              <span
+                class="font-bold"
+              >
+                Vibrant
+              </span>
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-chevron-down w-3 h-3 opacity-50"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </body>
+
+      108 |
+      109 |     // All dropdown buttons should have text content
+    > 110 |     const artStyleButton = screen.getByText(/Art Style:/i)
+          |                                   ^
+      111 |     expect(artStyleButton).toBeInTheDocument()
+      112 |
+      113 |     const resolutionButton = screen.getByText(/Resolution:/i)
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.getByText (components/planning/__tests__/QualitiesBar.test.tsx:110:35)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 2 passed, 5 total
+Snapshots:   0 total
+Time:        5.238 s
+Ran all test suites matching /components\\planning\\__tests__\\QualitiesBar.test.tsx/i.
