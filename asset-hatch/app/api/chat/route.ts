@@ -3,6 +3,7 @@ import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateStyleAnchor } from '@/lib/style-anchor-generator';
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -224,27 +225,15 @@ export async function POST(req: NextRequest) {
 
               const styleDraft = JSON.parse(styleDraftRecord.content);
 
-              // Call the generate-style API internally
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-              const response = await fetch(`${baseUrl}/api/generate-style`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  projectId,
-                  prompt,
-                  styleKeywords: styleDraft.styleKeywords,
-                  lightingKeywords: styleDraft.lightingKeywords,
-                  colorPalette: styleDraft.colorPalette,
-                  fluxModel: styleDraft.fluxModel,
-                }),
+              // Call the shared generation logic directly (no HTTP overhead)
+              const result = await generateStyleAnchor({
+                projectId,
+                prompt,
+                styleKeywords: styleDraft.styleKeywords,
+                lightingKeywords: styleDraft.lightingKeywords,
+                colorPalette: styleDraft.colorPalette,
+                fluxModel: styleDraft.fluxModel,
               });
-
-              if (!response.ok) {
-                const errorData = await response.json();
-                return { success: false, error: errorData.error || 'Generation failed' };
-              }
-
-              const result = await response.json();
 
               // NOTE: We DO NOT return imageUrl to the LLM at all
               // The imageUrl is a huge base64 string (~2MB) that would blow up the context

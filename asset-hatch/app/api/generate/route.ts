@@ -150,8 +150,7 @@ export async function POST(request: NextRequest) {
         variantId: asset.variant.id,
         status: 'generated',
         seed: seed,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        imageBlob: result.imageBuffer as any,
+        imageBlob: Buffer.from(result.imageBuffer),
         promptUsed: prompt,
         metadata: JSON.stringify({
           model: model.modelId,
