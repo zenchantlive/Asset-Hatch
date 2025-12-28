@@ -31,7 +31,7 @@
 
 ### AI Integration
 - **Chat Framework:** CopilotKit v1.50 (headless mode)
-- **LLM Provider:** OpenRouter (Gemini 2.5 Pro Preview)
+- **LLM Provider:** OpenRouter (gemini 3 Pro Preview)
 - **Image Generation:** Replicate API (planned, not yet implemented)
 
 ### Data & State

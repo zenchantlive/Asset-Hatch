@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running tests before commit..."
+
+# Run tests
+npm test -- --bail --passWithNoTests
+
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed! Commit aborted."
+  echo "Fix the failing tests and try again."
+  exit 1
+fi
+
+echo "✅ All tests passed!"
+
+# Run linter
+echo "🔍 Running ESLint..."
+npm run lint
+
+if [ $? -ne 0 ]; then
+  echo "⚠️  Linting errors found! Please fix them."
+  echo "Commit will proceed, but fix these issues ASAP."
+  # Don't fail on lint errors, just warn
+fi
+
+echo "✅ Pre-commit checks complete!"

@@ -64,7 +64,7 @@ All phases are updated and ready for implementation. The project now has:
 1. **CopilotKit Integration** (Day 1-2)
    - Set up `useCopilotChatHeadless_c` for chat
    - Configure `/api/copilotkit` route
-   - Verify OpenRouter (Gemini 2.5 Pro) connectivity
+   - Verify OpenRouter (gemini 3 Pro) connectivity
 
 2. **3 Agent Tools** (Day 3-4)
    - `updateQuality()` - updates project.json qualities
@@ -105,7 +105,7 @@ All phases are updated and ready for implementation. The project now has:
 
 2. **Analysis** (Day 2-3)
    - ColorThief for dominant colors
-   - Gemini 2.5 Vision API for style description
+   - gemini 3 Vision API for style description
    - Visual rules generation
 
 3. **Style Management** (Day 3)

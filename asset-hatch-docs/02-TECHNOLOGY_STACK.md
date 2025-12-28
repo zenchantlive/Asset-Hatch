@@ -21,7 +21,7 @@
 ### AI & Agent Integration
 - **Agent Framework:** CopilotKit
 - **Planning LLM:** gemini 3 Pro via OpenRouter
-  - Model ID: `google/gemini-2.5-pro`
+  - Model ID: `google/gemini-3-pro-preview`
   - Temperature: 0.7 (creative but focused)
   - Max Tokens: 1024 per response
   - Reason: Latest multimodal capabilities, good at instruction understanding
