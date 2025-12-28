@@ -72,6 +72,20 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   const batchGeneration = useBatchGeneration(projectId)
 
   /**
+   * Add a new entry to the generation log
+   * 
+   * @param level - Log level (info, success, error)
+   * @param message - Log message
+   */
+  const addLogEntry = useCallback((
+    level: 'info' | 'success' | 'error',
+    message: string
+  ) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setLog(prev => [...prev, { timestamp, level, message }])
+  }, [])
+
+  /**
    * Load the project's asset plan from entities.json
    * 
    * Fetches the MemoryFile, parses the markdown plan,
@@ -122,20 +136,6 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
     loadPlan()
   }, [projectId, addLogEntry])
-
-  /**
-   * Add a new entry to the generation log
-   * 
-   * @param level - Log level (info, success, error)
-   * @param message - Log message
-   */
-  const addLogEntry = useCallback((
-    level: 'info' | 'success' | 'error',
-    message: string
-  ) => {
-    const timestamp = new Date().toLocaleTimeString()
-    setLog(prev => [...prev, { timestamp, level, message }])
-  }, [])
 
   /**
    * Start batch generation with current settings
