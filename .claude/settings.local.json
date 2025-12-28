@@ -35,7 +35,8 @@
       "Bash(bun run lint:*)",
       "Bash(bunx prisma generate:*)",
       "mcp__plugin_serena_serena__list_dir",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "mcp__plugin_serena_serena__find_file"
     ]
   }
 }
