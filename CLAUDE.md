@@ -427,3 +427,18 @@ Key decisions documented in `memory/adr/`:
    - 60fps animations (use CSS transforms)
    - <2s page loads
    - Avoid unnecessary re-renders (useCallback, useMemo)
+
+### Rules
+As you code:
+
+- Add **line-by-line comments** explaining what you’re doing and why, so both of us understand your reasoning.
+
+- Stay **organized** and follow strong coding guardrails:
+
+ - Avoid using `any` or `unknown` types.
+
+ - Reuse existing code whenever possible.
+
+ - Keep files short, focused, and readable.
+
+ - Follow industry **best practices** for code style and structure.
