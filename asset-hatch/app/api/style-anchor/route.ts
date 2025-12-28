@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
             imageUrl: styleAnchor.referenceImageBase64,
             styleKeywords: styleAnchor.styleKeywords,
             lightingKeywords: styleAnchor.lightingKeywords,
-            colorPalette: JSON.parse(styleAnchor.colorPalette),
+            colorPalette: styleAnchor.colorPalette ? JSON.parse(styleAnchor.colorPalette) : null,
             fluxModel: styleAnchor.fluxModel,
             createdAt: styleAnchor.createdAt,
         });
