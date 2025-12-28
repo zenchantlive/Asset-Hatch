@@ -56,7 +56,7 @@ function parseMarkdown(markdown: string): React.ReactNode {
     // H1 headers
     if (line.startsWith("# ")) {
       elements.push(
-        <h1 key={index} className="text-3xl font-bold mb-8 mt-10 first:mt-0 text-gradient-primary font-heading tracking-tight">
+        <h1 key={index} className="text-2xl font-bold mb-6 mt-8 first:mt-0 bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent font-heading tracking-tight">
           {renderInlineMarkdown(line.slice(2))}
         </h1>
       )
@@ -64,9 +64,9 @@ function parseMarkdown(markdown: string): React.ReactNode {
     // H2 headers
     else if (line.startsWith("## ")) {
       elements.push(
-        <div key={index} className="flex items-center gap-2 mb-6 mt-12 pb-3 border-b border-white/5">
+        <div key={index} className="flex items-center gap-2 mb-4 mt-8 pb-2 border-b border-primary/20">
           <Sparkles className="w-4 h-4 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground/90 font-heading tracking-tight">
+          <h2 className="text-lg font-semibold text-white font-heading tracking-tight">
             {renderInlineMarkdown(line.slice(3))}
           </h2>
         </div>
@@ -76,27 +76,27 @@ function parseMarkdown(markdown: string): React.ReactNode {
     else if (line.match(/^-\s+.*✓/)) {
       elements.push(
         <div key={index} className="flex items-start gap-3 mb-2 text-sm group">
-          <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-          <span className="text-foreground/80 group-hover:text-foreground transition-colors overflow-hidden">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+          <span className="text-white/90 group-hover:text-white transition-colors">
             {renderInlineMarkdown(line.slice(2).replace("✓", "").trim())}
           </span>
         </div>
       )
     }
-    // Tree structure lines (├─, └─, │)
+    // Tree structure lines (├─, └─, │) - sub-items under categories
     else if (line.match(/^[├└│─\s]+/)) {
       elements.push(
-        <pre key={index} className="font-mono text-xs mb-1 whitespace-pre text-muted-foreground/70 pl-6">
+        <pre key={index} className="font-mono text-sm mb-1.5 whitespace-pre text-cyan-300/80 pl-6 py-0.5">
           {line}
         </pre>
       )
     }
-    // Regular list items
+    // Regular list items (category headers like "Player Character (Base):")
     else if (line.startsWith("- ")) {
       elements.push(
         <div key={index} className="flex items-start gap-3 mb-2 ml-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" />
-          <span className="text-sm text-foreground/80 overflow-hidden">
+          <div className="w-2 h-2 rounded-full bg-purple-400 mt-1.5 shrink-0 ring-2 ring-purple-400/20" />
+          <span className="text-base font-medium text-white">
             {renderInlineMarkdown(line.slice(2))}
           </span>
         </div>

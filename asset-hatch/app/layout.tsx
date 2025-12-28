@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Instrument_Sans } from "next/font/google";
+import { Outfit, Space_Grotesk } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
@@ -8,14 +8,14 @@ import "./globals.css";
 // Configure Google Fonts for the application
 // =============================================================================
 
-// Inter font for body text
-const inter = Inter({
+// Outfit for modern, geometric body text
+const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-// Instrument Sans for headings
-const instrumentSans = Instrument_Sans({
+// Space Grotesk for clean geometric headings (not serif)
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
 });
@@ -56,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${instrumentSans.variable} font-sans antialiased flex flex-col min-h-screen bg-background`}
+        className={`${outfit.variable} ${spaceGrotesk.variable} font-sans antialiased flex flex-col min-h-screen bg-background`}
       >
         {/* SessionProvider enables useSession hook in client components */}
         <SessionProvider>

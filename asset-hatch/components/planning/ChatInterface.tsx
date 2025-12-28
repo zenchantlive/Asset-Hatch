@@ -222,11 +222,15 @@ export function ChatInterface({
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-80">
-            <Sparkles className="w-12 h-12 mb-6 text-primary/50" />
-            <p className="text-2xl font-bold font-heading mb-2">Start planning your game assets</p>
-            <p className="text-muted-foreground max-w-sm">
-              Tell me about your game idea and I&apos;ll help you plan what assets you&apos;ll need
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
+            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_30px_-10px_var(--color-primary)]">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
+              What are we building?
+            </h3>
+            <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
+              Describe your game idea, style, or specific assets. I'll help you plan and generate everything.
             </p>
           </div>
         ) : (
@@ -291,23 +295,23 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area - sticky at bottom */}
-      <div className="sticky bottom-0 glass-panel border-t p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      {/* Input area - floating style */}
+      <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
+        <form onSubmit={handleSubmit} className="flex gap-3 relative max-w-3xl mx-auto w-full">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe your game idea..."
+            placeholder="Type your ideas here..."
             disabled={showLoading}
-            className="flex-1 glass-input"
+            className="flex-1 glass-panel h-12 px-4 rounded-xl border-white/10 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-all text-base shadow-lg"
           />
           <Button
             type="submit"
             disabled={showLoading || !input.trim()}
             size="icon"
-            className="aurora-gradient text-white hover:opacity-90 transition-opacity"
+            className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </form>
       </div>

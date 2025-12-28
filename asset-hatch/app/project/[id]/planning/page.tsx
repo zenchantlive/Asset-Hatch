@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
@@ -11,6 +11,7 @@ import { FilesPanel } from "@/components/ui/FilesPanel"
 import { AssetsPanel } from "@/components/ui/AssetsPanel"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
 import { db } from "@/lib/client-db"
+import { fetchAndSyncProject } from "@/lib/sync"
 
 type PlanningMode = 'plan' | 'style' | 'generation'
 
@@ -27,6 +28,14 @@ export default function PlanningPage() {
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
   const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
+
+  // Sync project data from Prisma to Dexie on mount
+  // This ensures GenerationQueue and other client components can find project data
+  useEffect(() => {
+    if (params.id && typeof params.id === 'string') {
+      fetchAndSyncProject(params.id).catch(console.error)
+    }
+  }, [params.id])
 
   // Handler for quality updates from AI
   const handleQualityUpdate = (qualityKey: string, value: string) => {
@@ -90,60 +99,108 @@ export default function PlanningPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))] bg-transparent relative overflow-hidden">
-      <div className="shrink-0 z-20 relative">
-        <QualitiesBar
-          qualities={qualities}
-          onQualitiesChange={setQualities}
-        />
-      </div>
-
-      <div className="shrink-0 z-20 relative border-b border-white/10 bg-glass-bg/20 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMode('plan')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'plan' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-white/60'}`}
-            >
-              Plan
-            </button>
-            <button
-              onClick={() => setMode('style')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'style' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-white/60'}`}
-            >
-              Style
-            </button>
-            <button
-              onClick={() => setMode('generation')}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 ${mode === 'generation' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-white/60'}`}
-            >
-              Generation
-            </button>
+      {/* Unified Project Toolbar */}
+      <div className="shrink-0 z-20 relative border-b border-glass-border bg-glass-bg/30 backdrop-blur-md">
+        {/* Desktop Toolbar (lg+) */}
+        <div className="hidden lg:flex items-center justify-between px-6 py-2 h-14">
+          {/* LEFT: Project Title */}
+          <div className="flex items-center">
+            <h1 className="text-sm font-heading font-medium tracking-wide text-white/80">
+              Project Planning
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Assets button - opens side panel with approved assets */}
+          {/* CENTER: Interaction Mode Tabs */}
+          <div className="flex items-center justify-center">
+            <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 backdrop-blur-sm">
+              {(['plan', 'style', 'generation'] as const).map((tabMode) => (
+                <button
+                  key={tabMode}
+                  onClick={() => setMode(tabMode)}
+                  className={`
+                    px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-300 capitalize tracking-wide
+                    ${mode === tabMode
+                      ? 'bg-glass-highlight text-white shadow-sm border border-white/10'
+                      : 'text-white/40 hover:text-white/70 hover:bg-white/5'}
+                  `}
+                >
+                  {tabMode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT: Assets & Files only (Parameters moved to bar below) */}
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setAssetsMenuOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
               Assets
             </button>
-
-            {/* Files button - opens side panel with file viewer */}
             <button
               onClick={() => setFilesMenuOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
               Files
             </button>
           </div>
         </div>
+
+        {/* Mobile Toolbar (<lg) - Stacked layout */}
+        <div className="lg:hidden flex flex-col gap-2 px-4 py-3">
+          {/* Row 1: Tabs (centered, full width) */}
+          <div className="flex items-center justify-center">
+            <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 w-full max-w-xs">
+              {(['plan', 'style', 'generation'] as const).map((tabMode) => (
+                <button
+                  key={tabMode}
+                  onClick={() => setMode(tabMode)}
+                  className={`
+                    flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all capitalize
+                    ${mode === tabMode
+                      ? 'bg-glass-highlight text-white shadow-sm border border-white/10'
+                      : 'text-white/40'}
+                  `}
+                >
+                  {tabMode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 2: Action buttons */}
+          <div className="flex items-center justify-between">
+            <QualitiesBar
+              qualities={qualities}
+              onQualitiesChange={setQualities}
+              mode="popover"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAssetsMenuOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/70"
+              >
+                Assets
+              </button>
+              <button
+                onClick={() => setFilesMenuOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/70"
+              >
+                Files
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Parameters Bar - Visible on desktop, shows selected values */}
+      <div className="hidden lg:block shrink-0 z-10 border-b border-white/5">
+        <QualitiesBar
+          qualities={qualities}
+          onQualitiesChange={setQualities}
+          mode="bar"
+        />
       </div>
 
       <div className="flex-1 flex overflow-hidden relative z-10">
