@@ -18,8 +18,7 @@ const registerSchema = z.object({
     email: z.string().email("Invalid email format"),
     password: z
         .string()
-        .min(8, "Password must be at least 8 characters")
-        .max(32, "Password must be less than 32 characters"),
+        .min(8, "Password must be at least 8 characters"),
 });
 
 // =============================================================================
@@ -93,9 +92,14 @@ export async function POST(
             success: true,
             userId: user.id,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Handle duplicate email constraint
-        if (error.code === "P2002") {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            (error as { code: string }).code === "P2002"
+        ) {
             return NextResponse.json(
                 { success: false, error: "Email already registered" },
                 { status: 409 }

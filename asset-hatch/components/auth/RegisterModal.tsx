@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
     Dialog,
     DialogContent,
@@ -48,6 +49,7 @@ export function RegisterModal({
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter(); // Initialize router
 
     // Handle registration form submission
     const handleRegister = async (e: React.FormEvent) => {

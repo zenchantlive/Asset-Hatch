@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
     Dialog,
     DialogContent,
@@ -44,8 +45,9 @@ export function SignInModal({
     // Form state for email/password sign in
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     // Handle GitHub OAuth sign in
     const handleGitHubSignIn = async () => {
