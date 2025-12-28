@@ -11,6 +11,39 @@ interface PlanPreviewProps {
   isLoading?: boolean
 }
 
+// Helper to render inline markdown (bold, code)
+function renderInlineMarkdown(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  let currentIndex = 0
+
+  // Match bold (**text**) and code (`text`)
+  const regex = /(\*\*.*?\*\*|`.*?`)/g
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > currentIndex) {
+      parts.push(text.slice(currentIndex, match.index))
+    }
+
+    const matchedText = match[0]
+    if (matchedText.startsWith('**')) {
+      parts.push(<strong key={match.index} className="font-bold text-white/90">{matchedText.slice(2, -2)}</strong>)
+    } else if (matchedText.startsWith('`')) {
+      parts.push(<code key={match.index} className="bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs text-primary">{matchedText.slice(1, -1)}</code>)
+    }
+
+    currentIndex = regex.lastIndex
+  }
+
+  // Add remaining text
+  if (currentIndex < text.length) {
+    parts.push(text.slice(currentIndex))
+  }
+
+  return parts
+}
+
 // Simple markdown-to-HTML converter for plan preview
 // Supports: H1, H2, lists, checkmarks, tree structure
 function parseMarkdown(markdown: string): React.ReactNode {
@@ -23,18 +56,18 @@ function parseMarkdown(markdown: string): React.ReactNode {
     // H1 headers
     if (line.startsWith("# ")) {
       elements.push(
-        <h1 key={index} className="text-2xl font-bold mb-6 mt-8 first:mt-0 text-gradient-primary">
-          {line.slice(2)}
+        <h1 key={index} className="text-3xl font-bold mb-8 mt-10 first:mt-0 text-gradient-primary font-heading tracking-tight">
+          {renderInlineMarkdown(line.slice(2))}
         </h1>
       )
     }
     // H2 headers
     else if (line.startsWith("## ")) {
       elements.push(
-        <div key={index} className="flex items-center gap-2 mb-4 mt-8 pb-2 border-b border-white/5">
+        <div key={index} className="flex items-center gap-2 mb-6 mt-12 pb-3 border-b border-white/5">
           <Sparkles className="w-4 h-4 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground/90">
-            {line.slice(3)}
+          <h2 className="text-xl font-semibold text-foreground/90 font-heading tracking-tight">
+            {renderInlineMarkdown(line.slice(3))}
           </h2>
         </div>
       )
@@ -44,8 +77,8 @@ function parseMarkdown(markdown: string): React.ReactNode {
       elements.push(
         <div key={index} className="flex items-start gap-3 mb-2 text-sm group">
           <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-          <span className="text-foreground/80 group-hover:text-foreground transition-colors">
-            {line.slice(2).replace("✓", "").trim()}
+          <span className="text-foreground/80 group-hover:text-foreground transition-colors overflow-hidden">
+            {renderInlineMarkdown(line.slice(2).replace("✓", "").trim())}
           </span>
         </div>
       )
@@ -63,8 +96,8 @@ function parseMarkdown(markdown: string): React.ReactNode {
       elements.push(
         <div key={index} className="flex items-start gap-3 mb-2 ml-1">
           <div className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" />
-          <span className="text-sm text-foreground/80">
-            {line.slice(2)}
+          <span className="text-sm text-foreground/80 overflow-hidden">
+            {renderInlineMarkdown(line.slice(2))}
           </span>
         </div>
       )
@@ -85,7 +118,7 @@ function parseMarkdown(markdown: string): React.ReactNode {
     else if (line.trim()) {
       elements.push(
         <p key={index} className="text-sm mb-3 leading-relaxed text-muted-foreground">
-          {line}
+          {renderInlineMarkdown(line)}
         </p>
       )
     }

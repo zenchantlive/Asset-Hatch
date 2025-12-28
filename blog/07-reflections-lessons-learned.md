@@ -11,7 +11,7 @@ status: published
 
 # Part 7: Reflections - What I Actually Learned
 
-**The Journey:** 3 days. 40+ TypeScript files. 2 architectural crises. 1 complete framework migration. ~75% of a production Next.js application built with AI assistance.
+**The Journey:** 4 days. 50+ TypeScript files. 2 architectural crises. 1 complete framework migration. ~85% of a production Next.js application built with AI assistance.
 
 **Now:** Time to extract the lessons that actually matter.
 
@@ -27,23 +27,13 @@ Let's be honest about what "AI-first development" meant in practice:
 
 ### The Real Workflow
 
-```
-Me: "Create a chat interface with CopilotKit"
-AI: [Generates code based on docs]
-Me: [Runs code]
-      Error: message.isResultMessage is not a function
-Me: "Fix this error"
-AI: [Tries fix #1] (doesn't work)
-Me: [Searches GitHub issues myself]
-    [Finds CopilotKit bug]
-    "Actually, we need to migrate to Vercel AI SDK"
-AI: [Generates migration plan]
-Me: [Reviews plan, catches v4 vs v6 confusion]
-    "Use v6 API with inputSchema not parameters"
-AI: [Generates updated code]
-Me: [Tests, finds async issue]
-    "convertToModelMessages needs await"
-AI: [Fixes]
+Me: "Implement asset generation"
+AI: [Suggests batch processing]
+Me: "No, give me an approval workflow. Individual generation first."
+AI: [Generates useAssetGeneration hook and AssetApprovalCard]
+Me: [Tests, finds issue with base64 storage in Prisma]
+    "Move generated images to hybrid model: Prisma for metadata, Dexie for UI"
+AI: [Refactors persistence logic]
 Me: ✅ IT WORKS
 ```
 
@@ -65,7 +55,7 @@ Me: ✅ IT WORKS
 - Debugging subtle bugs (the `isResultMessage` error took manual digging)
 - Knowing when to pivot (AI kept suggesting CopilotKit workarounds)
 
-**Lesson:** AI excels at *implementation* once you make the *decision*.
+**Lesson:** Single AIs excel at *implementation*. A **Council of AIs**, however, can excel at *architecture*. When I used the Sonnet 4 / GPT-5.2 / Perplexity swarm, they successfully designed the Hybrid Persistence model that saved Part 5.
 
 ### 2. Framework Lock-in is More Dangerous with AI
 
@@ -253,6 +243,16 @@ Vercel AI SDK succeeded: 2M+ downloads, Vercel team, v6 mature, docs excellent.
 
 **The sweet spot:** You design. AI implements. You validate. Repeat.
 
+### The Ecosystem of Agents
+
+One AI doesn't do it all. I use a specialized team:
+
+*   **PR Reviewers**: **Qodo** and **Gemini Code Assist** bots critique every PR. They catch what I miss.
+*   **Junior Dev / Researcher**: **Perplexity**. I have it read my logs and errors directly in the browser. It's my research workhorse for finding accurate info fast.
+*   **Senior Devs / Workhorses**: **Claude Code** and **Antigravity** (Google's new IDE). These are the heavy lifters that build the products.
+
+And looking forward, we're aiming for **Nano Banana** (Google's high-end image model) as the gold standard for asset generation, even if we develop with Flux.2 for now to keep costs down.
+
 ## The Final Reflection
 
 Building Asset Hatch in 3 days wasn't about AI doing the work for me.
@@ -265,11 +265,11 @@ It was about **compressing the boring parts** (scaffolding, configs, boilerplate
 - Both crises forced me to understand AI SDK internals deeply
 
 **The velocity was real:**
-- 40 TypeScript files
-- ~12,000 lines of code (AI-generated + human-edited)
-- 3 architectural decisions (hybrid persistence, multi-mode UI, agentic prompting)
-- 8 integration tests
-- ~75% feature completion
+- 50+ TypeScript files
+- ~14,000 lines of code (AI-generated + human-edited)
+- 4 architectural decisions (hybrid persistence, multi-mode UI, individual approval workflow, premium typography)
+- 15 integration tests
+- ~85% feature completion
 
 **But the value wasn't the speed.**
 
@@ -291,8 +291,8 @@ That's the future of development: not replacement, but augmentation.
 - ✅ Planning Phase: Complete (~100%)
 - ✅ Style Anchor Phase: Complete (~100%)
 - ✅ AI SDK Integration: Complete (~100%)
-- ✅ Generation Infrastructure: Backend done (~75%)
-- 🟡 Generation UI: Queue system in progress (~50%)
+- ✅ Generation Infrastructure: Backend done (~100%)
+- ✅ Generation UI: Individual approval & library active (~100%)
 - 🔴 Export Phase: Not started (~0%)
 
 **Critical Path:**

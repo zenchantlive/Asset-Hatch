@@ -28,7 +28,15 @@
       "Bash(bun install:*)",
       "Bash(pkill:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__get-library-docs"
+      "mcp__plugin_context7_context7__get-library-docs",
+      "Bash(bun run typecheck:*)",
+      "mcp__plugin_serena_serena__find_symbol",
+      "mcp__plugin_serena_serena__search_for_pattern",
+      "Bash(bun run lint:*)",
+      "Bash(bunx prisma generate:*)",
+      "mcp__plugin_serena_serena__list_dir",
+      "Bash(xargs:*)",
+      "mcp__plugin_serena_serena__find_file"
     ]
   }
 }

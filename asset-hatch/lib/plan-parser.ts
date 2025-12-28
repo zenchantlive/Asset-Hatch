@@ -45,7 +45,7 @@ export function parsePlan(
     const trimmed = line.trim();
 
     // Skip empty lines and title
-    if (!trimmed || trimmed.startsWith('#') && !trimmed.startsWith('##')) {
+    if (!trimmed || (trimmed.startsWith('#') && !trimmed.startsWith('##'))) {
       continue;
     }
 
@@ -59,22 +59,17 @@ export function parsePlan(
       continue;
     }
 
-    // Main asset (- Farmer)
-    if (trimmed.match(/^-\s+\S/)) { // Match any non-whitespace character to start the name
+    // Determine level by indentation
+    const indentMatch = line.match(/^(\s*)-/);
+    if (indentMatch) {
+      const indent = indentMatch[1].length;
       const text = trimmed.replace(/^-\s+/, '').trim();
-      parsed.push({
-        level: 1,
-        text,
-        category: currentCategory,
-      });
-      continue;
-    }
 
-    // Variant (  - Idle (4-direction))
-    if (trimmed.match(/^-\s+/)) {
-      const text = trimmed.replace(/^-\s+/, '').trim();
+      // 0 spaces = asset (level 1), >0 spaces = variant (level 2)
+      const level = indent === 0 ? 1 : 2;
+
       parsed.push({
-        level: 2,
+        level,
         text,
         category: currentCategory,
       });
@@ -175,7 +170,7 @@ function createAsset(spec: {
           name: animationInfo.animationName || variantText || 'Default',
           pose: animationInfo.pose,
           animationType: animationInfo.animationType,
-          frameCount: animationInfo.directionCount,
+          frameCount: animationInfo.frameCount || animationInfo.directionCount,
           arrangementType: 'horizontally in a single row',
         },
       };
@@ -211,6 +206,7 @@ function createAsset(spec: {
       name: variantText || 'Default',
       pose: animationInfo.pose,
       animationType: animationInfo.animationType,
+      frameCount: animationInfo.frameCount,
     },
   };
 }
@@ -227,6 +223,15 @@ function determineAssetType(category: string, name: string): AssetType {
     return 'character-sprite';
   }
 
+  // Background detection
+  if (
+    nameLower.includes('background') ||
+    nameLower.includes('sky') ||
+    nameLower.includes('scene')
+  ) {
+    return 'background';
+  }
+
   // Tileset detection
   if (
     nameLower.includes('tileset') ||
@@ -237,15 +242,6 @@ function determineAssetType(category: string, name: string): AssetType {
     categoryLower.includes('environment')
   ) {
     return 'tileset';
-  }
-
-  // Background detection
-  if (
-    nameLower.includes('background') ||
-    nameLower.includes('sky') ||
-    nameLower.includes('scene')
-  ) {
-    return 'background';
   }
 
   // Icon detection

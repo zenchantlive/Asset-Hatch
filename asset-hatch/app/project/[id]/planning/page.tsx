@@ -1,13 +1,16 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { useParams } from "next/navigation"
 import { ChatInterface } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
-import { StyleAnchorEditor } from "@/components/style/StyleAnchorEditor"
-import { db } from "@/lib/client-db"
+import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnchor } from "@/components/style/StylePreview"
+import { GenerationQueue } from "@/components/generation/GenerationQueue"
+import { FilesPanel } from "@/components/ui/FilesPanel"
+import { AssetsPanel } from "@/components/ui/AssetsPanel"
 import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
+import { db } from "@/lib/client-db"
 
 type PlanningMode = 'plan' | 'style' | 'generation'
 
@@ -17,17 +20,17 @@ export default function PlanningPage() {
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
   const [mode, setMode] = useState<PlanningMode>('plan')
-  const [savedFiles, setSavedFiles] = useState<string[]>([])
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
+  const [assetsMenuOpen, setAssetsMenuOpen] = useState(false)
 
   // Style phase state
-  const [styleKeywords, setStyleKeywords] = useState("")
-  const [lightingKeywords, setLightingKeywords] = useState("")
-  const [colorPalette, setColorPalette] = useState<string[]>([])
+  const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
+  const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
+  const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
 
   // Handler for quality updates from AI
   const handleQualityUpdate = (qualityKey: string, value: string) => {
-    console.log('📝 Planning page received quality update:', qualityKey, '=', value);
+    console.log('\ud83d\udcdd Planning page received quality update:', qualityKey, '=', value);
     setQualities(prev => ({ ...prev, [qualityKey]: value }));
   };
 
@@ -36,44 +39,24 @@ export default function PlanningPage() {
     setPlanMarkdown(markdown);
   };
 
-  // Style phase handlers
-  const handleStyleKeywordsUpdate = (keywords: string) => {
-    setStyleKeywords(keywords);
+  // Handler for style draft updates from AI
+  const handleStyleDraftUpdate = (draft: Partial<StyleDraft>) => {
+    console.log('📝 Planning page received style draft update:', draft);
+    setStyleDraft(prev => ({ ...prev, ...draft }));
   };
 
-  const handleLightingKeywordsUpdate = (keywords: string) => {
-    setLightingKeywords(keywords);
+  // Handler for style anchor generation
+  const handleStyleAnchorGenerated = (anchor: GeneratedStyleAnchor) => {
+    console.log('🎨 Style anchor generated:', anchor.id);
+    setGeneratedAnchor(anchor);
+    setIsGeneratingStyle(false);
   };
 
-  const handleColorPaletteUpdate = (colors: string[]) => {
-    setColorPalette(colors);
+  // Handler for style finalization
+  const handleStyleFinalized = () => {
+    console.log('✅ Style finalized, switching to generation mode');
+    setMode('generation');
   };
-
-  const handleStyleAnchorSave = async () => {
-    await loadSavedFiles();
-  };
-
-  // Load saved files for file viewer menu
-  const loadSavedFiles = useCallback(async () => {
-    try {
-      const projectId = params.id;
-      if (typeof projectId !== 'string') return;
-
-      const memoryFiles = await db.memory_files
-        .where('project_id')
-        .equals(projectId)
-        .toArray();
-
-      const fileNames = memoryFiles.map((file) => file.type);
-      setSavedFiles(fileNames);
-    } catch (error) {
-      console.error('Failed to load saved files:', error);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    loadSavedFiles();
-  }, [loadSavedFiles]);
 
   const handleEditPlan = () => {
     console.log("Edit plan clicked")
@@ -98,7 +81,6 @@ export default function PlanningPage() {
         })
       })
       setMode('style')
-      await loadSavedFiles()
     } catch (error) {
       console.error("Plan approval failed:", error)
     } finally {
@@ -138,9 +120,21 @@ export default function PlanningPage() {
             </button>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center gap-2">
+            {/* Assets button - opens side panel with approved assets */}
             <button
-              onClick={() => setFilesMenuOpen(!filesMenuOpen)}
+              onClick={() => setAssetsMenuOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Assets
+            </button>
+
+            {/* Files button - opens side panel with file viewer */}
+            <button
+              onClick={() => setFilesMenuOpen(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-white/80"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,81 +142,66 @@ export default function PlanningPage() {
               </svg>
               Files
             </button>
-
-            {filesMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-glass-bg/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
-                {savedFiles.length === 0 ? (
-                  <div className="px-4 py-3 text-white/40 text-sm">No saved files yet</div>
-                ) : (
-                  savedFiles.map((fileName) => (
-                    <button
-                      key={fileName}
-                      className="w-full px-4 py-2 text-left text-white/80 hover:bg-purple-500/20 transition-all duration-200 flex items-center gap-2"
-                      onClick={() => setFilesMenuOpen(false)}
-                    >
-                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {fileName}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden relative z-10">
-        <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
-          <ChatInterface
-            qualities={qualities}
-            projectId={typeof params.id === 'string' ? params.id : ''}
-            onQualityUpdate={handleQualityUpdate}
-            onPlanUpdate={handlePlanUpdate}
-            onPlanComplete={handleApprovePlan}
-            onStyleKeywordsUpdate={handleStyleKeywordsUpdate}
-            onLightingKeywordsUpdate={handleLightingKeywordsUpdate}
-            onColorPaletteUpdate={handleColorPaletteUpdate}
-            onStyleAnchorSave={handleStyleAnchorSave}
-          />
-        </div>
-
-        <div className="w-1/2 flex flex-col relative bg-glass-bg/10">
-          {mode === 'plan' && (
-            <PlanPreview
-              markdown={planMarkdown}
-              onEdit={handleEditPlan}
-              onApprove={handleApprovePlan}
-              isLoading={isApproving}
-            />
-          )}
-
-          {mode === 'style' && (
-            <StyleAnchorEditor
-              projectId={typeof params.id === 'string' ? params.id : ''}
-              initialStyleKeywords={styleKeywords}
-              initialLightingKeywords={lightingKeywords}
-              initialColorPalette={colorPalette}
-              onSave={async () => {
-                await loadSavedFiles();
-              }}
-            />
-          )}
-
-          {mode === 'generation' && (
-            <div className="flex items-center justify-center h-full text-white/40">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-4 text-purple-500/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-lg font-medium">Generation Queue</p>
-                <p className="text-sm mt-2">Coming soon - asset generation interface</p>
-              </div>
+        {mode === 'generation' ? (
+          // Generation mode: Full-width GenerationQueue (no chat)
+          <GenerationQueue projectId={params.id as string} />
+        ) : (
+          // Plan and Style modes: Keep 50/50 split with chat
+          <>
+            <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
+              <ChatInterface
+                qualities={qualities}
+                projectId={typeof params.id === 'string' ? params.id : ''}
+                onQualityUpdate={handleQualityUpdate}
+                onPlanUpdate={handlePlanUpdate}
+                onPlanComplete={handleApprovePlan}
+                onStyleDraftUpdate={handleStyleDraftUpdate}
+                onStyleAnchorGenerated={handleStyleAnchorGenerated}
+                onStyleFinalized={handleStyleFinalized}
+              />
             </div>
-          )}
-        </div>
+
+            <div className="w-1/2 flex flex-col relative bg-glass-bg/10">
+              {mode === 'plan' && (
+                <PlanPreview
+                  markdown={planMarkdown}
+                  onEdit={handleEditPlan}
+                  onApprove={handleApprovePlan}
+                  isLoading={isApproving}
+                />
+              )}
+
+              {mode === 'style' && (
+                <StylePreview
+                  styleDraft={styleDraft}
+                  generatedAnchor={generatedAnchor}
+                  isGenerating={isGeneratingStyle}
+                  onFinalize={handleStyleFinalized}
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Assets panel - slide-out from right side */}
+      <AssetsPanel
+        projectId={typeof params.id === 'string' ? params.id : ''}
+        isOpen={assetsMenuOpen}
+        onClose={() => setAssetsMenuOpen(false)}
+      />
+
+      {/* Files panel - slide-out from right side */}
+      <FilesPanel
+        projectId={typeof params.id === 'string' ? params.id : ''}
+        isOpen={filesMenuOpen}
+        onClose={() => setFilesMenuOpen(false)}
+      />
     </div>
   )
 }

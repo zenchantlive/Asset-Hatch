@@ -3,18 +3,18 @@ import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { generateStyleAnchor } from '@/lib/style-anchor-generator';
 import {
   updateQualitySchema,
   updatePlanSchema,
   finalizePlanSchema,
-  updateStyleKeywordsSchema,
-  updateLightingKeywordsSchema,
-  updateColorPaletteSchema,
+  updateStyleDraftSchema,
+  generateStyleAnchorSchema,
+  finalizeStyleSchema,
   UpdateQualityInput,
   UpdatePlanInput,
-  UpdateStyleKeywordsInput,
-  UpdateLightingKeywordsInput,
-  UpdateColorPaletteInput,
+  UpdateStyleDraftInput,
+  GenerateStyleAnchorInput,
 } from '@/lib/schemas';
 
 export const maxDuration = 30;
@@ -22,6 +22,34 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   try {
     const { messages, qualities, projectId } = await req.json();
+
+    // Validate projectId is present
+    console.log('🔧 Chat API received projectId:', projectId);
+    if (!projectId || projectId === '') {
+      console.error('❌ Chat API: projectId is missing or empty');
+      return new Response(
+        JSON.stringify({ error: 'projectId is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Ensure project exists in SQLite (might only exist in IndexedDB)
+    // This handles the hybrid persistence model sync issue
+    const existingProject = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!existingProject) {
+      console.log('📦 Project not found in SQLite, creating...');
+      await prisma.project.create({
+        data: {
+          id: projectId,
+          name: 'Imported Project',
+          phase: 'planning',
+        },
+      });
+      console.log('✅ Project created in SQLite');
+    }
 
     // Convert UIMessages to ModelMessages for streamText
     const modelMessages = await convertToModelMessages(messages);
@@ -31,17 +59,17 @@ export async function POST(req: NextRequest) {
       messages: modelMessages,
       stopWhen: stepCountIs(10),
       system: `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
- 
+
  CURRENT PROJECT CONTEXT:
  - Project ID: ${projectId}
  - Phase: Planning
  - Current Qualities: ${JSON.stringify(qualities, null, 2)}
- 
+
  YOUR BEHAVIORAL PROTOCOLS:
- 1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools. 
- 2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down. 
+ 1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools.
+ 2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down.
  3. **BE TRANSPARENT:** When you perform an action, briefly mention it.
- 
+
  WORKFLOW:
  1. Understand the game concept (Genre, Style, Mood).
  2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
@@ -135,27 +163,113 @@ export async function POST(req: NextRequest) {
             }
           },
         }),
-        updateStyleKeywords: tool({
-          description: 'Update style keywords.',
-          inputSchema: updateStyleKeywordsSchema,
-          execute: async ({ styleKeywords }: UpdateStyleKeywordsInput) => {
-            // This is usually part of StyleAnchor which is created later, 
-            // but we can store it in a temporary MemoryFile or update the latest StyleAnchor if it exists
-            return { success: true, message: '[System] Style keywords noted', styleKeywords };
+        // Style Phase Tools
+        updateStyleDraft: tool({
+          description: 'Update the style draft with collected parameters. Call this whenever the user specifies style preferences.',
+          inputSchema: updateStyleDraftSchema,
+          execute: async (input: UpdateStyleDraftInput) => {
+            try {
+              // Load existing draft or create new one
+              const existingDraft = await prisma.memoryFile.findUnique({
+                where: { id: `${projectId}-style-draft` },
+              });
+
+              // Merge with existing draft data (with improved error handling)
+              const defaultData = { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              let currentData;
+              try {
+                currentData = existingDraft && existingDraft.content
+                  ? JSON.parse(existingDraft.content)
+                  : defaultData;
+              } catch {
+                currentData = defaultData;
+              }
+
+              const updatedData = {
+                styleKeywords: input.styleKeywords ?? currentData.styleKeywords,
+                lightingKeywords: input.lightingKeywords ?? currentData.lightingKeywords,
+                colorPalette: input.colorPalette ?? currentData.colorPalette,
+                fluxModel: input.fluxModel ?? currentData.fluxModel,
+              };
+
+              // Persist to SQLite
+              await prisma.memoryFile.upsert({
+                where: { id: `${projectId}-style-draft` },
+                update: { content: JSON.stringify(updatedData) },
+                create: {
+                  id: `${projectId}-style-draft`,
+                  projectId: projectId,
+                  type: 'style-draft.json',
+                  content: JSON.stringify(updatedData),
+                },
+              });
+
+              return {
+                success: true,
+                message: '[System] Style draft updated',
+                ...updatedData,
+              };
+            } catch (error) {
+              console.error('Failed to update style draft:', error);
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
-        updateLightingKeywords: tool({
-          description: 'Update lighting keywords.',
-          inputSchema: updateLightingKeywordsSchema,
-          execute: async ({ lightingKeywords }: UpdateLightingKeywordsInput) => {
-            return { success: true, message: '[System] Lighting keywords noted', lightingKeywords };
+        generateStyleAnchor: tool({
+          description: 'Generate the style anchor reference image. Call when user approves the style and wants to generate the reference image.',
+          inputSchema: generateStyleAnchorSchema,
+          execute: async ({ prompt }: GenerateStyleAnchorInput) => {
+            try {
+              // Load style draft
+              const styleDraftRecord = await prisma.memoryFile.findUnique({
+                where: { id: `${projectId}-style-draft` },
+              });
+
+              if (!styleDraftRecord) {
+                return { success: false, error: 'No style draft found. Collect style preferences first.' };
+              }
+
+              const styleDraft = JSON.parse(styleDraftRecord.content);
+
+              // Call the shared generation logic directly (no HTTP overhead)
+              const result = await generateStyleAnchor({
+                projectId,
+                prompt,
+                styleKeywords: styleDraft.styleKeywords,
+                lightingKeywords: styleDraft.lightingKeywords,
+                colorPalette: styleDraft.colorPalette,
+                fluxModel: styleDraft.fluxModel,
+              });
+
+              // NOTE: We DO NOT return imageUrl to the LLM at all
+              // The imageUrl is a huge base64 string (~2MB) that would blow up the context
+              // The client must fetch the image from the database using styleAnchorId
+              console.log('✅ Style anchor generated:', result.styleAnchor.id);
+
+              return {
+                success: true,
+                message: '[System] Style anchor image has been generated and saved. The reference image is ready for user review. Ask the user if they are happy with the generated style.',
+                styleAnchorId: result.styleAnchor.id,
+              };
+            } catch (error) {
+              console.error('Failed to generate style anchor:', error);
+              return { success: false, error: 'Style anchor generation failed' };
+            }
           },
         }),
-        updateColorPalette: tool({
-          description: 'Update color palette.',
-          inputSchema: updateColorPaletteSchema,
-          execute: async ({ colors }: UpdateColorPaletteInput) => {
-            return { success: true, message: '[System] Palette noted', colors };
+        finalizeStyle: tool({
+          description: 'Finalize the style phase and proceed to generation. Call ONLY when user explicitly approves the generated style anchor image.',
+          inputSchema: finalizeStyleSchema,
+          execute: async () => {
+            try {
+              await prisma.project.update({
+                where: { id: projectId },
+                data: { phase: 'generation' },
+              });
+              return { success: true, message: '[System] Style finalized, proceeding to generation phase' };
+            } catch {
+              return { success: false, error: 'Database update failed' };
+            }
           },
         }),
       },

@@ -143,7 +143,15 @@ fetch('/api/generate', {
 
 **Verdict:** ✅ Best balance of velocity and robustness
 
-## Implementation: Hybrid Persistence
+## The Council's Solution: Hybrid Persistence
+
+I wasn't sure if this was the right path, so I summoned my **Council of AIs** (Sonnet 4, GPT-5.2, and Perplexity) to review the problem.
+
+Their consensus solution? **Hybrid Persistence.**
+
+![Council of AIs] (/images/ council-of-ais.png)
+
+### Implementation: Hybrid Persistence
 
 ### Step 1: Install Prisma
 
@@ -223,6 +231,24 @@ model StyleAnchor {
   project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("style_anchors")
+}
+
+model GeneratedAsset {
+  id                  String   @id @default(uuid())
+  projectId           String   @map("project_id")
+  assetId             String   @map("asset_id")
+  variantId           String?  @map("variant_id")
+  imageBlob           Bytes    @map("image_blob")
+  imageBase64         String?  @map("image_base64")
+  promptUsed          String   @map("prompt_used")
+  status              String   @default("generated")
+  generationMetadata  String   @map("generation_metadata") // JSON
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("generated_assets")
 }
 ```
 

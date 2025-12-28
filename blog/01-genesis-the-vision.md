@@ -11,7 +11,9 @@ status: published
 
 # Part 1: Genesis - Why Build This?
 
-**The Setup:** December 24, 2025, 10:47 AM. I'm staring at a terminal, about to run `npx create-next-app`, knowing I'm about to spend the next 72 hours building something that might be completely unnecessary.
+**The Setup:** December 24, 2025, 10:47 AM. I'm chatting with Opus in the Claude Desktop app, fleshing out a plan that might be completely unnecessary.
+
+![Opus Planning Session](TODO: Insert Opus Screenshot)
 
 But here's the thing about unnecessary projects: sometimes they're the most necessary of all.
 
@@ -68,24 +70,22 @@ Game assets aren't just individual images. They're a **system**. A character isn
 
 When you ask an AI coding agent to generate these, it treats each request independently. You end up with a Frankenstein's monster of visual styles that no amount of clever prompting can fix.
 
-## The "Aha" Moment
+## The Solution: Leveraging style retention
 
-I was reading through the Flux.2 Pro Prompting Handbook (yeah, I read image model documentation for fun—judge me) and stumbled on the section about reference images:
+I realized I could apply a known concept: **style retention**. But I needed to adapt it for a conversational agent workflow and taior the output to work well with AI Agents and AAA game development workflows.
 
 > "Flux.2 can use reference images to maintain style consistency across generations. Including a style anchor image in your request ensures all outputs match the aesthetic."
 
-Wait. **Style anchor image.**
-
-That was it. That was the missing piece.
+**Style anchor image.** This was the key to applying image style retention in this context.
 
 ### The Mental Model Shift
 
 What if you separated the asset creation workflow into phases?
 
-**Phase 1: Planning** — Describe your game, let an AI agent build a complete asset list
-**Phase 2: Style Anchoring** — Upload (or generate) ONE reference image that defines the visual style
-**Phase 3: Generation** — Generate ALL assets using that style anchor
-**Phase 4: Export** — Package everything with manifest files for easy integration
+**Phase 1: Planning** — Describe your game, let an AI agent (Asset-Hatch) build a complete asset list.
+**Phase 2: Style Anchoring** — Upload (or generate) ONE reference image that defines the visual style.
+**Phase 3: Generation** — Generate ALL assets using the style anchor.
+**Phase 4: Export** — Package everything with manifest files.
 
 Suddenly, the consistency problem had a solution: **persistent visual context across all generations**.
 
