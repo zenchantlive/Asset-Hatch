@@ -93,11 +93,17 @@ export async function POST(
             success: true,
             userId: user.id,
         });
-    } catch (error) {
-        // Log error for debugging
-        console.error("Registration error:", error);
+    } catch (error: any) {
+        // Handle duplicate email constraint
+        if (error.code === "P2002") {
+            return NextResponse.json(
+                { success: false, error: "Email already registered" },
+                { status: 409 }
+            );
+        }
 
-        // Return generic error response
+        // Log other errors
+        console.error("Registration error:", error);
         return NextResponse.json(
             { success: false, error: "Registration failed" },
             { status: 500 }
