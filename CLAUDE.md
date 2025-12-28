@@ -55,7 +55,7 @@ bunx prisma studio       # Open Prisma Studio GUI
 - **Framework**: Vercel AI SDK v6 (`ai`, `@ai-sdk/react`)
 - **Provider**: OpenRouter (`@openrouter/ai-sdk-provider`)
 - **Chat Model**: `google/gemini-3-pro-preview` (via OpenRouter)
-- **Image Generation**: `black-forest-labs/flux-dev`, `black-forest-labs/flux.2-pro`
+- **Image Generation**: `black-forest-labs/flux.2-pro`, `black-forest-labs/flux.2-pro`
 - **Vision**: GPT-4o for style extraction
 
 ### Data Layer
@@ -244,7 +244,7 @@ asset-hatch/
 **Image Generation**:
 ```typescript
 // CORRECT model IDs
-'black-forest-labs/flux-dev'     // Fast development
+'black-forest-labs/flux.2-pro'     // Fast development
 'black-forest-labs/flux.2-pro'   // High quality
 
 // Endpoint
@@ -252,7 +252,7 @@ POST https://openrouter.ai/api/v1/chat/completions
 
 // Required params
 {
-  model: 'black-forest-labs/flux-dev',
+  model: 'black-forest-labs/flux.2-pro',
   messages: [{ role: 'user', content: prompt }],
   modalities: ['image', 'text']  // REQUIRED for image gen
 }

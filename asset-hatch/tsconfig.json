@@ -32,7 +32,8 @@
       "jest",
       "@testing-library/jest-dom",
       "react",
-      "react-dom"
+      "react-dom",
+      "bun-types"
     ]
   },
   "include": [

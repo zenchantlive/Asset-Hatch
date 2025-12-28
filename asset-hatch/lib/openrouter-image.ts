@@ -8,17 +8,17 @@
  * - Use /api/v1/chat/completions (NOT /api/v1/images/generations - deprecated)
  * - Include modalities: ['image', 'text'] for image generation
  * - Image data is in message.images[].image_url.url (NOT message.content)
- * - Model IDs: 'black-forest-labs/flux-dev' or 'black-forest-labs/flux.2-pro'
+ * - Model IDs: 'black-forest-labs/flux.2-pro' or 'black-forest-labs/flux.2-pro'
  */
 
 // OpenRouter API key from environment
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+// Moved inside function for testability
 
 /**
  * Options for Flux image generation
  */
 export interface FluxGenerationOptions {
-    // The OpenRouter model ID (e.g., 'black-forest-labs/flux-dev')
+    // The OpenRouter model ID (e.g., 'black-forest-labs/flux.2-pro')
     modelId: string;
     // The prompt for image generation
     prompt: string;
@@ -79,6 +79,7 @@ export async function generateFluxImage(
 ): Promise<FluxGenerationResult> {
     const { modelId, prompt, referenceImageBase64 } = options;
     const startTime = Date.now();
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
     // Validate API key
     if (!OPENROUTER_API_KEY) {
@@ -202,12 +203,12 @@ export async function generateFluxImage(
  * Correct Flux model IDs for OpenRouter
  * 
  * Note: These are the actual OpenRouter model IDs, not marketing names.
- * - flux-dev is faster and cheaper (good for testing)
+ * - black-forest-labs/flux.2-pro is faster and cheaper (good for testing)
  * - flux.2-pro is higher quality (good for production)
  */
 export const OPENROUTER_FLUX_MODELS: Record<string, { modelId: string; costPerImage: number }> = {
     'flux-2-dev': {
-        modelId: 'black-forest-labs/flux-dev',
+        modelId: 'black-forest-labs/flux.2-pro',
         costPerImage: 0.025,
     },
     'flux-2-pro': {

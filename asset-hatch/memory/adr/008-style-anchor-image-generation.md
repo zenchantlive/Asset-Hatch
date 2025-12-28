@@ -28,13 +28,13 @@ Key challenges:
 ```typescript
 // ✅ CORRECT
 export const FLUX_MODELS = {
-  'flux-2-dev': 'black-forest-labs/flux-dev',
+  'flux-2-dev': 'black-forest-labs/flux.2-pro',
   'flux-2-pro': 'black-forest-labs/flux.2-pro',
 };
 
 // ❌ WRONG (these don't exist on OpenRouter)
 'black-forest-labs/flux.2-dev' // Returns 400 error
-'flux-dev'  // Missing org prefix
+'black-forest-labs/flux.2-pro'  // Missing org prefix
 ```
 
 ### 2. OpenRouter Image Response Format
@@ -173,7 +173,7 @@ useEffect(() => {
 ### Attempt 2: Wrong Model IDs
 - **Tried:** `black-forest-labs/flux.2-dev`
 - **Result:** 400 Bad Request
-- **Why:** Model ID is `flux-dev`, not `flux.2-dev`
+- **Why:** Model ID is `black-forest-labs/flux.2-pro`, not `flux.2-dev`
 
 ### Attempt 3: Extracting from message.content
 - **Tried:** Parsing base64 from content string
