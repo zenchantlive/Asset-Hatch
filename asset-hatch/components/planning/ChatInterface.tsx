@@ -6,6 +6,7 @@ import TextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import type { UIMessage } from "@ai-sdk/react";
 import { ProjectQualities } from "./QualitiesBar";
 import { getPresetsForMode } from "@/lib/preset-prompts";
 import {
@@ -54,15 +55,30 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   mode = 'plan',
 }, ref) => {
   const [input, setInput] = useState("");
+  const chatId = `chat-${projectId}`;
+  const hasRestoredMessages = useRef(false);
 
-  // Debug: Log projectId
+  // Debug: Log projectId and check AI SDK's localStorage
   console.log('🔧 ChatInterface projectId:', projectId);
+  console.log('🔧 Chat ID:', chatId);
+
+  // Check what AI SDK has stored
+  useEffect(() => {
+    if (projectId) {
+      const aiSdkKey = `ai-chat-chat-${projectId}`;
+      const stored = localStorage.getItem(aiSdkKey);
+      console.log('📂 AI SDK localStorage key:', aiSdkKey);
+      console.log('📂 AI SDK stored data:', stored ? 'exists' : 'empty');
+    }
+  }, [projectId, chatId]);
 
   const {
     messages,
+    setMessages,
     sendMessage,
     status,
   } = useChat({
+    id: chatId,
     // In AI SDK v6, body in hook config becomes stale
     // We pass body in sendMessage instead
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,6 +161,41 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       }
     },
   });
+
+  // Restore messages from localStorage on first mount
+  useEffect(() => {
+    if (!projectId || hasRestoredMessages.current) return;
+
+    const storageKey = `conversation-${projectId}`;
+    const saved = localStorage.getItem(storageKey);
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as UIMessage[];
+        console.log('📂 Restoring', parsed.length, 'messages from localStorage');
+        setMessages(parsed);
+        hasRestoredMessages.current = true;
+      } catch (error) {
+        console.error('Failed to restore chat history:', error);
+      }
+    } else {
+      console.log('📂 No saved messages found in localStorage');
+      hasRestoredMessages.current = true;
+    }
+  }, [projectId, setMessages]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (!projectId || !hasRestoredMessages.current || messages.length === 0) return;
+
+    const storageKey = `conversation-${projectId}`;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+      console.log('💾 Saved', messages.length, 'messages to localStorage');
+    } catch (error) {
+      console.error('Failed to save chat history:', error);
+    }
+  }, [messages, projectId]);
 
   // Expose sendMessage to parent via ref
   useImperativeHandle(ref, () => ({

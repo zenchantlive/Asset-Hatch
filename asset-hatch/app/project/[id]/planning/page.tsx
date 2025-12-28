@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { ChatInterface, ChatInterfaceHandle } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
 import { PlanPreview } from "@/components/planning/PlanPreview"
@@ -9,14 +9,16 @@ import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnch
 import { GenerationQueue } from "@/components/generation/GenerationQueue"
 import { FilesPanel } from "@/components/ui/FilesPanel"
 import { AssetsPanel } from "@/components/ui/AssetsPanel"
-import { saveMemoryFile, updateProjectQualities } from "@/lib/db-utils"
+import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db-utils"
 import { db } from "@/lib/client-db"
-import { fetchAndSyncProject } from "@/lib/sync"
+import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
 
 type PlanningMode = 'plan' | 'style' | 'generation'
 
 export default function PlanningPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
@@ -32,11 +34,103 @@ export default function PlanningPage() {
 
   // Sync project data from Prisma to Dexie on mount
   // This ensures GenerationQueue and other client components can find project data
+  // Sync project data from Prisma to Dexie on mount
+  // This ensures GenerationQueue and other client components can find project data
   useEffect(() => {
     if (params.id && typeof params.id === 'string') {
-      fetchAndSyncProject(params.id).catch(console.error)
+      fetchAndSyncProject(params.id).then((project) => {
+        if (project) {
+          // If URL has no mode, use project phase (restore session)
+          const urlMode = searchParams.get('mode');
+          if (!urlMode && project.phase && ['plan', 'style', 'generation'].includes(project.phase)) {
+            // If the stored phase is different from default 'plan', update it
+            // Map 'planning' from DB to 'plan' for UI
+            const uiMode = project.phase === 'planning' ? 'plan' : project.phase as PlanningMode;
+            if (uiMode !== mode) {
+              setMode(uiMode);
+              // Also update URL to match
+              router.replace(`/project/${params.id}/planning?mode=${uiMode}`);
+            }
+          } else if (urlMode && ['plan', 'style', 'generation'].includes(urlMode)) {
+            // URL takes precedence if present
+            setMode(urlMode as PlanningMode);
+          }
+        }
+      }).catch(console.error)
     }
-  }, [params.id])
+    // We intentionally ignore 'mode' dependency to prevent re-syncing on local mode changes
+    // which would cause a race condition with the optimistic update.
+    // This effect is for initialization/restoration only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, searchParams, router])
+
+  // Load saved plan and qualities from memory files on mount
+  useEffect(() => {
+    const loadSavedState = async () => {
+      if (!params.id || typeof params.id !== 'string') return;
+
+      try {
+        // Load plan from entities.json
+        const savedPlan = await loadMemoryFile(params.id, 'entities.json');
+        if (savedPlan) {
+          console.log('📂 Loaded saved plan from entities.json');
+          setPlanMarkdown(savedPlan);
+        }
+
+        // Load project qualities from Dexie
+        const project = await db.projects.get(params.id);
+        if (project) {
+          console.log('📂 Loaded project qualities from Dexie');
+          const loadedQualities: ProjectQualities = {};
+          if (project.art_style) loadedQualities.art_style = project.art_style;
+          if (project.base_resolution) loadedQualities.base_resolution = project.base_resolution;
+          if (project.perspective) loadedQualities.perspective = project.perspective;
+          if (project.game_genre) loadedQualities.game_genre = project.game_genre;
+          if (project.theme) loadedQualities.theme = project.theme;
+          if (project.mood) loadedQualities.mood = project.mood;
+          if (project.color_palette) loadedQualities.color_palette = project.color_palette;
+          setQualities(loadedQualities);
+        }
+      } catch (error) {
+        console.error('Failed to load saved state:', error);
+      }
+    };
+
+    loadSavedState();
+  }, [params.id]);
+
+  // Handle mode switching with persistence
+  const handleModeChange = async (newMode: PlanningMode) => {
+    // 1. Optimistic Update
+    setMode(newMode);
+
+    const projectId = params.id as string;
+    if (!projectId) return;
+
+    // 2. Update URL (shallow)
+    router.replace(`/project/${projectId}/planning?mode=${newMode}`);
+
+    // 3. Update Local DB (Dexie)
+    // Map UI mode 'plan' back to DB phase 'planning'
+    const dbPhase = newMode === 'plan' ? 'planning' : newMode;
+
+    try {
+      await db.projects.update(projectId, {
+        phase: dbPhase,
+        updated_at: new Date().toISOString()
+      });
+
+      // 4. Background Sync to Server (Prisma)
+      fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: dbPhase })
+      }).catch(err => console.error("Failed to sync phase to server:", err));
+
+    } catch (error) {
+      console.error("Failed to update local project phase:", error);
+    }
+  };
 
   // Handler for quality updates from AI
   const handleQualityUpdate = (qualityKey: string, value: string) => {
@@ -65,7 +159,7 @@ export default function PlanningPage() {
   // Handler for style finalization
   const handleStyleFinalized = () => {
     console.log('✅ Style finalized, switching to generation mode');
-    setMode('generation');
+    handleModeChange('generation');
   };
 
   const handleEditPlan = () => {
@@ -85,12 +179,14 @@ export default function PlanningPage() {
       await db.transaction('rw', db.memory_files, db.projects, async () => {
         await saveMemoryFile(projectId, 'entities.json', planMarkdown)
         await updateProjectQualities(projectId, qualities)
-        await db.projects.update(projectId, {
-          phase: 'style',
-          updated_at: new Date().toISOString(),
-        })
+        // Phase update handled by handleModeChange below, but good to keep transaction atomic specific logic here if needed
+        // For now, we will let handleModeChange do the phase update
       })
-      setMode('style')
+
+      // Sync to Server (Prisma) so GenerationQueue can find it
+      await syncMemoryFileToServer(projectId, 'entities.json', planMarkdown);
+
+      handleModeChange('style')
     } catch (error) {
       console.error("Plan approval failed:", error)
     } finally {
@@ -113,7 +209,7 @@ export default function PlanningPage() {
     // 2. Reprompt AI if we have a chat ref (only in plan mode)
     if (chatRef.current && mode === 'plan') {
       const activeQualities = Object.entries(qualities)
-        .filter(([_, v]) => v)
+        .filter(([, v]) => v)
         .map(([k, v]) => `- ${k.replace('_', ' ')}: ${v}`)
         .join('\n')
 
@@ -151,7 +247,7 @@ export default function PlanningPage() {
               {(['plan', 'style', 'generation'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
-                  onClick={() => setMode(tabMode)}
+                  onClick={() => handleModeChange(tabMode)}
                   className={`
                     px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-300 capitalize tracking-wide
                     ${mode === tabMode
@@ -190,7 +286,7 @@ export default function PlanningPage() {
               {(['plan', 'style', 'generation'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
-                  onClick={() => setMode(tabMode)}
+                  onClick={() => handleModeChange(tabMode)}
                   className={`
                     flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all capitalize
                     ${mode === tabMode

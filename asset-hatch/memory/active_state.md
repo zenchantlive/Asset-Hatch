@@ -1,7 +1,7 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-28
-**Session:** UI Refinements & Data Sync - ✅ COMPLETE
+**Session:** Session Persistence - ✅ COMPLETE
 **Branch:** feat/ui-refinement-premium
 **Latest Commit:** (Pending)
 
@@ -9,7 +9,7 @@
 
 ## 📍 Current Focus
 
-> **✅ UI REFINEMENTS COMPLETE:** Fixed typography, mobile layout, OAuth account linking, and Prisma→Dexie data sync. All changes pass type checking. See ADR 011 for architectural details.
+> **✅ SESSION PERSISTENCE COMPLETE:** Implemented robust hybrid persistence. Chat, Plans, Assets, and Tab state now fully persist across reloads and devices.
 
 ---
 
@@ -68,6 +68,12 @@
 - **Workflow:** "Save" button for parameters with auto-reprompt, direct "Style Anchor" button
 - **Visuals:** Plan Preview colored ticks, Global dark scrollbars, Auto-minimizing logs
 
+#### 8. Session Persistence & Auto-Save ✅
+**Files:** `app/project/[id]/planning/page.tsx`, `app/api/projects/[id]/route.ts`
+- **Tabs:** Switching modes (`plan`, `style`, `generation`) saves to DB immediately
+- **URL:** Updates URL with `?mode=...` for deep linking
+- **Restore:** Opening project restores last active phase
+
 ---
 
 ## 📁 Files Modified/Created (This Session)
@@ -107,14 +113,14 @@
 | **Parameters Bar** | ✅ Complete | Collapsible, visible |
 | **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
 | **Plan Preview** | ✅ Complete | Colorful, readable |
+| **Session Persistence** | ✅ Complete | Hybrid (DB+Dexie+Local) |
 | **Generation Workflow** | 🟢 90% Complete | Ready for testing |
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Session Auto-Save** (Google Docs style persistence)
-2. **Test Generation Flow** (End-to-end with style anchor)
-3. **Polish Generation Features** (Cost estimation, batch progress)
-4. **Download/Export** (Zip file generation)
+1. **Test Generation Flow** (End-to-end with style anchor) <!-- id: 117 -->
+2. **Polish Generation Features** (Cost estimation, batch progress) <!-- id: 118 -->
+3. **Download/Export** (Zip file generation) <!-- id: 119 -->
 

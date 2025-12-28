@@ -92,3 +92,59 @@ export async function DELETE(
         );
     }
 }
+
+// =============================================================================
+// PATCH - Update a project by ID
+// =============================================================================
+
+export async function PATCH(
+    request: Request,
+    props: { params: Promise<{ id: string }> }
+) {
+    try {
+        const params = await props.params;
+        const session = await auth();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { phase } = body;
+
+        // Verify ownership before updating
+        const project = await prisma.project.findFirst({
+            where: {
+                id: params.id,
+                userId: session.user.id,
+            },
+        });
+
+        if (!project) {
+            return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        }
+
+        // Validate phase if provided
+        const validPhases = ["planning", "style", "generation", "export"];
+        if (phase && !validPhases.includes(phase)) {
+            return NextResponse.json({ error: "Invalid phase" }, { status: 400 });
+        }
+
+        const updatedProject = await prisma.project.update({
+            where: {
+                id: params.id,
+            },
+            data: {
+                phase: phase,
+            },
+        });
+
+        return NextResponse.json({ project: updatedProject });
+    } catch (error) {
+        console.error("Failed to update project:", error);
+        return NextResponse.json(
+            { error: "Failed to update project" },
+            { status: 500 }
+        );
+    }
+}
