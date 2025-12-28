@@ -34,6 +34,7 @@ model User {
 
 // Account model - links OAuth providers to users (GitHub, Google, etc.)
 model Account {
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -47,11 +48,12 @@ model Account {
   session_state     String?
   user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
 }
 
 // Session model - stores active user sessions (for database strategy)
 model Session {
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -64,7 +66,7 @@ model VerificationToken {
   token      String   @unique
   expires    DateTime
 
-  @@id([identifier, token])
+  @@unique([identifier, token])
 }
 
 // =============================================================================
