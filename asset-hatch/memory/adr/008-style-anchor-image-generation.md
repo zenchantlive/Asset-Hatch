@@ -1,4 +1,4 @@
-# ADR-008: Style Anchor Image Generation via OpenRouter Flux.2
+ @009@00# ADR-008: Style Anchor Image Generation via OpenRouter Flux.2
 
 **Status:** Accepted
 **Date:** 2025-12-27

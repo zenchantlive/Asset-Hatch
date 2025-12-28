@@ -298,6 +298,7 @@ export function parsePlan(
 ```
 
 **Why composite by default?**
+- Assures consistency for AI-based game generation
 - Game engines expect sprite sheets
 - 1 API call instead of 4 (cheaper, faster)
 - LLM-friendly (AI coding agents can see full sheet)
