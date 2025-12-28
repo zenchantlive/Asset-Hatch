@@ -26,9 +26,9 @@ Key challenges:
 **Use exact OpenRouter model IDs, not marketing names:**
 
 ```typescript
-// ✅ CORRECT
+// ✅ CORRECTdr
 export const FLUX_MODELS = {
-  'flux-2-dev': 'black-forest-labs/flux.2-pro',
+  'flux-2-dev': 'black-forest-labs/flux.2-dev',
   'flux-2-pro': 'black-forest-labs/flux.2-pro',
 };
 

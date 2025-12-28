@@ -120,21 +120,21 @@ export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border backdrop-blur-sm",
               isActive
-                ? "bg-primary/20 border-primary/50 text-primary-foreground shadow-[0_0_10px_-2px_var(--color-primary)]"
-                : "bg-glass-bg border-glass-border text-muted-foreground hover:bg-glass-bg/80 hover:text-foreground"
+                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_15px_-4px_var(--color-primary)] ring-1 ring-primary/20"
+                : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 hover:border-white/20"
             )}
           >
             {isActive ? (
               <>
-                <span className="opacity-70">{label}:</span>
-                <span className="font-bold">{selectedValue}</span>
+                <span className="opacity-60 font-normal">{label}</span>
+                <span className="font-semibold text-primary-foreground/90">{selectedValue}</span>
               </>
             ) : (
-              <span>{label}</span>
+              <span className="tracking-wide">{label}</span>
             )}
-            <ChevronDown className="w-3 h-3 opacity-50" />
+            <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isActive ? "opacity-80 text-primary" : "opacity-40")} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -161,22 +161,22 @@ export function QualitiesBar({ qualities, onQualitiesChange }: QualitiesBarProps
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-4 px-1">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+    <div className="w-full px-6 py-4 border-b border-white/5 bg-glass-bg/10 backdrop-blur-md">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xs font-bold tracking-widest text-muted-foreground/70 uppercase font-heading">
           Asset Parameters
         </h2>
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+          className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
         >
           <Wand2 className="w-3.5 h-3.5" />
-          Suggest from Chat
+          Suggest
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2.5">
         {renderPill("art_style", "Style")}
         {renderPill("base_resolution", "Res")}
         {renderPill("perspective", "View")}
