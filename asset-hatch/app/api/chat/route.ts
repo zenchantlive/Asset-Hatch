@@ -174,9 +174,15 @@ export async function POST(req: NextRequest) {
               });
 
               // Merge with existing draft data
-              const currentData = existingDraft
-                ? JSON.parse(existingDraft.content)
-                : { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              const defaultData = { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              let currentData;
+              try {
+                currentData = existingDraft && existingDraft.content
+                  ? JSON.parse(existingDraft.content)
+                  : defaultData;
+              } catch {
+                currentData = defaultData;
+              }
 
               const updatedData = {
                 styleKeywords: input.styleKeywords ?? currentData.styleKeywords,
