@@ -57,10 +57,10 @@ export function CreateProjectButton({
 
             const { project } = await response.json();
 
-            // Close modal and navigate
+            // Close modal and refresh dashboard data
             setIsOpen(false);
             setName("");
-            router.push(`/project/${project.id}/planning`);
+            router.refresh();
 
         } catch (error) {
             console.error("Failed to create project:", error);
