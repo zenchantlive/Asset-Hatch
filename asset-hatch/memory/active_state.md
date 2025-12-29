@@ -3,13 +3,13 @@
 **Last Updated:** 2025-12-28
 **Session:** Session Persistence - ✅ COMPLETE
 **Branch:** feat/ui-refinement-premium
-**Latest Commit:** (Pending)
+**Latest Commit:** 27f9f0b (Security: Hardening API endpoints)
 
 ---
 
 ## 📍 Current Focus
 
-> **✅ SESSION PERSISTENCE COMPLETE:** Implemented robust hybrid persistence. Chat, Plans, Assets, and Tab state now fully persist across reloads and devices.
+> **🔒 SECURITY HARDENING & CONSISTENCY:** Addressing critical security vulnerabilities (account takeover risk), eliminating race conditions in data persistence, and resolving UI/API phase consistency issues.
 
 ---
 
@@ -120,7 +120,24 @@
 
 ## 🚀 Next Steps
 
-1. **Test Generation Flow** (End-to-end with style anchor) <!-- id: 117 -->
-2. **Polish Generation Features** (Cost estimation, batch progress) <!-- id: 118 -->
-3. **Download/Export** (Zip file generation) <!-- id: 119 -->
+1. **Secure Account Linking** (Fix `allowDangerousEmailAccountLinking` in `auth.ts`) <!-- id: 121 -->
+2. **Standardize Phase Strings** (`planning` vs `plan` consistency across UI/API) <!-- id: 122 -->
+3. **Verify Atomic Upserts** (Ensure all memory-file operations use the new unique constraint) <!-- id: 123 -->
+4. **Download/Export** (Zip file generation) <!-- id: 124 -->
+
+## 🚩 Pending Audit Issues (PR #8)
+
+### 🔒 Security: Account Takeover Risk
+- **Location:** `asset-hatch/auth.ts`
+- **Impact:** `allowDangerousEmailAccountLinking: true` allows GitHub accounts to link to existing credentials accounts based solely on email.
+- **Action:** Require explicit verification or user confirmation.
+
+### ⚡ Race Condition: Memory File Upsert
+- **Location:** `app/api/projects/[id]/memory-files/route.ts`
+- **Resolution:** Implemented `@@unique([projectId, type])` and atomic `prisma.memoryFile.upsert()`.
+
+### 🐞 Consistency: Mode/Phase Mapping
+- **Location:** `ChatInterface.tsx` and `app/api/projects/[id]/route.ts`
+- **Issue:** UI uses `plan`, while API/DB uses `planning`. Mismatched validation lists.
+- **Action:** Standardize on one set of valid phases.
 
