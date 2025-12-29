@@ -74,3 +74,66 @@ export interface GeneratedAsset {
     created_at: string;
     updated_at: string;
 }
+
+// =============================================================================
+// Export Format Types (ADR-014: Single-Asset Strategy)
+// =============================================================================
+
+/**
+ * Manifest for exported asset pack
+ * Enables AI-consumable, programmatic asset usage
+ */
+export interface ExportManifest {
+    project: {
+        id: string;
+        name: string;
+        created: string; // ISO 8601 timestamp
+    };
+    style: {
+        artStyle: string; // "Pixel Art", "Low Poly 3D", etc.
+        baseResolution: string; // "32x32", "64x64"
+        perspective: string; // "Top-down", "Side-view", etc.
+        colorPalette: string; // "Vibrant", "Muted", etc.
+        anchorImagePath?: string; // Relative path to style anchor image
+    };
+    assets: ExportAssetMetadata[];
+}
+
+/**
+ * Metadata for a single exported asset
+ * Semantic IDs enable AI code generation
+ */
+export interface ExportAssetMetadata {
+    id: string; // Semantic ID: "player_idle", "chair_wooden_01"
+    semanticName: string; // Human-readable: "Player Idle Sprite"
+    path: string; // Relative path: "characters/player_idle.png"
+    category: string; // "character", "furniture", "terrain", etc.
+    tags: string[]; // ["player", "protagonist", "idle"]
+    dimensions: {
+        width: number;
+        height: number;
+    };
+    frames: number; // 1 for single sprite, >1 for sprite sheet
+    aiDescription: string; // Description for AI consumption
+    generationMetadata: {
+        prompt: string; // Full Flux.2 prompt used
+        seed: number; // Generation seed
+        model: string; // "flux.2-pro"
+    };
+    placementRules?: PlacementRules; // Optional gameplay metadata
+}
+
+/**
+ * Optional gameplay metadata for AI game generation
+ */
+export interface PlacementRules {
+    surfaces?: string[]; // ["floor", "wall", "water"]
+    stackable?: boolean; // Can items be placed on top?
+    collisionBox?: {
+        x: number; // Offset from sprite origin
+        y: number;
+        width: number;
+        height: number;
+    };
+    interactable?: boolean; // Can player interact?
+}
