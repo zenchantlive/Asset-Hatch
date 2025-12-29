@@ -1,0 +1,201 @@
+/**
+ * Export API Route
+ * 
+ * Generates a ZIP file containing all approved assets organized by category
+ * with a manifest.json file for AI-consumable metadata.
+ * 
+ * Per ADR-014: Single-Asset Strategy
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import JSZip from 'jszip';
+import { prisma } from '@/lib/prisma';
+import { generateSemanticId, getCategoryFolder } from '@/lib/prompt-builder';
+import type { ExportManifest, ExportAssetMetadata } from '@/lib/types';
+
+/**
+ * POST /api/export
+ * 
+ * Request body: { projectId: string }
+ * Returns: ZIP file as blob
+ */
+export async function POST(req: NextRequest) {
+    try {
+        // Parse request body
+        const { projectId } = await req.json();
+
+        if (!projectId) {
+            return NextResponse.json(
+                { error: 'Project ID is required' },
+                { status: 400 }
+            );
+        }
+
+        // Fetch project from database
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+        });
+
+        if (!project) {
+            return NextResponse.json(
+                { error: 'Project not found' },
+                { status: 404 }
+            );
+        }
+
+        // Fetch all approved assets
+        const generatedAssets = await prisma.generatedAsset.findMany({
+            where: {
+                projectId: projectId,
+                status: 'approved',
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+
+        if (generatedAssets.length === 0) {
+            return NextResponse.json(
+                { error: 'No approved assets to export' },
+                { status: 400 }
+            );
+        }
+
+        // Fetch asset plan (entities.json) to get asset metadata
+        const entitiesFile = await prisma.memoryFile.findUnique({
+            where: {
+                projectId_type: {
+                    projectId: projectId,
+                    type: 'entities.json',
+                },
+            },
+        });
+
+        if (!entitiesFile) {
+            return NextResponse.json(
+                { error: 'Asset plan not found' },
+                { status: 404 }
+            );
+        }
+
+        // Parse entities.json
+        const entities = JSON.parse(entitiesFile.content);
+
+        // Fetch style anchor (optional)
+        const styleAnchor = await prisma.styleAnchor.findFirst({
+            where: { projectId: projectId },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // Build export manifest
+        const manifest: ExportManifest = {
+            project: {
+                id: project.id,
+                name: project.name,
+                created: project.createdAt.toISOString(),
+            },
+            style: {
+                artStyle: project.artStyle || 'Pixel Art',
+                baseResolution: project.baseResolution || '32x32',
+                perspective: project.perspective || 'Top-down',
+                colorPalette: project.colorPalette || 'Vibrant',
+                anchorImagePath: styleAnchor ? 'style_anchor.png' : undefined,
+            },
+            assets: [],
+        };
+
+        // Create ZIP archive
+        const zip = new JSZip();
+
+        // Add style anchor if exists
+        if (styleAnchor) {
+            zip.file('style_anchor.png', styleAnchor.referenceImageBlob);
+        }
+
+        // Process each generated asset
+        for (const generatedAsset of generatedAssets) {
+            // Find corresponding entity in plan
+            const entity = entities.find((e: any) => e.id === generatedAsset.assetId);
+
+            if (!entity) {
+                console.warn(`Entity not found for asset: ${generatedAsset.assetId}`);
+                continue;
+            }
+
+            // Generate semantic ID
+            const semanticId = generateSemanticId(entity);
+
+            // Determine category folder
+            const categoryFolder = getCategoryFolder(entity.category);
+
+            // Construct file path
+            const filePath = `${categoryFolder}/${semanticId}.png`;
+
+            // Parse dimensions from base_resolution
+            const [width, height] = (project.baseResolution || '32x32')
+                .split('x')
+                .map(n => parseInt(n, 10));
+
+            // Determine frame count (1 for single sprite, >1 for sprite sheet)
+            const frameCount = entity.variant?.frameCount || 1;
+
+            // Parse metadata (stored as JSON string in Prisma)
+            const metadata = generatedAsset.metadata
+                ? JSON.parse(generatedAsset.metadata)
+                : { model: 'flux.2-pro', seed: 0 };
+
+            // Build asset metadata
+            const assetMetadata: ExportAssetMetadata = {
+                id: semanticId,
+                semanticName: `${entity.category} - ${entity.name}${entity.variant?.name ? ` (${entity.variant.name})` : ''}`,
+                path: filePath,
+                category: entity.category.toLowerCase().replace(/s$/, ''), // Singular
+                tags: [
+                    entity.category.toLowerCase(),
+                    entity.name.toLowerCase(),
+                    ...(entity.variant?.name ? [entity.variant.name.toLowerCase()] : []),
+                ],
+                dimensions: { width, height },
+                frames: frameCount,
+                aiDescription: entity.description,
+                generationMetadata: {
+                    prompt: generatedAsset.promptUsed || 'No prompt recorded',
+                    seed: generatedAsset.seed || metadata.seed || 0,
+                    model: metadata.model || 'flux.2-pro',
+                },
+            };
+
+            // Add to manifest
+            manifest.assets.push(assetMetadata);
+
+            // Add asset image to ZIP
+            zip.file(filePath, generatedAsset.imageBlob);
+        }
+
+        // Add manifest.json to ZIP root
+        zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+
+        // Generate ZIP blob
+        const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 },
+        });
+
+        // Return ZIP as download
+        return new NextResponse(zipBlob, {
+            headers: {
+                'Content-Type': 'application/zip',
+                'Content-Disposition': `attachment; filename="${project.name.replace(/\s+/g, '_')}_assets.zip"`,
+                'Content-Length': zipBlob.size.toString(),
+            },
+        });
+
+    } catch (error) {
+        console.error('Export error:', error);
+        return NextResponse.json(
+            { error: 'Failed to export assets', details: error instanceof Error ? error.message : 'Unknown error' },
+            { status: 500 }
+        );
+    }
+}
