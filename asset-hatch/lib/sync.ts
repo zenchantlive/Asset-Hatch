@@ -216,21 +216,32 @@ export const reverseQualityFieldMap: Record<string, string> = {
 
 /**
  * Sync a memory file from Dexie to Server (Prisma)
+ * Returns true if sync successful, false otherwise
  */
 export async function syncMemoryFileToServer(
     projectId: string,
     type: string,
     content: string
-): Promise<void> {
+): Promise<boolean> {
     try {
-        await fetch(`/api/projects/${projectId}/memory-files`, {
+        const response = await fetch(`/api/projects/${projectId}/memory-files`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ type, content }),
         });
+
+        // Check if request was successful
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to sync memory file ${type} (status ${response.status}):`, errorText);
+            return false;
+        }
+
+        return true;
     } catch (error) {
         console.error(`Failed to sync memory file ${type} to server:`, error);
+        return false;
     }
 }
