@@ -49,7 +49,7 @@ bunx prisma studio       # Open Prisma Studio GUI
 - **TypeScript**: Strict mode enabled
 - **Styling**: Tailwind CSS v4 with oklch colors, glassmorphism + aurora gradients
 - **UI Components**: shadcn/ui + Radix UI primitives
-- **Typography**: Outfit font (geometric, modern aesthetic)
+- **Typography**: Modern Sans-Serif (Outfit) + Geometric Headings (Space Grotesk) via next/font
 
 ### AI Integration
 - **Framework**: Vercel AI SDK v6 (`ai`, `@ai-sdk/react`)
@@ -368,10 +368,10 @@ bun run test:coverage     # Coverage report only
 ## Architecture Decisions (ADRs)
 
 Key decisions documented in `memory/adr/`:
-- **ADR-005**: Replaced CopilotKit with Vercel AI SDK v6
-- **ADR-006**: Generation architecture (composite sprites default)
-- **ADR-007**: Hybrid Persistence Model (Prisma + Dexie)
-- **ADR-008**: Style Anchor Image Generation via OpenRouter Flux.2
+- **ADR-010**: API Route Consolidation (Chat/Projects/Memory)
+- **ADR-011**: UI Refinements and Data Sync
+- **ADR-012**: Hybrid Session Persistence (Extended)
+- **ADR-013**: Security Hardening - OAuth and Phase Consistency
 
 ## Current Project Status
 

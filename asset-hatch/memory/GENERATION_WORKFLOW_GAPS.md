@@ -321,12 +321,12 @@ const resumeProject = async (projectId: string) => {
 9. Add individual asset retry buttons
 10. Add download ZIP functionality
 
-### Phase 4: Authentication & Multi-User (NOW COMPLETE ✅)
-11. ✅ Integrate Auth.js with GitHub OAuth
-12. ✅ Update Prisma schema with User model
-13. ✅ Create user dashboard
+### Phase 4: Authentication & Multi-User ✅ COMPLETE
+11. ✅ Integrate Auth.js with GitHub OAuth (Hardened: disabled dangerous linking)
+12. ✅ Update Prisma Schema with User model
+13. ✅ Create User Dashboard
 14. ✅ Implement project resume functionality (via Dashboard)
-15. Add project sharing/collaboration features (Future)
+15. ✅ Standardize phase/mode strings across all layers (ADR 013)
 
 ---
 
@@ -339,7 +339,7 @@ const resumeProject = async (projectId: string) => {
 
 2. **Project Phase State Management**
    - Phase transitions should update both Dexie and Prisma
-   - Need to handle offline → online sync
+   - Standardized on `'planning'` everywhere to simplify logic
 
 3. **Error Boundary Components**
    - Add error boundaries around major components
@@ -362,10 +362,12 @@ const resumeProject = async (projectId: string) => {
 | Auth.js Setup | ✅ 100% | CRITICAL |
 | User Dashboard | ✅ 100% | HIGH |
 | Project History | ✅ 100% | HIGH |
+| Security Hardening | ✅ 100% | CRITICAL |
 | Batch Generation API | ✅ 80% | MEDIUM |
 | Cost Estimation | ⏳ 0% | MEDIUM |
 
 **Overall Status:**
 - **Generation Phase:** 85% Complete
+- **Security & Consistency:** 100% Complete ✅
 - **Auth & Dashboard:** 100% Complete ✅
 
