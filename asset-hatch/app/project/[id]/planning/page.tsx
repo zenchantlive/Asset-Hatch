@@ -13,7 +13,7 @@ import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db
 import { db } from "@/lib/client-db"
 import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
 
-type PlanningMode = 'plan' | 'style' | 'generation'
+type PlanningMode = 'planning' | 'style' | 'generation'
 
 export default function PlanningPage() {
   const params = useParams()
@@ -22,7 +22,7 @@ export default function PlanningPage() {
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
-  const [mode, setMode] = useState<PlanningMode>('plan')
+  const [mode, setMode] = useState<PlanningMode>('planning')
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
   const [assetsMenuOpen, setAssetsMenuOpen] = useState(false)
   const chatRef = useRef<ChatInterfaceHandle>(null)
@@ -42,16 +42,15 @@ export default function PlanningPage() {
         if (project) {
           // If URL has no mode, use project phase (restore session)
           const urlMode = searchParams.get('mode');
-          if (!urlMode && project.phase && ['plan', 'style', 'generation'].includes(project.phase)) {
-            // If the stored phase is different from default 'plan', update it
-            // Map 'planning' from DB to 'plan' for UI
-            const uiMode = project.phase === 'planning' ? 'plan' : project.phase as PlanningMode;
-            if (uiMode !== mode) {
-              setMode(uiMode);
+          if (!urlMode && project.phase && ['planning', 'style', 'generation'].includes(project.phase)) {
+            // If the stored phase is different from default 'planning', update it
+            const phaseMode = project.phase as PlanningMode;
+            if (phaseMode !== mode) {
+              setMode(phaseMode);
               // Also update URL to match
-              router.replace(`/project/${params.id}/planning?mode=${uiMode}`);
+              router.replace(`/project/${params.id}/planning?mode=${phaseMode}`);
             }
-          } else if (urlMode && ['plan', 'style', 'generation'].includes(urlMode)) {
+          } else if (urlMode && ['planning', 'style', 'generation'].includes(urlMode)) {
             // URL takes precedence if present
             setMode(urlMode as PlanningMode);
           }
@@ -111,12 +110,10 @@ export default function PlanningPage() {
     router.replace(`/project/${projectId}/planning?mode=${newMode}`);
 
     // 3. Update Local DB (Dexie)
-    // Map UI mode 'plan' back to DB phase 'planning'
-    const dbPhase = newMode === 'plan' ? 'planning' : newMode;
-
+    // Phase values are now consistent across UI and DB
     try {
       await db.projects.update(projectId, {
-        phase: dbPhase,
+        phase: newMode,
         updated_at: new Date().toISOString()
       });
 
@@ -124,7 +121,7 @@ export default function PlanningPage() {
       fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phase: dbPhase })
+        body: JSON.stringify({ phase: newMode })
       }).catch(err => console.error("Failed to sync phase to server:", err));
 
     } catch (error) {
@@ -206,8 +203,8 @@ export default function PlanningPage() {
       }
     }
 
-    // 2. Reprompt AI if we have a chat ref (only in plan mode)
-    if (chatRef.current && mode === 'plan') {
+    // 2. Reprompt AI if we have a chat ref (only in planning mode)
+    if (chatRef.current && mode === 'planning') {
       const activeQualities = Object.entries(qualities)
         .filter(([, v]) => v)
         .map(([k, v]) => `- ${k.replace('_', ' ')}: ${v}`)
@@ -244,7 +241,7 @@ export default function PlanningPage() {
           {/* CENTER: Interaction Mode Tabs */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 backdrop-blur-sm">
-              {(['plan', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -283,7 +280,7 @@ export default function PlanningPage() {
           {/* Row 1: Tabs (centered, full width) */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 w-full max-w-xs">
-              {(['plan', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -359,7 +356,7 @@ export default function PlanningPage() {
             </div>
 
             <div className="w-1/2 flex flex-col relative bg-glass-bg/10">
-              {mode === 'plan' && (
+              {mode === 'planning' && (
                 <PlanPreview
                   markdown={planMarkdown}
                   onEdit={handleEditPlan}
