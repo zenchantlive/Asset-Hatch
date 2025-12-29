@@ -36,7 +36,7 @@ interface ChatInterfaceProps {
   onStyleDraftUpdate?: (draft: Partial<StyleDraft>) => void;
   onStyleAnchorGenerated?: (anchor: GeneratedStyleAnchor) => void;
   onStyleFinalized?: () => void;
-  mode?: 'plan' | 'style';
+  mode?: 'planning' | 'style';
 }
 
 export interface ChatInterfaceHandle {
@@ -52,7 +52,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   onStyleDraftUpdate,
   onStyleAnchorGenerated,
   onStyleFinalized,
-  mode = 'plan',
+  mode = 'planning',
 }, ref) => {
   const [input, setInput] = useState("");
   const chatId = `chat-${projectId}`;
@@ -306,7 +306,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
               What are we building?
             </h3>
             <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
-              Describe your game idea, style, or specific assets. I'll help you plan and generate everything.
+              Describe your game idea, style, or specific assets. I&apos;ll help you plan and generate everything.
             </p>
           </div>
         ) : (

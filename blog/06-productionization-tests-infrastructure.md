@@ -5,7 +5,7 @@ part: 6
 date: 2025-12-26
 updated: 2025-12-28
 tags: [Testing, Jest, Flux.2, Prompt Engineering, Infrastructure, Next.js]
-reading_time: "12 min"
+reading_time: "11 min"
 status: published
 ---
 
@@ -537,6 +537,9 @@ export default function PlanningPage({ params }: { params: { id: string } }) {
 - **UI**: Premium typography integration complete. FilesPanel and AssetsPanel active.
 - **Performance**: Flux.2 generation averaging ~6-8s via OpenRouter.
 
+> [!NOTE]
+> While the generation logic was solid, we soon discovered critical security gaps in our API endpoints. We dive into the audit and hardening process in the next post.
+
 **Commits:**
 
 ```bash
@@ -585,11 +588,11 @@ The quality gate of a human clicking "Approve" is the difference between a proje
 
 ## Coming Next
 
-In [Part 7: Reflections](07-reflections-lessons-learned.md), the final post.
+In [Part 7: Hardening](07-hardening-battle-testing-the-api.md), we move beyond "it works" to "it's safe".
 
-What worked. What didn't. What I'd change. Advice for anyone building with AI agents in 2025.
+What happens when an automated security bot audits your AI-generated code? We find unauthenticated endpoints, race conditions, and error leaks—and fix them all.
 
-**Spoiler:** AI-first development is real, but not in the way the marketing says it is.
+**Spoiler:** AI is a great coder, but it's not a security auditor (yet).
 
 ---
 
@@ -614,4 +617,4 @@ What worked. What didn't. What I'd change. Advice for anyone building with AI ag
 ---
 
 **Previous:** [← Part 5: The Architecture](05-the-architecture-hybrid-persistence.md)
-**Next:** [Part 7: Reflections →](07-reflections-lessons-learned.md)
+**Next:** [Part 7: Hardening →](07-hardening-battle-testing-the-api.md)

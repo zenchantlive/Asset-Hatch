@@ -120,10 +120,32 @@
 
 ## 🚀 Next Steps
 
-1. **Secure Account Linking** (Fix `allowDangerousEmailAccountLinking` in `auth.ts`) <!-- id: 121 -->
-2. **Standardize Phase Strings** (`planning` vs `plan` consistency across UI/API) <!-- id: 122 -->
-3. **Verify Atomic Upserts** (Ensure all memory-file operations use the new unique constraint) <!-- id: 123 -->
+1. ~~**Secure Account Linking**~~ ✅ **COMPLETE** - Disabled `allowDangerousEmailAccountLinking` in `auth.ts`
+2. ~~**Standardize Phase Strings**~~ ✅ **COMPLETE** - Using `'planning'` consistently across UI/API/DB
+3. ~~**Verify Atomic Upserts**~~ ✅ **COMPLETE** - All memory-file operations use atomic `upsert()` with DB unique constraint
 4. **Download/Export** (Zip file generation) <!-- id: 124 -->
+
+## ✅ Security Hardening Complete (2025-12-28)
+
+### 🔒 OAuth Account Linking Fixed
+- **File:** `auth.ts`
+- **Change:** `allowDangerousEmailAccountLinking: false` (was `true`)
+- **Impact:** Prevents account takeover attacks via email matching
+- **Trade-off:** Users must use same sign-in method consistently
+
+### 🐞 Phase Consistency Fixed
+- **Files:** `app/project/[id]/planning/page.tsx`, `ChatInterface.tsx`, `preset-prompts.ts`
+- **Change:** Standardized on `'planning'` everywhere (removed `'plan'` → `'planning'` mapping)
+- **Benefit:** Single source of truth, type-safe, eliminates mapping bugs
+
+### ⚡ Race Condition Verified
+- **Status:** Already fixed in previous work
+- **Verification:** Database has `@@unique([projectId, type])` constraint, all endpoints use atomic `upsert()`
+- **Database Migrations:** Up to date
+
+### 📝 Documentation
+- **ADR Created:** `memory/adr/013-security-hardening-oauth-and-consistency.md`
+- **Testing:** ✅ TypeScript compilation passed, ✅ Linting passed
 
 ## 🚩 Pending Audit Issues (PR #8)
 

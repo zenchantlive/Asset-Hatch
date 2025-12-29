@@ -144,9 +144,9 @@ export const STYLE_PRESETS: PresetPrompt[] = [
  * @param mode - The current interface mode ('plan' or 'style')
  * @returns Array of PresetPrompt objects for that mode
  */
-export function getPresetsForMode(mode: 'plan' | 'style'): PresetPrompt[] {
+export function getPresetsForMode(mode: 'planning' | 'style'): PresetPrompt[] {
     // Return the appropriate preset array based on mode
-    return mode === 'plan' ? PLAN_PRESETS : STYLE_PRESETS
+    return mode === 'planning' ? PLAN_PRESETS : STYLE_PRESETS
 }
 
 /**
