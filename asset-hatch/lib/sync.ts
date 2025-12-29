@@ -107,12 +107,16 @@ export async function syncProjectToClient(
         mood: projectData.mood || undefined,
         color_palette: projectData.colorPalette || undefined,
         // Handle both Date objects and ISO strings (from JSON API)
-        created_at: typeof projectData.createdAt === 'string'
-            ? projectData.createdAt
-            : projectData.createdAt.toISOString(),
-        updated_at: typeof projectData.updatedAt === 'string'
-            ? projectData.updatedAt
-            : projectData.updatedAt.toISOString(),
+        created_at: projectData.createdAt
+            ? (typeof projectData.createdAt === 'string'
+                ? projectData.createdAt
+                : projectData.createdAt.toISOString())
+            : new Date().toISOString(),
+        updated_at: projectData.updatedAt
+            ? (typeof projectData.updatedAt === 'string'
+                ? projectData.updatedAt
+                : projectData.updatedAt.toISOString())
+            : new Date().toISOString(),
     };
 
     // Upsert project to Dexie
@@ -128,12 +132,16 @@ export async function syncProjectToClient(
                 type: file.type,
                 content: file.content,
                 // Handle both Date objects and ISO strings (from JSON API)
-                created_at: typeof file.createdAt === 'string'
-                    ? file.createdAt
-                    : file.createdAt.toISOString(),
-                updated_at: typeof file.updatedAt === 'string'
-                    ? file.updatedAt
-                    : file.updatedAt.toISOString(),
+                created_at: file.createdAt
+                    ? (typeof file.createdAt === 'string'
+                        ? file.createdAt
+                        : file.createdAt.toISOString())
+                    : new Date().toISOString(),
+                updated_at: file.updatedAt
+                    ? (typeof file.updatedAt === 'string'
+                        ? file.updatedAt
+                        : file.updatedAt.toISOString())
+                    : new Date().toISOString(),
             };
             await db.memory_files.put(dexieFile);
         }

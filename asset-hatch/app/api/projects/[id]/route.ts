@@ -4,6 +4,7 @@
 // -----------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -97,6 +98,10 @@ export async function DELETE(
 // PATCH - Update a project by ID
 // =============================================================================
 
+const ProjectUpdateSchema = z.object({
+    phase: z.enum(["planning", "style", "generation", "export"]).optional(),
+});
+
 export async function PATCH(
     request: Request,
     props: { params: Promise<{ id: string }> }
@@ -109,8 +114,17 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { phase } = body;
+        const json = await request.json();
+        const validation = ProjectUpdateSchema.safeParse(json);
+
+        if (!validation.success) {
+            return NextResponse.json(
+                { error: "Invalid request body", details: validation.error.format() },
+                { status: 400 }
+            );
+        }
+
+        const { phase } = validation.data;
 
         // Verify ownership before updating
         const project = await prisma.project.findFirst({
@@ -122,12 +136,6 @@ export async function PATCH(
 
         if (!project) {
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
-        }
-
-        // Validate phase if provided
-        const validPhases = ["planning", "style", "generation", "export"];
-        if (phase && !validPhases.includes(phase)) {
-            return NextResponse.json({ error: "Invalid phase" }, { status: 400 });
         }
 
         const updatedProject = await prisma.project.update({
