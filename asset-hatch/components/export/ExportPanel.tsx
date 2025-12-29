@@ -7,20 +7,53 @@
  * Per ADR-014: Single-Asset Strategy
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Package, FileArchive, CheckCircle2 } from 'lucide-react';
+import { db } from '@/lib/client-db';
 
 interface ExportPanelProps {
     projectId: string;
-    projectName: string;
-    approvedAssetCount: number;
 }
 
-export function ExportPanel({ projectId, projectName, approvedAssetCount }: ExportPanelProps) {
+export function ExportPanel({ projectId }: ExportPanelProps) {
     // Track export state
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [approvedAssetCount, setApprovedAssetCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [projectName, setProjectName] = useState('Asset Pack');
+
+    // Fetch project name and approved asset count from Dexie
+    useEffect(() => {
+        const loadProjectData = async () => {
+            try {
+                setIsLoading(true);
+
+                // Fetch project name
+                const project = await db.projects.get(projectId);
+                if (project) {
+                    setProjectName(project.name);
+                }
+
+                // Fetch approved asset count
+                const approvedAssets = await db.generated_assets
+                    .where('project_id')
+                    .equals(projectId)
+                    .and(asset => asset.status === 'approved')
+                    .count();
+
+                setApprovedAssetCount(approvedAssets);
+            } catch (err) {
+                console.error('Failed to load project data:', err);
+                setError('Failed to load project data');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadProjectData();
+    }, [projectId]);
 
     /**
      * Trigger export by calling /api/export endpoint
@@ -90,13 +123,19 @@ export function ExportPanel({ projectId, projectName, approvedAssetCount }: Expo
             </div>
 
             {/* Asset Count */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-                <span className="text-sm">
-                    <span className="font-semibold">{approvedAssetCount}</span> approved asset{approvedAssetCount !== 1 ? 's' : ''} ready
-                </span>
-            </div>
-
+            {isLoading ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading assets...</span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-sm">
+                        <span className="font-semibold">{approvedAssetCount}</span> approved asset{approvedAssetCount !== 1 ? 's' : ''} ready
+                    </span>
+                </div>
+            )}
             {/* Export Details */}
             <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">

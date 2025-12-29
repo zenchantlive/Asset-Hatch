@@ -12,8 +12,9 @@ import { AssetsPanel } from "@/components/ui/AssetsPanel"
 import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db-utils"
 import { db } from "@/lib/client-db"
 import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
+import { ExportPanel } from "@/components/export/ExportPanel"
 
-type PlanningMode = 'planning' | 'style' | 'generation'
+type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
 export default function PlanningPage() {
   const params = useParams()
@@ -42,7 +43,7 @@ export default function PlanningPage() {
         if (project) {
           // If URL has no mode, use project phase (restore session)
           const urlMode = searchParams.get('mode');
-          if (!urlMode && project.phase && ['planning', 'style', 'generation'].includes(project.phase)) {
+          if (!urlMode && project.phase && ['planning', 'style', 'generation', 'export'].includes(project.phase)) {
             // If the stored phase is different from default 'planning', update it
             const phaseMode = project.phase as PlanningMode;
             if (phaseMode !== mode) {
@@ -50,7 +51,7 @@ export default function PlanningPage() {
               // Also update URL to match
               router.replace(`/project/${params.id}/planning?mode=${phaseMode}`);
             }
-          } else if (urlMode && ['planning', 'style', 'generation'].includes(urlMode)) {
+          } else if (urlMode && ['planning', 'style', 'generation', 'export'].includes(urlMode)) {
             // URL takes precedence if present
             setMode(urlMode as PlanningMode);
           }
@@ -241,7 +242,7 @@ export default function PlanningPage() {
           {/* CENTER: Interaction Mode Tabs */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 backdrop-blur-sm">
-              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation', 'export'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -280,7 +281,7 @@ export default function PlanningPage() {
           {/* Row 1: Tabs (centered, full width) */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 w-full max-w-xs">
-              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation', 'export'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -337,6 +338,13 @@ export default function PlanningPage() {
         {mode === 'generation' ? (
           // Generation mode: Full-width GenerationQueue (no chat)
           <GenerationQueue projectId={params.id as string} />
+        ) : mode === 'export' ? (
+          // Export mode: Full-width ExportPanel (no chat)
+          <div className="w-full flex items-center justify-center p-8 bg-glass-bg/10">
+            <div className="w-full max-w-2xl">
+              <ExportPanel projectId={params.id as string} />
+            </div>
+          </div>
         ) : (
           // Plan and Style modes: Keep 50/50 split with chat
           <>
