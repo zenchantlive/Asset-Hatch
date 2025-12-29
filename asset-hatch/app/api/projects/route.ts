@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // =============================================================================
 // VALIDATION SCHEMA
@@ -110,12 +111,13 @@ export async function POST(
         });
 
         if (!existingUser) {
-            console.log(`User ${userId} not found in DB (stale session?). Re-creating user.`);
+            console.log(`User not found in DB (stale session?). Re-creating user.`);
             if (userEmail) {
-                // Re-create the user if we have their email
-                // We use connectOrCreate/upsert logic usually, but here distinct check is safer
-                await prisma.user.create({
-                    data: {
+                // Use upsert to prevent race condition if multiple requests try to create same user
+                await prisma.user.upsert({
+                    where: { id: userId },
+                    update: {}, // If exists, no-op
+                    create: {
                         id: userId,
                         email: userEmail,
                         name: session.user.name,
@@ -150,16 +152,16 @@ export async function POST(
         });
     } catch (error) {
         console.error("Failed to create project:", error);
-        // Log specifics if it's a Prisma error
-        if ((error as any).code) {
-            console.error("Prisma Error Code:", (error as any).code);
-            console.error("Prisma Error Message:", (error as any).message);
+        // Log specifics if it's a Prisma error using type guards
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            console.error("Prisma Error Code:", error.code);
+            console.error("Prisma Error Message:", error.message);
         }
+        // Return generic error - do NOT expose internal details to client
         return NextResponse.json(
             {
                 success: false,
                 error: "Failed to create project",
-                details: (error as any).message
             },
             { status: 500 }
         );

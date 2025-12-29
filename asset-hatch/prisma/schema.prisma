@@ -105,6 +105,8 @@ model MemoryFile {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@unique([projectId, type])
 }
 
 // StyleAnchor model - reference image and style keywords for consistent generation

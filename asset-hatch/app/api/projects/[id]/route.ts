@@ -135,7 +135,8 @@ export async function PATCH(
                 id: params.id,
             },
             data: {
-                phase: phase,
+                // Only update phase if it's explicitly provided (not undefined)
+                ...(phase !== undefined && { phase }),
             },
         });
 

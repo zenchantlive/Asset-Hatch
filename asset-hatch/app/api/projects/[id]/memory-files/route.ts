@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@/auth";
 import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
 
 /**
  * GET /api/projects/[id]/memory-files
@@ -30,17 +31,33 @@ export async function GET(
     // In Next.js 15+, params is a Promise and must be awaited
     const { id: projectId } = await params;
 
+    // Authentication check - prevent unauthorized access to memory files
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify project ownership - users can only access their own projects
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { success: false, error: 'Project not found' },
+        { status: 404 }
+      );
+    }
+
     // Extract query parameters from URL
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // Optional filter by file type
-
-    // Validate projectId exists
-    if (!projectId) {
-      return NextResponse.json(
-        { success: false, error: 'Project ID is required' },
-        { status: 400 }
-      );
-    }
 
     // Build Prisma query with conditional type filter
     // If type is provided, only return files matching that type
@@ -74,6 +91,21 @@ export async function GET(
   }
 }
 
+// Validation schema for memory file input
+const memoryFileSchema = z.object({
+  type: z.enum([
+    'project.json',
+    'entities.json',
+    'style-anchor.json',
+    'generation-log.json',
+    'conversation.json',
+    'style-draft',
+  ]),
+  content: z.string()
+    .min(1, 'Content cannot be empty')
+    .max(10_000_000, 'Content too large (max 10MB)'),
+});
+
 /**
  * POST /api/projects/[id]/memory-files
  *
@@ -103,35 +135,33 @@ export async function POST(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { type, content } = body;
+    // Parse and validate request body with Zod schema
+    const body: unknown = await request.json();
+    const parsed = memoryFileSchema.safeParse(body);
 
-    if (!type || !content) {
-      return NextResponse.json({ error: "Missing type or content" }, { status: 400 });
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || 'Invalid input';
+      return NextResponse.json(
+        { error: firstError },
+        { status: 400 }
+      );
     }
 
-    // Manual upsert since no unique constraint on [projectId, type]
-    let memoryFile = await prisma.memoryFile.findFirst({
+    const { type, content } = parsed.data;
+
+    // Use atomic upsert to prevent race conditions
+    // Now safe because we have @@unique([projectId, type]) constraint
+    const memoryFile = await prisma.memoryFile.upsert({
       where: {
+        projectId_type: { projectId, type },
+      },
+      update: { content },
+      create: {
         projectId,
         type,
+        content,
       },
     });
-
-    if (memoryFile) {
-      memoryFile = await prisma.memoryFile.update({
-        where: { id: memoryFile.id },
-        data: { content },
-      });
-    } else {
-      memoryFile = await prisma.memoryFile.create({
-        data: {
-          projectId,
-          type,
-          content,
-        },
-      });
-    }
 
     return NextResponse.json({ success: true, file: memoryFile });
   } catch (error) {
