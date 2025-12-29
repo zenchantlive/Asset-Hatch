@@ -115,7 +115,7 @@ Implementing the single-asset extraction strategy, semantic ID generation, and Z
 
 **Key Topics:** ADR 014 • Single-asset generation • Semantic IDs • ZIP streaming • Blob handling • User flow completion
 
-**Commits Referenced:** `08dd2df`, `789ad0a`, `e630b94`, `67e30f3`
+**Commits Referenced:** `08dd2df`, `789ad0a`, `e630b94`, `67e30f3`, `c03eb39`
 
 ---
 
