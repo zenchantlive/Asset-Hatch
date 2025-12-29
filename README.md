@@ -115,22 +115,22 @@ Asset-Hatch is an advanced AI-powered application that leverages the Vercel AI S
                                                                            - - Completed chat functionality
                                                                              - - Added supporting files and configurations
                                                                               
-                                                                               - ## 🔒 Privacy & Security
-                                                                              
-                                                                               - This is a private repository. Access is restricted to authorized team members.
-                                                                              
-                                                                               - ## 📄 License
-                                                                              
-                                                                               - This project is private and proprietary.
-                                                                              
-                                                                               - ## 👤 Author
-                                                                              
-                                                                               - Created by [zenchantlive](https://github.com/zenchantlive)
-                                                                              
-                                                                               - ## 📧 Support
-                                                                              
-                                                                               - For questions and support, please contact the repository maintainer at jordanlive121@gmail.com
-                                                                              
-                                                                               - ---
+## 🔒 Privacy & Security
 
-                                                                               **Last Updated**: December 26, 2025
+This repository is open source. Please report any security vulnerabilities responsibly.
+
+## 📄 License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+
+## 👤 Author
+
+Created by [zenchantlive](https://github.com/zenchantlive)
+
+## 📧 Support
+
+For questions and support, please open an issue or contact the repository maintainer.
+
+---
+
+**Last Updated**: December 28, 2025

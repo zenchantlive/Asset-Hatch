@@ -2,10 +2,13 @@
 
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import TextareaAutosize from 'react-textarea-autosize';
+import ReactMarkdown from 'react-markdown';
+import { Send, Sparkles, MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import type { UIMessage } from "@ai-sdk/react";
 import { ProjectQualities } from "./QualitiesBar";
+import { getPresetsForMode } from "@/lib/preset-prompts";
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -33,9 +36,14 @@ interface ChatInterfaceProps {
   onStyleDraftUpdate?: (draft: Partial<StyleDraft>) => void;
   onStyleAnchorGenerated?: (anchor: GeneratedStyleAnchor) => void;
   onStyleFinalized?: () => void;
+  mode?: 'planning' | 'style';
 }
 
-export function ChatInterface({
+export interface ChatInterfaceHandle {
+  sendMessage: (message: string) => void;
+}
+
+export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(({
   qualities,
   projectId,
   onQualityUpdate,
@@ -44,17 +52,33 @@ export function ChatInterface({
   onStyleDraftUpdate,
   onStyleAnchorGenerated,
   onStyleFinalized,
-}: ChatInterfaceProps) {
+  mode = 'planning',
+}, ref) => {
   const [input, setInput] = useState("");
+  const chatId = `chat-${projectId}`;
+  const hasRestoredMessages = useRef(false);
 
-  // Debug: Log projectId
+  // Debug: Log projectId and check AI SDK's localStorage
   console.log('🔧 ChatInterface projectId:', projectId);
+  console.log('🔧 Chat ID:', chatId);
+
+  // Check what AI SDK has stored
+  useEffect(() => {
+    if (projectId) {
+      const aiSdkKey = `ai-chat-chat-${projectId}`;
+      const stored = localStorage.getItem(aiSdkKey);
+      console.log('📂 AI SDK localStorage key:', aiSdkKey);
+      console.log('📂 AI SDK stored data:', stored ? 'exists' : 'empty');
+    }
+  }, [projectId, chatId]);
 
   const {
     messages,
+    setMessages,
     sendMessage,
     status,
   } = useChat({
+    id: chatId,
     // In AI SDK v6, body in hook config becomes stale
     // We pass body in sendMessage instead
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +161,58 @@ export function ChatInterface({
       }
     },
   });
+
+  // Restore messages from localStorage on first mount
+  useEffect(() => {
+    if (!projectId || hasRestoredMessages.current) return;
+
+    const storageKey = `conversation-${projectId}`;
+    const saved = localStorage.getItem(storageKey);
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as UIMessage[];
+        console.log('📂 Restoring', parsed.length, 'messages from localStorage');
+        setMessages(parsed);
+        hasRestoredMessages.current = true;
+      } catch (error) {
+        console.error('Failed to restore chat history:', error);
+      }
+    } else {
+      console.log('📂 No saved messages found in localStorage');
+      hasRestoredMessages.current = true;
+    }
+  }, [projectId, setMessages]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (!projectId || !hasRestoredMessages.current || messages.length === 0) return;
+
+    const storageKey = `conversation-${projectId}`;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+      console.log('💾 Saved', messages.length, 'messages to localStorage');
+    } catch (error) {
+      console.error('Failed to save chat history:', error);
+    }
+  }, [messages, projectId]);
+
+  // Expose sendMessage to parent via ref
+  useImperativeHandle(ref, () => ({
+    sendMessage: (text: string) => {
+      console.log('📨 Sending message via ref:', text);
+      // We must pass body here too as it might have changed
+      sendMessage(
+        { text },
+        {
+          body: {
+            qualities,
+            projectId,
+          },
+        }
+      );
+    }
+  }));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -222,11 +298,15 @@ export function ChatInterface({
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-80">
-            <Sparkles className="w-12 h-12 mb-6 text-primary/50" />
-            <p className="text-2xl font-bold font-heading mb-2">Start planning your game assets</p>
-            <p className="text-muted-foreground max-w-sm">
-              Tell me about your game idea and I&apos;ll help you plan what assets you&apos;ll need
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
+            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_30px_-10px_var(--color-primary)]">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
+              What are we building?
+            </h3>
+            <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
+              Describe your game idea, style, or specific assets. I&apos;ll help you plan and generate everything.
             </p>
           </div>
         ) : (
@@ -266,9 +346,11 @@ export function ChatInterface({
                     : "glass-panel aurora-glow-hover"
                     }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {textContent || '(Tool calls or non-text content)'}
-                  </p>
+                  <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                    <ReactMarkdown>
+                      {textContent || '(Tool calls or non-text content)'}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             );
@@ -291,28 +373,66 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area - sticky at bottom */}
-      <div className="sticky bottom-0 glass-panel border-t p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
+      {/* Input area - floating style */}
+      <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
+
+        {/* Preset Prompts Row - Wrapped rows */}
+        {!isLoading && (
+          <div className="flex flex-wrap gap-2 mb-3 max-w-3xl mx-auto w-full">
+            {getPresetsForMode(mode).map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => setInput(preset.prompt)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap
+                  ${preset.id === 'style-infer'
+                    ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_10px_-4px_var(--color-primary)]'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-white/70 hover:text-white'
+                  }`}
+              >
+                <MessageSquare className={`w-3 h-3 ${preset.id === 'style-infer' ? 'text-primary' : 'opacity-60'}`} />
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <form
+          onSubmit={handleSubmit}
+          className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"
+        >
+          <TextareaAutosize
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe your game idea..."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (input.trim()) {
+                  // Create a synthetic event or just call sendMessage if we could. 
+                  // But handleSubmit expects FormEvent.
+                  // We can just call e.currentTarget.form?.requestSubmit()
+                  e.currentTarget.form?.requestSubmit();
+                }
+              }
+            }}
+            placeholder="Type your ideas here..."
             disabled={showLoading}
-            className="flex-1 glass-input"
+            minRows={1}
+            maxRows={10}
+            className="flex-1 glass-panel px-4 py-3 rounded-xl border-white/10 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all text-base shadow-lg resize-none custom-scrollbar bg-transparent placeholder:text-muted-foreground outline-none"
           />
           <Button
             type="submit"
             disabled={showLoading || !input.trim()}
             size="icon"
-            className="aurora-gradient text-white hover:opacity-90 transition-opacity"
+            className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </form>
       </div>
     </div>
   );
-}
+});
+
+ChatInterface.displayName = "ChatInterface";
 
 

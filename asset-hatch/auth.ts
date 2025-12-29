@@ -35,7 +35,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
         // GitHub OAuth provider
         // Requires AUTH_GITHUB_ID and AUTH_GITHUB_SECRET env vars
-        GitHub,
+        // allowDangerousEmailAccountLinking disabled for security:
+        // Prevents account takeover where an attacker creates a GitHub account
+        // with a victim's email and automatically links to their existing account.
+        // Users must use the same sign-in method (OAuth or credentials) consistently.
+        GitHub({
+            allowDangerousEmailAccountLinking: false,
+        }),
 
         // Email/password credentials provider
         Credentials({

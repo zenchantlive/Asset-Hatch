@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // =============================================================================
 // VALIDATION SCHEMA
@@ -100,12 +101,42 @@ export async function POST(
         }
 
         const { name } = parsed.data;
+        const userId = session.user.id;
+        const userEmail = session.user.email;
+
+        // Verify user exists in DB to prevent Foreign Key errors (P2003)
+        // This handles cases where the DB was reset but the user has a valid session cookie
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!existingUser) {
+            console.log(`User not found in DB (stale session?). Re-creating user.`);
+            if (userEmail) {
+                // Use upsert to prevent race condition if multiple requests try to create same user
+                await prisma.user.upsert({
+                    where: { id: userId },
+                    update: {}, // If exists, no-op
+                    create: {
+                        id: userId,
+                        email: userEmail,
+                        name: session.user.name,
+                        image: session.user.image,
+                    },
+                });
+            } else {
+                return NextResponse.json(
+                    { success: false, error: "User record missing and no email in session to re-create" },
+                    { status: 500 }
+                );
+            }
+        }
 
         // Create project with user ownership
         const project = await prisma.project.create({
             data: {
                 name,
-                userId: session.user.id,
+                userId: userId,
                 phase: "planning",
             },
         });
@@ -121,8 +152,17 @@ export async function POST(
         });
     } catch (error) {
         console.error("Failed to create project:", error);
+        // Log specifics if it's a Prisma error using type guards
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            console.error("Prisma Error Code:", error.code);
+            console.error("Prisma Error Message:", error.message);
+        }
+        // Return generic error - do NOT expose internal details to client
         return NextResponse.json(
-            { success: false, error: "Failed to create project" },
+            {
+                success: false,
+                error: "Failed to create project",
+            },
             { status: 500 }
         );
     }

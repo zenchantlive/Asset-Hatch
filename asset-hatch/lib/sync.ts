@@ -106,8 +106,13 @@ export async function syncProjectToClient(
         theme: projectData.theme || undefined,
         mood: projectData.mood || undefined,
         color_palette: projectData.colorPalette || undefined,
-        created_at: projectData.createdAt.toISOString(),
-        updated_at: projectData.updatedAt.toISOString(),
+        // Handle both Date objects and ISO strings (from JSON API)
+        created_at: typeof projectData.createdAt === 'string'
+            ? projectData.createdAt
+            : projectData.createdAt.toISOString(),
+        updated_at: typeof projectData.updatedAt === 'string'
+            ? projectData.updatedAt
+            : projectData.updatedAt.toISOString(),
     };
 
     // Upsert project to Dexie
@@ -122,8 +127,13 @@ export async function syncProjectToClient(
                 project_id: file.projectId,
                 type: file.type,
                 content: file.content,
-                created_at: file.createdAt.toISOString(),
-                updated_at: file.updatedAt.toISOString(),
+                // Handle both Date objects and ISO strings (from JSON API)
+                created_at: typeof file.createdAt === 'string'
+                    ? file.createdAt
+                    : file.createdAt.toISOString(),
+                updated_at: typeof file.updatedAt === 'string'
+                    ? file.updatedAt
+                    : file.updatedAt.toISOString(),
             };
             await db.memory_files.put(dexieFile);
         }
@@ -203,3 +213,35 @@ export const reverseQualityFieldMap: Record<string, string> = {
     mood: "mood",
     colorPalette: "color_palette",
 };
+
+/**
+ * Sync a memory file from Dexie to Server (Prisma)
+ * Returns true if sync successful, false otherwise
+ */
+export async function syncMemoryFileToServer(
+    projectId: string,
+    type: string,
+    content: string
+): Promise<boolean> {
+    try {
+        const response = await fetch(`/api/projects/${projectId}/memory-files`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ type, content }),
+        });
+
+        // Check if request was successful
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to sync memory file ${type} (status ${response.status}):`, errorText);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error(`Failed to sync memory file ${type} to server:`, error);
+        return false;
+    }
+}

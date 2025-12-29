@@ -3,7 +3,7 @@ title: "Part 5: The Architecture - Hybrid Persistence"
 series: "Building Asset Hatch with AI Agents"
 part: 5
 date: 2025-12-26
-updated: 2025-12-27
+updated: 2025-12-28
 tags: [Architecture, Dexie, Prisma, IndexedDB, SQLite, Hybrid Persistence, Next.js]
 reading_time: "10 min"
 status: published
@@ -114,7 +114,8 @@ fetch('/api/generate', {
 
 - **Client (Dexie/IndexedDB):** UI state, reactive queries, fast reads
 - **Server (Prisma/SQLite):** Source of truth for generation, API routes
-- **Sync:** Write to server via API, cache in client for UI
+- **Sync:** 4-layered management (URL → LocalStorage → Dexie → Prisma) to ensure data is never lost.
+- **Verification**: Atomic writes guarded by database unique constraints.
 
 ```
 ┌─────────────────┐         ┌──────────────────┐
@@ -141,13 +142,17 @@ fetch('/api/generate', {
 - Redundant schemas (maintain both Dexie and Prisma)
 - More code to manage
 
-**Verdict:** ✅ Best balance of velocity and robustness
+**Verdict:** ✅ Best balance of velocity and robustness (Formalized in ADR 012)
 
-## The Council's Solution: Hybrid Persistence
+## The Council's Solution: 4-Layer Persistence
 
 I wasn't sure if this was the right path, so I summoned my **Council of AIs** (Sonnet 4, GPT-5.2, and Perplexity) to review the problem.
 
-Their consensus solution? **Hybrid Persistence.**
+Their consensus? A tiered approach where each layer serves a specific purpose:
+1. **URL Params**: For instant, shareable UI state (Phase, Model).
+2. **LocalStorage**: For high-frequency, non-critical settings.
+3. **Dexie**: For the heavy lifting on the client (Reactivity, Offline).
+4. **Prisma**: The ultimate source of truth for the generation engine.
 
 ![Council of AIs] (/images/ council-of-ais.png)
 
@@ -214,7 +219,7 @@ model MemoryFile {
 
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, fileName])
+  @@unique([projectId, type])
   @@map("memory_files")
 }
 
@@ -452,7 +457,7 @@ In [Part 6: Productionization](06-productionization-tests-infrastructure.md), we
 
 **Commit References:**
 - `0308291`, `b88f335` - Refactor tests and persistence layer
-- ADR-007 - Hybrid persistence model decision
+- ADR-007, ADR-012 - Hybrid persistence and state management models
 
 **Files Created:**
 - `/lib/prisma.ts` - Prisma client singleton

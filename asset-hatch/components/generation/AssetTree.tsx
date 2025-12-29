@@ -29,47 +29,60 @@ import type { ParsedAsset } from '@/lib/prompt-builder'
  */
 function groupAssetsByCategory(assets: ParsedAsset[]): Map<string, ParsedAsset[]> {
   const groups = new Map<string, ParsedAsset[]>()
-  
+
   for (const asset of assets) {
     const category = asset.category || 'Uncategorized'
     const existing = groups.get(category) || []
     groups.set(category, [...existing, asset])
   }
-  
+
   return groups
 }
 
 /**
  * Get status badge for an asset
- * 
+ *
+ * Shows the current state of an asset in the generation queue.
+ * Priority order: Failed > Approved > Awaiting Approval > Generating > Complete > Pending
+ *
  * @param assetId - Asset ID to check status for
- * @param completed - Set of completed asset IDs
+ * @param completed - Set of completed asset IDs (batch generation tracking)
  * @param failed - Map of failed asset IDs to errors
  * @param currentAssetId - ID of asset currently being generated
- * @returns Status display element
+ * @param assetStates - Map of asset IDs to their generation states (includes approval status)
+ * @returns Status display element with appropriate styling
  */
 function getStatusBadge(
   assetId: string,
   completed: Set<string>,
   failed: Map<string, Error>,
-  currentAssetId: string | null
+  currentAssetId: string | null,
+  assetStates: Map<string, import('@/lib/types/generation').AssetGenerationState>
 ): JSX.Element {
-  if (failed.has(assetId)) {
-    // Failed generation
+  // Check asset state first - this has the most up-to-date status
+  const assetState = assetStates.get(assetId)
+
+  // Failed takes highest priority - user needs to know about errors
+  if (failed.has(assetId) || assetState?.status === 'error') {
     return (
       <span className="text-red-400 text-sm" title={failed.get(assetId)?.message}>
         ❌ Failed
       </span>
     )
   }
-  
-  if (completed.has(assetId)) {
-    // Successfully generated
-    return <span className="text-green-400 text-sm">✅ Complete</span>
+
+  // Approved status - asset has been reviewed and saved
+  if (assetState?.status === 'approved') {
+    return <span className="text-green-400 text-sm">✅ Approved</span>
   }
-  
-  if (currentAssetId === assetId) {
-    // Currently generating
+
+  // Awaiting approval - generated but needs user review
+  if (assetState?.status === 'awaiting_approval') {
+    return <span className="text-amber-400 text-sm">🔍 Review</span>
+  }
+
+  // Currently generating - show spinner animation
+  if (currentAssetId === assetId || assetState?.status === 'generating') {
     return (
       <span className="text-purple-400 text-sm flex items-center gap-1">
         <RefreshCw className="w-3 h-3 animate-spin" />
@@ -77,10 +90,16 @@ function getStatusBadge(
       </span>
     )
   }
-  
-  // Pending generation
+
+  // Completed via batch generation (fallback for legacy/batch flow)
+  if (completed.has(assetId)) {
+    return <span className="text-green-400 text-sm">✅ Complete</span>
+  }
+
+  // Default: Pending generation
   return <span className="text-white/40 text-sm">⏳ Pending</span>
 }
+
 
 /**
  * AssetTreeItem Component
@@ -88,11 +107,13 @@ function getStatusBadge(
  * Displays a single asset with status and action buttons
  */
 function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
-  const { completed, failed, currentAsset, regenerateAsset, generatePrompt, generatedPrompts } = useGenerationContext()
+  // Get generation context for status tracking and actions
+  const { completed, failed, currentAsset, regenerateAsset, generatePrompt, generatedPrompts, assetStates } = useGenerationContext()
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Check if this asset is currently being generated
   const currentAssetId = currentAsset?.id || null
+
 
   // Check if prompt has been generated for this asset
   const hasPrompt = generatedPrompts.has(asset.id)
@@ -121,7 +142,7 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
   const handleToggleExpand = () => {
     setIsExpanded(!isExpanded)
   }
-  
+
   return (
     <div className="ml-4 mb-2">
       <div
@@ -137,7 +158,7 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
             ) : (
               <ChevronRight className="w-4 h-4 text-white/40" />
             )}
-            
+
             {/* Asset name and variant */}
             <div>
               <span className="font-medium text-white/90">{asset.name}</span>
@@ -147,12 +168,13 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
               </span>
             </div>
           </div>
-          
+
           {/* Middle: Status badge */}
           <div className="mx-4">
-            {getStatusBadge(asset.id, completed, failed, currentAssetId)}
+            {getStatusBadge(asset.id, completed, failed, currentAssetId, assetStates)}
           </div>
-          
+
+
           {/* Right: Action buttons */}
           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* Generate Prompt button - only show if prompt hasn't been generated yet */}
@@ -191,7 +213,7 @@ function AssetTreeItem({ asset }: { asset: ParsedAsset }) {
             )}
           </div>
         </div>
-        
+
         {/* Expanded: Show PromptPreview */}
         {isExpanded && (
           <div className="mt-3 pt-3 border-t border-white/10">
@@ -217,12 +239,12 @@ function CategorySection({
 }) {
   const { completed, failed } = useGenerationContext()
   const [isCollapsed, setIsCollapsed] = useState(false)
-  
+
   // Calculate progress for this category
   const totalAssets = assets.length
   const completedCount = assets.filter(a => completed.has(a.id)).length
   const failedCount = assets.filter(a => failed.has(a.id)).length
-  
+
   return (
     <div className="mb-4">
       {/* Category header */}
@@ -241,13 +263,13 @@ function CategorySection({
             ({completedCount}/{totalAssets})
           </span>
         </div>
-        
+
         {/* Progress indicator */}
         {failedCount > 0 && (
           <span className="text-xs text-red-400">{failedCount} failed</span>
         )}
       </button>
-      
+
       {/* Asset list */}
       {!isCollapsed && (
         <div className="mt-2">
@@ -267,15 +289,15 @@ function CategorySection({
  */
 export function AssetTree() {
   const { parsedAssets } = useGenerationContext()
-  
+
   // Group assets by category
   const categoryGroups = groupAssetsByCategory(parsedAssets)
-  
+
   // Convert to sorted array for display
   const categories = Array.from(categoryGroups.entries()).sort(([a], [b]) =>
     a.localeCompare(b)
   )
-  
+
   return (
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-4">
@@ -284,7 +306,7 @@ export function AssetTree() {
           {parsedAssets.length} assets ready to generate
         </p>
       </div>
-      
+
       {categories.map(([category, assets]) => (
         <CategorySection key={category} category={category} assets={assets} />
       ))}

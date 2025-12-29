@@ -56,10 +56,10 @@ export function useGenerationContext(): GenerationContextValue {
 export function GenerationQueue({ projectId }: GenerationQueueProps) {
   // State for parsed assets from the plan
   const [parsedAssets, setParsedAssets] = useState<ParsedAsset[]>([])
-  
+
   // Loading state for initial plan fetch
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Error state for plan loading failures
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -166,6 +166,45 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
     loadPlan()
   }, [projectId, addLogEntry])
+
+  // Load approved assets from Dexie on mount
+  useEffect(() => {
+    async function loadApprovedAssets() {
+      try {
+        const approvedAssets = await db.generated_assets
+          .where('project_id')
+          .equals(projectId)
+          .filter(a => a.status === 'approved')
+          .toArray();
+
+        if (approvedAssets.length > 0) {
+          setAssetStates(prev => {
+            const next = new Map(prev);
+            approvedAssets.forEach(asset => {
+              next.set(asset.asset_id, {
+                status: 'approved',
+                result: {
+                  id: asset.id,
+                  imageUrl: asset.image_base64 || '', // Use cached base64
+                  prompt: asset.prompt_used,
+                  metadata: asset.generation_metadata || {},
+                }
+              });
+            });
+            return next;
+          });
+
+          addLogEntry('info', `Restored ${approvedAssets.length} approved assets`);
+        }
+      } catch (err) {
+        console.error('Failed to load approved assets:', err);
+      }
+    }
+
+    if (!isLoading) {
+      loadApprovedAssets();
+    }
+  }, [projectId, isLoading, addLogEntry]);
 
   /**
    * Start batch generation with current settings
@@ -372,7 +411,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       addLogEntry('success', `Image generated for: ${asset.name}`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      
+
       // Mark as error
       setAssetStates(prev => {
         const next = new Map(prev)

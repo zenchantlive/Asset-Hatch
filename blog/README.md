@@ -1,6 +1,6 @@
 # Building Asset Hatch: An AI-Assisted Development Journey
 
-A technical blog series documenting the complete development of Asset Hatch, from initial concept to production-ready AI-powered asset generation tool, built in 3 days using Claude Code and autonomous AI agents.
+A technical blog series documenting the complete development of Asset Hatch, from initial concept to production-ready AI-powered asset generation tool, built in 3 days using Claude Code and autonomous AI agents. Now featuring a dedicated post on security hardening after a comprehensive PR audit.
 
 ## Series Overview
 
@@ -28,8 +28,8 @@ This series chronicles the real, unfiltered journey of building a production Nex
 
 **Timeline:**
 - Started: December 24, 2025
-- Current Status: ~75% complete (Planning + Style phases done)
-- Development Approach: Solo founder, AI-first, ship fast
+- Current Status: ~85% complete (Planning + Style + Generation done)
+- Development Approach: Solo founder, AI-first, ship fast, audit everything
 
 ## Reading Order
 
@@ -80,22 +80,27 @@ Ripping out CopilotKit and migrating to Vercel AI SDK v6 in a single afternoon. 
 ### [Part 5: The Architecture - Hybrid Persistence](05-the-architecture-hybrid-persistence.md)
 *10 min read* • **Data Layer Design**
 
-Why I needed both client-side (Dexie) and server-side (Prisma) persistence, how to sync them without losing your mind, and the IndexedDB polyfill hack that saved API routes from crashing.
+Why I needed a 4-layer state management system (URL → LocalStorage → Dexie → Prisma), how to sync them safely, and the IndexedDB polyfill hack that saved API routes from crashing.
 
-**Key Topics:** Hybrid persistence patterns • Dexie vs Prisma • Server-side data access • fake-indexeddb polyfill • Dual-write strategies
-
-**Commits Referenced:** ADR-007, `0308291`, `b88f335`
-
-**Architectural Diagrams:** Data flow, sync patterns, trade-offs
+**Key Topics:** ADR 012 • Hybrid persistence patterns • Dexie vs Prisma • Server-side data access • fake-indexeddb polyfill • Dual-write strategies
 
 ---
 
 ### [Part 6: Productionization - Tests & Infrastructure](06-productionization-tests-infrastructure.md)
-*12 min read* • **Making It Real**
+*11 min read* • **Making It Real**
 
 From prototype to production: integration tests for all API routes, generation infrastructure with Flux.2, prompt engineering science, and the multi-mode UI that keeps users in flow.
 
 **Key Topics:** Jest + Next.js 16 • API integration tests • Prompt templates • Style anchor system • Plan parser • Image utilities
+
+---
+
+### [Part 7: Hardening - Battle-Testing the API](07-hardening-battle-testing-the-api.md)
+*8 min read* • **The Security Audit**
+
+Moving beyond "it works" to "it's safe". A deep dive into the PR #8 security audit, fixing unauthenticated endpoints, replacing race conditions with atomic upserts, and hardening against input injection.
+
+**Key Topics:** PR #8 Review • Auth.js Security • Zod Validation • Race Conditions • Database Constraints • Error Exposure
 
 **Commits Referenced:** `a4846e7`, `bb2833b`, `f401d5a`, `0345fda`
 
@@ -103,7 +108,7 @@ From prototype to production: integration tests for all API routes, generation i
 
 ---
 
-### [Part 7: Reflections - What I Learned](07-reflections-lessons-learned.md)
+### [Part 8: Reflections - What I Actually Learned](08-reflections-lessons-learned.md)
 *9 min read* • **Meta-Lessons**
 
 Honest retrospective on AI-assisted development: what worked better than expected, what didn't, architectural decisions I'd change, and advice for anyone building with AI agents in 2025.
@@ -117,18 +122,18 @@ Honest retrospective on AI-assisted development: what worked better than expecte
 ## Document Statistics
 
 ```
-Total Posts: 7
-Total Words: ~14,500 words
-Total Reading Time: ~66 minutes
-Code Examples: 25+
-Commit References: 30+
-Architectural Decisions: 7 ADRs
+Total Posts: 8
+Total Words: ~16,000 words
+Total Reading Time: ~75 minutes
+Code Examples: 30+
+Commit References: 40+
+Architectural Decisions: 12 ADRs
 ```
 
 ## Reading Time Investment
 
-- **Quick overview:** Read Part 1, 4, 7 (~27 min) - Get the story arc
-- **Technical deep dive:** Read all posts in order (~66 min) - Full journey
+- **Quick overview:** Read Part 1, 4, 8 (~27 min) - Get the story arc
+- **Technical deep dive:** Read all posts in order (~75 min) - Full journey
 - **Specific topics:** Use topic tags to jump to relevant sections
 
 ## For Different Audiences
@@ -172,8 +177,8 @@ I'm using AI agents (Claude Code, primarily) to build Asset Hatch as both a prod
 
 ## Series Updates
 
-- **Part 1-7:** Published December 27, 2025 (reflecting on Dec 24-26 development)
-- **Part 8+:** Future posts will cover Generation Phase completion, Export, and deployment
+- Part 1-8: Published December 28, 2025 (reflecting on Dec 24-28 development)
+- Future posts: Will cover Export phase completion and final deployment tips.
 
 ---
 

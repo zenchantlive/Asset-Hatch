@@ -17,7 +17,7 @@
 'use client'
 
 import { useEffect, useRef, useMemo, useState } from 'react'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import Image from 'next/image'
 import { useGenerationContext } from './GenerationQueue'
 import { Button } from '@/components/ui/button'
@@ -74,6 +74,12 @@ export function GenerationProgress() {
 
   // Auto-scroll log to bottom
   const logContainerRef = useRef<HTMLDivElement>(null)
+
+  // Track if log section is expanded (starts expanded, auto-collapses on generation)
+  const [isLogExpanded, setIsLogExpanded] = useState(true)
+
+  // Track if user has manually toggled - prevents auto-collapse after manual expand
+  const userToggledRef = useRef(false)
 
   /**
    * Track the latest completed asset ID from log
@@ -177,13 +183,39 @@ export function GenerationProgress() {
   }, [status, progress.completed, progress.total])
 
   /**
-   * Auto-scroll log to bottom when new entries added
+   * Auto-collapse log when generation starts (unless user manually expanded)
+   *
+   * Note: We use setState in this effect to sync with external status changes,
+   * which is a valid pattern for reacting to prop/context changes.
    */
   useEffect(() => {
-    if (logContainerRef.current) {
+    // Only auto-collapse if user hasn't manually toggled
+    if (status === 'generating' && !userToggledRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLogExpanded(false)
+    }
+    // Reset user toggle flag when generation completes
+    if (status === 'completed' || status === 'idle') {
+      userToggledRef.current = false
+    }
+  }, [status])
+
+  /**
+   * Handle manual log toggle by user
+   */
+  const handleLogToggle = () => {
+    userToggledRef.current = true
+    setIsLogExpanded((prev) => !prev)
+  }
+
+  /**
+   * Auto-scroll log to bottom when new entries added (only if expanded)
+   */
+  useEffect(() => {
+    if (logContainerRef.current && isLogExpanded) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
     }
-  }, [log])
+  }, [log, isLogExpanded])
 
   /**
    * Get progress bar color based on status
@@ -306,51 +338,72 @@ export function GenerationProgress() {
         </div>
       )}
 
-      {/* Generation log (scrollable) */}
-      <div className="flex-1 glass-panel p-3 overflow-hidden flex flex-col min-h-0">
-        <h4 className="font-semibold text-white/90 mb-2 flex-shrink-0">
-          Generation Log
-        </h4>
-
-        <div
-          ref={logContainerRef}
-          className="flex-1 overflow-y-auto font-mono text-xs space-y-1 min-h-0"
+      {/* Generation log (collapsible, scrollable) */}
+      <div className={`glass-panel p-3 overflow-hidden flex flex-col ${isLogExpanded ? 'flex-1 min-h-0' : ''}`}>
+        {/* Clickable header for toggle */}
+        <button
+          onClick={handleLogToggle}
+          className="flex items-center justify-between w-full mb-2 flex-shrink-0 hover:bg-white/5 rounded -mx-1 px-1 py-1 transition-colors"
         >
-          {log.length === 0 ? (
-            <div className="text-white/40 italic">
-              No activity yet. Start generation to see logs.
-            </div>
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-white/90">Generation Log</h4>
+            {/* Show entry count badge when collapsed */}
+            {!isLogExpanded && log.length > 0 && (
+              <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-white/60">
+                {log.length} entries
+              </span>
+            )}
+          </div>
+          {/* Chevron indicates expand/collapse state */}
+          {isLogExpanded ? (
+            <ChevronUp className="w-4 h-4 text-white/60" />
           ) : (
-            log.map((entry, index) => {
-              // Determine log entry color based on type
-              let textColor = 'text-white/70'
-              if (entry.message.includes('✅')) textColor = 'text-green-400'
-              if (entry.message.includes('❌')) textColor = 'text-red-400'
-              if (entry.message.includes('⏸')) textColor = 'text-yellow-400'
-              if (entry.message.includes('▶')) textColor = 'text-purple-400'
-
-              return (
-                <div key={index} className={textColor}>
-                  <span className="text-white/40">[{entry.timestamp}]</span>
-                  {' '}
-                  {entry.message}
-
-                  {/* Show retry button for failed entries */}
-                  {entry.message.includes('❌') && entry.assetId && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-2 h-5 px-2 text-xs"
-                      onClick={() => regenerateAsset(entry.assetId!)}
-                    >
-                      Retry
-                    </Button>
-                  )}
-                </div>
-              )
-            })
+            <ChevronDown className="w-4 h-4 text-white/60" />
           )}
-        </div>
+        </button>
+
+        {/* Collapsible log content */}
+        {isLogExpanded && (
+          <div
+            ref={logContainerRef}
+            className="flex-1 overflow-y-auto font-mono text-xs space-y-1 min-h-0"
+          >
+            {log.length === 0 ? (
+              <div className="text-white/40 italic">
+                No activity yet. Start generation to see logs.
+              </div>
+            ) : (
+              log.map((entry, index) => {
+                // Determine log entry color based on type
+                let textColor = 'text-white/70'
+                if (entry.message.includes('✅')) textColor = 'text-green-400'
+                if (entry.message.includes('❌')) textColor = 'text-red-400'
+                if (entry.message.includes('⏸')) textColor = 'text-yellow-400'
+                if (entry.message.includes('▶')) textColor = 'text-purple-400'
+
+                return (
+                  <div key={index} className={textColor}>
+                    <span className="text-white/40">[{entry.timestamp}]</span>
+                    {' '}
+                    {entry.message}
+
+                    {/* Show retry button for failed entries */}
+                    {entry.message.includes('❌') && entry.assetId && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-2 h-5 px-2 text-xs"
+                        onClick={() => regenerateAsset(entry.assetId!)}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
       </div>
 
       {/* Error summary (if batch completed with failures) */}
@@ -372,3 +425,4 @@ export function GenerationProgress() {
     </div>
   )
 }
+

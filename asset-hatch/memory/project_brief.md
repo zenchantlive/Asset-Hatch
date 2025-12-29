@@ -1,9 +1,9 @@
 # 📋 Project Brief - Asset Hatch
 
 **Project Name:** Asset Hatch
-**Version:** 0.2.0 (Style Anchor Image Generation)
-**Last Updated:** 2025-12-27
-**Status:** Style Anchor Phase Complete, Generation Queue Integration Next
+**Version:** 0.3.0 (Security & Logic Hardening)
+**Last Updated:** 2025-12-28
+**Status:** Phase 3 (Generation) - Individual Asset Workflow Complete, Multi-User Hardened
 
 ---
 
@@ -27,7 +27,7 @@
 - **Styling:** Tailwind CSS v4 (with oklch colors)
 - **UI Library:** shadcn/ui + Radix UI primitives
 - **Theme:** Premium Dark / Cosmic theme (Glassmorphism + Aurora gradients)
-- **Typography:** Modern Sans-Serif (Outfit) via next/font
+- **Typography:** Modern Sans-Serif (Outfit) + Geometric Headings (Space Grotesk) via next/font
 
 ### AI Integration
 - **Chat Framework:** Vercel AI SDK v6 (@ai-sdk/react)
@@ -140,10 +140,10 @@
 
 ## 🔑 Recent Technical Decisions (ADRs)
 
-- **ADR-005:** Replaced CopilotKit with Vercel AI SDK v6
-- **ADR-006:** Generation Architecture (composite sprites default)
-- **ADR-007:** Hybrid Persistence Model (Prisma + Dexie)
-- **ADR-008:** Style Anchor Image Generation via OpenRouter Flux.2
+- **ADR-010:** API Route Consolidation (Chat/Projects/Memory)
+- **ADR-011:** UI Refinements and Data Sync
+- **ADR-012:** Hybrid Session Persistence (Extended)
+- **ADR-013:** Security Hardening - OAuth and Phase Consistency
 
 ---
 

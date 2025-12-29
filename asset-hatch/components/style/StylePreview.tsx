@@ -40,6 +40,8 @@ interface StylePreviewProps {
     isGenerating: boolean;
     // Callback when user wants to proceed to generation phase
     onFinalize?: () => void;
+    // Callback to trigger style anchor generation directly (no AI prompt needed)
+    onGenerateStyleAnchor?: () => void;
 }
 
 export function StylePreview({
@@ -47,6 +49,7 @@ export function StylePreview({
     generatedAnchor,
     isGenerating,
     onFinalize,
+    onGenerateStyleAnchor,
 }: StylePreviewProps) {
     // Track if any style data has been collected
     const hasStyleData = Boolean(
@@ -71,6 +74,16 @@ export function StylePreview({
                         Style Preview
                     </span>
                 </div>
+                {/* Show generate button when style data exists but no anchor yet */}
+                {hasStyleData && !generatedAnchor && !isGenerating && onGenerateStyleAnchor && (
+                    <button
+                        onClick={onGenerateStyleAnchor}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-purple-500/25"
+                    >
+                        ✨ Generate Style Anchor
+                    </button>
+                )}
+                {/* Show proceed button after anchor is generated */}
                 {generatedAnchor && onFinalize && (
                     <button
                         onClick={onFinalize}

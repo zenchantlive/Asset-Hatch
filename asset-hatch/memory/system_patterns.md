@@ -17,7 +17,7 @@
 * **Props drilling initially**, migrate to Context API only when necessary
 * **Local state first** (`useState`), lift up only when multiple components need it
 * **Hybrid Persistence Model**: Prisma/SQLite for server-side source of truth (API); Dexie for client-side state and caching.
-* **CopilotKit manages its own state** - Don't duplicate message history in React state
+* **Vercel AI SDK manages its own state** - The `messages` array from `useChat` is the source of truth for conversation history.
 
 ### Data Flow
 ```
@@ -86,22 +86,18 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - WSL may not have Bun in PATH
   - **Solution:** Check if Bun available, fallback to npm, or ask user to run command
 
-### CopilotKit Integration
+### Vercel AI SDK Integration
 * **System Prompt Location**
-  - NOT in provider config (app/layout.tsx)
-  - Defined in `makeSystemMessage` function inside component
-  - **File:** `components/planning/ChatInterface.tsx:16-17`
-  - **Gotcha:** Changing provider config won't update prompt
+  - Defined in `app/api/chat/route.ts` using the `system` property in `streamText`.
+  - **Gotcha:** Changing frontend prompts won't update the core system instructions.
 
 * **Message State**
-  - CopilotKit manages messages internally via `useCopilotChatHeadless_c`
-  - Don't duplicate in React state (causes desyncs)
-  - **Access via:** `visibleMessages` from hook
+  - Vercel AI SDK manages messages internally via the `useChat` hook.
+  - **Access via:** `messages` from the hook.
 
 * **Streaming Responses**
-  - API route must handle streaming properly (Server-Sent Events)
-  - **File:** `app/api/copilotkit/route.ts`
-  - Use `ReadableStream` and `TextEncoder`
+  - API route must handle streaming properly using `toUIMessageStreamResponse()`.
+  - **File:** `app/api/chat/route.ts`
 
 ### Glassmorphism Styling
 * **Invisible Glass Effect**
