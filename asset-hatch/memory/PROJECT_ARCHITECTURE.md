@@ -186,7 +186,7 @@ This becomes the blueprint for Phase 3 (Generation). Source of truth for API gen
   id: string;              // UUID
   name: string;            // "My Farming Game"
   description?: string;    // Optional user notes
-  phase: 'planning' | 'style' | 'generating' | 'export';
+  phase: 'planning' | 'style' | 'generation' | 'export';
   
   // Quality parameters (set in Planning phase)
   art_style?: string;
@@ -250,7 +250,15 @@ asset-hatch/
     ├── PROJECT_ARCHITECTURE.md    # This file
     └── adr/
         ├── 001-use-copilotkit.md  # (superseded)
-        └── 005-replace-copilotkit-with-vercel-ai-sdk.md
+        ├── 005-replace-copilotkit-with-vercel-ai-sdk.md
+        ├── 006-generation-architecture.md
+        ├── 007-hybrid-persistence-model.md
+        ├── 008-style-anchor-image-generation.md
+        ├── 009-individual-asset-generation-workflow.md
+        ├── 010-api-route-consolidation.md
+        ├── 011-ui-refinements-and-data-sync.md
+        ├── 012-hybrid-session-persistence.md
+        └── 013-security-hardening-oauth-and-consistency.md
 ```
 
 ---
