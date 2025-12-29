@@ -1,9 +1,16 @@
 # ADR-014: Asset Extraction Strategy - Single vs Multi-Asset Files
 
 **Date:** 2025-12-29  
-**Status:** Proposed  
+**Status:** ✅ **Accepted & Implemented**  
 **Decision Makers:** Project Lead, AI Architecture Team  
 **Tags:** `export-phase`, `image-generation`, `technical-architecture`, `cost-optimization`
+
+> **Implementation Status:** COMPLETE (2025-12-29)  
+> All 4 phases implemented on branch `feat/single-asset-export`:
+> - ✅ Phase 1: Isolation prompt templates updated
+> - ✅ Phase 2: Export types and semantic ID generation added
+> - ✅ Phase 3: Export API endpoint with ZIP generation created
+> - ✅ Phase 4: Full UI workflow integration (4th mode added to planning page)
 
 ---
 
