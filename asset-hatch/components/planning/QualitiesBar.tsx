@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { ChevronDown, Wand2, SlidersHorizontal, Save } from "lucide-react"
+import { ChevronDown, SlidersHorizontal, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -204,14 +204,6 @@ export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'pop
               Save
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
-          >
-            <Wand2 className="w-3.5 h-3.5" />
-            Suggest
-          </Button>
         </div>
       </div>
 
@@ -315,9 +307,8 @@ function CollapsibleBar({
           )} />
         </button>
 
-        {/* Right side - Buttons */}
-        <div className="flex items-center gap-2">
-          {/* Save Button */}
+        {/* Right side - Empty when collapsed, Save button shows when expanded */}
+        {isExpanded && (
           <Button
             variant="ghost"
             size="sm"
@@ -336,17 +327,7 @@ function CollapsibleBar({
             <Save className="w-3 h-3" />
             Save
           </Button>
-
-          {/* Suggest Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
-          >
-            <Wand2 className="w-3 h-3" />
-            Suggest
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Collapsible content */}

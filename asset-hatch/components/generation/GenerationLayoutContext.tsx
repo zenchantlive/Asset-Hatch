@@ -125,6 +125,13 @@ export function GenerationLayoutProvider({
             } else {
                 next.add(assetId)
             }
+
+            // Clear selectedAsset when entering multi-select (2+ assets)
+            // This ensures batch dashboard shows immediately
+            if (next.size >= 2) {
+                setSelectedAsset({ asset: null, source: null })
+            }
+
             return next
         })
     }, [])
