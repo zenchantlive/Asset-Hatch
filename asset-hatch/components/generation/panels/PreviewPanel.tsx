@@ -45,6 +45,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         generateImage,
         approveAsset,
         rejectAsset,
+        updatePrompt,
     } = useGenerationContext()
 
     const { state, openPromptEditor, selectAsset } = useGenerationLayout()
@@ -62,6 +63,10 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Track if we're generating the prompt
     const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false)
+    // Track if prompt is being edited
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false)
+    // Local prompt state for editing
+    const [editedPrompt, setEditedPrompt] = useState('')
 
     // Get the current state of the selected asset
     const assetState = asset ? assetStates.get(asset.id) : null
@@ -116,8 +121,9 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     const selectedCount = state.queue.selectedIds.size
     const isMultiSelect = selectedCount > 1
 
-    // Multi-selection view
-    if (isMultiSelect) {
+    // Multi-selection view - ONLY if no explicit asset selected
+    // This allows temporarily viewing/editing a single asset while keeping batch selection
+    if (isMultiSelect && !asset) {
         return <BatchPreviewContent selectedIds={state.queue.selectedIds} />
     }
 
@@ -149,6 +155,21 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     return (
         <>
+            {/* Back to Batch button when batch is active */}
+            {isMultiSelect && (
+                <div className="p-3 bg-white/5 border-b border-white/10">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => selectAsset(null, null)}
+                        className="text-white/70 hover:text-white hover:bg-white/10"
+                    >
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        Back to Batch ({selectedCount} assets)
+                    </Button>
+                </div>
+            )}
+
             <div className={`flex flex-col h-full ${compact ? 'p-3' : 'p-6'}`}>
                 {/* Image section with maximize button */}
                 {/* Image section with maximize button - Flexible height */}
@@ -239,11 +260,53 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                     </div>
 
                     {currentPrompt ? (
-                        <div className="p-3 bg-black/30 rounded-lg border border-white/10">
-                            <p className="text-sm text-white/80 font-mono whitespace-pre-wrap">
-                                {currentPrompt}
-                            </p>
-                        </div>
+                        isEditingPrompt ? (
+                            <div className="space-y-2">
+                                <textarea
+                                    value={editedPrompt}
+                                    onChange={(e) => setEditedPrompt(e.target.value)}
+                                    className="w-full h-32 p-3 bg-black/50 border border-white/20 rounded-lg text-sm text-white/90 font-mono resize-none focus:border-purple-500 focus:outline-none"
+                                    placeholder="Enter your prompt..."
+                                />
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            if (asset) {
+                                                updatePrompt(asset.id, editedPrompt)
+                                                setIsEditingPrompt(false)
+                                            }
+                                        }}
+                                        className="bg-purple-600 hover:bg-purple-700"
+                                    >
+                                        Save
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditedPrompt(currentPrompt)
+                                            setIsEditingPrompt(false)
+                                        }}
+                                        className="bg-white/5 hover:bg-white/10"
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="p-3 bg-black/30 rounded-lg border border-white/10 cursor-text hover:bg-black/40 transition-colors"
+                                onClick={() => {
+                                    setEditedPrompt(currentPrompt)
+                                    setIsEditingPrompt(true)
+                                }}
+                            >
+                                <p className="text-sm text-white/80 font-mono whitespace-pre-wrap">
+                                    {currentPrompt}
+                                </p>
+                            </div>
+                        )
                     ) : (
                         <div className="p-3 bg-black/30 rounded-lg border border-white/10">
                             <p className="text-sm text-white/50 italic mb-2">No prompt generated</p>
@@ -265,8 +328,50 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                     )}
                 </div>
 
-                {/* Action buttons */}
+                {/* Action buttons - moved here to be visible above bottom bar */}
                 <div className="space-y-3">
+                    {/* Generate button (when pending with prompt or rejected) */}
+                    {(!assetState || assetState.status === 'rejected') && currentPrompt && (
+                        <Button
+                            onClick={handleGenerateImage}
+                            disabled={isGenerating}
+                            className="w-full aurora-gradient font-semibold"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Generate Image
+                                </>
+                            )}
+                        </Button>
+                    )}
+
+                    {/* Regenerate button (when has result or error) */}
+                    {(hasResult || hasError) && (
+                        <Button
+                            onClick={handleGenerateImage}
+                            disabled={isGenerating}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/20"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Regenerating...
+                                </>
+                            ) : (
+                                <>
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    Regenerate
+                                </>
+                            )}
+                        </Button>
+                    )}
+
                     {/* Approve/Reject (when awaiting approval) */}
                     {isAwaitingApproval && (
                         <div className="flex items-center gap-3">
@@ -278,6 +383,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                 <Check className="w-4 h-4 mr-2" />
                                 Approve
                             </Button>
+
                             <Button
                                 onClick={handleReject}
                                 variant="destructive"
@@ -286,30 +392,6 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             >
                                 <X className="w-4 h-4 mr-2" />
                                 Reject
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Generate button (when pending with prompt) */}
-                    {!assetState && currentPrompt && (
-                        <Button
-                            onClick={handleGenerateImage}
-                            className="w-full aurora-gradient font-semibold"
-                        >
-                            <Play className="w-4 h-4 mr-2" />
-                            Generate Image
-                        </Button>
-                    )}
-
-                    {/* Regenerate button (when has result or error) */}
-                    {(hasResult || hasError) && (
-                        <div>
-                            <Button
-                                onClick={handleGenerateImage}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/20"
-                            >
-                                <RotateCcw className="w-4 h-4 mr-2" />
-                                Regenerate
                             </Button>
                         </div>
                     )}
