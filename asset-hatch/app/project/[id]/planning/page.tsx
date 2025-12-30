@@ -343,10 +343,12 @@ export default function PlanningPage() {
       {/* Parameters Bar - Visible on desktop, shows selected values */}
       <div className="hidden lg:block shrink-0 z-10 border-b border-white/5">
         <QualitiesBar
+          key={mode} // Re-mount when mode changes to reset default state
           qualities={qualities}
           onQualitiesChange={setQualities}
           onSave={handleParametersSave}
           mode="bar"
+          defaultExpanded={mode === 'planning'} // Only expanded by default in planning mode
         />
       </div>
 
