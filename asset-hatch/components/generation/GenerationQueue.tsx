@@ -468,8 +468,8 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         status: 'approved',
         created_at: now,
         updated_at: now,
-      })
-
+      const arrayBuffer = await blob.arrayBuffer()
+      const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
       // Sync to Prisma (server) so export API can find it
       const response = await fetch('/api/generated-assets', {
         method: 'POST',
