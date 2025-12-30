@@ -134,6 +134,7 @@ export default function PlanningPage() {
   const handleQualityUpdate = async (qualityKey: string, value: string) => {
     console.log('📝 Planning page received quality update:', qualityKey, '=', value);
 
+    const prevQualities = qualities;
     // 1. Update local state immediately (for UI reactivity)
     setQualities(prev => ({ ...prev, [qualityKey]: value }));
 
@@ -148,6 +149,8 @@ export default function PlanningPage() {
         // No need to sync again here
       } catch (error) {
         console.error("Failed to save quality to Dexie:", error);
+        // Revert optimistic update on failure
+        setQualities(prevQualities);
       }
     }
   };
