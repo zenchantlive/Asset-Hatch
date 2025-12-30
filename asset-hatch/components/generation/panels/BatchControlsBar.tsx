@@ -11,7 +11,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Pause, Square, Settings2, X } from 'lucide-react'
+import { Play, Pause, Square, Settings2, X, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     Select,
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
+import { GenerateAllWarning } from './GenerateAllWarning'
 
 /**
  * Props for BatchControlsBar
@@ -40,6 +41,8 @@ interface BatchControlsBarProps {
 export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     // Settings popover state
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    // Warning dialog state
+    const [showWarning, setShowWarning] = useState(false)
 
     // Get generation context for state and actions
     const {
@@ -53,7 +56,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     } = useGenerationContext()
 
     // Get layout context for selection state
-    const { state } = useGenerationLayout()
+    const { state, selectAllVisible, clearSelection } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
 
     // Calculate cost estimate
@@ -80,8 +83,29 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         } else if (isPaused) {
             resumeGeneration()
         } else {
-            startGeneration()
+            // Check if batch is large (>5 assets)
+            if (assetsToGenerate > 5) {
+                setShowWarning(true)
+            } else {
+                startGeneration(state.queue.selectedIds)
+            }
         }
+    }
+
+    // Handle Generate All button click
+    const handleGenerateAll = () => {
+        // Select all assets first
+        selectAllVisible()
+        // Warning will be shown via the main generate button if >5 assets
+        if (parsedAssets.length > 5) {
+            setShowWarning(true)
+        }
+    }
+
+    // Handle warning dialog confirmation
+    const handleConfirmGeneration = () => {
+        setShowWarning(false)
+        startGeneration(state.queue.selectedIds)
     }
 
     // Compact mode for mobile
@@ -285,6 +309,16 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                     </div>
                 </div>
             )}
+
+            {/* Warning Dialog */}
+            <GenerateAllWarning
+                isOpen={showWarning}
+                onClose={() => setShowWarning(false)}
+                onConfirm={handleConfirmGeneration}
+                assetCount={assetsToGenerate}
+                estimatedCost={estimatedCost}
+                estimatedTime={estimatedTimeDisplay}
+            />
         </div>
     )
 }

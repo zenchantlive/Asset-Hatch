@@ -129,7 +129,7 @@ export interface GenerationContextValue {
   generateImage: (assetId: string) => Promise<void>
   approveAsset: (assetId: string) => Promise<void>
   rejectAsset: (assetId: string) => void
-  startGeneration: () => Promise<void>
+  startGeneration: (selectedIds?: Set<string>) => Promise<void>
   pauseGeneration: () => void
   resumeGeneration: () => void
   regenerateAsset: (assetId: string) => Promise<void>
