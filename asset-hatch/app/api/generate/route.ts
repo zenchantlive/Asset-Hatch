@@ -25,12 +25,13 @@ interface GenerateRequest {
   projectId: string;
   asset: ParsedAsset;
   modelKey?: string; // 'flux-2-dev' or 'flux-2-pro'
+  customPrompt?: string; // Optional custom prompt override
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { projectId, asset, modelKey = 'flux-2-dev' } = body;
+    const { projectId, asset, modelKey = 'flux-2-dev', customPrompt } = body;
 
     console.log('🎨 Starting asset generation:', {
       projectId,
@@ -103,10 +104,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Build optimized prompt
+    // 4. Build optimized prompt (use custom if provided, otherwise generate)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const prompt = buildAssetPrompt(asset, legacyProject as any, legacyStyleAnchor as any, characterRegistry as any);
-    console.log('📝 Generated prompt:', prompt);
+    const prompt = customPrompt || buildAssetPrompt(asset, legacyProject as any, legacyStyleAnchor as any, characterRegistry as any);
+    console.log('📝 Using prompt:', customPrompt ? '(custom)' : '(generated)', prompt);
 
     // 5. Prepare style anchor image for API
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
