@@ -73,6 +73,7 @@ describe('/api/projects/[id]', () => {
 
         it('returns 400 on invalid phase', async () => {
             authMock.mockResolvedValue({ user: { id: 'user-1' } });
+            prismaMock.project.findFirst.mockResolvedValue({ id: 'p1', userId: 'user-1' });
             const req = new NextRequest('http://localhost', {
                 method: 'PATCH',
                 body: JSON.stringify({ phase: 'invalid-phase' })
