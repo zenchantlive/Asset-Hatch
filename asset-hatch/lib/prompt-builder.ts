@@ -140,6 +140,20 @@ function buildSubjectDescription(
   // Otherwise use asset description with any theme/mood context
   let subject = asset.description;
 
+  // SAFETY NET: Extract first subject if multiple detected
+  // This prevents multi-subject prompts like "robots, cats, dogs" from reaching Flux.2
+  if (subject.includes(',') && subject.split(',').length > 2) {
+    console.warn(`⚠️ Multi-subject detected in asset description: ${subject}`);
+    subject = subject.split(',')[0].trim(); // Take first item only
+    console.warn(`→ Using first subject only: ${subject}`);
+  }
+
+  // Remove markdown formatting (e.g., **bold**)
+  subject = subject.replace(/\*\*/g, '').trim();
+
+  // Remove category prefixes like "Survivors:" or "NPCs:"
+  subject = subject.replace(/^[^:]+:\s*/, '').trim();
+
   // Add theme context if not already in description
   if (project.theme && !subject.toLowerCase().includes(project.theme.toLowerCase())) {
     subject = `${subject}, ${project.theme} theme`;
