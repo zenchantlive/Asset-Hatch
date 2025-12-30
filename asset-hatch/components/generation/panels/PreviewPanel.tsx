@@ -157,7 +157,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         <>
             {/* Back to Batch button when batch is active */}
             {isMultiSelect && (
-                <div className="p-3 bg-white/5 border-b border-white/10">
+                <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -167,6 +167,51 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                         <ChevronLeft className="w-4 h-4 mr-2" />
                         Back to Batch ({selectedCount} assets)
                     </Button>
+
+                    {/* Header Actions - Approve/Reject/Regenerate */}
+                    <div className="flex items-center gap-2">
+                        {/* Regenerate - Visible when has result or error */}
+                        {(hasResult || hasError) && (
+                            <Button
+                                onClick={handleGenerateImage}
+                                disabled={isGenerating}
+                                variant="outline"
+                                size="sm"
+                                className="border-purple-500/30 hover:bg-purple-500/10 text-purple-300 hover:text-purple-200"
+                            >
+                                {isGenerating ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <RotateCcw className="w-3 h-3" />
+                                )}
+                                <span className="ml-2">Regenerate</span>
+                            </Button>
+                        )}
+
+                        {/* Approve/Reject - Visible when awaiting approval */}
+                        {isAwaitingApproval && (
+                            <>
+                                <Button
+                                    onClick={handleReject}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-red-500/30 hover:bg-red-500/10 text-red-300 hover:text-red-200 hover:border-red-500/50"
+                                >
+                                    <X className="w-3 h-3 mr-2" />
+                                    Reject
+                                </Button>
+                                <Button
+                                    onClick={handleApprove}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-green-500/30 hover:bg-green-500/10 text-green-300 hover:text-green-200 hover:border-green-500/50"
+                                >
+                                    <Check className="w-3 h-3 mr-2" />
+                                    Approve
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -329,72 +374,12 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                 </div>
 
                 {/* Action buttons - moved here to be visible above bottom bar */}
+                {/* Action buttons - moved here to be visible above bottom bar */}
                 <div className="space-y-3">
-                    {/* Generate button (when pending with prompt or rejected) */}
-                    {(!assetState || assetState.status === 'rejected') && currentPrompt && (
-                        <Button
-                            onClick={handleGenerateImage}
-                            disabled={isGenerating}
-                            className="w-full aurora-gradient font-semibold"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Generate Image
-                                </>
-                            )}
-                        </Button>
-                    )}
+                    {/* Approve/Reject (when awaiting approval) - PRIMARY ACTION */}
 
-                    {/* Regenerate button (when has result or error) */}
-                    {(hasResult || hasError) && (
-                        <Button
-                            onClick={handleGenerateImage}
-                            disabled={isGenerating}
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/20"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Regenerating...
-                                </>
-                            ) : (
-                                <>
-                                    <RotateCcw className="w-4 h-4 mr-2" />
-                                    Regenerate
-                                </>
-                            )}
-                        </Button>
-                    )}
 
-                    {/* Approve/Reject (when awaiting approval) */}
-                    {isAwaitingApproval && (
-                        <div className="flex items-center gap-3">
-                            <Button
-                                onClick={handleApprove}
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 px-8"
-                            >
-                                <Check className="w-4 h-4 mr-2" />
-                                Approve
-                            </Button>
 
-                            <Button
-                                onClick={handleReject}
-                                variant="destructive"
-                                size="sm"
-                                className="shadow-lg shadow-red-900/20 px-8"
-                            >
-                                <X className="w-4 h-4 mr-2" />
-                                Reject
-                            </Button>
-                        </div>
-                    )}
 
                     {/* Error message */}
                     {hasError && assetState?.error && (
