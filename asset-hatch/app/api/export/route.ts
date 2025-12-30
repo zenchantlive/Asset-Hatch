@@ -180,9 +180,9 @@ export async function POST(req: NextRequest) {
         zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
         // Generate ZIP blob
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
+        const zipBuffer = await zip.generateAsync({
+          type: 'nodebuffer',
+          compression: 'DEFLATE',
             compressionOptions: { level: 6 },
         });
 
