@@ -1,15 +1,15 @@
 # 🧠 Active Session State
 
-**Last Updated:** 2025-12-29
-**Session:** Single-Asset Export Strategy - ✅ COMPLETE
-**Branch:** feat/single-asset-export
-**Latest Commit:** (Phase 4: Complete workflow integration)
+**Last Updated:** 2025-12-29  
+**Session:** Prompt Specificity & Hybrid Persistence Sync Fixes - ✅ COMPLETE  
+**Branch:** feat/single-asset-export  
+**Latest Commit:** `a0a486e` (Sync fixes) + `9888758` (Prompt fixes)
 
 ---
 
 ## 📍 Current Focus
 
-> **🎯 EXPORT SYSTEM COMPLETE:** Implemented full single-asset export strategy per ADR-014, enabling AI-consumable asset packs with semantic IDs, organized folder structure, and rich JSON manifests.
+> **🎯 EXPORT SYSTEM + SYNC FIXES COMPLETE:** Implemented full single-asset export strategy per ADR-014, resolved hybrid persistence synchronization issues per ADR-015, and enhanced planning AI to generate individual assets with specific prompts.
 
 ---
 
@@ -189,3 +189,14 @@
 - **Issue:** UI uses `plan`, while API/DB uses `planning`. Mismatched validation lists.
 - **Action:** Standardize on one set of valid phases.
 
+
+
+## Latest Session (2025-12-29 Evening) - Prompt Specificity and Sync Fixes
+
+### Issues Fixed
+1. Quality parameter sync to Dexie (GenerationQueue now reads current values)
+2. Approved asset sync to Prisma (export can find assets)
+3. Export plan parsing (markdown not JSON)
+4. Planning AI enhanced to generate individual assets (not groups)
+
+See ADR-015 for complete documentation.
