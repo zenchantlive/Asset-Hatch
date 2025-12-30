@@ -135,9 +135,9 @@ export async function POST(req: NextRequest) {
             // Construct file path
             const filePath = `${categoryFolder}/${semanticId}.png`;
 
-            // Use asset-specific resolution, with project-wide fallback
-            const resolution = parsedAsset.resolution || project.baseResolution || '32x32';
-            const [width, height] = resolution.split('x').map(n => parseInt(n, 10));
+            // Use project-wide resolution (individual asset resolution not yet supported in type)
+            const resolution = project.baseResolution || '32x32';
+            const [width, height] = resolution.split('x').map((n: string) => parseInt(n, 10));
 
             // Determine frame count (1 for single sprite, >1 for sprite sheet)
             const frameCount = parsedAsset.variant?.frameCount || 1;
@@ -185,9 +185,9 @@ export async function POST(req: NextRequest) {
         zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
         // Generate ZIP blob
-        const zipBuffer = await zip.generateAsync({
-          type: 'nodebuffer',
-          compression: 'DEFLATE',
+        const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
             compressionOptions: { level: 6 },
         });
 
