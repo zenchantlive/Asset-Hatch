@@ -136,11 +136,26 @@ export function GenerationLayoutProvider({
         })
     }, [])
 
-    // Select all visible assets (requires parsedAssets from GenerationContext)
-    const selectAllVisible = useCallback(() => {
-        // This will be populated by the actual implementation
-        // that has access to the filtered asset list
-        console.log('selectAllVisible called - needs parsedAssets from context')
+    // Select all visible assets
+    // Accepts an array of asset IDs to select (from parsedAssets)
+    const selectAllVisible = useCallback((assetIds?: string[]) => {
+        if (assetIds) {
+            setSelectedIds(new Set(assetIds))
+        }
+    }, [])
+
+    // Select only assets that are not approved or awaiting_approval
+    // Used for "Generate Remaining" functionality
+    const selectRemainingAssets = useCallback((
+        assetIds: string[],
+        assetStates: Map<string, any>
+    ) => {
+        const remainingIds = assetIds.filter(assetId => {
+            const state = assetStates.get(assetId)
+            return !state ||
+                (state.status !== 'approved' && state.status !== 'awaiting_approval')
+        })
+        setSelectedIds(new Set(remainingIds))
     }, [])
 
     // Clear all selections
@@ -220,6 +235,7 @@ export function GenerationLayoutProvider({
         selectAsset,
         toggleAssetSelection,
         selectAllVisible,
+        selectRemainingAssets,
         clearSelection,
         setFilter,
         setSearchQuery,
@@ -235,6 +251,7 @@ export function GenerationLayoutProvider({
         selectAsset,
         toggleAssetSelection,
         selectAllVisible,
+        selectRemainingAssets,
         clearSelection,
         toggleCategoryCollapse,
         openPromptEditor,

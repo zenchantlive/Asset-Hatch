@@ -53,11 +53,19 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         startGeneration,
         pauseGeneration,
         resumeGeneration,
+        assetStates,
     } = useGenerationContext()
 
     // Get layout context for selection state
-    const { state, selectAllVisible, clearSelection } = useGenerationLayout()
+    const { state, selectAllVisible, selectRemainingAssets, clearSelection } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
+
+    // Calculate remaining count (assets not approved or awaiting approval)
+    const remainingCount = parsedAssets.filter(asset => {
+        const state = assetStates.get(asset.id)
+        return !state ||
+            (state.status !== 'approved' && state.status !== 'awaiting_approval')
+    }).length
 
     // Calculate cost estimate
     const costPerImage = selectedModel === 'flux-2-dev' ? 0.04 : 0.15
@@ -82,8 +90,11 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
             pauseGeneration()
         } else if (isPaused) {
             resumeGeneration()
+        } else if (selectedCount === 0) {
+            // Prep All mode: Just select all assets, don't generate yet
+            selectAllVisible(parsedAssets.map(a => a.id))
         } else {
-            // Check if batch is large (>5 assets)
+            // Generate mode: Check if batch is large (>5 assets) and show warning
             if (assetsToGenerate > 5) {
                 setShowWarning(true)
             } else {
@@ -92,14 +103,10 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         }
     }
 
-    // Handle Generate All button click
-    const handleGenerateAll = () => {
-        // Select all assets first
-        selectAllVisible()
-        // Warning will be shown via the main generate button if >5 assets
-        if (parsedAssets.length > 5) {
-            setShowWarning(true)
-        }
+    // Handle Prep Remaining button click
+    const handlePrepRemaining = () => {
+        // Just select remaining assets, don't generate yet (same as Prep All)
+        selectRemainingAssets(parsedAssets.map(a => a.id), assetStates)
     }
 
     // Handle warning dialog confirmation
@@ -129,10 +136,15 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                             <Play className="w-4 h-4 mr-1" />
                             Resume
                         </>
-                    ) : (
+                    ) : selectedCount > 0 ? (
                         <>
                             <Play className="w-4 h-4 mr-1" />
                             Generate
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="w-4 h-4 mr-1" />
+                            Prep
                         </>
                     )}
                 </Button>
@@ -177,15 +189,27 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                     ) : selectedCount > 0 ? (
                         <>
                             <Play className="w-4 h-4 mr-2" />
-                            Batch Generate ({selectedCount})
+                            Generate ({selectedCount})
                         </>
                     ) : (
                         <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Generate All ({parsedAssets.length})
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Prep All
                         </>
                     )}
                 </Button>
+
+                {/* Prep Remaining button (show when some assets are already generated) */}
+                {!isGenerating && !isPaused && remainingCount > 0 && remainingCount < parsedAssets.length && (
+                    <Button
+                        variant="outline"
+                        onClick={handlePrepRemaining}
+                        className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
+                    >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Prep Remaining ({remainingCount})
+                    </Button>
+                )}
 
                 {/* Stop button (only when generating) */}
                 {isGenerating && (
