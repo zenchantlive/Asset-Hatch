@@ -167,22 +167,30 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     loadPlan()
   }, [projectId, addLogEntry])
 
-  // Load approved assets from Dexie on mount
+  // Load generated assets from Dexie on mount
   useEffect(() => {
-    async function loadApprovedAssets() {
+    async function loadGeneratedAssets() {
       try {
-        const approvedAssets = await db.generated_assets
+        const assets = await db.generated_assets
           .where('project_id')
           .equals(projectId)
-          .filter(a => a.status === 'approved')
           .toArray();
 
-        if (approvedAssets.length > 0) {
+        if (assets.length > 0) {
+
+          // Populate asset states and prompts
           setAssetStates(prev => {
             const next = new Map(prev);
-            approvedAssets.forEach(asset => {
+            assets.forEach(asset => {
+              // Map DB status to UI status
+              let uiStatus: import('@/lib/types/generation').AssetGenerationState['status'] = 'awaiting_approval';
+
+              if (asset.status === 'approved') uiStatus = 'approved';
+              else if (asset.status === 'rejected') uiStatus = 'rejected';
+              else if (asset.status === 'generated') uiStatus = 'awaiting_approval';
+
               next.set(asset.asset_id, {
-                status: 'approved',
+                status: uiStatus,
                 result: {
                   id: asset.id,
                   imageUrl: asset.image_base64 || '', // Use cached base64
@@ -194,15 +202,26 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
             return next;
           });
 
-          addLogEntry('info', `Restored ${approvedAssets.length} approved assets`);
+          // Also restore prompts so they show up in the UI
+          setGeneratedPrompts(prev => {
+            const next = new Map(prev);
+            assets.forEach(asset => {
+              if (asset.prompt_used) {
+                next.set(asset.asset_id, asset.prompt_used);
+              }
+            });
+            return next;
+          });
+
+          addLogEntry('info', `Restored ${assets.length} generated assets`);
         }
       } catch (err) {
-        console.error('Failed to load approved assets:', err);
+        console.error('Failed to load generated assets:', err);
       }
     }
 
     if (!isLoading) {
-      loadApprovedAssets();
+      loadGeneratedAssets();
     }
   }, [projectId, isLoading, addLogEntry]);
 
@@ -253,6 +272,16 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
               })
               return next
             })
+
+            // Update the prompt with the one actually used
+            if (result.prompt) {
+              setGeneratedPrompts(prev => {
+                const next = new Map(prev)
+                next.set(assetId, result.prompt)
+                return next
+              })
+            }
+
             const asset = parsedAssets.find(a => a.id === assetId)
             if (asset) {
               addLogEntry('success', `Generated: ${asset.name}`)
