@@ -62,12 +62,12 @@ interface ProjectWithRelations extends PrismaProject {
 // =============================================================================
 
 // Validate phase is a valid ProjectPhase
-function isValidPhase(phase: string): phase is ProjectPhase {
+export function isValidPhase(phase: string): phase is ProjectPhase {
     return ["planning", "style", "generation", "export"].includes(phase);
 }
 
 // Validate type is a valid MemoryFileType
-function isValidMemoryFileType(type: string): type is MemoryFileType {
+export function isValidMemoryFileType(type: string): type is MemoryFileType {
     return [
         "project.json",
         "entities.json",
