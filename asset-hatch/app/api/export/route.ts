@@ -143,9 +143,15 @@ export async function POST(req: NextRequest) {
             const frameCount = parsedAsset.variant?.frameCount || 1;
 
             // Parse metadata (stored as JSON string in Prisma)
-            const metadata = generatedAsset.metadata
-                ? JSON.parse(generatedAsset.metadata)
-                : { model: 'flux.2-pro', seed: 0 };
+            let metadata: { model: string; seed: number };
+            try {
+                metadata = generatedAsset.metadata
+                    ? JSON.parse(generatedAsset.metadata)
+                    : { model: 'flux.2-pro', seed: 0 };
+            } catch (e) {
+                console.warn(`Failed to parse metadata for asset ${generatedAsset.id}:`, e);
+                metadata = { model: 'flux.2-pro', seed: 0 }; // Fallback
+            }
 
             // Build asset metadata
             const assetMetadata: ExportAssetMetadata = {
