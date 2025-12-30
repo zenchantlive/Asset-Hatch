@@ -131,9 +131,25 @@ export default function PlanningPage() {
   };
 
   // Handler for quality updates from AI
-  const handleQualityUpdate = (qualityKey: string, value: string) => {
-    console.log('\ud83d\udcdd Planning page received quality update:', qualityKey, '=', value);
+  const handleQualityUpdate = async (qualityKey: string, value: string) => {
+    console.log('📝 Planning page received quality update:', qualityKey, '=', value);
+
+    // 1. Update local state immediately (for UI reactivity)
     setQualities(prev => ({ ...prev, [qualityKey]: value }));
+
+    // 2. Save to Dexie immediately (so GenerationQueue can read it)
+    const projectId = params.id;
+    if (typeof projectId === 'string') {
+      try {
+        await updateProjectQualities(projectId, { [qualityKey]: value });
+        console.log('✅ Quality saved to Dexie:', qualityKey);
+
+        // 3. The AI tool already saved to Prisma server-side
+        // No need to sync again here
+      } catch (error) {
+        console.error("Failed to save quality to Dexie:", error);
+      }
+    }
   };
 
   // Handler for plan updates from AI
