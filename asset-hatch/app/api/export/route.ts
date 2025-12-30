@@ -78,8 +78,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Parse entities.json
-        const entities = JSON.parse(entitiesFile.content);
+        // Parse markdown plan using plan parser (entities.json is markdown, not JSON!)
+        const { parsePlan } = await import('@/lib/plan-parser');
+        const parsedAssets = parsePlan(entitiesFile.content, {
+            mode: 'granular', // Generate individual assets
+            projectId: projectId,
+        });
 
         // Fetch style anchor (optional)
         const styleAnchor = await prisma.styleAnchor.findFirst({
@@ -114,21 +118,19 @@ export async function POST(req: NextRequest) {
 
         // Process each generated asset
         for (const generatedAsset of generatedAssets) {
-            // Find corresponding entity in plan
-            // Type for parsed entity from entities.json
-            type ParsedEntity = { id: string; category: string; name: string; description: string; variant?: { name?: string; frameCount?: number } };
-            const entity = entities.find((e: ParsedEntity) => e.id === generatedAsset.assetId);
+            // Find corresponding asset in parsed plan
+            const parsedAsset = parsedAssets.find(a => a.id === generatedAsset.assetId);
 
-            if (!entity) {
-                console.warn(`Entity not found for asset: ${generatedAsset.assetId}`);
+            if (!parsedAsset) {
+                console.warn(`Parsed asset not found for: ${generatedAsset.assetId}`);
                 continue;
             }
 
             // Generate semantic ID
-            const semanticId = generateSemanticId(entity);
+            const semanticId = generateSemanticId(parsedAsset);
 
             // Determine category folder
-            const categoryFolder = getCategoryFolder(entity.category);
+            const categoryFolder = getCategoryFolder(parsedAsset.category);
 
             // Construct file path
             const filePath = `${categoryFolder}/${semanticId}.png`;
@@ -139,7 +141,7 @@ export async function POST(req: NextRequest) {
                 .map(n => parseInt(n, 10));
 
             // Determine frame count (1 for single sprite, >1 for sprite sheet)
-            const frameCount = entity.variant?.frameCount || 1;
+            const frameCount = parsedAsset.variant?.frameCount || 1;
 
             // Parse metadata (stored as JSON string in Prisma)
             const metadata = generatedAsset.metadata
@@ -149,17 +151,17 @@ export async function POST(req: NextRequest) {
             // Build asset metadata
             const assetMetadata: ExportAssetMetadata = {
                 id: semanticId,
-                semanticName: `${entity.category} - ${entity.name}${entity.variant?.name ? ` (${entity.variant.name})` : ''}`,
+                semanticName: `${parsedAsset.category} - ${parsedAsset.name}${parsedAsset.variant?.name ? ` (${parsedAsset.variant.name})` : ''}`,
                 path: filePath,
-                category: entity.category.toLowerCase().replace(/s$/, ''), // Singular
+                category: parsedAsset.category.toLowerCase().replace(/s$/, ''), // Singular
                 tags: [
-                    entity.category.toLowerCase(),
-                    entity.name.toLowerCase(),
-                    ...(entity.variant?.name ? [entity.variant.name.toLowerCase()] : []),
+                    parsedAsset.category.toLowerCase(),
+                    parsedAsset.name.toLowerCase(),
+                    ...(parsedAsset.variant?.name ? [parsedAsset.variant.name.toLowerCase()] : []),
                 ],
                 dimensions: { width, height },
                 frames: frameCount,
-                aiDescription: entity.description,
+                aiDescription: parsedAsset.description,
                 generationMetadata: {
                     prompt: generatedAsset.promptUsed || 'No prompt recorded',
                     seed: generatedAsset.seed || metadata.seed || 0,

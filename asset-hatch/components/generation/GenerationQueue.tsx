@@ -466,6 +466,32 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         updated_at: now,
       })
 
+      // Sync to Prisma (server) so export API can find it
+      try {
+        const arrayBuffer = await blob.arrayBuffer()
+        const base64Image = Buffer.from(arrayBuffer).toString('base64')
+
+        await fetch('/api/generated-assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: state.result.id,
+            projectId: projectId,
+            assetId: assetId,
+            imageBlob: base64Image,
+            promptUsed: state.result.prompt,
+            seed: state.result.metadata.seed,
+            metadata: state.result.metadata,
+            status: 'approved',
+          }),
+        })
+
+        addLogEntry('info', `Asset synced to server: ${asset.name}`)
+      } catch (syncError) {
+        console.error('Failed to sync approved asset to server:', syncError)
+        addLogEntry('error', `Asset approved locally but not synced to server`)
+      }
+
       // Mark as approved
       setAssetStates(prev => {
         const next = new Map(prev)

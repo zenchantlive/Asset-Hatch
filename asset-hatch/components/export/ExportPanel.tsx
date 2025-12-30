@@ -58,19 +58,16 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
     /**
      * Trigger export by calling /api/export endpoint
      * Downloads ZIP file to user's browser
+     * 
+     * Note: We don't validate asset count client-side because Dexie and Prisma
+     * may be out of sync. Let the server API handle the validation.
      */
     const handleExport = async () => {
-        // Validate we have assets to export
-        if (approvedAssetCount === 0) {
-            setError('No approved assets to export. Approve some assets first.');
-            return;
-        }
-
         setIsExporting(true);
         setError(null);
 
         try {
-            // Call export API
+            // Call export API (server will validate if assets exist in Prisma)
             const response = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
