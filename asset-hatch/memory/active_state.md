@@ -1,103 +1,42 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-29  
-**Session:** Prompt Specificity & Hybrid Persistence Sync Fixes - ✅ COMPLETE  
-**Branch:** feat/single-asset-export  
-**Latest Commit:** `a0a486e` (Sync fixes) + `9888758` (Prompt fixes)
+**Session:** Generation UI v2.1 & Batch Polish - ✅ COMPLETE  
+**Latest Commit:** `[Pending]`
 
 ---
 
 ## 📍 Current Focus
 
-> **🎯 EXPORT SYSTEM + SYNC FIXES COMPLETE:** Implemented full single-asset export strategy per ADR-014, resolved hybrid persistence synchronization issues per ADR-015, and enhanced planning AI to generate individual assets with specific prompts.
+> **🎯 GENERATION UI v2.1 COMPLETE:** Redesigned the generation workflow into a "Batch Dashboard" metaphor (ADR-016), implemented responsive grid layouts, 2x2 cards for small batches, and polished maximize animations for the Bottom Asset Bar.
 
 ---
 
-## 🔥 Latest Session's Work (2025-12-29) - Export Phase
+## 🔥 Latest Session's Work (2025-12-29) - Generation UI Polish
 
-### Export System Implementation
+### 1. "Batch Dashboard" Architecture (ADR-016)
+**Context:**  
+User found the list-based category view "boring" and the layout unresponsive for batch tasks.  
+**Solution:**
+- **Flexible Layout:** Replaced rigid 3-column frame with `DesktopLayout` (Resizable Left Bar + Main Preview + Floating Bottom Bar).
+- **Batch Dashboard Logic:**
+  - **Grid View (<4 items):** 2-column grid of **square cards** constrained to `max-w-[80vh]`.
+  - **Category View (4+ items):** Accordion groups expanding into the same 2-column square grid.
+- **Outcome:** Unified, visually rich experience for managing 1 to 50 assets.
 
-**Context:**
-- Assets generated as "showrooms" instead of isolated sprites
-- No export functionality for approved assets
-- Need AI-consumable output format with semantic IDs
-- Cost vs quality trade-offs for extraction strategies
+### 2. Responsiveness & Grid Fixes
+**Context:**  
+"Maximize" button wasn't clickable due to overflow masking; layout felt "frozen".  
+**Solution:**
+- Removed `overflow-hidden` from the main right column in `DesktopLayout.tsx`.
+- Implemented `aspect-square` enforcement on all `AssetCard` components.
+- Added adaptive `max-w` containers to keep small grids from stretching excessively.
 
-**Solution Implemented:**
-
-#### 1. ADR-014: Single-Asset Strategy ✅
-**Files:** `memory/adr/014-asset-extraction-strategy.md`
-- Analyzed single-asset vs multi-asset extraction approaches
-- Cost-benefit analysis: $3/100 assets acceptable vs $1,500 engineering cost
-- **Decision:** Single-asset for quality/reliability, hybrid exception for terrain
-- Documented complete implementation plan with code examples
-
-#### 2. Phase 1: Isolation Prompt Templates ✅
-**Files:** `lib/prompt-templates.ts`
-- Updated `buildCharacterSpritePrompt` with isolation keywords:
-  - "centered on transparent background"
-  - "single isolated object"
-  - "no other objects in scene"
-- Updated `buildIconPrompt` with same isolation keywords
-- Updated `buildTilesetPrompt` for grid-based modular terrain generation
-- **Result:** Prevents "showroom" generation, forces isolated sprites
-
-#### 3. Phase 2: Export Types & Semantic IDs ✅
-**Files:** `lib/types.ts`, `lib/prompt-builder.ts`
-- Created `ExportManifest` interface for AI-consumable metadata
-- Created `ExportAssetMetadata` with semantic IDs and placement rules
-- Added `generateSemanticId()`: `"Characters" + "Farmer" + "Idle"` → `"character_farmer_idle"`
-- Added `getCategoryFolder()` for normalized folder names
-- **Result:** Enables programmatic asset consumption by AI game generators
-
-#### 4. Phase 3: Export API Endpoint ✅
-**Files:** `app/api/export/route.ts`
-- POST `/api/export` endpoint for ZIP generation
-- Fetches approved assets from Prisma
-- Parses `entities.json` for asset metadata
-- Generates semantic IDs for filenames
-- Creates `manifest.json` with AI-consumable metadata
-- Organizes assets by category folders (characters/, furniture/, etc.)
-- Returns ZIP file for download
-- **Result:** One-click export of organized asset packs
-
-#### 5. Phase 4: Full UI Workflow Integration ✅
-**Files:** `components/export/ExportPanel.tsx`, `app/project/[id]/planning/page.tsx`
-- Added `'export'` as 4th mode to planning workflow
-- Export tab appears in desktop and mobile layouts
-- Created smart `ExportPanel` component:
-  - Auto-fetches project name from Dexie
-  - Auto-fetches approved asset count
-  - Shows loading states
-  - Triggers ZIP download
-- **Complete workflow:** planning → style → generation → export
-- Phase persistence and URL sync working for all 4 modes
-- **Result:** Seamless end-to-end user experience
-
----
-
-## 📁 Files Modified/Created (This Session - Export Phase)
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `memory/adr/014-asset-extraction-strategy.md` | **CREATE** | Complete ADR with analysis |
-| `lib/prompt-templates.ts` | **MODIFY** | Isolation keywords |
-| `lib/types.ts` | **MODIFY** | Export manifest types |
-| `lib/prompt-builder.ts` | **MODIFY** | Semantic ID generation |
-| `app/api/export/route.ts` | **CREATE** | ZIP export endpoint |
-| `components/export/ExportPanel.tsx` | **CREATE** | Export UI component |
-| `app/project/[id]/planning/page.tsx` | **MODIFY** | 4th mode integration |
-
----
-
-## ✅ Testing & Validation
-
-- ✅ **TypeScript:** Compilation passes (Exit code 0)
-- ✅ **Linting:** ESLint passes
-- ✅ **Prompt Templates:** Isolation keywords added
-- ✅ **Export Types:** Complete manifest schema
-- ✅ **API Endpoint:** ZIP generation logic complete
-- ✅ **UI Integration:** Export mode accessible from tabs
+### 3. Visual Polish & Animations
+- **Animations:** Added `animate-in fade-in zoom-in-50` for card entry.
+- **Bottom Bar:**  
+  - Maximize button now **overlays** the component (absolute positioning).
+  - Dots use `gap-dynamic` (1/2/3 units) spacing for better mobile density.
 
 ---
 
@@ -105,27 +44,20 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `app/layout.tsx` | **MODIFY** | Swap to Space Grotesk fonts |
-| `app/globals.css` | **MODIFY** | Heading typography styles |
-| `app/project/[id]/planning/page.tsx` | **MODIFY** | Responsive toolbar, data sync |
-| `components/planning/QualitiesBar.tsx` | **MODIFY** | Collapsible bar mode |
-| `components/planning/PlanPreview.tsx` | **MODIFY** | Color improvements |
-| `components/planning/ChatInterface.tsx` | **MODIFY** | Visual polish |
-| `components/ui/popover.tsx` | **CREATE** | Radix popover wrapper |
-| `components/project/ProjectSyncProvider.tsx` | **CREATE** | Sync wrapper (unused) |
-| `auth.ts` | **MODIFY** | OAuth account linking |
-| `lib/sync.ts` | **MODIFY** | Date handling fixes |
-| `memory/adr/011-ui-refinements-and-data-sync.md` | **CREATE** | Architecture documentation |
+| `memory/adr/016-generation-ui-batch-redesign.md` | **CREATE** | Documented v2.1 Architecture (Replaces ADR-015) |
+| `components/generation/panels/BatchPreviewContent.tsx` | **REFACTOR** | Implemented Unified Grid + Cards |
+| `components/generation/panels/BottomAssetBar.tsx` | **MODIFY** | Added Overlay Maximize + Responsive Dots |
+| `components/generation/layouts/DesktopLayout.tsx` | **MODIFY** | Fixed Layout Interaction Bugs |
+| `walkthrough.md` | **UPDATE** | Visual Proof of Layout Fixes |
 
 ---
 
 ## ✅ Testing & Validation
 
-- ✅ **Auth:** GitHub OAuth with existing email works
-- ✅ **Mobile:** Toolbar responsive at all breakpoints
-- ✅ **Parameters:** Collapsible, visible by default
-- ✅ **Sync:** GenerationQueue finds project data
-- ✅ **Code:** `bun run typecheck` passes (Exit code 0)
+- ✅ **TypeScript:** `bun run typecheck` passed (Exit code 0).
+- ✅ **Interactions:** Maximize button now clickable; Sidebar resizing works.
+- ✅ **Visuals:** Square cards verified; 2-column grid verified.
+- ✅ **Responsiveness:** Validated constraints on different batch sizes.
 
 ---
 
@@ -135,68 +67,15 @@
 | :--- | :--- | :--- |
 | **Authentication** | ✅ Complete | OAuth linking enabled |
 | **UI/Typography** | ✅ Complete | Space Grotesk, responsive |
-| **Parameters Bar** | ✅ Complete | Collapsible, visible |
 | **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
-| **Plan Preview** | ✅ Complete | Colorful, readable |
 | **Session Persistence** | ✅ Complete | Hybrid (DB+Dexie+Local) |
-| **Generation Workflow** | ✅ Complete | Ready for testing |
+| **Generation Workflow** | ✅ Complete | **Batch Dashboard v2.1 Live** |
 | **Export System** | ✅ Complete | Full workflow integration |
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Test Export Workflow** - Generate sample assets and test ZIP export
-2. **Validate Isolation Quality** - Test new prompt templates with Flux.2
-3. **Update Project Documentation** - Document export format for users
-4. **Merge to Main** - PR for `feat/single-asset-export` branch
-
-## ✅ Security Hardening Complete (2025-12-28)
-
-### 🔒 OAuth Account Linking Fixed
-- **File:** `auth.ts`
-- **Change:** `allowDangerousEmailAccountLinking: false` (was `true`)
-- **Impact:** Prevents account takeover attacks via email matching
-- **Trade-off:** Users must use same sign-in method consistently
-
-### 🐞 Phase Consistency Fixed
-- **Files:** `app/project/[id]/planning/page.tsx`, `ChatInterface.tsx`, `preset-prompts.ts`
-- **Change:** Standardized on `'planning'` everywhere (removed `'plan'` → `'planning'` mapping)
-- **Benefit:** Single source of truth, type-safe, eliminates mapping bugs
-
-### ⚡ Race Condition Verified
-- **Status:** Already fixed in previous work
-- **Verification:** Database has `@@unique([projectId, type])` constraint, all endpoints use atomic `upsert()`
-- **Database Migrations:** Up to date
-
-### 📝 Documentation
-- **ADR Created:** `memory/adr/013-security-hardening-oauth-and-consistency.md`
-- **Testing:** ✅ TypeScript compilation passed, ✅ Linting passed
-
-## 🚩 Pending Audit Issues (PR #8)
-
-### 🔒 Security: Account Takeover Risk
-- **Location:** `asset-hatch/auth.ts`
-- **Impact:** `allowDangerousEmailAccountLinking: true` allows GitHub accounts to link to existing credentials accounts based solely on email.
-- **Action:** Require explicit verification or user confirmation.
-
-### ⚡ Race Condition: Memory File Upsert
-- **Location:** `app/api/projects/[id]/memory-files/route.ts`
-- **Resolution:** Implemented `@@unique([projectId, type])` and atomic `prisma.memoryFile.upsert()`.
-
-### 🐞 Consistency: Mode/Phase Mapping
-- **Location:** `ChatInterface.tsx` and `app/api/projects/[id]/route.ts`
-- **Issue:** UI uses `plan`, while API/DB uses `planning`. Mismatched validation lists.
-- **Action:** Standardize on one set of valid phases.
-
-
-
-## Latest Session (2025-12-29 Evening) - Prompt Specificity and Sync Fixes
-
-### Issues Fixed
-1. Quality parameter sync to Dexie (GenerationQueue now reads current values)
-2. Approved asset sync to Prisma (export can find assets)
-3. Export plan parsing (markdown not JSON)
-4. Planning AI enhanced to generate individual assets (not groups)
-
-See ADR-015 for complete documentation.
+1.  **Manual Verification:** User to confirm layout "feel" and animations.
+2.  **Backend Integration:** Wire up the "Stop Generation" and "Batch Approve" buttons (currently visual-only in places).
+3.  **Deploy/Merge:** Commit changes to main.
