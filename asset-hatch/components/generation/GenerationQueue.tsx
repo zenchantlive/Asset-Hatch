@@ -22,9 +22,13 @@ import type {
   GenerationContextValue,
   GenerationLogEntry,
 } from '@/lib/types/generation'
+// Legacy components (kept for fallback compatibility)
 import { BatchControls } from './BatchControls'
 import { AssetTree } from './AssetTree'
 import { GenerationProgress } from './GenerationProgress'
+// New layout system
+import { GenerationLayoutProvider } from './GenerationLayoutContext'
+import { GenerationLayout } from './GenerationLayout'
 
 /**
  * React Context for sharing generation state across components
@@ -590,26 +594,12 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     )
   }
 
-  // Main UI - Complete generation interface
+  // Main UI - New responsive generation interface
   return (
     <GenerationContext.Provider value={contextValue}>
-      <div className="flex flex-col h-full bg-glass-bg/10">
-        {/* Toolbar with generation controls and model selector */}
-        <BatchControls />
-
-        {/* Two-panel layout: Asset tree (left) | Generation progress (right) */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left panel: Asset tree with hierarchical view */}
-          <div className="w-1/2 border-r border-white/10 overflow-auto">
-            <AssetTree />
-          </div>
-
-          {/* Right panel: Generation progress and live updates */}
-          <div className="w-1/2 overflow-auto">
-            <GenerationProgress />
-          </div>
-        </div>
-      </div>
+      <GenerationLayoutProvider>
+        <GenerationLayout />
+      </GenerationLayoutProvider>
     </GenerationContext.Provider>
   )
 }
