@@ -115,7 +115,9 @@ export async function POST(req: NextRequest) {
         // Process each generated asset
         for (const generatedAsset of generatedAssets) {
             // Find corresponding entity in plan
-            const entity = entities.find((e: any) => e.id === generatedAsset.assetId);
+            // Type for parsed entity from entities.json
+            type ParsedEntity = { id: string; category: string; name: string; description: string; variant?: { name?: string; frameCount?: number } };
+            const entity = entities.find((e: ParsedEntity) => e.id === generatedAsset.assetId);
 
             if (!entity) {
                 console.warn(`Entity not found for asset: ${generatedAsset.assetId}`);
@@ -191,7 +193,7 @@ export async function POST(req: NextRequest) {
             },
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Export error:', error);
         return NextResponse.json(
             { error: 'Failed to export assets', details: error instanceof Error ? error.message : 'Unknown error' },
