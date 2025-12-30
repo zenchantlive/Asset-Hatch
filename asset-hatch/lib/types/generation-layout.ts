@@ -92,7 +92,9 @@ export interface GenerationLayoutContextValue {
     /** Toggle asset selection (for batch operations) */
     toggleAssetSelection: (assetId: string) => void
     /** Select all visible assets */
-    selectAllVisible: () => void
+    selectAllVisible: (assetIds?: string[]) => void
+    /** Select only assets that are not approved or awaiting_approval */
+    selectRemainingAssets: (assetIds: string[], assetStates: Map<string, any>) => void
     /** Clear all selections */
     clearSelection: () => void
     /** Set filter */

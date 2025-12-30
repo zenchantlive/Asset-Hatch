@@ -264,6 +264,16 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
           // Callback: Asset completes successfully
           onAssetComplete: (assetId: string, result) => {
+            // Debug logging to verify result structure
+            console.log('[onAssetComplete] assetId:', assetId)
+            console.log('[onAssetComplete] result:', JSON.stringify({
+              id: result.id,
+              hasImageUrl: !!result.imageUrl,
+              imageUrlLength: result.imageUrl?.length,
+              hasPrompt: !!result.prompt,
+              hasMetadata: !!result.metadata
+            }, null, 2))
+
             setAssetStates(prev => {
               const next = new Map(prev)
               next.set(assetId, {
@@ -419,10 +429,11 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
   /**
    * Generate image for a single asset
-   * 
+   *
    * Calls the /api/generate endpoint with the asset and its prompt.
    * Updates asset state through the generation lifecycle.
-   * 
+   * Preserves all generated versions for carousel display.
+   *
    * @param assetId - ID of the asset to generate
    */
   const generateImage = useCallback(async (assetId: string) => {
@@ -451,6 +462,14 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       }
     }
 
+    // Fetch existing versions for this asset
+    const existingVersions = await db.asset_versions
+      .where('asset_id')
+      .equals(assetId)
+      .toArray()
+
+    const nextVersionNumber = existingVersions.length + 1
+
     // Fetch style anchor image for visual consistency
     const styleAnchor = await db.style_anchors
       .where('project_id')
@@ -464,7 +483,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       return next
     })
 
-    addLogEntry('info', `Generating image for: ${asset.name}`)
+    addLogEntry('info', `Generating image for: ${asset.name} (v${nextVersionNumber})`)
 
     try {
       // Call the generation API endpoint
@@ -493,17 +512,42 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         throw new Error('Invalid response format from generation API')
       }
 
-      // Mark as awaiting approval
+      // Convert image URL to Blob for storage
+      const imageBlob = await fetch(data.asset.imageUrl).then(r => r.blob())
+
+      // Save new version to asset_versions table
+      const newVersionId = crypto.randomUUID()
+      await db.asset_versions.add({
+        id: newVersionId,
+        project_id: projectId,
+        asset_id: assetId,
+        version_number: nextVersionNumber,
+        image_blob: imageBlob,
+        image_base64: data.asset.imageUrl,
+        prompt_used: data.asset.prompt,
+        generation_metadata: data.asset.metadata,
+        created_at: new Date().toISOString(),
+      })
+
+      // Fetch all versions including the new one
+      const allVersions = await db.asset_versions
+        .where('asset_id')
+        .equals(assetId)
+        .sortBy('version_number')
+
+      // Mark as awaiting approval with all versions for carousel
       setAssetStates(prev => {
         const next = new Map(prev)
         next.set(assetId, {
           status: 'awaiting_approval',
           result: data.asset,
+          versions: allVersions,
+          currentVersionIndex: allVersions.length - 1, // Show newest version by default
         })
         return next
       })
 
-      addLogEntry('success', `Image generated for: ${asset.name}`)
+      addLogEntry('success', `Image generated for: ${asset.name} (v${nextVersionNumber})`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
 

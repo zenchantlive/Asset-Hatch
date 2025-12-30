@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { BatchPreviewContent } from './BatchPreviewContent'
+import { VersionCarousel } from '../VersionCarousel'
 
 /**
  * Props for PreviewPanel
@@ -35,6 +36,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+    // Version carousel state
+    const [currentVersionIndex, setCurrentVersionIndex] = useState(0)
 
     // Get contexts
     const {
@@ -150,6 +153,10 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     const hasError = assetState?.status === 'error'
     const hasResult = isAwaitingApproval || isApproved
 
+    // Check for version carousel
+    const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
+    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1
+
     // Get the image URL if available
     const imageUrl = hasResult && assetState?.result?.imageUrl
 
@@ -216,47 +223,70 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
             )}
 
             <div className={`flex flex-col h-full ${compact ? 'p-3' : 'p-6'}`}>
-                {/* Image section with maximize button */}
-                {/* Image section with maximize button - Flexible height */}
-                <div className={`relative bg-black/30 rounded-xl border border-white/10 overflow-hidden mb-4 ${compact
-                    ? 'flex-shrink-0 h-48'
-                    : 'flex-1 min-h-[16rem] max-h-[50vh]'
-                    }`}>
-                    {isGenerating ? (
-                        // Generating state
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
-                            <p className="text-white/70">Generating image...</p>
-                        </div>
-                    ) : imageUrl ? (
-                        // Has image - clickable for lightbox
-                        <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={imageUrl}
-                                alt={asset.name}
-                                className="w-full h-full object-contain cursor-pointer"
-                                onClick={() => setIsLightboxOpen(true)}
-                            />
-                            {/* Maximize button */}
-                            <button
-                                onClick={() => setIsLightboxOpen(true)}
-                                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
-                                title="View full size"
-                            >
-                                <Maximize2 className="w-4 h-4 text-white/80" />
-                            </button>
-                        </>
-                    ) : (
-                        // No image yet
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                                <span className="text-2xl opacity-50">🖼️</span>
+                {/* Image section with version carousel or simple display */}
+                {shouldShowCarousel && assetState?.versions ? (
+                    // Version Carousel (when multiple versions exist)
+                    <div className="mb-4">
+                        <VersionCarousel
+                            versions={assetState.versions}
+                            currentIndex={assetState.currentVersionIndex || 0}
+                            onIndexChange={setCurrentVersionIndex}
+                            onApprove={(versionId) => {
+                                // Approve the selected version
+                                if (asset) {
+                                    approveAsset(asset.id)
+                                }
+                            }}
+                            onReject={(versionId) => {
+                                // Reject the selected version
+                                if (asset) {
+                                    rejectAsset(asset.id)
+                                }
+                            }}
+                        />
+                    </div>
+                ) : (
+                    // Standard image display (single version or no versions)
+                    <div className={`relative bg-black/30 rounded-xl border border-white/10 overflow-hidden mb-4 ${compact
+                        ? 'flex-shrink-0 h-48'
+                        : 'flex-1 min-h-[16rem] max-h-[50vh]'
+                        }`}>
+                        {isGenerating ? (
+                            // Generating state
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
+                                <p className="text-white/70">Generating image...</p>
                             </div>
-                            <p className="text-white/50 text-sm">No image generated yet</p>
-                        </div>
-                    )}
-                </div>
+                        ) : imageUrl ? (
+                            // Has image - clickable for lightbox
+                            <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={imageUrl}
+                                    alt={asset.name}
+                                    className="w-full h-full object-contain cursor-pointer"
+                                    onClick={() => setIsLightboxOpen(true)}
+                                />
+                                {/* Maximize button */}
+                                <button
+                                    onClick={() => setIsLightboxOpen(true)}
+                                    className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
+                                    title="View full size"
+                                >
+                                    <Maximize2 className="w-4 h-4 text-white/80" />
+                                </button>
+                            </>
+                        ) : (
+                            // No image yet
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+                                    <span className="text-2xl opacity-50">🖼️</span>
+                                </div>
+                                <p className="text-white/50 text-sm">No image generated yet</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Asset info section */}
                 <div className="mb-4">
@@ -268,21 +298,62 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             <p className="text-sm text-white/60">{asset.category}</p>
                         </div>
 
-                        {/* Status badge */}
-                        {assetState && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
-                                isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
-                                    isApproved ? 'bg-green-500/20 text-green-400' :
-                                        hasError ? 'bg-red-500/20 text-red-400' :
-                                            'bg-white/10 text-white/60'
-                                }`}>
-                                {isGenerating ? 'Generating...' :
-                                    isAwaitingApproval ? 'Awaiting Review' :
-                                        isApproved ? 'Approved' :
-                                            hasError ? 'Failed' :
-                                                'Pending'}
-                            </span>
-                        )}
+                        {/* Status badge with action buttons */}
+                        <div className="flex items-center gap-2">
+                            {/* Approve button - show when awaiting approval */}
+                            {isAwaitingApproval && (
+                                <button
+                                    onClick={handleApprove}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
+                                    title="Approve asset"
+                                >
+                                    <Check className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
+                                </button>
+                            )}
+
+                            {/* Reject button - show when awaiting approval */}
+                            {isAwaitingApproval && (
+                                <button
+                                    onClick={handleReject}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
+                                    title="Reject asset"
+                                >
+                                    <X className="w-3.5 h-3.5 text-white/60 hover:text-red-400" />
+                                </button>
+                            )}
+
+                            {/* Regenerate button - show when asset has been generated */}
+                            {(hasResult || hasError) && (
+                                <button
+                                    onClick={handleGenerateImage}
+                                    disabled={isGenerating}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Regenerate asset"
+                                >
+                                    {isGenerating ? (
+                                        <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+                                    ) : (
+                                        <RotateCcw className="w-3.5 h-3.5 text-white/60 hover:text-purple-400" />
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Status badge */}
+                            {assetState && (
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
+                                    isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
+                                        isApproved ? 'bg-green-500/20 text-green-400' :
+                                            hasError ? 'bg-red-500/20 text-red-400' :
+                                                'bg-white/10 text-white/60'
+                                    }`}>
+                                    {isGenerating ? 'Generating...' :
+                                        isAwaitingApproval ? 'Awaiting Review' :
+                                            isApproved ? 'Approved' :
+                                                hasError ? 'Failed' :
+                                                    'Pending'}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Description */}

@@ -94,12 +94,21 @@ export interface GenerationQueueProps {
 
 /**
  * State for individual asset generation lifecycle
+ * Now includes version carousel support
  */
 export type AssetGenerationState =
   | { status: 'pending' } // Not started
   | { status: 'generating'; progress?: number } // In progress
-  | { status: 'awaiting_approval'; result: GeneratedAssetResult } // Needs approval
-  | { status: 'approved'; result: GeneratedAssetResult } // Saved to DB
+  | {
+      status: 'awaiting_approval';
+      result: GeneratedAssetResult;
+      versions?: import('@/lib/client-db').AssetVersion[]; // All versions for carousel
+      currentVersionIndex?: number; // Currently displayed version
+    } // Needs approval
+  | {
+      status: 'approved';
+      result: GeneratedAssetResult;
+    } // Saved to DB
   | { status: 'rejected' } // User rejected
   | { status: 'error'; error: Error } // Failed
 
