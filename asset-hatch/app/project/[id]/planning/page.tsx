@@ -12,8 +12,9 @@ import { AssetsPanel } from "@/components/ui/AssetsPanel"
 import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db-utils"
 import { db } from "@/lib/client-db"
 import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
+import { ExportPanel } from "@/components/export/ExportPanel"
 
-type PlanningMode = 'planning' | 'style' | 'generation'
+type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
 export default function PlanningPage() {
   const params = useParams()
@@ -42,7 +43,7 @@ export default function PlanningPage() {
         if (project) {
           // If URL has no mode, use project phase (restore session)
           const urlMode = searchParams.get('mode');
-          if (!urlMode && project.phase && ['planning', 'style', 'generation'].includes(project.phase)) {
+          if (!urlMode && project.phase && ['planning', 'style', 'generation', 'export'].includes(project.phase)) {
             // If the stored phase is different from default 'planning', update it
             const phaseMode = project.phase as PlanningMode;
             if (phaseMode !== mode) {
@@ -50,7 +51,7 @@ export default function PlanningPage() {
               // Also update URL to match
               router.replace(`/project/${params.id}/planning?mode=${phaseMode}`);
             }
-          } else if (urlMode && ['planning', 'style', 'generation'].includes(urlMode)) {
+          } else if (urlMode && ['planning', 'style', 'generation', 'export'].includes(urlMode)) {
             // URL takes precedence if present
             setMode(urlMode as PlanningMode);
           }
@@ -130,9 +131,28 @@ export default function PlanningPage() {
   };
 
   // Handler for quality updates from AI
-  const handleQualityUpdate = (qualityKey: string, value: string) => {
-    console.log('\ud83d\udcdd Planning page received quality update:', qualityKey, '=', value);
+  const handleQualityUpdate = async (qualityKey: string, value: string) => {
+    console.log('📝 Planning page received quality update:', qualityKey, '=', value);
+
+    const prevQualities = qualities;
+    // 1. Update local state immediately (for UI reactivity)
     setQualities(prev => ({ ...prev, [qualityKey]: value }));
+
+    // 2. Save to Dexie immediately (so GenerationQueue can read it)
+    const projectId = params.id;
+    if (typeof projectId === 'string') {
+      try {
+        await updateProjectQualities(projectId, { [qualityKey]: value });
+        console.log('✅ Quality saved to Dexie:', qualityKey);
+
+        // 3. The AI tool already saved to Prisma server-side
+        // No need to sync again here
+      } catch (error) {
+        console.error("Failed to save quality to Dexie:", error);
+        // Revert optimistic update on failure
+        setQualities(prevQualities);
+      }
+    }
   };
 
   // Handler for plan updates from AI
@@ -241,7 +261,7 @@ export default function PlanningPage() {
           {/* CENTER: Interaction Mode Tabs */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 backdrop-blur-sm">
-              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation', 'export'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -280,7 +300,7 @@ export default function PlanningPage() {
           {/* Row 1: Tabs (centered, full width) */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 w-full max-w-xs">
-              {(['planning', 'style', 'generation'] as const).map((tabMode) => (
+              {(['planning', 'style', 'generation', 'export'] as const).map((tabMode) => (
                 <button
                   key={tabMode}
                   onClick={() => handleModeChange(tabMode)}
@@ -326,10 +346,12 @@ export default function PlanningPage() {
       {/* Parameters Bar - Visible on desktop, shows selected values */}
       <div className="hidden lg:block shrink-0 z-10 border-b border-white/5">
         <QualitiesBar
+          key={mode} // Re-mount when mode changes to reset default state
           qualities={qualities}
           onQualitiesChange={setQualities}
           onSave={handleParametersSave}
           mode="bar"
+          defaultExpanded={mode === 'planning'} // Only expanded by default in planning mode
         />
       </div>
 
@@ -337,6 +359,13 @@ export default function PlanningPage() {
         {mode === 'generation' ? (
           // Generation mode: Full-width GenerationQueue (no chat)
           <GenerationQueue projectId={params.id as string} />
+        ) : mode === 'export' ? (
+          // Export mode: Full-width ExportPanel (no chat)
+          <div className="w-full flex items-center justify-center p-8 bg-glass-bg/10">
+            <div className="w-full max-w-2xl">
+              <ExportPanel projectId={params.id as string} />
+            </div>
+          </div>
         ) : (
           // Plan and Style modes: Keep 50/50 split with chat
           <>

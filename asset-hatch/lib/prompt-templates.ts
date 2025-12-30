@@ -70,12 +70,16 @@ export interface TemplateVariables {
 }
 
 /**
- * TEMPLATE: Character Sprite (Single Pose)
+ * TEMPLATE: Character Sprite (Single Pose) - ISOLATED ASSET
+ *
+ * Updated per ADR-014 to generate individual sprites, not composed scenes.
+ * Critical keywords: "centered", "single isolated object", "transparent background"
  *
  * Example output:
  * "pixel art sprite of farmer character with straw hat, idle standing pose,
+ * centered on transparent background, single isolated object, no other objects in scene,
  * 32x32 sprite, Stardew Valley 16-bit style, limited 16-color palette,
- * front-facing view, white background, consistent with style reference image, game-ready asset"
+ * front-facing view, white background fallback, consistent with style reference image, game-ready asset"
  */
 export function buildCharacterSpritePrompt(vars: TemplateVariables): string {
   const parts = [
@@ -85,28 +89,33 @@ export function buildCharacterSpritePrompt(vars: TemplateVariables): string {
     // 2. Pose/action
     vars.pose,
 
-    // 3. Resolution
+    // 3. ISOLATION KEYWORDS (CRITICAL - prevents composed scenes)
+    'centered on transparent background',
+    'single isolated object',
+    'no other objects in scene',
+    'no shadows',
+    'clean edges',
+
+    // 4. Resolution
     `${vars.resolution} sprite`,
 
-    // 4. Style keywords
+    // 5. Style keywords
     vars.styleKeywords,
 
-    // 5. Color palette
+    // 6. Color palette
     vars.colorPalette,
 
-    // 6. View/perspective
+    // 7. View/perspective
     vars.viewDirection,
 
-    // 7. Lighting (implicit in style keywords for sprites)
-
-    // 8. Background
-    vars.background,
+    // 8. Background fallback (if transparency fails)
+    'white background fallback if transparency fails',
 
     // 9. Consistency markers
     ...vars.consistencyMarkers,
 
     // 10. Game-ready marker
-    'game-ready asset',
+    'game-ready sprite',
   ];
 
   return parts.filter(Boolean).join(', ');
@@ -169,46 +178,55 @@ export function buildSpriteSheetPrompt(vars: TemplateVariables): string {
 }
 
 /**
- * TEMPLATE: Tileset (Seamless Terrain)
+ * TEMPLATE: Tileset (Modular Grid-Based) - MULTI-ASSET EXCEPTION
+ *
+ * Updated per ADR-014: Terrain tilesets use grid-based multi-asset generation.
+ * This is the ONLY asset type that generates multiple items per image.
+ *
+ * Output structure: 4x4 grid with modular pieces (center, 8 edges, 4 corners)
  *
  * Example output:
- * "seamless tileset of grass ground tiles with dirt edges, 32x32 tile size,
- * top-down view, includes edge pieces and corner variations, nature colors,
- * consistent top-down lighting, tileable pattern, game-ready asset"
+ * "pixel art tileset of grass ground, 16x16 tile grid, modular pieces on transparent background,
+ * includes 1 center tile, 8 directional edge pieces (N/S/E/W/NE/NW/SE/SW), 4 corner pieces,
+ * clearly separated tiles with spacing, tileable edges, vibrant green grass,
+ * 16-bit pixel art, limited 16-color palette, top-down view, game-ready tileset"
  */
 export function buildTilesetPrompt(vars: TemplateVariables): string {
   const parts = [
-    // 1. Asset type + subject (with "seamless" keyword)
-    `seamless tileset of ${vars.terrainType || vars.subject}`,
+    // 1. Asset type + subject
+    `pixel art tileset of ${vars.terrainType || vars.subject}`,
 
-    // 2. Tile size
-    `${vars.tileSize || vars.resolution} tile size`,
+    // 2. Grid specification (CRITICAL - defines layout)
+    `${vars.tileSize || vars.resolution} tile grid`,
+    'modular pieces on transparent background',
 
-    // 3. View angle
-    vars.viewAngle || vars.viewDirection,
+    // 3. Piece specification (what tiles to include)
+    'includes 1 center tile',
+    '8 directional edge pieces (N/S/E/W/NE/NW/SE/SW)',
+    '4 corner pieces',
 
-    // 4. Edge/corner specification (CRITICAL for tilesets)
-    'includes edge pieces and corner variations',
-    'transition tiles',
+    // 4. Separation keywords (CRITICAL - enables extraction)
+    'clearly separated tiles with spacing',
+    'white background between tiles',
 
-    // 5. Color palette
+    // 5. Tileable markers
+    'tileable edges',
+    'edge-matching design',
+
+    // 6. Color palette
     vars.colorPalette,
 
-    // 6. Style keywords
+    // 7. Style keywords
     vars.styleKeywords,
 
-    // 7. Lighting
-    vars.lightingKeywords,
-
-    // 8. Seamless markers (CRITICAL)
-    'tileable pattern',
-    'edge-matching',
+    // 8. View angle
+    vars.viewAngle || vars.viewDirection,
 
     // 9. Consistency markers
     ...vars.consistencyMarkers,
 
     // 10. Game-ready marker
-    'game-ready asset',
+    'game-ready tileset',
   ];
 
   return parts.filter(Boolean).join(', ');
@@ -259,12 +277,15 @@ export function buildUIElementPrompt(vars: TemplateVariables): string {
 }
 
 /**
- * TEMPLATE: Icon (Inventory, Skills, Status)
+ * TEMPLATE: Icon (Inventory, Skills, Status) - ISOLATED ASSET
+ *
+ * Updated per ADR-014 for isolated generation.
  *
  * Example output:
  * "healing potion inventory icon, red potion bottle with golden cork and glowing liquid,
+ * centered on transparent background, single isolated item, no other objects,
  * stylized fantasy RPG icon style, colors #FF3333 and #FFD700, clean black outline,
- * centered on white background, 32x32 pixel size, game asset style, production-ready"
+ * 32x32 pixel size, game asset style, production-ready"
  */
 export function buildIconPrompt(vars: TemplateVariables): string {
   const parts = [
@@ -274,18 +295,20 @@ export function buildIconPrompt(vars: TemplateVariables): string {
     // 2. Visual description
     vars.visualDescription,
 
-    // 3. Style keywords
+    // 3. ISOLATION KEYWORDS
+    'centered on transparent background',
+    'single isolated item',
+    'no other objects',
+
+    // 4. Style keywords
     vars.styleKeywords,
 
-    // 4. Color palette
+    // 5. Color palette
     vars.colorPalette,
 
-    // 5. Icon-specific keywords
+    // 6. Icon-specific keywords
     'clean outline',
     'crisp edges',
-
-    // 6. Background
-    `centered on ${vars.background}`,
 
     // 7. Size
     `${vars.iconSize || vars.resolution} pixel size`,

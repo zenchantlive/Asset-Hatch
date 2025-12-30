@@ -24,7 +24,7 @@ export interface PresetPrompt {
     id: string
     label: string
     prompt: string
-    mode: 'plan' | 'style'
+    mode: 'planning' | 'style'
 }
 
 // -----------------------------------------------------------------------------
@@ -41,35 +41,35 @@ export const PLAN_PRESETS: PresetPrompt[] = [
         label: '2D Platformer',
         prompt:
             'I want to create a 2D platformer game. Please help me plan a complete asset list including a player character with idle, run, and jump animations, environment tiles for platforms and backgrounds, collectible items, enemies with basic movement animations, and essential UI elements like health bars and score displays.',
-        mode: 'plan',
+        mode: 'planning',
     },
     {
         id: 'plan-rpg',
         label: 'RPG Adventure',
         prompt:
             'Help me plan assets for a top-down RPG. I need multiple playable character classes, NPCs for towns and quests, a variety of monsters and bosses, environmental tilesets for different biomes (forest, dungeon, castle), treasure chests and loot, spell effects, and a complete UI kit with inventory, dialog boxes, and menus.',
-        mode: 'plan',
+        mode: 'planning',
     },
     {
         id: 'plan-puzzle',
         label: 'Puzzle Game',
         prompt:
             "I'm making a casual puzzle game. Focus on clean UI elements like buttons, panels, and icons, tile-based game pieces with clear visual states (selected, matched, blocked), satisfying particle effects for matches and combos, and a minimal but polished aesthetic for broad appeal.",
-        mode: 'plan',
+        mode: 'planning',
     },
     {
         id: 'plan-farming',
         label: 'Farming Sim',
         prompt:
             "I want to create a cozy farming simulation game. Help me plan assets for crops at different growth stages, farm tools, animals with idle and eating animations, buildings like barns and homes, seasonal environment variations, villager NPCs, and UI elements for inventory and crafting systems.",
-        mode: 'plan',
+        mode: 'planning',
     },
     {
         id: 'plan-fresh',
         label: 'Start Fresh',
         prompt:
             "I'm not sure what I need yet. Ask me about my game concept, target platform, and visual preferences, then suggest a complete asset list organized by category. I want to understand what I should be thinking about.",
-        mode: 'plan',
+        mode: 'planning',
     },
 ]
 

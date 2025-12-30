@@ -1,78 +1,42 @@
 # 🧠 Active Session State
 
-**Last Updated:** 2025-12-28
-**Session:** Session Persistence - ✅ COMPLETE
-**Branch:** feat/ui-refinement-premium
-**Latest Commit:** 27f9f0b (Security: Hardening API endpoints)
+**Last Updated:** 2025-12-29  
+**Session:** Generation UI v2.1 & Batch Polish - ✅ COMPLETE  
+**Latest Commit:** `[Pending]`
 
 ---
 
 ## 📍 Current Focus
 
-> **🔒 SECURITY HARDENING & CONSISTENCY:** Addressing critical security vulnerabilities (account takeover risk), eliminating race conditions in data persistence, and resolving UI/API phase consistency issues.
+> **🎯 GENERATION UI v2.1 COMPLETE:** Redesigned the generation workflow into a "Batch Dashboard" metaphor (ADR-016), implemented responsive grid layouts, 2x2 cards for small batches, and polished maximize animations for the Bottom Asset Bar.
 
 ---
 
-## 🔥 Latest Session's Work (2025-12-28) - Part 3
+## 🔥 Latest Session's Work (2025-12-29) - Generation UI Polish
 
-### UI Refinements & Data Sync Architecture
+### 1. "Batch Dashboard" Architecture (ADR-016)
+**Context:**  
+User found the list-based category view "boring" and the layout unresponsive for batch tasks.  
+**Solution:**
+- **Flexible Layout:** Replaced rigid 3-column frame with `DesktopLayout` (Resizable Left Bar + Main Preview + Floating Bottom Bar).
+- **Batch Dashboard Logic:**
+  - **Grid View (<4 items):** 2-column grid of **square cards** constrained to `max-w-[80vh]`.
+  - **Category View (4+ items):** Accordion groups expanding into the same 2-column square grid.
+- **Outcome:** Unified, visually rich experience for managing 1 to 50 assets.
 
-**Context:**
-- Typography (Playfair Display serif) looked out of place for a dev tool
-- Mobile toolbar layout was broken with overlapping elements  
-- Parameters bar should be visible and minimizable
-- "Project not found" error in GenerationQueue due to Prisma→Dexie sync gap
-- OAuth sign-in failed when email already registered with credentials
+### 2. Responsiveness & Grid Fixes
+**Context:**  
+"Maximize" button wasn't clickable due to overflow masking; layout felt "frozen".  
+**Solution:**
+- Removed `overflow-hidden` from the main right column in `DesktopLayout.tsx`.
+- Implemented `aspect-square` enforcement on all `AssetCard` components.
+- Added adaptive `max-w` containers to keep small grids from stretching excessively.
 
-**Solution Implemented:**
-
-#### 1. Typography & Fonts ✅
-**Files:** `app/layout.tsx`, `app/globals.css`
-- Replaced Playfair Display with **Space Grotesk** (geometric sans)
-- Updated heading styles to `font-semibold tracking-tight`
-
-#### 2. Responsive Mobile Layout ✅
-**Files:** `app/project/[id]/planning/page.tsx`
-- Desktop (lg+): Single horizontal toolbar with centered tabs
-- Mobile (<lg): Stacked layout (tabs row 1, buttons row 2)
-- Removed redundant Parameters popover from toolbar
-
-#### 3. Collapsible Parameters Bar ✅
-**Files:** `components/planning/QualitiesBar.tsx`
-- Added `CollapsibleBar` component with toggle
-- Expanded by default, shows count when minimized
-- Prominent "ASSET PARAMETERS" label
-
-#### 4. Plan Preview Styling ✅
-**Files:** `components/planning/PlanPreview.tsx`
-- H1: Gradient text (primary → purple → blue)
-- H2: Purple accent borders
-- Category items: Purple bullets with ring glow
-- Tree sub-items: Cyan text for contrast
-
-#### 5. OAuth Account Linking ✅
-**Files:** `auth.ts`
-- Enabled `allowDangerousEmailAccountLinking: true` for GitHub
-- Users can now sign in with GitHub if already registered with email
-
-#### 6. Prisma → Dexie Sync ✅
-**Files:** `app/project/[id]/planning/page.tsx`, `lib/sync.ts`
-- Added `useEffect` to call `fetchAndSyncProject()` on mount
-- Fixed date handling in sync.ts for JSON API responses
-- GenerationQueue can now find project data reliably
-- Fixed date handling in sync.ts for JSON API responses
-
-#### 7. UI/UX Refinements (User Feedback) ✅
-**Files:** `ChatInterface.tsx`, `QualitiesBar.tsx`, `StylePreview.tsx`, `globals.css`
-- **Enhanced Chat:** Auto-expanding input, Markdown rendering, Preset prompts
-- **Workflow:** "Save" button for parameters with auto-reprompt, direct "Style Anchor" button
-- **Visuals:** Plan Preview colored ticks, Global dark scrollbars, Auto-minimizing logs
-
-#### 8. Session Persistence & Auto-Save ✅
-**Files:** `app/project/[id]/planning/page.tsx`, `app/api/projects/[id]/route.ts`
-- **Tabs:** Switching modes (`plan`, `style`, `generation`) saves to DB immediately
-- **URL:** Updates URL with `?mode=...` for deep linking
-- **Restore:** Opening project restores last active phase
+### 3. Visual Polish & Animations
+- **Animations:** Added `animate-in fade-in zoom-in-50` for card entry.
+- **Bottom Bar:**  
+  - Maximize button now **overlays** the component (absolute positioning).
+  - Dots use `gap-dynamic` (1/2/3 units) spacing for better mobile density.
 
 ---
 
@@ -80,27 +44,20 @@
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `app/layout.tsx` | **MODIFY** | Swap to Space Grotesk fonts |
-| `app/globals.css` | **MODIFY** | Heading typography styles |
-| `app/project/[id]/planning/page.tsx` | **MODIFY** | Responsive toolbar, data sync |
-| `components/planning/QualitiesBar.tsx` | **MODIFY** | Collapsible bar mode |
-| `components/planning/PlanPreview.tsx` | **MODIFY** | Color improvements |
-| `components/planning/ChatInterface.tsx` | **MODIFY** | Visual polish |
-| `components/ui/popover.tsx` | **CREATE** | Radix popover wrapper |
-| `components/project/ProjectSyncProvider.tsx` | **CREATE** | Sync wrapper (unused) |
-| `auth.ts` | **MODIFY** | OAuth account linking |
-| `lib/sync.ts` | **MODIFY** | Date handling fixes |
-| `memory/adr/011-ui-refinements-and-data-sync.md` | **CREATE** | Architecture documentation |
+| `memory/adr/016-generation-ui-batch-redesign.md` | **CREATE** | Documented v2.1 Architecture (Replaces ADR-015) |
+| `components/generation/panels/BatchPreviewContent.tsx` | **REFACTOR** | Implemented Unified Grid + Cards |
+| `components/generation/panels/BottomAssetBar.tsx` | **MODIFY** | Added Overlay Maximize + Responsive Dots |
+| `components/generation/layouts/DesktopLayout.tsx` | **MODIFY** | Fixed Layout Interaction Bugs |
+| `walkthrough.md` | **UPDATE** | Visual Proof of Layout Fixes |
 
 ---
 
 ## ✅ Testing & Validation
 
-- ✅ **Auth:** GitHub OAuth with existing email works
-- ✅ **Mobile:** Toolbar responsive at all breakpoints
-- ✅ **Parameters:** Collapsible, visible by default
-- ✅ **Sync:** GenerationQueue finds project data
-- ✅ **Code:** `bun run typecheck` passes (Exit code 0)
+- ✅ **TypeScript:** `bun run typecheck` passed (Exit code 0).
+- ✅ **Interactions:** Maximize button now clickable; Sidebar resizing works.
+- ✅ **Visuals:** Square cards verified; 2-column grid verified.
+- ✅ **Responsiveness:** Validated constraints on different batch sizes.
 
 ---
 
@@ -110,56 +67,15 @@
 | :--- | :--- | :--- |
 | **Authentication** | ✅ Complete | OAuth linking enabled |
 | **UI/Typography** | ✅ Complete | Space Grotesk, responsive |
-| **Parameters Bar** | ✅ Complete | Collapsible, visible |
 | **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
-| **Plan Preview** | ✅ Complete | Colorful, readable |
 | **Session Persistence** | ✅ Complete | Hybrid (DB+Dexie+Local) |
-| **Generation Workflow** | 🟢 90% Complete | Ready for testing |
+| **Generation Workflow** | ✅ Complete | **Batch Dashboard v2.1 Live** |
+| **Export System** | ✅ Complete | Full workflow integration |
 
 ---
 
 ## 🚀 Next Steps
 
-1. ~~**Secure Account Linking**~~ ✅ **COMPLETE** - Disabled `allowDangerousEmailAccountLinking` in `auth.ts`
-2. ~~**Standardize Phase Strings**~~ ✅ **COMPLETE** - Using `'planning'` consistently across UI/API/DB
-3. ~~**Verify Atomic Upserts**~~ ✅ **COMPLETE** - All memory-file operations use atomic `upsert()` with DB unique constraint
-4. **Download/Export** (Zip file generation) <!-- id: 124 -->
-
-## ✅ Security Hardening Complete (2025-12-28)
-
-### 🔒 OAuth Account Linking Fixed
-- **File:** `auth.ts`
-- **Change:** `allowDangerousEmailAccountLinking: false` (was `true`)
-- **Impact:** Prevents account takeover attacks via email matching
-- **Trade-off:** Users must use same sign-in method consistently
-
-### 🐞 Phase Consistency Fixed
-- **Files:** `app/project/[id]/planning/page.tsx`, `ChatInterface.tsx`, `preset-prompts.ts`
-- **Change:** Standardized on `'planning'` everywhere (removed `'plan'` → `'planning'` mapping)
-- **Benefit:** Single source of truth, type-safe, eliminates mapping bugs
-
-### ⚡ Race Condition Verified
-- **Status:** Already fixed in previous work
-- **Verification:** Database has `@@unique([projectId, type])` constraint, all endpoints use atomic `upsert()`
-- **Database Migrations:** Up to date
-
-### 📝 Documentation
-- **ADR Created:** `memory/adr/013-security-hardening-oauth-and-consistency.md`
-- **Testing:** ✅ TypeScript compilation passed, ✅ Linting passed
-
-## 🚩 Pending Audit Issues (PR #8)
-
-### 🔒 Security: Account Takeover Risk
-- **Location:** `asset-hatch/auth.ts`
-- **Impact:** `allowDangerousEmailAccountLinking: true` allows GitHub accounts to link to existing credentials accounts based solely on email.
-- **Action:** Require explicit verification or user confirmation.
-
-### ⚡ Race Condition: Memory File Upsert
-- **Location:** `app/api/projects/[id]/memory-files/route.ts`
-- **Resolution:** Implemented `@@unique([projectId, type])` and atomic `prisma.memoryFile.upsert()`.
-
-### 🐞 Consistency: Mode/Phase Mapping
-- **Location:** `ChatInterface.tsx` and `app/api/projects/[id]/route.ts`
-- **Issue:** UI uses `plan`, while API/DB uses `planning`. Mismatched validation lists.
-- **Action:** Standardize on one set of valid phases.
-
+1.  **Manual Verification:** User to confirm layout "feel" and animations.
+2.  **Backend Integration:** Wire up the "Stop Generation" and "Batch Approve" buttons (currently visual-only in places).
+3.  **Deploy/Merge:** Commit changes to main.

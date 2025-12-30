@@ -32,6 +32,7 @@ interface QualitiesBarProps {
   onQualitiesChange: (qualities: ProjectQualities) => void
   onSave?: () => void
   mode?: 'bar' | 'popover'
+  defaultExpanded?: boolean
 }
 
 const QUALITY_OPTIONS = {
@@ -110,7 +111,7 @@ const QUALITY_OPTIONS = {
 
 type QualityKey = keyof typeof QUALITY_OPTIONS
 
-export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'popover' }: QualitiesBarProps) {
+export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'popover', defaultExpanded = true }: QualitiesBarProps) {
   // Track if changes have been made to show save button highlight
   const [hasChanges, setHasChanges] = React.useState(false)
 
@@ -268,6 +269,7 @@ export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'pop
       hasChanges={hasChanges}
       activeCount={activeCount}
       renderPill={renderPill}
+      defaultExpanded={defaultExpanded}
     />
   )
 }
@@ -277,7 +279,8 @@ function CollapsibleBar({
   activeCount,
   renderPill,
   onSave,
-  hasChanges
+  hasChanges,
+  defaultExpanded
 }: {
   qualities: ProjectQualities
   onQualitiesChange: (q: ProjectQualities) => void
@@ -285,8 +288,9 @@ function CollapsibleBar({
   renderPill: (key: QualityKey, label: string) => React.ReactNode
   onSave: () => void
   hasChanges: boolean
+  defaultExpanded: boolean
 }) {
-  const [isExpanded, setIsExpanded] = React.useState(true)
+  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded)
 
   return (
     <div className="w-full px-6 py-2 bg-glass-bg/5 backdrop-blur-sm">
@@ -362,4 +366,3 @@ function CollapsibleBar({
     </div>
   )
 }
-

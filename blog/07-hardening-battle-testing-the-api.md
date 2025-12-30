@@ -142,11 +142,11 @@ If you ever find yourself writing `if (exists) { update } else { create }`, stop
 
 ## Coming Next
 
-In [Part 8: Reflections](08-reflections-lessons-learned.md), we zoom out. 
+In [Part 8: Completing the Cycle - Export Workflow](08-completing-the-cycle-export-workflow.md), we reach the finish line. 
 
-The build is finished. The API is hardened. What does the final project look like? And what is the real ROI of building with agents in 2025?
+The build is finished. The API is hardened. But how do we get the assets out of the app and into the user's game engine? We deep dive into single-asset generation strategies and ZIP export architecture.
 
-**Final Stats Preview:** 15+ tests, 50+ files, 8 ADRs, and 1 very secure asset studio.
+**Final Stats Preview:** 9 posts, 50+ files, 14 ADRs, and a complete production-ready export pipeline.
 
 ---
 
@@ -162,4 +162,4 @@ The build is finished. The API is hardened. What does the final project look lik
 ---
 
 **Previous:** [← Part 6: Productionization](06-productionization-tests-infrastructure.md)
-**Next:** [Part 8: Reflections →](08-reflections-lessons-learned.md)
+**Next:** [Part 8: Export Workflow →](08-completing-the-cycle-export-workflow.md)

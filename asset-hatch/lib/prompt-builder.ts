@@ -8,6 +8,7 @@
  */
 
 import type { Project, StyleAnchor, CharacterRegistry } from './types';
+import pluralize from 'pluralize';
 import {
   type AssetType,
   type GamePerspective,
@@ -139,6 +140,20 @@ function buildSubjectDescription(
 
   // Otherwise use asset description with any theme/mood context
   let subject = asset.description;
+
+  // SAFETY NET: Extract first subject if multiple detected
+  // This prevents multi-subject prompts like "robots, cats, dogs" from reaching Flux.2
+  if (subject.includes(',') && subject.split(',').length > 2) {
+    console.warn(`⚠️ Multi-subject detected in asset description: ${subject}`);
+    subject = subject.split(',')[0].trim(); // Take first item only
+    console.warn(`→ Using first subject only: ${subject}`);
+  }
+
+  // Remove markdown formatting (e.g., **bold**)
+  subject = subject.replace(/\*\*/g, '').trim();
+
+  // Remove category prefixes like "Survivors:" or "NPCs:"
+  subject = subject.replace(/^[^:]+:\s*/, '').trim();
 
   // Add theme context if not already in description
   if (project.theme && !subject.toLowerCase().includes(project.theme.toLowerCase())) {
@@ -277,6 +292,67 @@ export function estimateBatchCost(assetCount: number, modelKey: string = 'flux-2
 
   return assetCount * model.costPerImage;
 }
+
+// =============================================================================
+// Semantic ID Generation (ADR-014: Single-Asset Strategy)
+// =============================================================================
+
+/**
+ * Generate semantic ID for an asset
+ * Converts category + name + variant into AI-consumable filename
+ * 
+ * Examples:
+ * - category: "Characters", name: "Farmer", variant: "Idle" → "character_farmer_idle"
+ * - category: "Furniture", name: "Wooden Chair" → "furniture_wooden_chair"
+ * - category: "Terrain", name: "Grass Tileset" → "terrain_grass_tileset"
+ * 
+ * @param asset - Parsed asset from entities.json plan
+ * @returns Semantic ID string (lowercase, underscores)
+ */
+export function generateSemanticId(asset: ParsedAsset): string {
+  // Convert category to singular lowercase
+  // "Characters" → "character", "Furniture" → "furniture"
+  const category = pluralize.singular(asset.category)
+    .toLowerCase()
+    .replace(/\s+/g, '_'); // Replace spaces with underscores
+
+  // Convert name to lowercase with underscores
+  // "Wooden Chair" → "wooden_chair"
+  const name = asset.name
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, ''); // Remove special chars
+
+  // Convert variant name if exists
+  // "Idle" → "idle", "Walk Left" → "walk_left"
+  const variant = asset.variant?.name
+    ? asset.variant.name
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+    : null;
+
+  // Combine parts
+  return variant
+    ? `${category}_${name}_${variant}`
+    : `${category}_${name}`;
+}
+
+/**
+ * Generate category folder name for exports
+ * Ensures consistent lowercase plural forms
+ * 
+ * Examples:
+ * - "Characters" → "characters"
+ * - "Furniture" → "furniture"
+ * - "UI Elements" → "ui_elements"
+ */
+export function getCategoryFolder(category: string): string {
+  return category
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+}
+
 
 /**
  * Example usage:

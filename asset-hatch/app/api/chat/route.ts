@@ -75,7 +75,26 @@ export async function POST(req: NextRequest) {
  2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
  3. Suggest a list of assets (Characters, Environment, UI).
  4. **IMMEDIATELY** use \`updatePlan\` to draft the list.
- 5. Refine based on feedback until the user approves.`,
+ 5. Refine based on feedback until the user approves.
+
+ CRITICAL ASSET PLAN FORMAT REQUIREMENTS:
+ - Each bullet point MUST represent exactly ONE individual asset
+ - NEVER group multiple items in one line (e.g., NOT "robots, cats, dogs")
+ - Include specific details for EACH individual asset
+ - Each asset will generate a single isolated image
+ 
+ CORRECT FORMAT EXAMPLE:
+ ## NPCs
+ - Robot Survivor
+   - Description: Friendly robot with smiley emoji face
+ - Cat Shopkeeper with Sunglasses
+   - Description: Mutated cat with 3 eyes wearing sunglasses
+ 
+ INCORRECT FORMAT (DO NOT USE):
+ ## NPCs
+ - **Survivors**: Friendly robots, mutated cats, AI projections
+ 
+ BE SPECIFIC: Each asset needs a clear, individual description for image generation.`,
       tools: {
         updateQuality: tool({
           description: 'Update a specific quality parameter.',

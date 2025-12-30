@@ -22,9 +22,13 @@ import type {
   GenerationContextValue,
   GenerationLogEntry,
 } from '@/lib/types/generation'
+// Legacy components (kept for fallback compatibility)
 import { BatchControls } from './BatchControls'
 import { AssetTree } from './AssetTree'
 import { GenerationProgress } from './GenerationProgress'
+// New layout system
+import { GenerationLayoutProvider } from './GenerationLayoutContext'
+import { GenerationLayout } from './GenerationLayout'
 
 /**
  * React Context for sharing generation state across components
@@ -464,7 +468,35 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         status: 'approved',
         created_at: now,
         updated_at: now,
+      const arrayBuffer = await blob.arrayBuffer()
+      const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      // Sync to Prisma (server) so export API can find it
+      const response = await fetch('/api/generated-assets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: state.result.id,
+          projectId: projectId,
+          assetId: assetId,
+          imageBlob: base64Image,
+          promptUsed: state.result.prompt,
+          seed: state.result.metadata.seed,
+          metadata: state.result.metadata,
+          status: 'approved',
+        }),
       })
+      if (!response.ok) {
+        throw new Error(`Asset sync failed: ${response.status} ${response.statusText}`)
+      }
+      addLogEntry('info', `Asset synced to server: ${asset.name}`)
+          }),
+        })
+
+        addLogEntry('info', `Asset synced to server: ${asset.name}`)
+      } catch (syncError) {
+        console.error('Failed to sync approved asset to server:', syncError)
+        addLogEntry('error', `Asset approved locally but not synced to server`)
+      }
 
       // Mark as approved
       setAssetStates(prev => {
@@ -564,26 +596,12 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     )
   }
 
-  // Main UI - Complete generation interface
+  // Main UI - New responsive generation interface
   return (
     <GenerationContext.Provider value={contextValue}>
-      <div className="flex flex-col h-full bg-glass-bg/10">
-        {/* Toolbar with generation controls and model selector */}
-        <BatchControls />
-
-        {/* Two-panel layout: Asset tree (left) | Generation progress (right) */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left panel: Asset tree with hierarchical view */}
-          <div className="w-1/2 border-r border-white/10 overflow-auto">
-            <AssetTree />
-          </div>
-
-          {/* Right panel: Generation progress and live updates */}
-          <div className="w-1/2 overflow-auto">
-            <GenerationProgress />
-          </div>
-        </div>
-      </div>
+      <GenerationLayoutProvider>
+        <GenerationLayout />
+      </GenerationLayoutProvider>
     </GenerationContext.Provider>
   )
 }

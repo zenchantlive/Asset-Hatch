@@ -161,6 +161,12 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **AI messages:** Left-aligned, glass panel, aurora glow on hover
 * **Max width:** 85% of container (not full width)
 
+### Generation / Batch Dashboard
+* **Grid Layout:** Consistently use `grid-cols-2` with `gap-4` for asset lists.
+* **Card Aspect:** Strictly enforce `aspect-square` for all generation preview cards.
+* **Constraints:** Use `max-w-[80vh]` on grid containers to prevent layout stretching on large screens.
+* **Animations:** Use `animate-in fade-in zoom-in-50` for item entry sequences.
+
 ---
 
 ## 🧪 Testing Strategies

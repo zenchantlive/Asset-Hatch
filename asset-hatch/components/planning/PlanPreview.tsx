@@ -72,6 +72,14 @@ function parseMarkdown(markdown: string): React.ReactNode {
         </div>
       )
     }
+    // H3 headers
+    else if (line.startsWith("### ")) {
+      elements.push(
+        <h3 key={index} className="text-base font-semibold text-white/95 mb-3 mt-6 font-heading tracking-tight">
+          {renderInlineMarkdown(line.slice(4))}
+        </h3>
+      )
+    }
     // List items with checkmarks
     else if (line.match(/^-\s+.*✓/)) {
       elements.push(

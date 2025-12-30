@@ -28,7 +28,7 @@ This series chronicles the real, unfiltered journey of building a production Nex
 
 **Timeline:**
 - Started: December 24, 2025
-- Current Status: ~85% complete (Planning + Style + Generation done)
+- Current Status: 100% complete (All phases: Planning → Style → Generation → Export)
 - Development Approach: Solo founder, AI-first, ship fast, audit everything
 
 ## Reading Order
@@ -108,7 +108,18 @@ Moving beyond "it works" to "it's safe". A deep dive into the PR #8 security aud
 
 ---
 
-### [Part 8: Reflections - What I Actually Learned](08-reflections-lessons-learned.md)
+### [Part 8: Completing the Cycle - Export Workflow](08-completing-the-cycle-export-workflow.md)
+*10 min read* • **The Final Mile**
+
+Implementing the single-asset extraction strategy, semantic ID generation, and ZIP packaging. How to close the product loop by delivering production-ready assets to the user.
+
+**Key Topics:** ADR 014 • Single-asset generation • Semantic IDs • ZIP streaming • Blob handling • User flow completion
+
+**Commits Referenced:** `08dd2df`, `789ad0a`, `e630b94`, `67e30f3`, `c03eb39`
+
+---
+
+### [Part 9: Reflections - What I Actually Learned](09-reflections-lessons-learned.md)
 *9 min read* • **Meta-Lessons**
 
 Honest retrospective on AI-assisted development: what worked better than expected, what didn't, architectural decisions I'd change, and advice for anyone building with AI agents in 2025.
@@ -122,12 +133,12 @@ Honest retrospective on AI-assisted development: what worked better than expecte
 ## Document Statistics
 
 ```
-Total Posts: 8
-Total Words: ~16,000 words
-Total Reading Time: ~75 minutes
-Code Examples: 30+
-Commit References: 40+
-Architectural Decisions: 12 ADRs
+Total Posts: 9
+Total Words: ~18,000 words
+Total Reading Time: ~85 minutes
+Code Examples: 35+
+Commit References: 45+
+Architectural Decisions: 14 ADRs
 ```
 
 ## Reading Time Investment
@@ -177,8 +188,8 @@ I'm using AI agents (Claude Code, primarily) to build Asset Hatch as both a prod
 
 ## Series Updates
 
-- Part 1-8: Published December 28, 2025 (reflecting on Dec 24-28 development)
-- Future posts: Will cover Export phase completion and final deployment tips.
+- Part 1-9: Published December 29, 2025 (Reflecting on Dec 24-29 development)
+- Future updates: Maintenance and community contributions.
 
 ---
 

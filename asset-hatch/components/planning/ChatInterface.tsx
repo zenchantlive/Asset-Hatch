@@ -317,7 +317,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             const textParts = parts?.filter((part) =>
               part.type === 'text' || part.type === 'reasoning'
             ) || [];
-            const textContent = textParts.map((part) => part.text ?? '').join('');
+            // Join all text parts and remove [REDACTED] placeholders that AI SDK adds for tool calls
+            const rawText = textParts.map((part) => part.text ?? '').join('');
+            const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
 
             if (message.role === 'assistant') {
               const debugParts = parts?.map((p) => {
@@ -329,7 +331,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
               console.log('Assistant message parts:', debugParts);
             }
 
-            // Skip messages with no text content
+            // Skip messages with no text content (after removing [REDACTED])
             if (!textContent) {
               return null;
             }
@@ -348,7 +350,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                 >
                   <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
                     <ReactMarkdown>
-                      {textContent || '(Tool calls or non-text content)'}
+                      {textContent}
                     </ReactMarkdown>
                   </div>
                 </div>
