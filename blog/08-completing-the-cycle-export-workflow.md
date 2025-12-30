@@ -91,7 +91,7 @@ Asset Hatch is built for developers. Helping them by automatically naming files 
 
 ## Coming Next
 
-In [Part 9: Reflections - What I Actually Learned](09-reflections-lessons-learned.md), we take a final look at the entire 5-day build. Highs, lows, and the real future of AI-assisted development.
+In [Part 9: V2.1 - The UI Layer and The Split Brain](09-v2-1-ui-overhaul-chaos.md), we look at how a simple "UI tweak" turned into an architectural overhaul.
 
 ---
 
@@ -111,4 +111,4 @@ In [Part 9: Reflections - What I Actually Learned](09-reflections-lessons-learne
 ---
 
 **Previous:** [← Part 7: Hardening](07-hardening-battle-testing-the-api.md)
-**Next:** [Part 9: Reflections →](09-reflections-lessons-learned.md)
+**Next:** [Part 9: V2.1 - The UI Layer and The Split Brain →](09-v2-1-ui-overhaul-chaos.md)

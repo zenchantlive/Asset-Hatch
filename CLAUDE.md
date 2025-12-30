@@ -428,6 +428,30 @@ Key decisions documented in `memory/adr/`:
    - <2s page loads
    - Avoid unnecessary re-renders (useCallback, useMemo)
 
+## Git & Collaboration (The "Blog Notebook" Strategy)
+
+We treat git commits as a **collaborative notebook** to feed our blog-writing AI agents later. This is critical for our "Building in Public" strategy.
+
+**Commit Message Format**:
+1. **Header**: `type(scope): Title` (e.g., `feat(ui): [Panels] Implement v2.1`)
+2. **Body**: Must act as a mini-blog post.
+
+**Required Sections in Commit Body**:
+- **Story of Collaboration**: What did the user ask for? How did we iterate? (e.g., "User caught a bug in the grid layout, we paired to fix it.")
+- **Decisions Made**: Why did we choose this architecture? (e.g., "Switched to Context API to avoid prop drilling.")
+- **Challenges**: What was hard? (e.g., "Race conditions in the queue.")
+
+**Example**:
+```text
+feat(ui): [Batch] Fix grid layouts
+
+Story of Collaboration:
+User noticed the grid looked empty with 2 items. We decided to make it adaptive.
+
+Decisions Made:
+- Implemented dynamic grid-cols based on item count.
+```
+
 ### Rules
 As you code:
 
@@ -442,3 +466,17 @@ As you code:
  - Keep files short, focused, and readable.
 
  - Follow industry **best practices** for code style and structure.
+
+## Blog Content Strategy
+
+The blog is our primary output for "Building in Public". It is not corporate marketing; it is a developer diary.
+
+### Tone & Voice
+- **Humorous & Vulnerable**: We admit our mistakes. If we spent 6 hours fighting CSS `z-index`, we write about it.
+- **Narrative-Driven**: Every post should tell a story. "We wanted X, we tried Y, it failed, we pivoted to Z."
+- **Technically Honest**: Don't just show the happy path. If the database sync is a Frankenstein monster of `useEffect` hooks, call it out. The reader is a developer; they know the struggle.
+
+### Evolution of a Post
+- **Phase 1 (Commits)**: Detailed git messages capture the raw "Story of Collaboration".
+- **Phase 2 (Drafting)**: We synthesize commits into a narrative.
+- **Phase 3 (Humor Injection)**: We look for the "Loops"—recursive errors, funny misunderstandings, or ironic moments (e.g., "AI trying to help too much")—and highlight them.
