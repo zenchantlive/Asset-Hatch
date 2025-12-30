@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ParsedAsset } from '@/lib/prompt-builder'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
+import { AssetGenerationState } from '@/lib/types/generation'
 
 interface BatchPreviewContentProps {
     selectedIds: Set<string>
@@ -24,7 +25,7 @@ function AssetCard({
     onExpandToggle
 }: {
     asset: ParsedAsset
-    state: any // Using specific type would be better if exported, but 'any' avoids circular dep issues for now
+    state: AssetGenerationState | undefined // Typed state
     generateImage: (id: string) => void
     isExpandedItem: boolean
     onClick: () => void

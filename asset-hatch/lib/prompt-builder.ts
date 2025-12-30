@@ -8,6 +8,7 @@
  */
 
 import type { Project, StyleAnchor, CharacterRegistry } from './types';
+import pluralize from 'pluralize';
 import {
   type AssetType,
   type GamePerspective,
@@ -311,9 +312,8 @@ export function estimateBatchCost(assetCount: number, modelKey: string = 'flux-2
 export function generateSemanticId(asset: ParsedAsset): string {
   // Convert category to singular lowercase
   // "Characters" → "character", "Furniture" → "furniture"
-  const category = asset.category
+  const category = pluralize.singular(asset.category)
     .toLowerCase()
-    .replace(/s$/, '') // Remove plural 's'
     .replace(/\s+/g, '_'); // Replace spaces with underscores
 
   // Convert name to lowercase with underscores
