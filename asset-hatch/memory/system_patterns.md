@@ -243,6 +243,29 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 3. Fill in Context, Decision, Consequences
 4. Add to active_state.md → Verifiable Context
 
+### Large Blob Handling
+* **Base64 Conversion Stack Overflow**
+  - **Issue:** Using `String.fromCharCode(...uint8Array)` on large images (>4MB) exceeds call stack size.
+  - **Solution:** Process the buffer in chunks (e.g., 16KB).
+  - **Pattern:**
+    ```typescript
+    const chunkSize = 16384;
+    let binary = '';
+    for (let i = 0; i < len; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
+    ```
+
+### API Prompt Handling
+* **Client Overrides**
+  - **Pattern:** Always check for client-provided overrides (`customPrompt`) before generating new content on the server.
+  - **Why:** Enables "Edit -> Regenerate" workflows where user modifications must be respected.
+  - **Implementation:**
+    ```typescript
+    const prompt = customPrompt || buildAssetPrompt(...);
+    ```
+
 ---
 
 **Next Update:** When we establish a new pattern or encounter a new gotcha.
