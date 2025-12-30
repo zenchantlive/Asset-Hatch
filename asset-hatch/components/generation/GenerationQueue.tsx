@@ -22,10 +22,6 @@ import type {
   GenerationContextValue,
   GenerationLogEntry,
 } from '@/lib/types/generation'
-// Legacy components (kept for fallback compatibility)
-import { BatchControls } from './BatchControls'
-import { AssetTree } from './AssetTree'
-import { GenerationProgress } from './GenerationProgress'
 // New layout system
 import { GenerationLayoutProvider } from './GenerationLayoutContext'
 import { GenerationLayout } from './GenerationLayout'
@@ -215,17 +211,70 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    *
    * Initiates generation of all assets using the selected model
    * and any custom/generated prompts.
+   * 
+   * @param selectedIds - Optional set of asset IDs to generate. If empty, generates all assets.
    */
-  const startGeneration = useCallback(async () => {
-    addLogEntry('info', `Starting batch generation with ${selectedModel}`)
+  const startGeneration = useCallback(async (selectedIds: Set<string> = new Set()) => {
+    // Filter assets: use selected if any, otherwise use all
+    const assetsToGenerate = selectedIds.size > 0
+      ? parsedAssets.filter(asset => selectedIds.has(asset.id))
+      : parsedAssets
+
+    addLogEntry('info', `Starting batch generation with ${selectedModel} (${assetsToGenerate.length} assets)`)
 
     try {
       // Pass generated prompts to batch generation
       // The hook will use these if available, otherwise generate defaults
       await batchGeneration.startBatch(
-        parsedAssets,
+        assetsToGenerate, // Only generate selected assets
         selectedModel,
-        generatedPrompts // Pass the prompts map
+        generatedPrompts, // Pass the prompts map
+        {
+          // Callback: Asset starts generating
+          onAssetStart: (assetId: string) => {
+            setAssetStates(prev => {
+              const next = new Map(prev)
+              next.set(assetId, { status: 'generating' })
+              return next
+            })
+            const asset = parsedAssets.find(a => a.id === assetId)
+            if (asset) {
+              addLogEntry('info', `Generating: ${asset.name}`)
+            }
+          },
+
+          // Callback: Asset completes successfully
+          onAssetComplete: (assetId: string, result) => {
+            setAssetStates(prev => {
+              const next = new Map(prev)
+              next.set(assetId, {
+                status: 'awaiting_approval',
+                result: result,
+              })
+              return next
+            })
+            const asset = parsedAssets.find(a => a.id === assetId)
+            if (asset) {
+              addLogEntry('success', `Generated: ${asset.name}`)
+            }
+          },
+
+          // Callback: Asset generation fails
+          onAssetError: (assetId: string, error) => {
+            setAssetStates(prev => {
+              const next = new Map(prev)
+              next.set(assetId, {
+                status: 'error',
+                error: error,
+              })
+              return next
+            })
+            const asset = parsedAssets.find(a => a.id === assetId)
+            if (asset) {
+              addLogEntry('error', `Failed: ${asset.name} - ${error.message}`)
+            }
+          },
+        }
       )
       addLogEntry('success', 'Batch generation completed')
     } catch (err) {
@@ -277,6 +326,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    * @param customPrompt - Custom prompt override
    */
   const updatePrompt = useCallback((assetId: string, customPrompt: string) => {
+    console.log('[updatePrompt] Updating prompt for', assetId, 'to:', customPrompt.substring(0, 100) + '...')
     setGeneratedPrompts(prev => {
       const next = new Map(prev)
       next.set(assetId, customPrompt)
@@ -353,11 +403,23 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       return
     }
 
-    // Get the custom or generated prompt
-    const prompt = generatedPrompts.get(assetId)
+    // Get the custom or generated prompt, or generate one if it doesn't exist
+    let prompt = generatedPrompts.get(assetId)
+    console.log('[generateImage] Using prompt for', asset.name, ':', prompt?.substring(0, 100) + '...')
     if (!prompt) {
-      addLogEntry('error', `No prompt found for asset: ${asset.name}`)
-      return
+      addLogEntry('info', `Generating prompt for: ${asset.name}`)
+      try {
+        prompt = await generatePrompt(asset)
+        // Store the generated prompt
+        setGeneratedPrompts(prev => {
+          const next = new Map(prev)
+          next.set(assetId, prompt!)
+          return next
+        })
+      } catch {
+        addLogEntry('error', `Failed to generate prompt for: ${asset.name}`)
+        return
+      }
     }
 
     // Fetch style anchor image for visual consistency
@@ -428,7 +490,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
       addLogEntry('error', `Generation failed for ${asset.name}: ${errorMessage}`)
     }
-  }, [parsedAssets, generatedPrompts, projectId, selectedModel, addLogEntry])
+  }, [parsedAssets, generatedPrompts, projectId, selectedModel, addLogEntry, generatePrompt])
 
   /**
    * Approve a generated asset
@@ -440,9 +502,15 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    */
   const approveAsset = useCallback(async (assetId: string) => {
     const asset = parsedAssets.find(a => a.id === assetId)
-    const state = assetStates.get(assetId)
 
-    if (!asset || !state || state.status !== 'awaiting_approval') {
+    // Get current state from the state map
+    let currentState: import('@/lib/types/generation').AssetGenerationState | undefined
+    setAssetStates(prev => {
+      currentState = prev.get(assetId)
+      return prev // Don't actually update yet
+    })
+
+    if (!asset || !currentState || currentState.status !== 'awaiting_approval') {
       addLogEntry('error', 'Cannot approve asset: invalid state')
       return
     }
@@ -451,48 +519,56 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
 
     try {
       // Convert data URL to Blob
-      const response = await fetch(state.result.imageUrl)
+      const response = await fetch(currentState.result.imageUrl)
       const blob = await response.blob()
 
       // Save to Dexie
       const now = new Date().toISOString()
       await db.generated_assets.add({
-        id: state.result.id,
+        id: currentState.result.id,
         project_id: projectId,
         asset_id: assetId,
         variant_id: asset.variant?.id || '', // Use variant ID if exists
         image_blob: blob, // Convert data URL to Blob
-        image_base64: state.result.imageUrl, // Cache for display
-        prompt_used: state.result.prompt,
-        generation_metadata: state.result.metadata,
+        image_base64: currentState.result.imageUrl, // Cache for display
+        prompt_used: currentState.result.prompt,
+        generation_metadata: currentState.result.metadata,
         status: 'approved',
         created_at: now,
         updated_at: now,
-      const arrayBuffer = await blob.arrayBuffer()
-      const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-      // Sync to Prisma (server) so export API can find it
-      const response = await fetch('/api/generated-assets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: state.result.id,
-          projectId: projectId,
-          assetId: assetId,
-          imageBlob: base64Image,
-          promptUsed: state.result.prompt,
-          seed: state.result.metadata.seed,
-          metadata: state.result.metadata,
-          status: 'approved',
-        }),
       })
-      if (!response.ok) {
-        throw new Error(`Asset sync failed: ${response.status} ${response.statusText}`)
-      }
-      addLogEntry('info', `Asset synced to server: ${asset.name}`)
+
+      try {
+        const arrayBuffer = await blob.arrayBuffer()
+        // Convert to base64 in chunks to avoid stack overflow
+        const bytes = new Uint8Array(arrayBuffer)
+        let binary = ''
+        const len = bytes.byteLength
+        const chunkSize = 16384 // Process 16KB at a time
+        for (let i = 0; i < len; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+        }
+        const base64Image = btoa(binary)
+        // Sync to Prisma (server) so export API can find it
+        const response = await fetch('/api/generated-assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentState.result.id,
+            projectId: projectId,
+            assetId: assetId,
+            imageBlob: base64Image,
+            promptUsed: currentState.result.prompt,
+            seed: currentState.result.metadata.seed,
+            metadata: currentState.result.metadata,
+            status: 'approved',
           }),
         })
-
+        if (!response.ok) {
+          throw new Error(`Asset sync failed: ${response.status} ${response.statusText}`)
+        }
         addLogEntry('info', `Asset synced to server: ${asset.name}`)
+
       } catch (syncError) {
         console.error('Failed to sync approved asset to server:', syncError)
         addLogEntry('error', `Asset approved locally but not synced to server`)
@@ -501,10 +577,13 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       // Mark as approved
       setAssetStates(prev => {
         const next = new Map(prev)
-        next.set(assetId, {
-          status: 'approved',
-          result: state.result,
-        })
+        const state = prev.get(assetId)
+        if (state && state.status === 'awaiting_approval') {
+          next.set(assetId, {
+            status: 'approved',
+            result: state.result,
+          })
+        }
         return next
       })
 
@@ -513,7 +592,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       addLogEntry('error', `Failed to approve asset: ${errorMessage}`)
     }
-  }, [parsedAssets, assetStates, projectId, addLogEntry])
+  }, [parsedAssets, projectId, addLogEntry])
 
   /**
    * Reject a generated asset
