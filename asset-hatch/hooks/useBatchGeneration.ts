@@ -15,7 +15,19 @@
 import { useState, useCallback, useRef } from 'react'
 import { useAssetGeneration } from './useAssetGeneration'
 import type { ParsedAsset } from '@/lib/prompt-builder'
-import type { BatchStatus, BatchProgress } from '@/lib/types/generation'
+import type { BatchStatus, BatchProgress, GeneratedAssetResult } from '@/lib/types/generation'
+
+/**
+ * Callbacks for tracking individual asset generation lifecycle
+ */
+interface BatchGenerationCallbacks {
+  /** Called when an asset starts generating */
+  onAssetStart?: (assetId: string) => void
+  /** Called when an asset completes successfully */
+  onAssetComplete?: (assetId: string, result: GeneratedAssetResult) => void
+  /** Called when an asset generation fails */
+  onAssetError?: (assetId: string, error: Error) => void
+}
 
 /**
  * Return type for the useBatchGeneration hook
@@ -25,7 +37,8 @@ interface UseBatchGenerationReturn {
   startBatch: (
     assets: ParsedAsset[],
     modelKey?: string,
-    customPrompts?: Map<string, string>
+    customPrompts?: Map<string, string>,
+    callbacks?: BatchGenerationCallbacks
   ) => Promise<void>
   pause: () => void
   resume: () => void
@@ -33,6 +46,7 @@ interface UseBatchGenerationReturn {
 
   // State
   status: BatchStatus
+  queue: ParsedAsset[]
   currentAsset: ParsedAsset | null
   completed: Set<string>
   failed: Map<string, Error>
@@ -44,7 +58,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
   const [queue, setQueue] = useState<ParsedAsset[]>([])
   const [status, setStatus] = useState<BatchStatus>('idle')
   const [currentAsset, setCurrentAsset] = useState<ParsedAsset | null>(null)
-  
+
   // Track completed and failed assets by ID
   const [completed, setCompleted] = useState<Set<string>>(new Set())
   const [failed, setFailed] = useState<Map<string, Error>>(new Map())
@@ -76,14 +90,18 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
    * @param assets - Array of parsed assets to generate
    * @param modelKey - Optional model override for all assets
    * @param customPrompts - Optional map of custom prompts (assetId → prompt)
+   * @param callbacks - Optional lifecycle callbacks for tracking individual asset state
    */
   const startBatch = useCallback(async (
     assets: ParsedAsset[],
     modelKey: string = 'flux-2-dev',
-    customPrompts?: Map<string, string>
+    customPrompts?: Map<string, string>,
+    callbacks?: BatchGenerationCallbacks
   ): Promise<void> => {
     // Initialize state for new batch
     setQueue(assets)
+    setCompleted(new Set())
+    setFailed(new Map())
     setStatus('generating')
     setCompleted(new Set())
     setFailed(new Map())
@@ -101,12 +119,15 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
       // Update UI to show current asset
       setCurrentAsset(asset)
 
+      // Notify parent that this asset is starting
+      callbacks?.onAssetStart?.(asset.id)
+
       try {
         // Use custom prompt if available, otherwise generate will build default
         const customPrompt = customPrompts?.get(asset.id)
 
         // Attempt to generate this asset with optional custom prompt
-        await generate(asset, modelKey, customPrompt)
+        const result = await generate(asset, modelKey, customPrompt)
 
         // Mark as completed on success
         setCompleted(prev => {
@@ -114,6 +135,9 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
           next.add(asset.id)
           return next
         })
+
+        // Notify parent of successful completion with result
+        callbacks?.onAssetComplete?.(asset.id, result)
       } catch (err) {
         // Type-safe error handling
         const error = err instanceof Error ? err : new Error(String(err))
@@ -127,6 +151,9 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
 
         // Log error for debugging
         console.error(`Failed to generate asset ${asset.id}:`, error)
+
+        // Notify parent of failure
+        callbacks?.onAssetError?.(asset.id, error)
 
         // Continue to next asset despite failure
         // (Don't break the batch - user can retry failed ones)
@@ -186,6 +213,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
     resume,
     retryFailed,
     status,
+    queue,
     currentAsset,
     completed,
     failed,

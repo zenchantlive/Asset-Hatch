@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { BatchPreviewContent } from './BatchPreviewContent'
+import { VersionCarousel } from '../VersionCarousel'
 
 /**
  * Props for PreviewPanel
@@ -35,6 +36,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+    // Version carousel state
+    const [currentVersionIndex, setCurrentVersionIndex] = useState(0)
 
     // Get contexts
     const {
@@ -45,6 +48,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         generateImage,
         approveAsset,
         rejectAsset,
+        updatePrompt,
     } = useGenerationContext()
 
     const { state, openPromptEditor, selectAsset } = useGenerationLayout()
@@ -62,6 +66,10 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Track if we're generating the prompt
     const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false)
+    // Track if prompt is being edited
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false)
+    // Local prompt state for editing
+    const [editedPrompt, setEditedPrompt] = useState('')
 
     // Get the current state of the selected asset
     const assetState = asset ? assetStates.get(asset.id) : null
@@ -91,14 +99,31 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Handle approve
     const handleApprove = async () => {
-        if (!asset) return
-        await approveAsset(asset.id)
+        if (!asset || !assetState) return
+
+        // If we have versions, approve the current one
+        if (assetState.status === 'awaiting_approval' && assetState.versions) {
+            const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
+            if (currentVersion) {
+                await approveAsset(asset.id, currentVersion)
+            }
+        }
     }
 
     // Handle reject
     const handleReject = () => {
-        if (!asset) return
-        rejectAsset(asset.id)
+        if (!asset || !assetState) return
+
+        // If we have versions, reject the current one
+        if (assetState.status === 'awaiting_approval' && assetState.versions) {
+            const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
+            if (currentVersion) {
+                rejectAsset(asset.id, currentVersion.id)
+            }
+        } else {
+            // Fallback for non-versioned state (e.g. approved -> reject?)
+            // Not fully supported by new signature, but let's assume awaiting_approval
+        }
     }
 
     // Navigate to prev/next asset (for lightbox)
@@ -116,8 +141,9 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     const selectedCount = state.queue.selectedIds.size
     const isMultiSelect = selectedCount > 1
 
-    // Multi-selection view
-    if (isMultiSelect) {
+    // Multi-selection view - ONLY if no explicit asset selected
+    // This allows temporarily viewing/editing a single asset while keeping batch selection
+    if (isMultiSelect && !selectedAsset.asset) {
         return <BatchPreviewContent selectedIds={state.queue.selectedIds} />
     }
 
@@ -144,53 +170,141 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     const hasError = assetState?.status === 'error'
     const hasResult = isAwaitingApproval || isApproved
 
+    // Check for version carousel
+    const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
+    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1
+
     // Get the image URL if available
     const imageUrl = hasResult && assetState?.result?.imageUrl
 
     return (
         <>
-            <div className={`flex flex-col h-full ${compact ? 'p-3' : 'p-6'}`}>
-                {/* Image section with maximize button */}
-                {/* Image section with maximize button - Flexible height */}
-                <div className={`relative bg-black/30 rounded-xl border border-white/10 overflow-hidden mb-4 ${compact
-                    ? 'flex-shrink-0 h-48'
-                    : 'flex-1 min-h-[16rem] max-h-[50vh]'
-                    }`}>
-                    {isGenerating ? (
-                        // Generating state
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
-                            <p className="text-white/70">Generating image...</p>
-                        </div>
-                    ) : imageUrl ? (
-                        // Has image - clickable for lightbox
-                        <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={imageUrl}
-                                alt={asset.name}
-                                className="w-full h-full object-contain cursor-pointer"
-                                onClick={() => setIsLightboxOpen(true)}
-                            />
-                            {/* Maximize button */}
-                            <button
-                                onClick={() => setIsLightboxOpen(true)}
-                                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
-                                title="View full size"
+            {/* Back to Batch button when batch is active */}
+            {isMultiSelect && (
+                <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => selectAsset(null, null)}
+                        className="text-white/70 hover:text-white hover:bg-white/10"
+                    >
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                        Back to Batch ({selectedCount} assets)
+                    </Button>
+
+                    {/* Header Actions - Approve/Reject/Regenerate */}
+                    <div className="flex items-center gap-2">
+                        {/* Regenerate - Visible when has result or error */}
+                        {(hasResult || hasError) && (
+                            <Button
+                                onClick={handleGenerateImage}
+                                disabled={isGenerating}
+                                variant="outline"
+                                size="sm"
+                                className="border-purple-500/30 hover:bg-purple-500/10 text-purple-300 hover:text-purple-200"
                             >
-                                <Maximize2 className="w-4 h-4 text-white/80" />
-                            </button>
-                        </>
-                    ) : (
-                        // No image yet
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                                <span className="text-2xl opacity-50">🖼️</span>
-                            </div>
-                            <p className="text-white/50 text-sm">No image generated yet</p>
-                        </div>
-                    )}
+                                {isGenerating ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <RotateCcw className="w-3 h-3" />
+                                )}
+                                <span className="ml-2">Regenerate</span>
+                            </Button>
+                        )}
+
+                        {/* Approve/Reject - Visible when awaiting approval */}
+                        {isAwaitingApproval && (
+                            <>
+                                <Button
+                                    onClick={handleReject}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-red-500/30 hover:bg-red-500/10 text-red-300 hover:text-red-200 hover:border-red-500/50"
+                                >
+                                    <X className="w-3 h-3 mr-2" />
+                                    Reject
+                                </Button>
+                                <Button
+                                    onClick={handleApprove}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-green-500/30 hover:bg-green-500/10 text-green-300 hover:text-green-200 hover:border-green-500/50"
+                                >
+                                    <Check className="w-3 h-3 mr-2" />
+                                    Approve
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
+            )}
+
+            <div className={`flex flex-col h-full ${compact ? 'p-3' : 'p-6'}`}>
+                {/* Image section with version carousel or simple display */}
+                {shouldShowCarousel && assetState?.versions ? (
+                    // Version Carousel (when multiple versions exist)
+                    <div className="mb-4">
+                        <VersionCarousel
+                            versions={assetState.versions}
+                            currentIndex={assetState.currentVersionIndex || 0}
+                            onIndexChange={setCurrentVersionIndex}
+                            onApprove={(versionId) => {
+                                if (asset && assetState?.versions) {
+                                    const versionToApprove = assetState.versions.find(v => v.id === versionId);
+                                    if (versionToApprove) {
+                                        approveAsset(asset.id, versionToApprove);
+                                    }
+                                }
+                            }}
+                            onReject={(versionId) => {
+                                if (asset) {
+                                    rejectAsset(asset.id, versionId);
+                                }
+                            }}
+                        />
+                    </div>
+                ) : (
+                    // Standard image display (single version or no versions)
+                    <div className={`relative bg-black/30 rounded-xl border border-white/10 overflow-hidden mb-4 ${compact
+                        ? 'flex-shrink-0 h-48'
+                        : 'flex-1 min-h-[16rem] max-h-[50vh]'
+                        }`}>
+                        {isGenerating ? (
+                            // Generating state
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-4" />
+                                <p className="text-white/70">Generating image...</p>
+                            </div>
+                        ) : imageUrl ? (
+                            // Has image - clickable for lightbox
+                            <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={imageUrl}
+                                    alt={asset.name}
+                                    className="w-full h-full object-contain cursor-pointer"
+                                    onClick={() => setIsLightboxOpen(true)}
+                                />
+                                {/* Maximize button */}
+                                <button
+                                    onClick={() => setIsLightboxOpen(true)}
+                                    className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
+                                    title="View full size"
+                                >
+                                    <Maximize2 className="w-4 h-4 text-white/80" />
+                                </button>
+                            </>
+                        ) : (
+                            // No image yet
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+                                    <span className="text-2xl opacity-50">🖼️</span>
+                                </div>
+                                <p className="text-white/50 text-sm">No image generated yet</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Asset info section */}
                 <div className="mb-4">
@@ -202,21 +316,62 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             <p className="text-sm text-white/60">{asset.category}</p>
                         </div>
 
-                        {/* Status badge */}
-                        {assetState && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
-                                isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
-                                    isApproved ? 'bg-green-500/20 text-green-400' :
-                                        hasError ? 'bg-red-500/20 text-red-400' :
-                                            'bg-white/10 text-white/60'
-                                }`}>
-                                {isGenerating ? 'Generating...' :
-                                    isAwaitingApproval ? 'Awaiting Review' :
-                                        isApproved ? 'Approved' :
-                                            hasError ? 'Failed' :
-                                                'Pending'}
-                            </span>
-                        )}
+                        {/* Status badge with action buttons */}
+                        <div className="flex items-center gap-2">
+                            {/* Approve button - show when awaiting approval */}
+                            {isAwaitingApproval && (
+                                <button
+                                    onClick={handleApprove}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
+                                    title="Approve asset"
+                                >
+                                    <Check className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
+                                </button>
+                            )}
+
+                            {/* Reject button - show when awaiting approval */}
+                            {isAwaitingApproval && (
+                                <button
+                                    onClick={handleReject}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
+                                    title="Reject asset"
+                                >
+                                    <X className="w-3.5 h-3.5 text-white/60 hover:text-red-400" />
+                                </button>
+                            )}
+
+                            {/* Regenerate button - show when asset has been generated */}
+                            {(hasResult || hasError) && (
+                                <button
+                                    onClick={handleGenerateImage}
+                                    disabled={isGenerating}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Regenerate asset"
+                                >
+                                    {isGenerating ? (
+                                        <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+                                    ) : (
+                                        <RotateCcw className="w-3.5 h-3.5 text-white/60 hover:text-purple-400" />
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Status badge */}
+                            {assetState && (
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
+                                    isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
+                                        isApproved ? 'bg-green-500/20 text-green-400' :
+                                            hasError ? 'bg-red-500/20 text-red-400' :
+                                                'bg-white/10 text-white/60'
+                                    }`}>
+                                    {isGenerating ? 'Generating...' :
+                                        isAwaitingApproval ? 'Awaiting Review' :
+                                            isApproved ? 'Approved' :
+                                                hasError ? 'Failed' :
+                                                    'Pending'}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Description */}
@@ -239,11 +394,53 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                     </div>
 
                     {currentPrompt ? (
-                        <div className="p-3 bg-black/30 rounded-lg border border-white/10">
-                            <p className="text-sm text-white/80 font-mono whitespace-pre-wrap">
-                                {currentPrompt}
-                            </p>
-                        </div>
+                        isEditingPrompt ? (
+                            <div className="space-y-2">
+                                <textarea
+                                    value={editedPrompt}
+                                    onChange={(e) => setEditedPrompt(e.target.value)}
+                                    className="w-full h-32 p-3 bg-black/50 border border-white/20 rounded-lg text-sm text-white/90 font-mono resize-none focus:border-purple-500 focus:outline-none"
+                                    placeholder="Enter your prompt..."
+                                />
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            if (asset) {
+                                                updatePrompt(asset.id, editedPrompt)
+                                                setIsEditingPrompt(false)
+                                            }
+                                        }}
+                                        className="bg-purple-600 hover:bg-purple-700"
+                                    >
+                                        Save
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditedPrompt(currentPrompt)
+                                            setIsEditingPrompt(false)
+                                        }}
+                                        className="bg-white/5 hover:bg-white/10"
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="p-3 bg-black/30 rounded-lg border border-white/10 cursor-text hover:bg-black/40 transition-colors"
+                                onClick={() => {
+                                    setEditedPrompt(currentPrompt)
+                                    setIsEditingPrompt(true)
+                                }}
+                            >
+                                <p className="text-sm text-white/80 font-mono whitespace-pre-wrap">
+                                    {currentPrompt}
+                                </p>
+                            </div>
+                        )
                     ) : (
                         <div className="p-3 bg-black/30 rounded-lg border border-white/10">
                             <p className="text-sm text-white/50 italic mb-2">No prompt generated</p>
@@ -265,54 +462,13 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                     )}
                 </div>
 
-                {/* Action buttons */}
+                {/* Action buttons - moved here to be visible above bottom bar */}
+                {/* Action buttons - moved here to be visible above bottom bar */}
                 <div className="space-y-3">
-                    {/* Approve/Reject (when awaiting approval) */}
-                    {isAwaitingApproval && (
-                        <div className="flex items-center gap-3">
-                            <Button
-                                onClick={handleApprove}
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 px-8"
-                            >
-                                <Check className="w-4 h-4 mr-2" />
-                                Approve
-                            </Button>
-                            <Button
-                                onClick={handleReject}
-                                variant="destructive"
-                                size="sm"
-                                className="shadow-lg shadow-red-900/20 px-8"
-                            >
-                                <X className="w-4 h-4 mr-2" />
-                                Reject
-                            </Button>
-                        </div>
-                    )}
+                    {/* Approve/Reject (when awaiting approval) - PRIMARY ACTION */}
 
-                    {/* Generate button (when pending with prompt) */}
-                    {!assetState && currentPrompt && (
-                        <Button
-                            onClick={handleGenerateImage}
-                            className="w-full aurora-gradient font-semibold"
-                        >
-                            <Play className="w-4 h-4 mr-2" />
-                            Generate Image
-                        </Button>
-                    )}
 
-                    {/* Regenerate button (when has result or error) */}
-                    {(hasResult || hasError) && (
-                        <div>
-                            <Button
-                                onClick={handleGenerateImage}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-900/20"
-                            >
-                                <RotateCcw className="w-4 h-4 mr-2" />
-                                Regenerate
-                            </Button>
-                        </div>
-                    )}
+
 
                     {/* Error message */}
                     {hasError && assetState?.error && (

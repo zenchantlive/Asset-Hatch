@@ -11,7 +11,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Pause, Square, Settings2, X } from 'lucide-react'
+import { Play, Pause, Square, Settings2, X, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     Select,
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
+import { GenerateAllWarning } from './GenerateAllWarning'
 
 /**
  * Props for BatchControlsBar
@@ -40,6 +41,8 @@ interface BatchControlsBarProps {
 export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     // Settings popover state
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    // Warning dialog state
+    const [showWarning, setShowWarning] = useState(false)
 
     // Get generation context for state and actions
     const {
@@ -50,15 +53,23 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         startGeneration,
         pauseGeneration,
         resumeGeneration,
+        assetStates,
     } = useGenerationContext()
 
     // Get layout context for selection state
-    const { state } = useGenerationLayout()
+    const { state, selectAllVisible, selectRemainingAssets } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
+
+    // Calculate remaining count (assets not approved or awaiting approval)
+    const remainingCount = parsedAssets.filter(asset => {
+        const state = assetStates.get(asset.id)
+        return !state ||
+            (state.status !== 'approved' && state.status !== 'awaiting_approval')
+    }).length
 
     // Calculate cost estimate
     const costPerImage = selectedModel === 'flux-2-dev' ? 0.04 : 0.15
-    const assetsToGenerate = selectedCount > 0 ? selectedCount : parsedAssets.length
+    const assetsToGenerate = selectedCount > 0 ? selectedCount : remainingCount
     const estimatedCost = assetsToGenerate * costPerImage
 
     // Calculate time estimate (rough: 4s per asset for dev, 8s for pro)
@@ -79,9 +90,29 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
             pauseGeneration()
         } else if (isPaused) {
             resumeGeneration()
+        } else if (selectedCount === 0) {
+            // Prep All mode: Just select all assets, don't generate yet
+            selectAllVisible(parsedAssets.map(a => a.id))
         } else {
-            startGeneration()
+            // Generate mode: Check if batch is large (>5 assets) and show warning
+            if (assetsToGenerate > 5) {
+                setShowWarning(true)
+            } else {
+                startGeneration(state.queue.selectedIds)
+            }
         }
+    }
+
+    // Handle Prep Remaining button click
+    const handlePrepRemaining = () => {
+        // Just select remaining assets, don't generate yet (same as Prep All)
+        selectRemainingAssets(parsedAssets.map(a => a.id), assetStates)
+    }
+
+    // Handle warning dialog confirmation
+    const handleConfirmGeneration = () => {
+        setShowWarning(false)
+        startGeneration(state.queue.selectedIds)
     }
 
     // Compact mode for mobile
@@ -105,10 +136,15 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                             <Play className="w-4 h-4 mr-1" />
                             Resume
                         </>
-                    ) : (
+                    ) : selectedCount > 0 ? (
                         <>
                             <Play className="w-4 h-4 mr-1" />
                             Generate
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="w-4 h-4 mr-1" />
+                            Prep
                         </>
                     )}
                 </Button>
@@ -153,15 +189,27 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                     ) : selectedCount > 0 ? (
                         <>
                             <Play className="w-4 h-4 mr-2" />
-                            Batch Generate ({selectedCount})
+                            Generate ({selectedCount})
                         </>
                     ) : (
                         <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Generate All ({parsedAssets.length})
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Prep All
                         </>
                     )}
                 </Button>
+
+                {/* Prep Remaining button (show when some assets are already generated) */}
+                {!isGenerating && !isPaused && remainingCount > 0 && remainingCount < parsedAssets.length && (
+                    <Button
+                        variant="outline"
+                        onClick={handlePrepRemaining}
+                        className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
+                    >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Prep Remaining ({remainingCount})
+                    </Button>
+                )}
 
                 {/* Stop button (only when generating) */}
                 {isGenerating && (
@@ -285,6 +333,16 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                     </div>
                 </div>
             )}
+
+            {/* Warning Dialog */}
+            <GenerateAllWarning
+                isOpen={showWarning}
+                onClose={() => setShowWarning(false)}
+                onConfirm={handleConfirmGeneration}
+                assetCount={assetsToGenerate}
+                estimatedCost={estimatedCost}
+                estimatedTime={estimatedTimeDisplay}
+            />
         </div>
     )
 }

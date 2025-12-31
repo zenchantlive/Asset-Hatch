@@ -42,3 +42,14 @@ next-env.d.ts
 
 .gemini/
 gha-creds-*.json
+
+# databases (contains sensitive OAuth tokens and user data)
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.db-shm
+*.db-wal
+dev.db*
+prisma/*.db
+prisma/*.db-*
