@@ -46,6 +46,7 @@ interface UseBatchGenerationReturn {
 
   // State
   status: BatchStatus
+  queue: ParsedAsset[]
   currentAsset: ParsedAsset | null
   completed: Set<string>
   failed: Map<string, Error>
@@ -210,6 +211,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
     resume,
     retryFailed,
     status,
+    queue,
     currentAsset,
     completed,
     failed,

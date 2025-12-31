@@ -8,7 +8,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { AssetVersion } from '@/lib/client-db'
@@ -42,6 +42,31 @@ export function VersionCarousel({
   onReject,
 }: VersionCarouselProps) {
   const currentVersion = versions[currentIndex]
+  const [imageUrl, setImageUrl] = useState('')
+
+  useEffect(() => {
+    if (!currentVersion.image_base64) return
+
+    let active = true
+    let url = ''
+
+    // Convert base64 to a Blob
+    fetch(currentVersion.image_base64)
+      .then(res => res.blob())
+      .then(blob => {
+        if (!active) return
+        url = URL.createObjectURL(blob)
+        setImageUrl(url)
+      })
+
+    // Cleanup function to revoke the URL when component unmounts or image changes
+    return () => {
+      active = false
+      if (url) {
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [currentVersion.image_base64])
   const hasPrevious = currentIndex > 0
   const hasNext = currentIndex < versions.length - 1
 
@@ -50,7 +75,7 @@ export function VersionCarousel({
       {/* Main image display */}
       <div className="relative rounded-lg overflow-hidden bg-black/30 border border-white/10">
         <img
-          src={currentVersion.image_base64}
+          src={imageUrl}
           alt={`Version ${currentIndex + 1}`}
           className="w-full h-auto"
         />
@@ -62,11 +87,10 @@ export function VersionCarousel({
             <button
               onClick={() => onIndexChange(currentIndex - 1)}
               disabled={!hasPrevious}
-              className={`absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm transition-all ${
-                hasPrevious
-                  ? 'bg-black/50 hover:bg-black/70 text-white'
-                  : 'bg-black/20 text-white/30 cursor-not-allowed'
-              }`}
+              className={`absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm transition-all ${hasPrevious
+                ? 'bg-black/50 hover:bg-black/70 text-white'
+                : 'bg-black/20 text-white/30 cursor-not-allowed'
+                }`}
               aria-label="Previous version"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -76,11 +100,10 @@ export function VersionCarousel({
             <button
               onClick={() => onIndexChange(currentIndex + 1)}
               disabled={!hasNext}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm transition-all ${
-                hasNext
-                  ? 'bg-black/50 hover:bg-black/70 text-white'
-                  : 'bg-black/20 text-white/30 cursor-not-allowed'
-              }`}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm transition-all ${hasNext
+                ? 'bg-black/50 hover:bg-black/70 text-white'
+                : 'bg-black/20 text-white/30 cursor-not-allowed'
+                }`}
               aria-label="Next version"
             >
               <ChevronRight className="w-5 h-5" />
@@ -103,11 +126,10 @@ export function VersionCarousel({
             <button
               key={i}
               onClick={() => onIndexChange(i)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i === currentIndex
-                  ? 'bg-purple-500 w-6'
-                  : 'bg-white/30 hover:bg-white/50'
-              }`}
+              className={`w-2 h-2 rounded-full transition-all ${i === currentIndex
+                ? 'bg-purple-500 w-6'
+                : 'bg-white/30 hover:bg-white/50'
+                }`}
               aria-label={`Go to version ${i + 1}`}
             />
           ))}

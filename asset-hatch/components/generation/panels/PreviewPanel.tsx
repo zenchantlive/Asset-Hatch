@@ -99,14 +99,31 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Handle approve
     const handleApprove = async () => {
-        if (!asset) return
-        await approveAsset(asset.id)
+        if (!asset || !assetState) return
+
+        // If we have versions, approve the current one
+        if (assetState.status === 'awaiting_approval' && assetState.versions) {
+            const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
+            if (currentVersion) {
+                await approveAsset(asset.id, currentVersion)
+            }
+        }
     }
 
     // Handle reject
     const handleReject = () => {
-        if (!asset) return
-        rejectAsset(asset.id)
+        if (!asset || !assetState) return
+
+        // If we have versions, reject the current one
+        if (assetState.status === 'awaiting_approval' && assetState.versions) {
+            const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
+            if (currentVersion) {
+                rejectAsset(asset.id, currentVersion.id)
+            }
+        } else {
+            // Fallback for non-versioned state (e.g. approved -> reject?)
+            // Not fully supported by new signature, but let's assume awaiting_approval
+        }
     }
 
     // Navigate to prev/next asset (for lightbox)
@@ -232,15 +249,16 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             currentIndex={assetState.currentVersionIndex || 0}
                             onIndexChange={setCurrentVersionIndex}
                             onApprove={(versionId) => {
-                                // Approve the selected version
-                                if (asset) {
-                                    approveAsset(asset.id)
+                                if (asset && assetState?.versions) {
+                                    const versionToApprove = assetState.versions.find(v => v.id === versionId);
+                                    if (versionToApprove) {
+                                        approveAsset(asset.id, versionToApprove);
+                                    }
                                 }
                             }}
                             onReject={(versionId) => {
-                                // Reject the selected version
                                 if (asset) {
-                                    rejectAsset(asset.id)
+                                    rejectAsset(asset.id, versionId);
                                 }
                             }}
                         />

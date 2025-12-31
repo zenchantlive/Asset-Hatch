@@ -57,7 +57,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     } = useGenerationContext()
 
     // Get layout context for selection state
-    const { state, selectAllVisible, selectRemainingAssets, clearSelection } = useGenerationLayout()
+    const { state, selectAllVisible, selectRemainingAssets } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
 
     // Calculate remaining count (assets not approved or awaiting approval)
@@ -69,7 +69,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
 
     // Calculate cost estimate
     const costPerImage = selectedModel === 'flux-2-dev' ? 0.04 : 0.15
-    const assetsToGenerate = selectedCount > 0 ? selectedCount : parsedAssets.length
+    const assetsToGenerate = selectedCount > 0 ? selectedCount : remainingCount
     const estimatedCost = assetsToGenerate * costPerImage
 
     // Calculate time estimate (rough: 4s per asset for dev, 8s for pro)

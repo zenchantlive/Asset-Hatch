@@ -312,8 +312,15 @@ export function GenerationProgress() {
                   key={assetId}
                   asset={asset}
                   result={result}
-                  onApprove={() => approveAsset(assetId)}
-                  onReject={() => rejectAsset(assetId)}
+                  onApprove={() => {
+                    if (state.status === 'awaiting_approval' && state.versions) {
+                      const version = state.versions.find(v => v.id === result.id)
+                      if (version) {
+                        approveAsset(assetId, version)
+                      }
+                    }
+                  }}
+                  onReject={() => rejectAsset(assetId, result.id)}
                   onRegenerate={() => generateImage(assetId)}
                 />
               );
