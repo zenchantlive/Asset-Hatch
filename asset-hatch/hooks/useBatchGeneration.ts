@@ -100,6 +100,8 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
   ): Promise<void> => {
     // Initialize state for new batch
     setQueue(assets)
+    setCompleted(new Set())
+    setFailed(new Map())
     setStatus('generating')
     setCompleted(new Set())
     setFailed(new Map())
