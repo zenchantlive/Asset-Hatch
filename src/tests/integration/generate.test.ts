@@ -48,7 +48,7 @@ describe('/api/generate', () => {
             id: 's1',
             referenceImageBlob: Buffer.from('abc'),
             colorPalette: '[]',
-            fluxModel: 'flux-2-dev'
+            modelKey: 'black-forest-labs/flux.2-pro',
         });
         generateFluxImageMock.mockResolvedValue({
             imageUrl: 'http://cdn/img.png',

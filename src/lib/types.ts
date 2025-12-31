@@ -32,11 +32,13 @@ export interface StyleAnchor {
     style_keywords: string; // e.g., "16-bit pixel art, SNES RPG style"
     lighting_keywords: string; // e.g., "flat lighting, even illumination"
     color_palette: string[]; // HEX codes: ["#2C3E50", "#E74C3C", ...]
-    flux_model: string; // "black-forest-labs/flux-2-dev"
+    flux_model: string; // "black-forest-labs/flux.2-pro"
     ai_suggested: boolean; // Whether keywords were AI-generated
     created_at: string;
     updated_at: string;
 }
+
+export const DEFAULT_FLUX_MODEL = 'black-forest-labs/flux.2-pro';
 
 export interface CharacterRegistry {
     id: string;

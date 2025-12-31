@@ -87,7 +87,7 @@ describe('POST /api/export', () => {
                 projectId: projectId,
                 status: 'approved',
                 imageBlob: Buffer.from('fake-image-data'),
-                metadata: JSON.stringify({ model: 'flux-2-dev', seed: 123 }),
+                metadata: JSON.stringify({ model: 'black-forest-labs/flux.2-pro', seed: 123 }),
                 createdAt: new Date(),
             }
         ];

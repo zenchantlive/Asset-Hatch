@@ -216,7 +216,7 @@ buildAssetPrompt(
 ```typescript
 fetch('https://openrouter.ai/api/v1/images/generations', {
   body: JSON.stringify({
-    model: 'black-forest-labs/flux-2-dev',
+    model: 'black-forest-labs/flux-2-pro',
     prompt: optimizedPrompt,
     images: [styleAnchorBase64],
     size: '512x512', // 2x for 32x32 base

@@ -266,6 +266,11 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     const prompt = customPrompt || buildAssetPrompt(...);
     ```
 
+### Model Management & Cost Tracking
+* **Centralized Registry**: Use `lib/model-registry.ts` as the single source of truth for model capabilities, pricing, and provider IDs. Enable `auto-discovery` for real-time updates.
+* **Inline Cost Metrics**: Prefer inline metrics (e.g., in Toolbars/Control Bars) over floating overlays for non-intrusive budget awareness.
+* **Cost Transparency (Est. → Total)**: Always show estimated costs before an action and transition to actual costs (highlighted in green) once confirmed by the API.
+
 ---
 
 **Next Update:** When we establish a new pattern or encounter a new gotcha.

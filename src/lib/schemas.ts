@@ -35,7 +35,7 @@ export const updateStyleDraftSchema = z.object({
     styleKeywords: z.string().optional().describe('Style keywords (e.g., "16-bit pixel art, SNES RPG style")'),
     lightingKeywords: z.string().optional().describe('Lighting keywords (e.g., "flat lighting, even illumination")'),
     colorPalette: z.array(z.string()).optional().describe('Array of HEX color codes (e.g., ["#2C3E50", "#E74C3C"])'),
-    fluxModel: z.enum(['flux-2-dev', 'flux-2-pro']).optional().describe('Flux model to use for generation'),
+    fluxModel: z.string().optional().describe('Flux model to use for generation'),
 });
 
 export type UpdateStyleDraftInput = z.infer<typeof updateStyleDraftSchema>;

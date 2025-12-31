@@ -16,6 +16,85 @@
 
 ---
 
+## 🔥 Latest Session (2025-12-31) - Flux 2 Pro Migration & Cost Tracking
+
+### 1. Flux 2 Pro Migration
+**Context:**
+Transitioned from the legacy `flux-2-dev` model to `black-forest-labs/flux.2-pro` to improve generation quality. Encountered runtime errors due to legacy data still referencing the old "flux-2-dev" ID.
+
+**Solution:**
+- **Standardized Model ID:** Replaced all hardcoded instances with the new pro model ID.
+- **Resilient Fallback:** Implemented fallback logic in `style-anchor-generator.ts` and `generateFluxImage` to handle unknown model IDs gracefully.
+- **Registry Integration:** Moved model definitions to a centralized `ModelRegistry`.
+
+### 2. Inline Cost Tracking & Model Registry
+**Context:**
+Users needed a way to track actual generation costs. The initial "floating card" UI broke the layout and was difficult to read.
+
+**Solution:**
+- **Model Registry:** Created `lib/model-registry.ts` with auto-discovery and pricing metadata.
+- **Inline UI:** Replaced the `CostSummaryCard` with an integrated inline display in `BatchControlsBar`.
+- **Dynamic Metrics:** UI now displays "Est: $X.XXX" (estimated) and transitions to "Total: $X.XXX" (actual) once synced from API headers.
+- **Context Plumbing:** Propagated cost data from `GenerationQueue` through `GenerationLayoutProvider`.
+
+**Files:**
+- `lib/model-registry.ts` (NEW)
+- `lib/cost-tracker.ts` (NEW)
+- `components/generation/panels/BatchControlsBar.tsx` (Integrated UI)
+- `components/generation/GenerationQueue.tsx` (Data source)
+- `memory/adr/018-model-registry-and-cost-tracking.md` (ADR)
+
+---
+
+## 📁 Files Modified/Created (This Session)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `lib/model-registry.ts` | **CREATE** | Centralized model discovery and metadata |
+| `lib/cost-tracker.ts` | **CREATE** | Cost estimation and actual cost utility |
+| `components/generation/panels/BatchControlsBar.tsx` | **MODIFY** | Inline cost display integration |
+| `components/generation/GenerationQueue.tsx` | **MODIFY** | Context data providing |
+| `components/generation/CostSummaryCard.tsx` | **DELETE** | Removed layout-breaking component |
+| `lib/style-anchor-generator.ts` | **MODIFY** | Added model fallback logic |
+
+---
+
+## ✅ Testing & Validation
+
+- ✅ **Flux 2 Pro:** Verified generation works with the new model ID.
+- ✅ **Fallback Logic:** Successfully handled legacy "flux-2-dev" IDs without crashing.
+- ✅ **Cost Display:** Verified Est → Total transition in the UI.
+- ✅ **Layout Integrity:** Confirmed relative units are respected after removing `CostSummaryCard`.
+- ✅ **Type Safety:** `bun run typecheck` passed with zero errors.
+
+---
+
+## 🚧 Status Board
+
+| Component | Status | Notes |
+| :--- | :--- | :--- |
+| **Authentication** | ✅ Complete | OAuth linking enabled |
+| **Generation Workflow** | ✅ Complete | Batch UX + Version System + Cost Tracking |
+| **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
+| **Export System** | ✅ Complete | Full workflow integration |
+| **Model Management** | ✅ Complete | Registry + Auto-discovery |
+| **Open Source Prep** | ✅ Complete | BFG cleanup, docs, env example |
+
+---
+
+## 🚀 Next Steps
+
+1. ⏳ **PENDING:** Complete Phase 2 of Model Extension (Dynamic registry in all selectors)
+2. ⏳ **PENDING:** Research Phase 3 (HuggingFace Provider abstraction)
+3. ⏳ **PENDING:** Formal testing suite for Model Registry
+4. ⏳ **PENDING:** Push to remote (`git push`)
+5. ⏳ **PENDING:** Make repository public
+
+6. ⏳ **PENDING:** Make repository public
+7. 📝 **OPTIONAL:** Write launch blog post
+
+---
+
 ## 🔥 Latest Session (2025-12-31) - Open Source Documentation Complete
 
 ### 1. Performance & Critical Bug Fixes

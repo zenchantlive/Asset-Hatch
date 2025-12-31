@@ -4,6 +4,7 @@ import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateStyleAnchor } from '@/lib/style-anchor-generator';
+import { getDefaultModel } from '@/lib/model-registry';
 import {
   updateQualitySchema,
   updatePlanSchema,
@@ -18,6 +19,9 @@ import {
 } from '@/lib/schemas';
 
 export const maxDuration = 30;
+
+// Get default chat model from registry
+const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +59,8 @@ export async function POST(req: NextRequest) {
     const modelMessages = await convertToModelMessages(messages);
 
     const result = streamText({
-      model: openrouter('google/gemini-3-pro-preview'),
+      // Use chat model from registry instead of hardcoded model ID
+      model: openrouter(chatModel.id),
       messages: modelMessages,
       stopWhen: stepCountIs(10),
       system: `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
@@ -194,7 +199,7 @@ export async function POST(req: NextRequest) {
               });
 
               // Merge with existing draft data (with improved error handling)
-              const defaultData = { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'flux-2-dev' };
+              const defaultData = { styleKeywords: '', lightingKeywords: '', colorPalette: [], fluxModel: 'black-forest-labs/flux.2-pro' };
               let currentData;
               try {
                 currentData = existingDraft && existingDraft.content

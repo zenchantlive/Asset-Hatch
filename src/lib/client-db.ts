@@ -17,6 +17,7 @@ export interface AssetVersion {
     seed: number;
     cost: number;
     duration_ms: number;
+    generation_id?: string;
   };
   created_at: string;
 }
