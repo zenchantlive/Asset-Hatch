@@ -251,8 +251,21 @@ export function BatchPreviewContent({ selectedIds }: BatchPreviewContentProps) {
                                                     onClick={() => setLightboxAssetId(asset.id)}
                                                     onClickPending={() => selectAsset(asset, 'grid')}
                                                     onNavigateToSingle={() => selectAsset(asset, 'grid')}
-                                                    onApprove={approveAsset}
-                                                    onReject={rejectAsset}
+                                                    onApprove={async (id) => {
+                                                        const state = assetStates.get(id)
+                                                        if (state?.status === 'awaiting_approval' && state.versions) {
+                                                            const version = state.versions.find(v => v.id === state.result.id)
+                                                            if (version) {
+                                                                await approveAsset(id, version)
+                                                            }
+                                                        }
+                                                    }}
+                                                    onReject={(id) => {
+                                                        const state = assetStates.get(id)
+                                                        if (state?.status === 'awaiting_approval' && state.result?.id) {
+                                                            rejectAsset(id, state.result.id)
+                                                        }
+                                                    }}
                                                 />
                                             ))}
                                         </div>
@@ -368,8 +381,21 @@ export function BatchPreviewContent({ selectedIds }: BatchPreviewContentProps) {
                         onClick={() => setLightboxAssetId(asset.id)}
                         onClickPending={() => selectAsset(asset, 'grid')}
                         onNavigateToSingle={() => selectAsset(asset, 'grid')}
-                        onApprove={approveAsset}
-                        onReject={rejectAsset}
+                        onApprove={async (id) => {
+                            const state = assetStates.get(id)
+                            if (state?.status === 'awaiting_approval' && state.versions) {
+                                const version = state.versions.find(v => v.id === state.result.id)
+                                if (version) {
+                                    await approveAsset(id, version)
+                                }
+                            }
+                        }}
+                        onReject={(id) => {
+                            const state = assetStates.get(id)
+                            if (state?.status === 'awaiting_approval' && state.result?.id) {
+                                rejectAsset(id, state.result.id)
+                            }
+                        }}
                     />
                 ))}
             </div>

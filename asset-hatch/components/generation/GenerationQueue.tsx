@@ -572,8 +572,9 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    * Converts the result to the GeneratedAsset format and persists it.
    * 
    * @param assetId - ID of the asset to approve
+   * @param version - The specific version to approve
    */
-  const approveAsset = useCallback(async (assetId: string) => {
+  const approveAsset = useCallback(async (assetId: string, version: import('@/lib/client-db').AssetVersion) => {
     const asset = parsedAssets.find(a => a.id === assetId)
 
     // Get current state from the state map
@@ -588,24 +589,31 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       return
     }
 
-    addLogEntry('info', `Approving asset: ${asset.name}`)
+    addLogEntry('info', `Approving asset: ${asset.name} (v${version.version_number})`)
 
     try {
-      // Convert data URL to Blob
-      const response = await fetch(currentState.result.imageUrl)
-      const blob = await response.blob()
+      // Use existing blob if available, otherwise fetch from url
+      let blob = version.image_blob
+      if (!blob && version.image_base64) {
+        const response = await fetch(version.image_base64)
+        blob = await response.blob()
+      }
+
+      if (!blob) {
+        throw new Error('No image data found for version')
+      }
 
       // Save to Dexie
       const now = new Date().toISOString()
       await db.generated_assets.add({
-        id: currentState.result.id,
+        id: version.id, // Use version ID as generated asset ID
         project_id: projectId,
         asset_id: assetId,
         variant_id: asset.variant?.id || '', // Use variant ID if exists
-        image_blob: blob, // Convert data URL to Blob
-        image_base64: currentState.result.imageUrl, // Cache for display
-        prompt_used: currentState.result.prompt,
-        generation_metadata: currentState.result.metadata,
+        image_blob: blob,
+        image_base64: version.image_base64 || '',
+        prompt_used: version.prompt_used,
+        generation_metadata: version.generation_metadata,
         status: 'approved',
         created_at: now,
         updated_at: now,
@@ -627,13 +635,13 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: currentState.result.id,
+            id: version.id,
             projectId: projectId,
             assetId: assetId,
             imageBlob: base64Image,
-            promptUsed: currentState.result.prompt,
-            seed: currentState.result.metadata.seed,
-            metadata: currentState.result.metadata,
+            promptUsed: version.prompt_used,
+            seed: version.generation_metadata.seed,
+            metadata: version.generation_metadata,
             status: 'approved',
           }),
         })
@@ -647,14 +655,19 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         addLogEntry('error', `Asset approved locally but not synced to server`)
       }
 
-      // Mark as approved
+      // Mark as approved in UI state
       setAssetStates(prev => {
         const next = new Map(prev)
         const state = prev.get(assetId)
         if (state && state.status === 'awaiting_approval') {
           next.set(assetId, {
             status: 'approved',
-            result: state.result,
+            result: {
+              id: version.id,
+              imageUrl: version.image_base64 || '',
+              prompt: version.prompt_used,
+              metadata: version.generation_metadata
+            },
           })
         }
         return next
@@ -672,25 +685,78 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    * 
    * Marks the asset as rejected, allowing the user to regenerate with different settings.
    * 
-   * @param assetId - ID of the asset to reject
+   * @param assetId - ID of the asset
+   * @param versionId - ID of the version to reject
    */
-  const rejectAsset = useCallback((assetId: string) => {
+  const rejectAsset = useCallback(async (assetId: string, versionId: string) => {
     const asset = parsedAssets.find(a => a.id === assetId)
     if (!asset) return
 
-    setAssetStates(prev => {
-      const next = new Map(prev)
-      next.set(assetId, { status: 'rejected' })
-      return next
-    })
+    try {
+      // Delete version from DB
+      await db.asset_versions.delete(versionId)
 
-    addLogEntry('info', `Asset rejected: ${asset.name}`)
+      // Update state to remove version
+      setAssetStates(prev => {
+        const next = new Map(prev)
+        const currentState = next.get(assetId)
+
+        if (currentState && currentState.status === 'awaiting_approval' && currentState.versions) {
+          const updatedVersions = currentState.versions.filter(v => v.id !== versionId)
+
+          if (updatedVersions.length === 0) {
+            // If no versions left, mark as rejected/pending
+            // Or effectively reset to initial state if desired?
+            // User request says "rejects the entire asset, not just the specific version" was the BUG.
+            // So here we stay in awaiting_approval if versions remain, or go to rejected if empty?
+            // Going to 'rejected' allows regenerating.
+            next.set(assetId, { status: 'rejected' })
+          } else {
+            // Update versions and reset index if needed
+            const newIndex = Math.min(
+              currentState.currentVersionIndex || 0,
+              updatedVersions.length - 1
+            )
+
+            next.set(assetId, {
+              ...currentState,
+              versions: updatedVersions,
+              currentVersionIndex: newIndex,
+              // Update result to current version if needed
+              result: {
+                id: updatedVersions[newIndex].id,
+                imageUrl: updatedVersions[newIndex].image_base64 || '',
+                prompt: updatedVersions[newIndex].prompt_used,
+                metadata: updatedVersions[newIndex].generation_metadata
+              }
+            })
+          }
+        }
+        return next
+      })
+
+      addLogEntry('info', `Version rejected: ${asset.name}`)
+    } catch (err) {
+      console.error('Failed to reject version:', err)
+      addLogEntry('error', 'Failed to reject version')
+    }
   }, [parsedAssets, addLogEntry])
 
   // Build the context value
   const contextValue: GenerationContextValue = {
     parsedAssets,
-    queue: [], // TODO: Build queue items from parsed assets
+    queue: batchGeneration.queue.map(asset => {
+      const state = assetStates.get(asset.id)
+      return {
+        asset,
+        status: state?.status === 'generating' ? 'generating' :
+          state?.status === 'approved' || state?.status === 'awaiting_approval' ? 'success' :
+            state?.status === 'error' ? 'error' : 'idle',
+        result: (state?.status === 'approved' || state?.status === 'awaiting_approval') ? state.result : null,
+        error: state?.status === 'error' ? state.error : null,
+        customPrompt: generatedPrompts.get(asset.id) || null
+      }
+    }),
     status: batchGeneration.status,
     currentAsset: batchGeneration.currentAsset,
     completed: batchGeneration.completed,
