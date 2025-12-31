@@ -12,7 +12,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Check, X, RotateCcw, Edit3, Loader2, Maximize2, X as Close, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, X, RotateCcw, Edit3, Loader2, Maximize2, X as Close, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
@@ -36,8 +36,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
-    // Version carousel state
-    const [currentVersionIndex, setCurrentVersionIndex] = useState(0)
+    // State for local version selection (if versions available)
+    // const [localVersionIndex, setLocalVersionIndex] = useState<number | null>(null)
 
     // Get contexts
     const {
@@ -49,9 +49,12 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         approveAsset,
         rejectAsset,
         updatePrompt,
+        updateVersionIndex,
+        isSyncingCost,
+        syncErrors,
     } = useGenerationContext()
 
-    const { state, openPromptEditor, selectAsset } = useGenerationLayout()
+    const { state, openPromptEditor, selectAsset, toggleAssetSelection } = useGenerationLayout()
 
     const { selectedAsset } = state.preview
 
@@ -106,6 +109,10 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
             const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
             if (currentVersion) {
                 await approveAsset(asset.id, currentVersion)
+                // Auto-deselect from batch if selected
+                if (state.queue.selectedIds.has(asset.id)) {
+                    toggleAssetSelection(asset.id)
+                }
             }
         }
     }
@@ -164,11 +171,14 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     }
 
     // Determine what to show based on asset state
+    const isPending = !assetState || assetState?.status === 'pending'
     const isGenerating = assetState?.status === 'generating'
     const isAwaitingApproval = assetState?.status === 'awaiting_approval'
     const isApproved = assetState?.status === 'approved'
     const hasError = assetState?.status === 'error'
     const hasResult = isAwaitingApproval || isApproved
+    // Can generate if pending and has a prompt ready
+    const canGenerate = isPending && !!currentPrompt
 
     // Check for version carousel
     const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
@@ -192,8 +202,26 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                         Back to Batch ({selectedCount} assets)
                     </Button>
 
-                    {/* Header Actions - Approve/Reject/Regenerate */}
+                    {/* Header Actions - Generate/Approve/Reject/Regenerate */}
                     <div className="flex items-center gap-2">
+                        {/* Generate - Visible when pending and has prompt */}
+                        {canGenerate && (
+                            <Button
+                                onClick={handleGenerateImage}
+                                disabled={isGenerating}
+                                variant="outline"
+                                size="sm"
+                                className="border-green-500/30 hover:bg-green-500/10 text-green-300 hover:text-green-200"
+                            >
+                                {isGenerating ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <Play className="w-3 h-3" />
+                                )}
+                                <span className="ml-2">Generate</span>
+                            </Button>
+                        )}
+
                         {/* Regenerate - Visible when has result or error */}
                         {(hasResult || hasError) && (
                             <Button
@@ -247,20 +275,11 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                         <VersionCarousel
                             versions={assetState.versions}
                             currentIndex={assetState.currentVersionIndex || 0}
-                            onIndexChange={setCurrentVersionIndex}
-                            onApprove={(versionId) => {
-                                if (asset && assetState?.versions) {
-                                    const versionToApprove = assetState.versions.find(v => v.id === versionId);
-                                    if (versionToApprove) {
-                                        approveAsset(asset.id, versionToApprove);
-                                    }
-                                }
-                            }}
-                            onReject={(versionId) => {
-                                if (asset) {
-                                    rejectAsset(asset.id, versionId);
-                                }
-                            }}
+                            onIndexChange={(index) => updateVersionIndex(asset.id, index)}
+                            onApprove={handleApprove}
+                            onReject={handleReject}
+                            isSyncingCost={isSyncingCost}
+                            syncError={syncErrors[asset.id]}
                         />
                     </div>
                 ) : (
@@ -337,6 +356,22 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                     title="Reject asset"
                                 >
                                     <X className="w-3.5 h-3.5 text-white/60 hover:text-red-400" />
+                                </button>
+                            )}
+
+                            {/* Generate button - show when pending and has prompt */}
+                            {canGenerate && (
+                                <button
+                                    onClick={handleGenerateImage}
+                                    disabled={isGenerating}
+                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Generate asset"
+                                >
+                                    {isGenerating ? (
+                                        <Loader2 className="w-3.5 h-3.5 text-green-400 animate-spin" />
+                                    ) : (
+                                        <Play className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
+                                    )}
                                 </button>
                             )}
 
