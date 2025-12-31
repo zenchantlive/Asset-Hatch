@@ -166,6 +166,16 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Card Aspect:** Strictly enforce `aspect-square` for all generation preview cards.
 * **Constraints:** Use `max-w-[80vh]` on grid containers to prevent layout stretching on large screens.
 * **Animations:** Use `animate-in fade-in zoom-in-50` for item entry sequences.
+* **Satisfying Exit Flow:** When an item is "completed" or "approved" in a batch view, use an exit animation before removal.
+    - **Pattern:** `animate-out zoom-out-0 fade-out-0 duration-300 scale-0 opacity-0 rotate-12`
+    - **Logic:** Set `isExiting` state → Wait 300ms (setTimeout) → Perform actual state removal.
+    - **Why:** Prevents jarring layout shifts and provides positive reinforcement for task completion.
+
+### Generation & Editing Logic
+* **Generate vs Regenerate:**
+    - **Generate:** Used for the *initial* creation of an asset (when `isPending` and has prompt). Icon: `Play`.
+    - **Regenerate:** Used when an asset already has a result or error. Icon: `RefreshCw`.
+* **Selection-Aware Actions:** Always check if an asset is part of a "Batch Selection" (`selectedIds`) before completing an action. If so, automatically deselect/remove it from the batch view upon success.
 
 ---
 

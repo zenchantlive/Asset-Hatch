@@ -1,20 +1,57 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-31
-**Session:** Open Source Launch Preparation - ✅ PHASE 2 COMPLETE
-**Branch:** `main`
+**Session:** Generation UI Polish & Repository Organization - ✅ COMPLETE
+**Branch:** `feat/image-route-switching`
 **Latest Commits:**
-- `aedf895` - docs: Open source launch documentation and code quality fixes
-- `f70e4b4` - security: Stop tracking dev.db and exclude all database files
-- `bef20a8` - feat(generation): Batch workflow improvements with version carousel
+- `c0eced7` - chore(repo): [Infrastructure] Schemas, Database, and Project Documentation
+- `f8c80e4` - feat(ui): [Generation] Complete Queue and Batch Workflow Infrastructure
+- `7f002fc` - feat(core): [Prompt] Optimized Prompt Engineering and Templates
+- `bdce843` - feat(style): [System] Style Anchor Generation and AI Analysis
+- `2a3cc1f` - feat(core): [System] Model Registry and Cost Tracking System
+- `dd9e2f2` - fix(ui): [Generation] Auto-deselect approved assets with exit animation
+- `121ebf9` - fix(ui): [PreviewPanel] Add Generate button for single asset workflow
 
 ---
 
 ## 📍 Current Focus
 
-> **🚀 OPEN SOURCE READY:** BFG cleanup complete, secrets rotated, comprehensive documentation created. Folder structure renamed from `asset-hatch/` to `src/`. README fully rewritten with self-hosting guide. Ready for repository to go public.
+> **🎨 UI POLISHED & ORGANIZED:** Fixed critical bottlenecks in the generation workflow (missing Generate button, broken Accept logic). Implemented satisfying "Approve → Animate → Deselect" flow. Repository organized into clean, logical commits following the "Blog Notebook" strategy. Ready for final verification and public launch.
 
 ---
+
+## 🔥 Latest Session (2025-12-31) - Generation UI Polish & Flow
+
+### 1. Unified Generation Entry
+**Context:**
+The single-asset view lacked a direct generation trigger. Users were forced into "Batch Mode" even for a single item, creating unnecessary friction.
+
+**Solution:**
+- **Double-Entry Buttons:** Added a primary "Generate" button in the header and a compact secondary trigger near the status badge.
+- **Dynamic Visibility:** Logic intelligently toggles between "Generate" (for new items) and "Regenerate" (for existing items).
+- **Iconography:** Standardized on `Play` icon for generation and `RefreshCw` for regeneration.
+
+### 2. "Satisfying Flow" Approval Logic
+**Context:**
+Approval was manual and static. Users had to manually deselect items, and the "Accept" icon in batch cards was broken due to incorrect version lookup.
+
+**Solution:**
+- **Corrected Version Lookup:** Switched from fragile ID matching to `currentVersionIndex` source of truth.
+- **Auto-Deselection:** Approving an asset now automatically removes it from the batch selection, clearing the workspace for the next task.
+- **Exit Animation:** Added a 300ms CSS exit transition (`rotate-12 zoom-out-0`) so assets "spin out" of view elegantly when approved.
+
+### 3. Repository "Blog Notebook" Organization
+**Context:**
+49+ uncommitted files needed to be grouped into logical chunks to maintain the developer-diary narrative for the public repo.
+
+**Solution:**
+- Split work into 6 high-level commits: Model Registry, Style Anchors, Prompt Engineering, UI Infrastructure, Project Infrastructure, and UI Fixes.
+- Each commit includes a "Story of Collaboration" and "Decisions Made" section in the message.
+
+**Files:**
+- `components/generation/panels/PreviewPanel.tsx` (Generate button + Flow)
+- `components/generation/panels/BatchPreviewContent.tsx` (Logic Fix + Animation)
+- `lib/types/generation.ts` (Auto-deselection types)
 
 ## 🔥 Latest Session (2025-12-31) - Flux 2 Pro Migration & Cost Tracking
 

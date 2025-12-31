@@ -377,9 +377,21 @@ Generate at 2x resolution, then downscale for pixel-perfect results:
 | UI component | Functional editor | ✅ Complete |
 | Generation API | End-to-end working | ✅ Complete |
 
-**Overall P0 Completion: 100%** ✅
+---
+
+## 🎨 UI Refinements (Post-Launch Polish) ✅
+
+### 1. Satisfying Batch Workflow
+- **Auto-Deselection:** Approving an asset automatically removes it from the batch, guiding the user to the next item.
+- **Exit Animations:** Cards "spin out" (rotate + scale) over 300ms using standardized Tailwind utility patterns.
+
+### 2. Context-Aware Generation
+- **Single Asset Access:** Added a dedicated "Generate" icon/button for assets that haven't been created yet, bypassing the need for batch selection.
+- **Logic Sync:** Batch cards now use the carousel version index for approval, fixing mismatches between the preview panel and batch view.
+
+**Overall P0 Completion: 100% (Polished)** ✅
 
 ---
 
-**Status:** All P0 blockers removed. Ready to begin generation phase UI and testing.
+**Status:** All P0 blockers removed. UI polished with professional feedback loops.
 
