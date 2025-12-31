@@ -16,7 +16,25 @@
 
 ---
 
-## 🔥 Latest Session's Work (2025-12-30) - Batch Workflow & Version System
+## 🔥 Latest Session's Work (2025-12-30) - Generation Fixes & Optimization
+
+### 1. Performance & Critical Bug Fixes
+**Context:**
+Users reported lag with large generated images (base64) and a critical data integrity bug where approving a specific version in the carousel would incorrectly approve the *latest* version.
+
+**Solution:**
+- **High-Performance Rendering:** Refactored `VersionCarousel` to use `Blob` and `URL.createObjectURL`. This prevents large base64 strings from bloating the DOM and crashing the browser tab.
+- **Version-Aware Approval:** Rewrote `approveAsset` and `rejectAsset` in `GenerationContext` to require explicit version objects/IDs. Updated all consumers (`GenerationQueue`, `PreviewPanel`, `GenerationProgress`) to pass the correct version.
+- **Accurate Estimation:** Fixed `getCostEstimate` in `BatchControlsBar` to use `remainingCount` instead of `parsedAssets.length` when no assets are selecting, providing realistic cost estimates.
+
+**Files:**
+- `components/generation/VersionCarousel.tsx` (Optimization)
+- `components/generation/GenerationQueue.tsx` (Logic Refresh)
+- `components/generation/GenerationProgress.tsx` (Type Safety)
+- `hooks/useBatchGeneration.ts` (API Update)
+
+### 2. Previous Work (Earlier Today) - Batch Workflow & Version System
+
 
 ### 1. Prep All/Prep Remaining Workflow
 **Context:**
