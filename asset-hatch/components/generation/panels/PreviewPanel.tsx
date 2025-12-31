@@ -143,7 +143,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Multi-selection view - ONLY if no explicit asset selected
     // This allows temporarily viewing/editing a single asset while keeping batch selection
-    if (isMultiSelect && !asset) {
+    if (isMultiSelect && !selectedAsset.asset) {
         return <BatchPreviewContent selectedIds={state.queue.selectedIds} />
     }
 
