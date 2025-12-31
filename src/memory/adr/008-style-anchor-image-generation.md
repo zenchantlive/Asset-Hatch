@@ -171,7 +171,7 @@ useEffect(() => {
 - **Why:** OpenRouter deprecated this endpoint; use chat/completions with modalities
 
 ### Attempt 2: Wrong Model IDs
-- **Tried:** `black-forest-labs/flux.2-dev`
+- **Tried:** `black-foPrimary designated model is `black-forest-labs/flux.2-pro`.
 - **Result:** 400 Bad Request
 - **Why:** Model ID is `black-forest-labs/flux.2-pro`, not `flux.2-dev`
 

@@ -1,5 +1,11 @@
-import { POST } from '@/app/api/style-anchors/route';
 import { prismaMock } from './mocks/prisma';
+
+// Ensure mock is hoisted
+jest.mock('@/lib/prisma', () => ({
+    prisma: prismaMock,
+}));
+
+import { POST } from '@/app/api/style-anchors/route';
 import { NextRequest } from 'next/server';
 import { GenerateStyleResponse } from './types';
 
@@ -38,7 +44,7 @@ describe('/api/style-anchors', () => {
                 styleKeywords: 'pixel art',
                 lightingKeywords: 'bright',
                 colorPalette: ['#ffffff'],
-                fluxModel: 'flux-2-dev'
+                fluxModel: 'black-forest-labs/flux.2-pro'
             })
         });
 

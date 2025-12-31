@@ -6,7 +6,8 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { generateFluxImage, OPENROUTER_FLUX_MODELS } from '@/lib/openrouter-image';
+import { generateFluxImage } from '@/lib/openrouter-image';
+import { getModelById, getDefaultModel } from '@/lib/model-registry';
 
 /**
  * Parameters for style anchor generation
@@ -17,7 +18,8 @@ export interface StyleAnchorGenerationParams {
   styleKeywords: string;
   lightingKeywords: string;
   colorPalette: string[];
-  fluxModel?: 'flux-2-dev' | 'flux-2-pro';
+  // Full model ID from registry (e.g., 'black-forest-labs/flux.2-pro')
+  fluxModel?: string;
 }
 
 /**
@@ -33,6 +35,7 @@ export interface StyleAnchorGenerationResult {
       model: string;
       cost: number;
       durationMs: number;
+      generationId: string; // For actual cost lookup via /api/v1/generation
     };
   };
 }
@@ -95,13 +98,16 @@ export async function generateStyleAnchor(
     prompt,
     styleKeywords,
     lightingKeywords,
-    colorPalette,
-    fluxModel = 'flux-2-dev',
+    colorPalette = [],
+    fluxModel = 'black-forest-labs/flux.2-pro',
   } = params;
+
+  // Default to image-gen model for style anchor (no reference needed)
+  const defaultModelId = fluxModel || getDefaultModel('image-gen').id;
 
   console.log('🎨 Generating style anchor reference image:', {
     projectId,
-    model: fluxModel,
+    model: defaultModelId,
     promptLength: prompt.length,
   });
 
@@ -124,15 +130,19 @@ export async function generateStyleAnchor(
 
   console.log('📝 Optimized prompt:', optimizedPrompt);
 
-  // Get model configuration
-  const model = OPENROUTER_FLUX_MODELS[fluxModel];
+  // Get model configuration from registry with safety fallback
+  let model = getModelById(defaultModelId);
+
   if (!model) {
-    throw new Error(`Unknown model: ${fluxModel}`);
+    console.warn(`⚠️ Model '${defaultModelId}' not found in registry (legacy data?). Falling back to default.`);
+    const fallback = getDefaultModel('image-gen');
+    model = fallback;
+    console.log(`🔄 Using fallback model: ${model.id}`);
   }
 
   // Call OpenRouter API
   const result = await generateFluxImage({
-    modelId: model.modelId,
+    modelId: model.id,
     prompt: optimizedPrompt,
     // No reference image for style anchor generation (this IS the reference)
   });
@@ -152,12 +162,15 @@ export async function generateStyleAnchor(
       styleKeywords: styleKeywords || '',
       lightingKeywords: lightingKeywords || '',
       colorPalette: JSON.stringify(colorPalette || []),
-      fluxModel: model.modelId,
+      fluxModel: model.id,
       aiSuggested: true,
     },
   });
 
   console.log('💾 Style anchor saved:', styleAnchor.id);
+
+  // Estimate cost from registry pricing
+  const estimatedCost = model.pricing.perImage ?? 0;
 
   // Return success with image data
   return {
@@ -167,9 +180,10 @@ export async function generateStyleAnchor(
       imageUrl: result.imageUrl,
       prompt: optimizedPrompt,
       metadata: {
-        model: model.modelId,
-        cost: model.costPerImage,
+        model: model.id,
+        cost: estimatedCost,
         durationMs: result.durationMs,
+        generationId: result.generationId, // For actual cost lookup
       },
     },
   };
