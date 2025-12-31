@@ -1,4 +1,3 @@
-import { describe, test, expect } from 'bun:test';
 import {
     buildCharacterSpritePrompt,
     buildSpriteSheetPrompt,
@@ -79,10 +78,10 @@ describe('prompt-templates', () => {
                 assetType: 'seamless tileset',
                 terrainType: 'grass ground'
             });
-            expect(prompt).toContain('seamless tileset of grass ground');
-            expect(prompt).toContain('includes edge pieces and corner variations');
-            expect(prompt).toContain('tileable pattern');
-            expect(prompt).toContain('edge-matching');
+            expect(prompt).toContain('pixel art tileset of grass ground');
+            expect(prompt).toContain('includes 1 center tile');
+            expect(prompt).toContain('tileable edges');
+            expect(prompt).toContain('edge-matching design');
         });
     });
 

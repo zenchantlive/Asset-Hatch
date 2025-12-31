@@ -262,7 +262,7 @@ export interface ModelConfig {
 }
 
 export const FLUX_MODELS: Record<string, ModelConfig> = {
-  'flux-2-dev': {
+  'black-forest-labs/flux.2-pro': {
     // Note: OpenRouter uses dot notation (flux.2-) not dash (flux-2-)
     modelId: 'black-forest-labs/flux.2-pro',  // No "dev" on OpenRouter, using pro for now
     provider: 'openrouter',
@@ -271,20 +271,12 @@ export const FLUX_MODELS: Record<string, ModelConfig> = {
     qualityRating: 7,
     maxContextImages: 8,
   },
-  'flux-2-pro': {
-    modelId: 'black-forest-labs/flux.2-pro',
-    provider: 'openrouter',
-    costPerImage: 0.15,
-    speedRating: 5,
-    qualityRating: 10,
-    maxContextImages: 8,
-  },
 };
 
 /**
  * Estimate cost for batch generation
  */
-export function estimateBatchCost(assetCount: number, modelKey: string = 'flux-2-dev'): number {
+export function estimateBatchCost(assetCount: number, modelKey: string = 'black-forest-labs/flux.2-pro'): number {
   const model = FLUX_MODELS[modelKey];
   if (!model) {
     throw new Error(`Unknown model: ${modelKey}`);
