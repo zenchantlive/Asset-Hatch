@@ -41,6 +41,9 @@ export function VersionCarousel({
   onApprove,
   onReject,
 }: VersionCarouselProps) {
+  if (versions.length === 0) {
+    return null
+  }
   const currentVersion = versions[currentIndex]
   const [imageUrl, setImageUrl] = useState('')
 
