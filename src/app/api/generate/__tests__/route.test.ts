@@ -35,7 +35,7 @@ jest.mock('@/lib/prompt-builder', () => ({
     buildAssetPrompt: jest.fn().mockReturnValue('mock-prompt'),
     calculateGenerationSize: jest.fn().mockReturnValue({ width: 512, height: 512 }),
     FLUX_MODELS: {
-        'flux-2-dev': { modelId: 'mock-model', costPerImage: 0.1 },
+        'black-forest-labs/flux.2-pro': { modelId: 'mock-model', costPerImage: 0.1 },
     },
 }));
 
@@ -67,7 +67,7 @@ describe('POST /api/generate', () => {
             styleKeywords: 'pixel art',
             lightingKeywords: 'flat',
             colorPalette: JSON.stringify(['#000000']),
-            fluxModel: 'flux-2-dev',
+            fluxModel: 'black-forest-labs/flux.2-pro',
             aiSuggested: true,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -91,7 +91,7 @@ describe('POST /api/generate', () => {
             body: JSON.stringify({
                 projectId: 'p1',
                 asset: { id: 'a1', name: 'Hero', variant: { id: 'v1' } },
-                modelKey: 'flux-2-dev',
+                modelKey: 'black-forest-labs/flux.2-pro',
             }),
         });
 

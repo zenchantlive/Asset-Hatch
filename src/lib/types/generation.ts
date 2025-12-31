@@ -36,8 +36,9 @@ export interface GeneratedAssetResult {
   metadata: {
     model: string
     seed: number
-    cost: number
+    cost: number // Estimated or actual cost
     duration_ms: number
+    generationId?: string // For actual cost lookup
   }
 }
 
@@ -108,6 +109,8 @@ export type AssetGenerationState =
   | {
     status: 'approved';
     result: GeneratedAssetResult;
+    versions?: import('@/lib/client-db').AssetVersion[];
+    currentVersionIndex?: number;
   } // Saved to DB
   | { status: 'rejected' } // User rejected
   | { status: 'error'; error: Error } // Failed
@@ -125,7 +128,8 @@ export interface GenerationContextValue {
   completed: Set<string>
   failed: Map<string, Error>
   log: GenerationLogEntry[]
-  selectedModel: 'flux-2-dev' | 'flux-2-pro'
+  // Selected model ID from model registry (e.g., 'google/gemini-2.5-flash-image')
+  selectedModel: string
 
   // Prompt generation state
   generatedPrompts: Map<string, string>
@@ -143,8 +147,14 @@ export interface GenerationContextValue {
   resumeGeneration: () => void
   regenerateAsset: (assetId: string) => Promise<void>
   updatePrompt: (assetId: string, customPrompt: string) => void
-  setSelectedModel: (model: 'flux-2-dev' | 'flux-2-pro') => void
+  // Set selected model ID from registry
+  setSelectedModel: (modelId: string) => void
+  // Update current version index for an asset
+  updateVersionIndex: (assetId: string, index: number) => void
 
   // Progress
   progress: BatchProgress
+  // Sync status
+  isSyncingCost: boolean
+  syncErrors: Record<string, Error | null> // assetId -> Error
 }

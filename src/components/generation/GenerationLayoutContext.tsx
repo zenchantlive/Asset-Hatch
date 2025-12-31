@@ -48,6 +48,10 @@ interface GenerationLayoutProviderProps {
     children: React.ReactNode
     /** Optional initial selected asset */
     initialSelectedAsset?: ParsedAsset | null
+    /** Total estimated cost for display */
+    totalEstimatedCost?: number
+    /** Total actual cost for display */
+    totalActualCost?: number
 }
 
 /**
@@ -59,6 +63,8 @@ interface GenerationLayoutProviderProps {
 export function GenerationLayoutProvider({
     children,
     initialSelectedAsset = null,
+    totalEstimatedCost = 0,
+    totalActualCost = 0,
 }: GenerationLayoutProviderProps) {
     // Get current breakpoint from hook
     const breakpoint = useBreakpoint()
@@ -226,6 +232,8 @@ export function GenerationLayoutProvider({
         exitVariantMode,
         toggleMiniGridCollapse,
         isMiniGridCollapsed,
+        totalEstimatedCost,
+        totalActualCost,
     }), [
         state,
         selectAsset,
@@ -240,6 +248,8 @@ export function GenerationLayoutProvider({
         exitVariantMode,
         toggleMiniGridCollapse,
         isMiniGridCollapsed,
+        totalEstimatedCost,
+        totalActualCost,
     ])
 
     return (

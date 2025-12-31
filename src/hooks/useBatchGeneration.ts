@@ -51,6 +51,8 @@ interface UseBatchGenerationReturn {
   completed: Set<string>
   failed: Map<string, Error>
   progress: BatchProgress
+  isSyncingCost: boolean // New: tracks background cost fetch
+  syncErrors: Record<string, Error | null> // New: tracks cost sync errors per assetId
 }
 
 export function useBatchGeneration(projectId: string): UseBatchGenerationReturn {
@@ -62,12 +64,12 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
   // Track completed and failed assets by ID
   const [completed, setCompleted] = useState<Set<string>>(new Set())
   const [failed, setFailed] = useState<Map<string, Error>>(new Map())
+  const [syncErrors, setSyncErrors] = useState<Record<string, Error | null>>({})
 
   // Pause control - using ref to avoid stale closure issues
   const isPausedRef = useRef(false)
 
-  // Get the single asset generation function
-  const { generate } = useAssetGeneration(projectId)
+  const { generate, isSyncingCost } = useAssetGeneration(projectId)
 
   /**
    * Calculate current progress metrics
@@ -94,7 +96,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
    */
   const startBatch = useCallback(async (
     assets: ParsedAsset[],
-    modelKey: string = 'flux-2-dev',
+    modelKey: string = 'black-forest-labs/flux.2-pro',
     customPrompts?: Map<string, string>,
     callbacks?: BatchGenerationCallbacks
   ): Promise<void> => {
@@ -105,6 +107,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
     setStatus('generating')
     setCompleted(new Set())
     setFailed(new Map())
+    setSyncErrors({})
     isPausedRef.current = false
 
     // Process each asset sequentially
@@ -127,7 +130,17 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
         const customPrompt = customPrompts?.get(asset.id)
 
         // Attempt to generate this asset with optional custom prompt
-        const result = await generate(asset, modelKey, customPrompt)
+        const result = await generate(asset, modelKey, customPrompt, {
+          onSyncError: (error) => {
+            setSyncErrors(prev => ({
+              ...prev,
+              [asset.id]: error
+            }))
+          },
+          onSyncComplete: () => {
+            // We can optionally track positive syncs if needed
+          }
+        })
 
         // Mark as completed on success
         setCompleted(prev => {
@@ -218,5 +231,7 @@ export function useBatchGeneration(projectId: string): UseBatchGenerationReturn 
     completed,
     failed,
     progress,
+    isSyncingCost,
+    syncErrors,
   }
 }

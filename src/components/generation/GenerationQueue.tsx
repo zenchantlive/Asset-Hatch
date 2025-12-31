@@ -12,11 +12,12 @@
 
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { parsePlan } from '@/lib/plan-parser'
 import { useBatchGeneration } from '@/hooks/useBatchGeneration'
 import { buildAssetPrompt, type ParsedAsset } from '@/lib/prompt-builder'
 import { db } from '@/lib/client-db'
+import { getDefaultModel } from '@/lib/model-registry'
 import type {
   GenerationQueueProps,
   GenerationContextValue,
@@ -24,6 +25,7 @@ import type {
 } from '@/lib/types/generation'
 // New layout system
 import { GenerationLayoutProvider } from './GenerationLayoutContext'
+
 import { GenerationLayout } from './GenerationLayout'
 
 /**
@@ -63,8 +65,12 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   // Error state for plan loading failures
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Selected model for generation
-  const [selectedModel, setSelectedModel] = useState<'flux-2-dev' | 'flux-2-pro'>('flux-2-dev')
+  // Selected model for generation - initialized from model registry
+  // This is the full OpenRouter model ID (e.g., 'google/gemini-2.5-flash-image')
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    // Use multimodal default for image generation with style consistency
+    return getDefaultModel('multimodal').id;
+  })
 
   // Generated prompts for assets (assetId → generatedPrompt)
   const [generatedPrompts, setGeneratedPrompts] = useState<Map<string, string>>(new Map())
@@ -359,6 +365,32 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   }, [parsedAssets, selectedModel, batchGeneration, addLogEntry])
 
   /**
+   * Update the current version index for an asset
+   *
+   * @param assetId - ID of the asset
+   * @param index - New version index
+   */
+  const updateVersionIndex = useCallback((assetId: string, index: number) => {
+    setAssetStates(prev => {
+      const next = new Map(prev)
+      const state = prev.get(assetId)
+      if (state && state.status === 'awaiting_approval' && state.versions && state.versions[index]) {
+        next.set(assetId, {
+          ...state,
+          currentVersionIndex: index,
+          result: { // Update result to reflect the currently selected version
+            id: state.versions[index].id,
+            imageUrl: state.versions[index].image_base64 || '',
+            prompt: state.versions[index].prompt_used,
+            metadata: state.versions[index].generation_metadata
+          }
+        })
+      }
+      return next
+    })
+  }, [])
+
+  /**
    * Update the custom prompt for an asset
    *
    * @param assetId - ID of the asset
@@ -548,6 +580,61 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       })
 
       addLogEntry('success', `Image generated for: ${asset.name} (v${nextVersionNumber})`)
+
+      // Trigger actual cost sync in the background
+      if (data.asset.metadata?.generation_id) {
+        fetch('/api/generation/sync-cost', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            generation_id: data.asset.metadata.generation_id,
+            projectId,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const syncData = await res.json()
+              if (syncData.success && syncData.cost) {
+                const actualCost = syncData.cost.totalCost
+                // Update the version in Dexie
+                await db.asset_versions.update(newVersionId, {
+                  generation_metadata: {
+                    ...data.asset.metadata,
+                    cost: actualCost
+                  }
+                })
+
+                // Update local state if this is still the current state
+                setAssetStates(prev => {
+                  const current = prev.get(assetId)
+                  if (current && current.status === 'awaiting_approval' && current.versions) {
+                    const nextVersions = [...current.versions]
+                    const vIndex = nextVersions.findIndex(v => v.id === newVersionId)
+                    if (vIndex !== -1) {
+                      nextVersions[vIndex] = {
+                        ...nextVersions[vIndex],
+                        generation_metadata: {
+                          ...nextVersions[vIndex].generation_metadata,
+                          cost: actualCost
+                        }
+                      }
+                      const next = new Map(prev)
+                      next.set(assetId, {
+                        ...current,
+                        versions: nextVersions
+                      })
+                      return next
+                    }
+                  }
+                  return prev
+                })
+              }
+            }
+          })
+          .catch((err) => console.error('💰 Latency Fetch Error:', err))
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
 
@@ -564,6 +651,43 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       addLogEntry('error', `Generation failed for ${asset.name}: ${errorMessage}`)
     }
   }, [parsedAssets, generatedPrompts, projectId, selectedModel, addLogEntry, generatePrompt])
+
+  // Calculate aggregate costs
+  const { totalEstimatedCost, totalActualCost } = useMemo(() => {
+    let act = 0
+    let errs = 0
+    let completedSyncs = 0
+
+    assetStates.forEach((state, id) => {
+      // Use status check for type narrowing
+      if (state.status === 'awaiting_approval' || state.status === 'approved') {
+        if (state.versions && state.versions.length > 0) {
+          // Use the current version for the "active" cost
+          const currentVersion = state.versions[state.currentVersionIndex || 0]
+          const cost = currentVersion?.generation_metadata?.cost || 0
+
+          act += cost
+
+          // If we have an actual cost (lookup from metadata), we count it as synced
+          if (currentVersion?.generation_metadata?.generation_id) {
+            // Access syncErrors from batchGeneration
+            if (batchGeneration.syncErrors[id]) {
+              errs++
+            } else {
+              completedSyncs++
+            }
+          }
+        }
+      }
+    })
+
+    return {
+      totalEstimatedCost: act * 1.05, // Mocking an estimate for UI demonstration
+      totalActualCost: act,
+      syncErrorCount: errs,
+      completedCostSyncs: completedSyncs
+    }
+  }, [assetStates, batchGeneration.syncErrors])
 
   /**
    * Approve a generated asset
@@ -672,7 +796,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       addLogEntry('error', `Failed to approve asset: ${errorMessage}`)
     }
-  }, [parsedAssets, projectId, addLogEntry])
+  }, [parsedAssets, projectId, addLogEntry, assetStates])
 
   /**
    * Reject a generated asset
@@ -769,7 +893,10 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     regenerateAsset,
     updatePrompt,
     setSelectedModel,
+    updateVersionIndex,
     progress: batchGeneration.progress,
+    isSyncingCost: batchGeneration.isSyncingCost,
+    syncErrors: batchGeneration.syncErrors,
   }
 
   // Show loading state
@@ -811,7 +938,10 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   // Main UI - New responsive generation interface
   return (
     <GenerationContext.Provider value={contextValue}>
-      <GenerationLayoutProvider>
+      <GenerationLayoutProvider
+        totalEstimatedCost={totalEstimatedCost}
+        totalActualCost={totalActualCost}
+      >
         <GenerationLayout />
       </GenerationLayoutProvider>
     </GenerationContext.Provider>

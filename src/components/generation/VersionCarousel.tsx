@@ -9,7 +9,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { AssetVersion } from '@/lib/client-db'
 
@@ -24,9 +24,11 @@ interface VersionCarouselProps {
   /** Callback when version index changes */
   onIndexChange: (index: number) => void
   /** Callback when user approves a version */
-  onApprove: (versionId: string) => void
+  onApprove: (version: AssetVersion) => void;
   /** Callback when user rejects a version */
-  onReject: (versionId: string) => void
+  onReject: (versionId: string) => void;
+  isSyncingCost?: boolean;
+  syncError?: Error | null;
 }
 
 /**
@@ -40,6 +42,8 @@ export function VersionCarousel({
   onIndexChange,
   onApprove,
   onReject,
+  isSyncingCost = false,
+  syncError = null,
 }: VersionCarouselProps) {
   // Hooks must be called unconditionally, before any early returns
   const [imageUrl, setImageUrl] = useState('')
@@ -158,9 +162,27 @@ export function VersionCarousel({
             <span className="text-white/50">Seed:</span>
             <span className="ml-2 text-white/80">{currentVersion.generation_metadata.seed}</span>
           </div>
-          <div>
-            <span className="text-white/50">Cost:</span>
-            <span className="ml-2 text-white/80">${currentVersion.generation_metadata.cost.toFixed(2)}</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full border border-white/10 group">
+            <span className="text-xs text-white/50 uppercase tracking-widest font-medium">Cost:</span>
+            <span className={`text-xs font-bold ${isSyncingCost ? 'text-amber-300' : 'text-green-300'}`}>
+              ${currentVersion.generation_metadata.cost?.toFixed(4) || '0.0000'}
+              {isSyncingCost ? (
+                <span className="ml-1 opacity-70">(est.)</span>
+              ) : !syncError ? (
+                <span className="ml-1 opacity-70">(actual)</span>
+              ) : null}
+            </span>
+            {isSyncingCost && (
+              <div className="w-2.5 h-2.5 border-2 border-amber-300/30 border-t-amber-300 rounded-full animate-spin" />
+            ) || (!isSyncingCost && !syncError && (
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
+            ))}
+            {syncError && (
+              <div className="flex items-center gap-1 text-red-400 group-hover:text-red-300 transition-colors cursor-help" title={`Sync failed: ${syncError.message}`}>
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold">ERR</span>
+              </div>
+            )}
           </div>
           <div>
             <span className="text-white/50">Time:</span>
@@ -174,7 +196,7 @@ export function VersionCarousel({
       {/* Accept/Reject buttons for current version */}
       <div className="flex gap-2 mt-4">
         <Button
-          onClick={() => onApprove(currentVersion.id)}
+          onClick={() => onApprove(currentVersion)}
           className="flex-1 bg-green-600 hover:bg-green-700 text-white"
         >
           <Check className="w-4 h-4 mr-2" />

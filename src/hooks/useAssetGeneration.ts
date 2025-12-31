@@ -20,11 +20,18 @@ interface UseAssetGenerationReturn {
   generate: (
     asset: ParsedAsset,
     modelKey?: string,
-    customPrompt?: string
+    customPrompt?: string,
+    options?: {
+      onSyncStart?: () => void
+      onSyncComplete?: (cost: number) => void
+      onSyncError?: (error: Error) => void
+    }
   ) => Promise<GeneratedAssetResult>
   status: GenerationStatus
   result: GeneratedAssetResult | null
   error: Error | null
+  isSyncingCost: boolean // New: tracks background cost fetch
+  syncError: Error | null // New: tracks cost sync error
 }
 
 export function useAssetGeneration(projectId: string): UseAssetGenerationReturn {
@@ -37,6 +44,12 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
   // Store any error that occurred during generation
   const [error, setError] = useState<Error | null>(null)
 
+  // Track if we are currently fetching actual cost in the background
+  const [isSyncingCost, setIsSyncingCost] = useState(false)
+
+  // Track any error during cost sync
+  const [syncError, setSyncError] = useState<Error | null>(null)
+
   /**
    * Generate a single asset
    *
@@ -44,18 +57,24 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
    * and handles the full lifecycle: request → response → state updates
    *
    * @param asset - The parsed asset to generate
-   * @param modelKey - Optional model override (defaults to 'flux-2-dev')
    * @param customPrompt - Optional custom prompt to use instead of auto-generated
+   * @param options - Optional callbacks for background sync and modelKey override
    * @returns Promise resolving to the generated asset result
    * @throws Error if generation fails
    */
   const generate = async (
     asset: ParsedAsset,
-    modelKey: string = 'flux-2-dev',
-    customPrompt?: string
+    modelKeyParam?: string, // Renamed to avoid conflict with internal const
+    customPrompt?: string,
+    generationOptions?: {
+      onSyncStart?: () => void
+      onSyncComplete?: (cost: number) => void
+      onSyncError?: (error: Error) => void
+    }
   ): Promise<GeneratedAssetResult> => {
     // Reset error state from any previous attempts
     setError(null)
+    setSyncError(null)
 
     // Mark as generating
     setStatus('generating')
@@ -70,7 +89,7 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
         body: JSON.stringify({
           projectId,
           asset,
-          modelKey,
+          modelKey: modelKeyParam || 'black-forest-labs/flux.2-pro',
           customPrompt, // Include custom prompt if provided
         }),
       })
@@ -94,6 +113,46 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
       setResult(data.asset)
       setStatus('success')
 
+      // Trigger actual cost sync in the background
+      if (data.asset.metadata?.generation_id) {
+        setIsSyncingCost(true)
+        generationOptions?.onSyncStart?.()
+        fetch('/api/generation/sync-cost', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            generation_id: data.asset.metadata.generation_id,
+            projectId,
+          }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const syncData = await res.json()
+              // Update the result with the actual cost if it changed
+              if (syncData.success && syncData.cost) {
+                const actualCost = syncData.cost.totalCost
+                generationOptions?.onSyncComplete?.(actualCost)
+                setResult(prev => prev ? {
+                  ...prev,
+                  metadata: {
+                    ...prev.metadata,
+                    cost: actualCost
+                  }
+                } : null)
+              }
+            }
+          })
+          .catch((err) => {
+            const error = err instanceof Error ? err : new Error(String(err))
+            console.error('💰 Cost Sync Error:', error)
+            setSyncError(error)
+            generationOptions?.onSyncError?.(error)
+          })
+          .finally(() => setIsSyncingCost(false))
+      }
+
       // Return the generated asset for chaining
       return data.asset
     } catch (err) {
@@ -115,5 +174,7 @@ export function useAssetGeneration(projectId: string): UseAssetGenerationReturn 
     status,
     result,
     error,
+    isSyncingCost,
+    syncError,
   }
 }

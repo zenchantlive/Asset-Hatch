@@ -18,20 +18,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildAssetPrompt, calculateGenerationSize, type ParsedAsset } from '@/lib/prompt-builder';
 import { prepareStyleAnchorForAPI } from '@/lib/image-utils';
-import { generateFluxImage, OPENROUTER_FLUX_MODELS } from '@/lib/openrouter-image';
+import { generateFluxImage } from '@/lib/openrouter-image';
+import { getModelById, getDefaultModel, estimateCost } from '@/lib/model-registry';
 
 // Request body interface
 interface GenerateRequest {
   projectId: string;
   asset: ParsedAsset;
-  modelKey?: string; // 'flux-2-dev' or 'flux-2-pro'
+  modelKey?: string; // e.g. 'black-forest-labs/flux.2-pro'
   customPrompt?: string; // Optional custom prompt override
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { projectId, asset, modelKey = 'flux-2-dev', customPrompt } = body;
+    // modelKey is now a full model ID from registry (e.g., 'google/gemini-2.5-flash-image')
+    // Default to multimodal model for style-consistent generation
+    const defaultModelId = getDefaultModel('multimodal').id;
+    const { projectId, asset, modelKey = defaultModelId, customPrompt } = body;
 
     console.log('🎨 Starting asset generation:', {
       projectId,
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
       style_keywords: styleAnchor.styleKeywords,
       lighting_keywords: styleAnchor.lightingKeywords,
       color_palette: JSON.parse(styleAnchor.colorPalette),
-      flux_model: styleAnchor.fluxModel,
+      fluxModel: styleAnchor.fluxModel || 'black-forest-labs/flux.2-pro',
     };
 
     // 3. Load character registry (if applicable)
@@ -116,8 +120,8 @@ export async function POST(request: NextRequest) {
     // 6. Calculate generation size (2x for pixel-perfect downscaling)
     const genSize = calculateGenerationSize(project.baseResolution || '32x32');
 
-    // 7. Get model config from shared utility
-    const model = OPENROUTER_FLUX_MODELS[modelKey];
+    // 7. Get model config from registry
+    const model = getModelById(modelKey);
     if (!model) {
       return NextResponse.json(
         { error: `Unknown model: ${modelKey}` },
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // 8. Call OpenRouter using shared utility (correct endpoint + response parsing)
     const result = await generateFluxImage({
-      modelId: model.modelId,
+      modelId: model.id,
       prompt: prompt,
       referenceImageBase64: styleAnchorBase64,
       width: genSize.width,
@@ -137,10 +141,14 @@ export async function POST(request: NextRequest) {
     // Use seed from result or generate random fallback
     const seed = result.seed || Math.floor(Math.random() * 1000000);
 
+    // Estimate cost using registry pricing (actual cost will be fetched later)
+    const estimatedCostValue = estimateCost(model.id, 500, 1);
+
     console.log('✅ Image generated successfully:', {
       duration: `${result.durationMs}ms`,
       seed,
       size: `${genSize.width}x${genSize.height}`,
+      generationId: result.generationId,
     });
 
     // 9. Save to SQLite
@@ -154,10 +162,11 @@ export async function POST(request: NextRequest) {
         imageBlob: Buffer.from(result.imageBuffer),
         promptUsed: prompt,
         metadata: JSON.stringify({
-          model: model.modelId,
-          cost: model.costPerImage,
+          model: model.id,
+          cost: estimatedCostValue,
           duration_ms: result.durationMs,
           seed: seed,
+          generation_id: result.generationId, // For actual cost lookup
         }),
       },
     });

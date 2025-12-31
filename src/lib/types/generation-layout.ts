@@ -115,4 +115,8 @@ export interface GenerationLayoutContextValue {
     toggleMiniGridCollapse: () => void
     /** Whether the mini-grid is collapsed */
     isMiniGridCollapsed: boolean
+    /** Total estimated cost for display */
+    totalEstimatedCost?: number
+    /** Total actual cost for display */
+    totalActualCost?: number
 }
