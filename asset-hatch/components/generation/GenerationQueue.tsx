@@ -576,13 +576,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    */
   const approveAsset = useCallback(async (assetId: string, version: import('@/lib/client-db').AssetVersion) => {
     const asset = parsedAssets.find(a => a.id === assetId)
-
-    // Get current state from the state map
-    let currentState: import('@/lib/types/generation').AssetGenerationState | undefined
-    setAssetStates(prev => {
-      currentState = prev.get(assetId)
-      return prev // Don't actually update yet
-    })
+    const currentState = assetStates.get(assetId)
 
     if (!asset || !currentState || currentState.status !== 'awaiting_approval') {
       addLogEntry('error', 'Cannot approve asset: invalid state')
