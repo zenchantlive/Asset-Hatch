@@ -1,0 +1,159 @@
+// -----------------------------------------------------------------------------
+// Prisma schema for Asset Hatch
+// Includes Auth.js v5 models (User, Account, Session, VerificationToken)
+// and application models (Project, MemoryFile, StyleAnchor, etc.)
+// -----------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// =============================================================================
+// AUTH.JS MODELS
+// These models are required for Auth.js v5 with the Prisma adapter
+// =============================================================================
+
+// User model - stores authenticated users from OAuth or credentials
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?   // For credentials provider (email/password auth)
+  accounts       Account[]
+  sessions       Session[]
+  projects       Project[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Account model - links OAuth providers to users (GitHub, Google, etc.)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// Session model - stores active user sessions (for database strategy)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// VerificationToken model - for email verification and magic links
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =============================================================================
+// APPLICATION MODELS
+// Core business logic models for the asset generation workflow
+// =============================================================================
+
+// Project model - main entity representing a game asset project
+model Project {
+  id                String             @id @default(uuid())
+  userId            String?            // Nullable for existing projects without auth
+  user              User?              @relation(fields: [userId], references: [id])
+  name              String
+  phase             String             @default("planning")
+  artStyle          String?
+  baseResolution    String?
+  perspective       String?
+  gameGenre         String?
+  theme             String?
+  mood              String?
+  colorPalette      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  memoryFiles       MemoryFile[]
+  styleAnchors      StyleAnchor[]
+  generatedAssets   GeneratedAsset[]
+  characterRegistry CharacterRegistry[]
+}
+
+// MemoryFile model - stores JSON content like entities.json, conversation history
+model MemoryFile {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  type      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([projectId, type])
+}
+
+// StyleAnchor model - reference image and style keywords for consistent generation
+model StyleAnchor {
+  id                   String   @id @default(uuid())
+  projectId            String
+  project              Project  @relation(fields: [projectId], references: [id])
+  referenceImageName   String
+  referenceImageBlob   Bytes
+  referenceImageBase64 String?
+  styleKeywords        String
+  lightingKeywords     String
+  colorPalette         String   // Stored as JSON string
+  fluxModel            String
+  aiSuggested          Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// CharacterRegistry model - tracks character descriptions, colors, successful seeds
+model CharacterRegistry {
+  id              String   @id @default(uuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id])
+  name            String
+  baseDescription String
+  colorHex        String   // Stored as JSON string
+  styleKeywords   String
+  successfulSeed  Int?
+  posesGenerated  String   // Stored as comma-separated or JSON
+  animations      String   // Stored as JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// GeneratedAsset model - stores generated images as Blobs with metadata
+model GeneratedAsset {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id])
+  assetId    String
+  status     String
+  seed       Int?
+  imageBlob  Bytes
+  metadata   String?  // Stored as JSON string
+  promptUsed String?
+  variantId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
