@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2025-12-26
+**Last Updated:** 2025-12-31
 
 ---
 
@@ -280,6 +280,40 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Centralized Registry**: Use `lib/model-registry.ts` as the single source of truth for model capabilities, pricing, and provider IDs. Enable `auto-discovery` for real-time updates.
 * **Inline Cost Metrics**: Prefer inline metrics (e.g., in Toolbars/Control Bars) over floating overlays for non-intrusive budget awareness.
 * **Cost Transparency (Est. → Total)**: Always show estimated costs before an action and transition to actual costs (highlighted in green) once confirmed by the API.
+
+### React Async State Race Conditions
+* **Problem:** When adding items to state arrays and immediately using them, React's async state updates cause "not found" errors.
+  - **Example:** `addAsset(newAsset)` → `generateImage(newAsset.id)` → "Asset not found"
+  - **Root Cause:** `setState` is asynchronous, so dependent code may run before state updates
+
+* **Solution Pattern - Pass Object Directly:**
+  - **Pattern:**
+    ```typescript
+    // Context provides function that accepts optional object
+    const someAction = useCallback(async (id: string, providedObject?: T) => {
+      const object = providedObject || stateArray.find(o => o.id === id)
+      if (!object) return
+      // Use object...
+    }, [stateArray])
+
+    // Consumer passes object directly to bypass lookup
+    const newObject = createNewObject()
+    addToState(newObject)  // Async state update
+    await someAction(newObject.id, newObject)  // Bypasses lookup
+    ```
+  - **Why:** Avoids race condition by using the object reference directly instead of looking it up in state
+  - **Example:** `generateImage(assetId: string, providedAsset?: ParsedAsset)` in GenerationQueue
+
+* **Alternative Pattern - Callback After State Update:**
+  - Use functional setState with callback:
+    ```typescript
+    setState(prev => {
+      const newState = [...prev, newItem]
+      // Trigger action here with access to newState
+      return newState
+    })
+    ```
+  - **Trade-off:** Mixes state updates with side effects; harder to test
 
 ---
 

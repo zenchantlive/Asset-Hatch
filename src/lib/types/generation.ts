@@ -139,7 +139,7 @@ export interface GenerationContextValue {
 
   // Actions
   generatePrompt: (asset: ParsedAsset) => Promise<string>
-  generateImage: (assetId: string) => Promise<void>
+  generateImage: (assetId: string, providedAsset?: ParsedAsset) => Promise<void>
   approveAsset: (assetId: string, version: import('@/lib/client-db').AssetVersion) => Promise<void>
   rejectAsset: (assetId: string, versionId: string) => void
   startGeneration: (selectedIds?: Set<string>) => Promise<void>
@@ -151,6 +151,8 @@ export interface GenerationContextValue {
   setSelectedModel: (modelId: string) => void
   // Update current version index for an asset
   updateVersionIndex: (assetId: string, index: number) => void
+  // Add a new asset to the parsed assets array (for direction children, etc.)
+  addAsset: (asset: ParsedAsset) => void
 
   // Progress
   progress: BatchProgress

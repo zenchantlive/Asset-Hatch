@@ -23,6 +23,8 @@ import type {
   GenerationContextValue,
   GenerationLogEntry,
 } from '@/lib/types/generation'
+// PHASE 8: Import direction utilities for reference propagation
+import { isReferenceDirection, getDirectionalSiblings } from '@/lib/direction-utils'
 // New layout system
 import { GenerationLayoutProvider } from './GenerationLayoutContext'
 
@@ -468,8 +470,9 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
    *
    * @param assetId - ID of the asset to generate
    */
-  const generateImage = useCallback(async (assetId: string) => {
-    const asset = parsedAssets.find(a => a.id === assetId)
+  const generateImage = useCallback(async (assetId: string, providedAsset?: ParsedAsset) => {
+    // Use provided asset if available (avoids race condition with newly added assets)
+    const asset = providedAsset || parsedAssets.find(a => a.id === assetId)
     if (!asset) {
       addLogEntry('error', `Asset not found: ${assetId}`)
       return
@@ -792,6 +795,31 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
       })
 
       addLogEntry('success', `Asset approved: ${asset.name}`)
+
+      // PHASE 8: Reference Propagation - If this is Front direction of a moveable asset, propagate reference
+      if (isReferenceDirection(asset) && asset.mobility?.type === 'moveable') {
+        const approvedImageUrl = version.image_base64;
+
+        if (approvedImageUrl) {
+          // Find all sibling directional variants
+          const siblings = getDirectionalSiblings(asset, parsedAssets);
+
+          if (siblings.length > 0) {
+            addLogEntry('info', `📸 Propagating Front reference to ${siblings.length} sibling directions`)
+
+            // Update each sibling's directionState with reference image
+            siblings.forEach(sibling => {
+              // In-place mutation is acceptable here since parsedAssets is mutable state
+              if (sibling.directionState) {
+                sibling.directionState.referenceImageBase64 = approvedImageUrl;
+                sibling.directionState.referenceDirection = 'front';
+              }
+            });
+
+            addLogEntry('success', `Reference image propagated to ${siblings.length} directional variants`)
+          }
+        }
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       addLogEntry('error', `Failed to approve asset: ${errorMessage}`)
@@ -860,6 +888,27 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     }
   }, [parsedAssets, addLogEntry])
 
+  /**
+   * Add a new asset to the parsed assets array
+   *
+   * Used for creating direction children on-demand when generating multi-directional assets.
+   *
+   * @param asset - The new asset to add (typically a direction variant)
+   */
+  const addAsset = useCallback((asset: ParsedAsset) => {
+    setParsedAssets(prev => {
+      // Check if asset already exists (prevent duplicates)
+      if (prev.some(a => a.id === asset.id)) {
+        console.warn(`Asset ${asset.id} already exists, skipping duplicate`)
+        return prev
+      }
+
+      // Add new asset
+      addLogEntry('info', `Added new asset: ${asset.name}`)
+      return [...prev, asset]
+    })
+  }, [addLogEntry])
+
   // Build the context value
   const contextValue: GenerationContextValue = {
     parsedAssets,
@@ -894,6 +943,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
     updatePrompt,
     setSelectedModel,
     updateVersionIndex,
+    addAsset,
     progress: batchGeneration.progress,
     isSyncingCost: batchGeneration.isSyncingCost,
     syncErrors: batchGeneration.syncErrors,

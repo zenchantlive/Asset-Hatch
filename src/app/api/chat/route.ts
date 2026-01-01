@@ -88,16 +88,31 @@ export async function POST(req: NextRequest) {
  - Include specific details for EACH individual asset
  - Each asset will generate a single isolated image
  
- CORRECT FORMAT EXAMPLE:
- ## NPCs
- - Robot Survivor
-   - Description: Friendly robot with smiley emoji face
- - Cat Shopkeeper with Sunglasses
-   - Description: Mutated cat with 3 eyes wearing sunglasses
+ MOBILITY TAGS (REQUIRED FOR EACH ASSET):
+ Each asset MUST start with a mobility tag in brackets:
+ - [STATIC] - Non-moving assets: furniture, buildings, items, UI elements, backgrounds
+ - [MOVEABLE:4] - Characters/NPCs needing 4 directions (N/S/E/W)
+ - [MOVEABLE:8] - Characters needing 8 directions (includes diagonals)
+ - [ANIM:N] - Animated elements with N frames (fire, water, flags)
  
- INCORRECT FORMAT (DO NOT USE):
- ## NPCs
- - **Survivors**: Friendly robots, mutated cats, AI projections
+ CORRECT FORMAT EXAMPLE:
+ ## Characters
+ - [MOVEABLE:4] Farmer Character
+   - Idle (4 frames)
+   - Walking (8 frames)
+ - [MOVEABLE:4] Village Guard
+   - Idle (4 frames)
+   - Patrol (6 frames)
+ 
+ ## Environment
+ - [STATIC] Oak Tree
+   - Description: Large oak tree with autumn leaves
+ - [ANIM:4] Campfire
+   - Description: Flickering campfire with smoke
+ 
+ ## Items
+ - [STATIC] Health Potion
+   - Description: Red potion in glass bottle
  
  BE SPECIFIC: Each asset needs a clear, individual description for image generation.`,
       tools: {

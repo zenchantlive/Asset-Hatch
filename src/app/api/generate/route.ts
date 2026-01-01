@@ -104,6 +104,9 @@ export async function POST(request: NextRequest) {
           successful_seed: char.successfulSeed || undefined,
           poses_generated: JSON.parse(char.posesGenerated),
           animations: JSON.parse(char.animations),
+          // Reference image for direction consistency
+          referenceDirection: char.referenceDirection || undefined,
+          referenceImageBase64: char.referenceImageBase64 || undefined,
         };
       }
     }
@@ -116,6 +119,50 @@ export async function POST(request: NextRequest) {
     // 5. Prepare style anchor image for API
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const styleAnchorBase64 = await prepareStyleAnchorForAPI(legacyStyleAnchor as any);
+
+    // 5b. PHASE 4: Determine reference image for consistency
+    // Priority: Parent direction reference > Character registry > Style anchor
+    let referenceImageBase64 = styleAnchorBase64;
+    let isUsingCharacterReference = false;
+
+    // Decision: Prefer directional reference over style anchor for moveable assets
+    if (asset.mobility?.type === 'moveable') {
+      // PHASE 4: Check if this is a direction variant with a parent reference
+      // If this asset has a parentAssetId, it's a child direction (Back/Left/Right)
+      // and should use the parent's approved image (Front) for consistency
+      if (asset.directionState?.parentAssetId) {
+        const parentAsset = await prisma.generatedAsset.findFirst({
+          where: {
+            projectId: projectId,
+            assetId: asset.directionState.parentAssetId,
+            status: 'approved', // Only use approved parent images
+          },
+          orderBy: {
+            createdAt: 'desc', // Get most recent if multiple exist
+          },
+        });
+
+        if (parentAsset?.imageBlob) {
+          // Convert Buffer to base64 for API compatibility
+          referenceImageBase64 = `data:image/png;base64,${parentAsset.imageBlob.toString('base64')}`;
+          isUsingCharacterReference = true;
+          console.log(
+            `🎯 PHASE 4: Using parent direction reference for ${asset.directionState.direction} (parent ID: ${asset.directionState.parentAssetId})`
+          );
+        } else {
+          console.warn(
+            `⚠️ No approved parent image found for ${asset.directionState.direction}. Falling back to character registry or style anchor.`
+          );
+        }
+      }
+
+      // Fallback to character registry if parent reference not available
+      if (!isUsingCharacterReference && characterRegistry?.referenceImageBase64) {
+        referenceImageBase64 = characterRegistry.referenceImageBase64;
+        isUsingCharacterReference = true;
+        console.log('🎯 Using character registry reference for consistency');
+      }
+    }
 
     // 6. Calculate generation size (2x for pixel-perfect downscaling)
     const genSize = calculateGenerationSize(project.baseResolution || '32x32');
@@ -133,7 +180,7 @@ export async function POST(request: NextRequest) {
     const result = await generateFluxImage({
       modelId: model.id,
       prompt: prompt,
-      referenceImageBase64: styleAnchorBase64,
+      referenceImageBase64, // Uses character reference OR style anchor
       width: genSize.width,
       height: genSize.height,
     });
@@ -195,6 +242,23 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+    }
+
+    // 10b. Store as reference image for moveable assets (first direction only)
+    // This enables consistency across N/S/E/W directions
+    if (
+      asset.mobility?.type === 'moveable' &&
+      characterRegistry &&
+      !isUsingCharacterReference // Only if we used style anchor (not existing reference)
+    ) {
+      console.log('📸 Storing generated image as character reference');
+      await prisma.characterRegistry.update({
+        where: { id: characterRegistry.id },
+        data: {
+          referenceDirection: asset.variant.direction || 'south',
+          referenceImageBase64: result.imageUrl, // Store the generated image URL/base64
+        },
+      });
     }
 
     // 11. Return generated image to client

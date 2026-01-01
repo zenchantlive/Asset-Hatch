@@ -23,6 +23,7 @@ describe('prompt-builder', () => {
         name: 'Farmer',
         type: 'character-sprite',
         description: 'farmer with a straw hat',
+        mobility: { type: 'moveable', directions: 4 },
         variant: {
             id: 'v1',
             name: 'Idle',

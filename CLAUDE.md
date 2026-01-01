@@ -382,7 +382,7 @@ Key decisions documented in `memory/adr/`:
 | Planning Phase | ✅ 100% | Chat, tools, plan generation working |
 | Style Anchor Phase | ✅ 100% | Image generation, preview display complete |
 | Generation Phase | 🟢 85% | Backend + UI built, integration pending |
-| Export Phase | 🔴 0% | Not started |
+| Export Phase | ✅ 100% | Backend + UI implemented, ZIP export working |
 
 **Recent Work** (as of 2025-12-27):
 - Completed style anchor image generation via OpenRouter Flux.2
