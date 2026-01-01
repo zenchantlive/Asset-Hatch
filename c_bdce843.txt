@@ -1,0 +1,20 @@
+feat(style): [System] Style Anchor Generation and AI Analysis
+
+Story of Collaboration:
+The user wanted to ensure "Style Consistency" across large asset packs. We collaborated on a Style Anchor system that allows users to upload reference images, which are then analyzed by a vision model (GPT-4o) to extract keywords for lighting, colors, and art style.
+
+Decisions Made:
+- Built `StyleAnchorGenerator` to handle the vision-to-keyword extraction pipeline.
+- Implemented `StyleAnchorEditor` UI with interactive color palette extraction from canvas.
+- Integrated OpenRouter's vision capabilities for automated style tagging.
+- Created `ADR-008: Style Anchor Image Generation` to formalize the consistency workflow.
+- Established a standard for "High Weight" keywords (first 5 words) in the style reference prompts.
+
+Challenges:
+- Handling large image uploads (base64) within AI tool results was hitting token limits; switched to a separate fetch endpoint as documented in active_state.
+- Canvas-based color extraction needed careful handling for high-resolution images to maintain performance.
+
+Tests Added:
+- Tests for `StyleAnchorGenerator` keyword refinement.
+- Integration tests for style anchor persistence and AI extraction flow.
+- Mocks for OpenRouter vision responses.

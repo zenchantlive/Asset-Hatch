@@ -1,0 +1,17 @@
+feat(core): [Prompt] Optimized Prompt Engineering and Templates
+
+Story of Collaboration:
+We found that Flux.2 prompts are highly sensitive to word order. The user asked for better consistency, so we rebuilt the prompt generation logic to ensure the "Asset Type + Subject" always occupies the first 5 words (the highest weight zone).
+
+Decisions Made:
+- Refactored `prompt-builder.ts` to follow a strict priority-ordered structure: Subject -> Pose -> Style -> Lighting -> Perspective.
+- Expanded `prompt-templates.ts` to include specialized markers for Icons, UI Elements, and Tileable Terrain.
+- Implemented "Consistency Markers" that automatically inject style anchor context into every generated asset prompt.
+- Added support for Character Registry seeds to ensure pose-to-pose consistency.
+
+Challenges:
+- Balancing descriptive detail with the word-weight limits required several iterations of "clean room" testing against the templates.
+
+Tests Added:
+- Unit tests for all 6 core asset-type templates.
+- Regression tests for the priority-weighted prompt builder logic.

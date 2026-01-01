@@ -1,0 +1,19 @@
+feat(core): [System] Model Registry and Cost Tracking System
+
+Story of Collaboration:
+As we scaled the generation phase, we realized tracking costs across different providers and models was becoming complex. We paired to build a centralized registry that not only tracks costs but also allows for dynamic route switching between dev and pro models.
+
+Decisions Made:
+- Implemented a `ModelRegistry` to store metadata, capabilities, and pricing for all AI models (OpenRouter based).
+- Created a `CostTracker` utility to handle token calculations and localized pricing.
+- Added a persistence layer via Dexie and Prisma to sync actual costs from API responses.
+- Documented the architecture in `ADR-018: Model Registry and Cost Tracking`.
+- Implemented an API endpoint `/api/generation/sync-cost` to heartbeat actual costs to the server.
+
+Challenges:
+- Synchronizing cost data between the client (immediate feedback) and server (source of truth) required a custom sync flow to handle race conditions during batch generations.
+- Local storage of cost data needed to be lightweight to avoid bloat in IndexedDb.
+
+Tests Added:
+- Unit tests for ModelRegistry and CostTracker logic.
+- Integration tests for the full cost-sync flow from API to database.
