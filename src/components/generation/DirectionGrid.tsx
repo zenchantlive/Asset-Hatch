@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerLeftUp, CornerRightUp, CornerLeftDown, CornerRightDown, Maximize2, Minimize2, ChevronDown, ChevronUp, Play, type LucideIcon } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerLeftUp, CornerRightUp, CornerLeftDown, CornerRightDown, Maximize2, Minimize2, ChevronDown, ChevronUp, Play, Check, X, type LucideIcon } from 'lucide-react'
 import { type ParsedAsset } from '@/lib/prompt-builder'
 import { type Direction, getDirectionPromptModifier, DIRECTION_LABELS } from '@/lib/direction-utils'
 import { useGenerationContext } from './GenerationQueue'
+import { useGenerationLayout } from './GenerationLayoutContext'
 import { v4 as uuidv4 } from 'uuid'
 
 // Redesigned: Image-based direction grid that replaces main preview
@@ -28,14 +29,14 @@ const DIRECTION_MAP: Record<Direction, { r: number; c: number; icon: LucideIcon;
 }
 
 export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) {
-    const { parsedAssets, assetStates, generateImage, generatedPrompts, addAsset } = useGenerationContext()
+    const { parsedAssets, assetStates, generateImage, generatedPrompts, addAsset, approveAsset, rejectAsset } = useGenerationContext()
+    const { setDirectionGridVisible, setSelectedDirections } = useGenerationLayout()
 
     // Track which direction is currently selected/active for viewing
     const [activeDirection, setActiveDirection] = useState<Direction>('front')
 
     // Track selections for batch generation
     const [selectedForBatch, setSelectedForBatch] = useState<Set<Direction>>(new Set())
-    const [isGeneratingBatch, setIsGeneratingBatch] = useState(false)
 
     // Grid size state: 'small' (default), 'medium', 'large'
     const [gridSize, setGridSize] = useState<'small' | 'medium' | 'large'>('small')
@@ -45,6 +46,30 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
 
     // Individual direction maximize state
     const [maximizedDirection, setMaximizedDirection] = useState<Direction | null>(null)
+
+    // Ref to store handleBatchGenerate for event listener
+    const handleBatchGenerateRef = useRef<(() => Promise<void>) | null>(null)
+
+    // Notify context that DirectionGrid is visible
+    useEffect(() => {
+        setDirectionGridVisible(true)
+        return () => {
+            setDirectionGridVisible(false)
+            setSelectedDirections(new Set())
+        }
+    }, [setDirectionGridVisible, setSelectedDirections])
+
+    // Sync local selection state to context for action bar
+    useEffect(() => {
+        setSelectedDirections(selectedForBatch as Set<string>)
+    }, [selectedForBatch, setSelectedDirections])
+
+    // Listen for generateDirections event from action bar
+    useEffect(() => {
+        const handleGenerateEvent = () => handleBatchGenerateRef.current?.()
+        window.addEventListener('generateDirections', handleGenerateEvent)
+        return () => window.removeEventListener('generateDirections', handleGenerateEvent)
+    }, [])
 
     // Get directional children (sibling direction assets)
     const directionChildren = parsedAssets.filter(
@@ -102,6 +127,8 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
         } else {
             // Regular click = set as active for viewing
             setActiveDirection(direction)
+            // Just select for viewing, don't trigger selection callback unless we want to change external state?
+            // User requirement: "state of the curretnyl selected batch or single diretion"
             onDirectionSelect?.(direction)
         }
     }
@@ -138,6 +165,16 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
 
     // Handle individual direction generation
     const handleGenerateDirection = async (direction: Direction) => {
+        // Enforce Front First Logic
+        if (direction !== 'front') {
+            const frontAsset = directionChildren.find(a => a.directionState?.direction === 'front')
+            const frontState = frontAsset ? assetStates.get(frontAsset.id) : null
+            if (frontState?.status !== 'approved') {
+                alert("Front direction must be generated and approved first.")
+                return
+            }
+        }
+
         const dirAsset = getOrCreateDirectionChild(direction)
         // Pass the asset directly to avoid race condition with newly added assets
         await generateImage(dirAsset.id, dirAsset)
@@ -147,7 +184,46 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
     const handleBatchGenerate = async () => {
         if (selectedForBatch.size === 0) return
 
-        setIsGeneratingBatch(true)
+        // 1. Identify Front Anchor status
+        const frontAsset = directionChildren.find(a => a.directionState?.direction === 'front')
+        const frontState = frontAsset ? assetStates.get(frontAsset.id) : null
+
+        // Prevent action if Front is currently generating
+        if (frontState?.status === 'generating') {
+            alert("Front direction is currently generating. Please wait.")
+            return
+        }
+
+        const isStrictlyApproved = frontState?.status === 'approved'
+
+        // 2. Enforce Front-First Logic
+        if (!isStrictlyApproved) {
+            const hasFrontSelection = selectedForBatch.has('front')
+
+            if (hasFrontSelection) {
+                // If Front is selected (and not approved), generate ONLY Front
+                if (selectedForBatch.size > 1) {
+                    alert("Generating Front Anchor first. Please approve it before generating other directions.")
+                }
+
+                try {
+                    const dirAsset = getOrCreateDirectionChild('front')
+                    await generateImage(dirAsset.id, dirAsset)
+                } catch (error) {
+                    console.error('Anchor generation failed:', error)
+                } finally {
+                    // Front generation done
+                }
+                // Stop here. Don't generate others.
+                return
+            } else {
+                // Front NOT selected, and NOT approved -> Block everything
+                alert("You must generate and approve the Front direction before generating others.")
+                return
+            }
+        }
+
+        // 3. Normal Batch Logic (Anchor is Approved)
         try {
             // Generate each selected direction sequentially
             for (const direction of selectedForBatch) {
@@ -160,9 +236,14 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
         } catch (error) {
             console.error('Batch generation failed:', error)
         } finally {
-            setIsGeneratingBatch(false)
+            // Batch generation done
         }
     }
+
+    // Keep handleBatchGenerateRef updated for event listener
+    useEffect(() => {
+        handleBatchGenerateRef.current = handleBatchGenerate
+    })
 
     // Cycle grid size
     const cycleGridSize = () => {
@@ -279,37 +360,32 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                             alt={`${dirInfo.label} view`}
                             className="w-full h-full object-contain bg-black/40"
                         />
-                        {/* Maximize button - show on hover */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setMaximizedDirection(maximizedDirection === direction ? null : direction)
-                            }}
-                            className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title={maximizedDirection === direction ? 'Minimize' : 'Maximize'}
-                        >
-                            {maximizedDirection === direction ? (
-                                <Minimize2 className="w-3 h-3 text-white/80" />
-                            ) : (
-                                <Maximize2 className="w-3 h-3 text-white/80" />
-                            )}
-                        </button>
+
+                        {/* Overlay Controls - Always Visible for Clarity */}
+                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 pointer-events-none">
+                            {/* Only Maximize in overlay now, bottom panel handles actions */}
+                            <div className="flex justify-end pointer-events-auto">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setMaximizedDirection(maximizedDirection === direction ? null : direction)
+                                    }}
+                                    className="p-1.5 bg-black/50 hover:bg-black/70 rounded-lg text-white/80 hover:text-white transition-colors"
+                                    title={maximizedDirection === direction ? 'Minimize' : 'Maximize'}
+                                >
+                                    {maximizedDirection === direction ? (
+                                        <Minimize2 className="w-3.5 h-3.5" />
+                                    ) : (
+                                        <Maximize2 className="w-3.5 h-3.5" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </>
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 text-white/30 hover:text-white/50 transition-colors group-hover:bg-black/30">
                         <Icon className="w-3 h-3 mb-1" />
                         <span className="text-[0.625rem] font-medium mb-2">{dirInfo.label}</span>
-                        {/* Generate button - show on hover for idle cards */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                handleGenerateDirection(direction)
-                            }}
-                            className="mt-1 px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded text-[0.625rem] font-medium transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1"
-                        >
-                            <Play className="w-2.5 h-2.5" />
-                            Generate
-                        </button>
                     </div>
                 )}
 
@@ -382,50 +458,103 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                         </div>
                     </div>
 
-                    {/* Batch Generation Bar - Compact */}
-                    {selectedForBatch.size > 0 && (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 animate-in slide-in-from-bottom-2 fade-in">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-xs font-medium text-green-400">
-                                        {selectedForBatch.size} Direction{selectedForBatch.size > 1 ? 's' : ''} Selected
-                                    </div>
-                                    <div className="text-[0.625rem] text-white/50">
-                                        ${(selectedForBatch.size * 0.04).toFixed(2)} est.
-                                    </div>
-                                </div>
-                                <div className="flex gap-1.5">
-                                    <button
-                                        onClick={() => setSelectedForBatch(new Set())}
-                                        className="px-2 py-1 text-[0.625rem] rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                                    >
-                                        Clear
-                                    </button>
-                                    <button
-                                        onClick={handleBatchGenerate}
-                                        disabled={isGeneratingBatch}
-                                        className="px-3 py-1 text-[0.625rem] rounded bg-green-500 hover:bg-green-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                    >
-                                        {isGeneratingBatch && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
-                                        {isGeneratingBatch ? 'Generating...' : 'Generate'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Active Direction Info - Compact */}
-                    <div className="bg-black/20 border border-white/10 rounded-lg p-2">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-white/90">
+
+                    {/* Active Direction Info - Expanded with Controls */}
+                    <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-white/90">
                                 {DIRECTION_LABELS[activeDirection]} Direction
                             </span>
                             <span className="text-[0.625rem] text-white/40 uppercase tracking-wider">
                                 {getDirectionStatus(activeDirection)}
                             </span>
                         </div>
-                        <div className="text-[0.625rem] text-white/60 leading-snug">
+
+                        <div className="text-[0.625rem] text-white/60 leading-snug mb-3 font-mono">
                             {activePrompt}
+                        </div>
+
+                        {/* Action Buttons for Active Direction */}
+                        <div className="flex justify-end gap-2 border-t border-white/5 pt-2">
+                            {(() => {
+                                const status = getDirectionStatus(activeDirection)
+                                const dirAsset = directionChildren.find(a => a.directionState?.direction === activeDirection)
+
+                                if (status === 'success') {
+                                    // Awaiting Approval or Approved (if lenient, but typically 'success' = awaiting in my helper)
+                                    // Refined helper logic:
+                                    // if (state.status === 'approved' || state.status === 'awaiting_approval') return 'success'
+                                    // So I need to distinguish.
+                                    const state = dirAsset ? assetStates.get(dirAsset.id) : null
+                                    const isApproved = state?.status === 'approved'
+
+                                    if (isApproved) {
+                                        return (
+                                            <button
+                                                onClick={() => handleGenerateDirection(activeDirection)}
+                                                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+                                            >
+                                                <Play className="w-3 h-3" />
+                                                Regenerate
+                                            </button>
+                                        )
+                                    } else {
+                                        // Awaiting Approval
+                                        return (
+                                            <>
+                                                <button
+                                                    onClick={() => {
+                                                        if (dirAsset) {
+                                                            const state = assetStates.get(dirAsset.id)
+                                                            if (state && 'versions' in state && state.versions && typeof state.currentVersionIndex === 'number') {
+                                                                const currentVersion = state.versions[state.currentVersionIndex]
+                                                                if (currentVersion) rejectAsset(dirAsset.id, currentVersion.id)
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                    Reject
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (dirAsset) {
+                                                            const state = assetStates.get(dirAsset.id)
+                                                            if (state && 'versions' in state && state.versions && typeof state.currentVersionIndex === 'number') {
+                                                                const currentVersion = state.versions[state.currentVersionIndex]
+                                                                if (currentVersion) approveAsset(dirAsset.id, currentVersion)
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-300 border border-green-500/30 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+                                                >
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    Approve
+                                                </button>
+                                            </>
+                                        )
+                                    }
+                                } else if (status === 'idle' || status === 'error') {
+                                    return (
+                                        <button
+                                            onClick={() => handleGenerateDirection(activeDirection)}
+                                            className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded text-xs font-medium transition-colors flex items-center gap-1.5 shadow-lg shadow-purple-500/20"
+                                        >
+                                            <Play className="w-3.5 h-3.5" />
+                                            Generate
+                                        </button>
+                                    )
+                                } else if (status === 'generating') {
+                                    return (
+                                        <div className="px-3 py-1.5 bg-white/5 text-white/50 rounded text-xs font-medium flex items-center gap-1.5 cursor-not-allowed">
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Generating...
+                                        </div>
+                                    )
+                                }
+                            })()}
                         </div>
                     </div>
                 </>
