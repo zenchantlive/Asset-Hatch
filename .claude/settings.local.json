@@ -38,7 +38,13 @@
       "Bash(xargs:*)",
       "mcp__plugin_serena_serena__find_file",
       "Bash(git rm:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(bunx prisma:*)",
+      "Bash(node test-prisma-field.mjs:*)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" node test-prisma-field.mjs:*)",
+      "Bash(file:*)",
+      "Bash(node test-schema-validation.js:*)",
+      "Bash(bun remove:*)"
     ]
   }
 }
