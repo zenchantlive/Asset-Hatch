@@ -27,6 +27,9 @@ export interface FluxGenerationOptions {
     // Optional size specification
     width?: number;
     height?: number;
+    // Optional user-provided API key (BYOK - Bring Your Own Key)
+    // If provided, uses this instead of the default env key
+    apiKey?: string;
 }
 
 /**
@@ -81,9 +84,11 @@ interface OpenRouterImageMessage {
 export async function generateFluxImage(
     options: FluxGenerationOptions
 ): Promise<FluxGenerationResult> {
-    const { modelId, prompt, referenceImageBase64 } = options;
+    const { modelId, prompt, referenceImageBase64, apiKey } = options;
     const startTime = Date.now();
-    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+    // Use provided API key (BYOK) or fall back to environment variable
+    const OPENROUTER_API_KEY = apiKey || process.env.OPENROUTER_API_KEY;
 
     // Validate API key
     if (!OPENROUTER_API_KEY) {

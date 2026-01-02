@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerLeftUp, CornerRightUp, CornerLeftDown, CornerRightDown, Maximize2, Minimize2, ChevronDown, ChevronUp, X, Play, type LucideIcon } from 'lucide-react'
+import { Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerLeftUp, CornerRightUp, CornerLeftDown, CornerRightDown, Maximize2, Minimize2, ChevronDown, ChevronUp, Play, type LucideIcon } from 'lucide-react'
 import { type ParsedAsset } from '@/lib/prompt-builder'
-import { type Direction, getDirectionPromptModifier, DIRECTION_LABELS, DIRECTION_EXPORT_NAMES } from '@/lib/direction-utils'
+import { type Direction, getDirectionPromptModifier, DIRECTION_LABELS } from '@/lib/direction-utils'
 import { useGenerationContext } from './GenerationQueue'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -263,8 +263,8 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                 className={`
                     aspect-square rounded-md border overflow-hidden relative cursor-pointer transition-all group
                     ${isActive ? 'border-purple-500 ring-2 ring-purple-500/50' :
-                      isSelectedForBatch ? 'border-green-500 ring-2 ring-green-500/50' :
-                      'border-white/20 hover:border-white/40'}
+                        isSelectedForBatch ? 'border-green-500 ring-2 ring-green-500/50' :
+                            'border-white/20 hover:border-white/40'}
                     ${status === 'idle' ? 'opacity-50 hover:opacity-75' : ''}
                 `}
             >
@@ -382,37 +382,37 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                         </div>
                     </div>
 
-            {/* Batch Generation Bar - Compact */}
-            {selectedForBatch.size > 0 && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 animate-in slide-in-from-bottom-2 fade-in">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="text-xs font-medium text-green-400">
-                                {selectedForBatch.size} Direction{selectedForBatch.size > 1 ? 's' : ''} Selected
-                            </div>
-                            <div className="text-[0.625rem] text-white/50">
-                                ${(selectedForBatch.size * 0.04).toFixed(2)} est.
+                    {/* Batch Generation Bar - Compact */}
+                    {selectedForBatch.size > 0 && (
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 animate-in slide-in-from-bottom-2 fade-in">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="text-xs font-medium text-green-400">
+                                        {selectedForBatch.size} Direction{selectedForBatch.size > 1 ? 's' : ''} Selected
+                                    </div>
+                                    <div className="text-[0.625rem] text-white/50">
+                                        ${(selectedForBatch.size * 0.04).toFixed(2)} est.
+                                    </div>
+                                </div>
+                                <div className="flex gap-1.5">
+                                    <button
+                                        onClick={() => setSelectedForBatch(new Set())}
+                                        className="px-2 py-1 text-[0.625rem] rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        onClick={handleBatchGenerate}
+                                        disabled={isGeneratingBatch}
+                                        className="px-3 py-1 text-[0.625rem] rounded bg-green-500 hover:bg-green-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                    >
+                                        {isGeneratingBatch && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                        {isGeneratingBatch ? 'Generating...' : 'Generate'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex gap-1.5">
-                            <button
-                                onClick={() => setSelectedForBatch(new Set())}
-                                className="px-2 py-1 text-[0.625rem] rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={handleBatchGenerate}
-                                disabled={isGeneratingBatch}
-                                className="px-3 py-1 text-[0.625rem] rounded bg-green-500 hover:bg-green-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                            >
-                                {isGeneratingBatch && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
-                                {isGeneratingBatch ? 'Generating...' : 'Generate'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                    )}
 
                     {/* Active Direction Info - Compact */}
                     <div className="bg-black/20 border border-white/10 rounded-lg p-2">

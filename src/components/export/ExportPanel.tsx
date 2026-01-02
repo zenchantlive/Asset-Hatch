@@ -67,11 +67,42 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
         setError(null);
 
         try {
-            // Call export API (server will validate if assets exist in Prisma)
+            // Fetch all approved assets from IndexedDB (images are client-side)
+            const approvedAssets = await db.generated_assets
+                .where('project_id')
+                .equals(projectId)
+                .and(asset => asset.status === 'approved')
+                .toArray();
+
+            if (approvedAssets.length === 0) {
+                throw new Error('No approved assets found');
+            }
+
+            // Convert images to base64 for API transfer
+            const assetsWithBase64 = await Promise.all(
+                approvedAssets.map(async (asset) => {
+                    let imageBlob = '';
+                    if (asset.image_blob) {
+                        // Convert Blob to base64
+                        const arrayBuffer = await asset.image_blob.arrayBuffer();
+                        const bytes = new Uint8Array(arrayBuffer);
+                        imageBlob = btoa(String.fromCharCode(...bytes));
+                    }
+                    return {
+                        id: asset.id,
+                        imageBlob,
+                    };
+                })
+            );
+
+            // Call export API with images from IndexedDB
             const response = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId }),
+                body: JSON.stringify({
+                    projectId,
+                    assets: assetsWithBase64,
+                }),
             });
 
             if (!response.ok) {

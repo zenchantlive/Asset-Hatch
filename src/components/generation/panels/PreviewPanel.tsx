@@ -135,7 +135,9 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         }
     }
 
-    // PHASE 6: Handle direction generation
+    // PHASE 6: Handle direction generation (used by DirectionGrid)
+    // Note: This is called via DirectionGrid's internal batch generation
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleGenerateDirections = async (directions: Direction[]) => {
         if (!asset) return;
 
@@ -146,8 +148,12 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         const expandedAssets = expandAssetToDirections(asset, directionCount);
 
         // Filter to only the selected directions
+        // Use nullish coalescing to handle undefined direction safely
         const selectedAssets = expandedAssets.filter(
-            (dirAsset) => directions.includes(dirAsset.directionState?.direction!)
+            (dirAsset) => {
+                const direction = dirAsset.directionState?.direction;
+                return direction !== undefined && directions.includes(direction);
+            }
         );
 
         console.log(`📦 Created ${selectedAssets.length} direction variants:`, selectedAssets.map(a => a.directionState?.direction));
