@@ -77,32 +77,61 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
     )
 
     // Helper to get image for a direction
+    // First checks for direction-specific children, then falls back to parent asset for 'front'
     const getDirectionImage = (direction: Direction): string | null => {
+        // Check if a direction-specific child exists (e.g., "Warrior (Front)")
         const dirAsset = directionChildren.find(
             a => a.directionState?.direction === direction
         )
-        if (!dirAsset) return null
 
-        const state = assetStates.get(dirAsset.id)
-        if (state?.status === 'approved' || state?.status === 'awaiting_approval') {
-            return state.result?.imageUrl || null
+        if (dirAsset) {
+            const state = assetStates.get(dirAsset.id)
+            if (state?.status === 'approved' || state?.status === 'awaiting_approval') {
+                return state.result?.imageUrl || null
+            }
         }
+
+        // FALLBACK: If looking for 'front' direction and no child exists,
+        // check if parent asset itself has an approved image
+        // This handles legacy approved assets and newly approved moveable assets
+        if (direction === 'front') {
+            const parentState = assetStates.get(asset.id)
+            if (parentState?.status === 'approved' || parentState?.status === 'awaiting_approval') {
+                return parentState.result?.imageUrl || null
+            }
+        }
+
         return null
     }
 
     // Helper to get generation status for a direction
+    // First checks direction children, then falls back to parent asset for 'front'
     const getDirectionStatus = (direction: Direction): 'idle' | 'generating' | 'success' | 'error' => {
+        // Check direction-specific child first
         const dirAsset = directionChildren.find(
             a => a.directionState?.direction === direction
         )
-        if (!dirAsset) return 'idle'
 
-        const state = assetStates.get(dirAsset.id)
-        if (!state) return 'idle'
+        if (dirAsset) {
+            const state = assetStates.get(dirAsset.id)
+            if (!state) return 'idle'
 
-        if (state.status === 'generating') return 'generating'
-        if (state.status === 'approved' || state.status === 'awaiting_approval') return 'success'
-        if (state.status === 'error') return 'error'
+            if (state.status === 'generating') return 'generating'
+            if (state.status === 'approved' || state.status === 'awaiting_approval') return 'success'
+            if (state.status === 'error') return 'error'
+            return 'idle'
+        }
+
+        // FALLBACK: Check parent asset for 'front' direction
+        if (direction === 'front') {
+            const parentState = assetStates.get(asset.id)
+            if (!parentState) return 'idle'
+
+            if (parentState.status === 'generating') return 'generating'
+            if (parentState.status === 'approved' || parentState.status === 'awaiting_approval') return 'success'
+            if (parentState.status === 'error') return 'error'
+        }
+
         return 'idle'
     }
 
@@ -163,16 +192,29 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
         return newChild
     }
 
+    // Helper: Check if 'front' direction is approved
+    // Checks both direction child AND parent asset (for backward compatibility)
+    const isFrontApproved = (): boolean => {
+        // Check if there's a front direction child that's approved
+        const frontChild = directionChildren.find(a => a.directionState?.direction === 'front')
+        if (frontChild) {
+            const childState = assetStates.get(frontChild.id)
+            if (childState?.status === 'approved') return true
+        }
+
+        // Fallback: Check if parent asset itself is approved (acts as front)
+        const parentState = assetStates.get(asset.id)
+        if (parentState?.status === 'approved') return true
+
+        return false
+    }
+
     // Handle individual direction generation
     const handleGenerateDirection = async (direction: Direction) => {
-        // Enforce Front First Logic
-        if (direction !== 'front') {
-            const frontAsset = directionChildren.find(a => a.directionState?.direction === 'front')
-            const frontState = frontAsset ? assetStates.get(frontAsset.id) : null
-            if (frontState?.status !== 'approved') {
-                alert("Front direction must be generated and approved first.")
-                return
-            }
+        // Enforce Front First Logic: other directions require approved front
+        if (direction !== 'front' && !isFrontApproved()) {
+            alert("Front direction must be generated and approved first.")
+            return
         }
 
         const dirAsset = getOrCreateDirectionChild(direction)
@@ -184,20 +226,20 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
     const handleBatchGenerate = async () => {
         if (selectedForBatch.size === 0) return
 
-        // 1. Identify Front Anchor status
-        const frontAsset = directionChildren.find(a => a.directionState?.direction === 'front')
-        const frontState = frontAsset ? assetStates.get(frontAsset.id) : null
+        // 1. Check if front is currently generating
+        const frontChild = directionChildren.find(a => a.directionState?.direction === 'front')
+        const frontChildState = frontChild ? assetStates.get(frontChild.id) : null
+        const parentState = assetStates.get(asset.id)
 
-        // Prevent action if Front is currently generating
-        if (frontState?.status === 'generating') {
+        if (frontChildState?.status === 'generating' || parentState?.status === 'generating') {
             alert("Front direction is currently generating. Please wait.")
             return
         }
 
-        const isStrictlyApproved = frontState?.status === 'approved'
+        // 2. Enforce Front-First Logic using helper
+        const frontApproved = isFrontApproved()
 
-        // 2. Enforce Front-First Logic
-        if (!isStrictlyApproved) {
+        if (!frontApproved) {
             const hasFrontSelection = selectedForBatch.has('front')
 
             if (hasFrontSelection) {

@@ -74,7 +74,7 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
 
     // Cost estimation
     let estimatedCost = 0
-    let estimatedTime = ''
+    const estimatedTime = ''
 
     switch (mode) {
         case 'directions':

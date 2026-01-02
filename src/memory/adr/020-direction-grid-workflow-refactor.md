@@ -4,7 +4,9 @@ Date: 2026-01-02
 
 ## Status
 
-Proposed - we are not suure if we enjoy this, or if we wul rather hve the buttons inside the area ot he righ of "direction mode" unclickable button thingy
+Accepted
+
+**Implementation Note**: During implementation, we discovered that approved parent assets (e.g., "Warrior") were not appearing in the DirectionGrid because the grid only looked for direction-specific children. We added fallback logic to display approved parent assets in the "Front" position when no front direction child exists, and updated the Front-First validation to recognize approved parents as valid front anchors.
 
 ## Context
 
@@ -41,3 +43,18 @@ We have decided to refactor the `DirectionGrid` to enforce a strict "Front-First
 
 ### Negative
 - **Less "Click-and-Go"**: Users must strictly follow the Front -> Others order, which reduces flexibility if they wanted to experiment with a side view first. (Mitigated by the fact that consistency is the primary goal).
+
+## Implementation Details
+
+### Changes Made (2026-01-02)
+
+1. **Parent Asset Fallback in DirectionGrid** ([DirectionGrid.tsx](file:///C:/Users/Zenchant/Asset-Hatch/src/components/generation/DirectionGrid.tsx))
+   - Updated `getDirectionImage()` to check parent asset for 'front' direction when no child exists
+   - Updated `getDirectionStatus()` with matching fallback logic
+   - This allows legacy approved assets and newly approved moveable assets to display immediately in the grid
+
+2. **Front-First Validation Enhancement**
+   - Added `isFrontApproved()` helper function that checks both direction children AND parent assets
+   - Updated `handleGenerateDirection()` to use the new validation
+   - Updated `handleBatchGenerate()` to use the new validation
+   - Fixes false "Front direction must be approved first" errors when parent is already approved
