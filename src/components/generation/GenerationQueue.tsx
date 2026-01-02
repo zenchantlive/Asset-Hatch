@@ -989,6 +989,7 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
   return (
     <GenerationContext.Provider value={contextValue}>
       <GenerationLayoutProvider
+        generationContext={contextValue}
         totalEstimatedCost={totalEstimatedCost}
         totalActualCost={totalActualCost}
       >

@@ -175,12 +175,12 @@ export function VersionCarousel({
             {isSyncingCost && (
               <div className="w-2.5 h-2.5 border-2 border-amber-300/30 border-t-amber-300 rounded-full animate-spin" />
             ) || (!isSyncingCost && !syncError && (
-              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_0.3125rem_rgba(34,197,94,0.5)]" />
             ))}
             {syncError && (
               <div className="flex items-center gap-1 text-red-400 group-hover:text-red-300 transition-colors cursor-help" title={`Sync failed: ${syncError.message}`}>
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold">ERR</span>
+                <span className="text-[0.625rem] font-bold">ERR</span>
               </div>
             )}
           </div>
