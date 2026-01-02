@@ -1,7 +1,8 @@
 /**
  * Individual Asset Fetch API Route
- * 
- * Fetches a single generated asset by ID with all metadata
+ *
+ * Fetches a single generated asset metadata by ID
+ * Note: Images are stored in client IndexedDB, not on server
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,14 +26,18 @@ export async function GET(
       );
     }
 
-    // Return asset data with base64 image URL for display
+    // Return asset metadata only
+    // Image should be fetched from IndexedDB on client side
     return NextResponse.json({
       id: asset.id,
-      imageUrl: asset.imageBlob 
-        ? `data:image/png;base64,${Buffer.from(asset.imageBlob).toString('base64')}`
-        : '',
+      assetId: asset.assetId,
+      variantId: asset.variantId,
+      status: asset.status,
       prompt: asset.promptUsed,
+      seed: asset.seed,
       metadata: JSON.parse(asset.metadata || '{}'),
+      createdAt: asset.createdAt,
+      // No imageUrl - client reads from IndexedDB
     });
   } catch (error) {
     console.error('❌ Asset fetch error:', error);
