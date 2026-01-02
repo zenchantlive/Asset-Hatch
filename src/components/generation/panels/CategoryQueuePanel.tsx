@@ -220,7 +220,7 @@ export function CategoryQueuePanel() {
 
                                                         {/* PHASE 7: Direction badge for parent assets */}
                                                         {hasChildren && (
-                                                            <span className="text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 mr-2">
+                                                            <span className="text-[0.625rem] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 mr-2">
                                                                 {directionChildren.length}-DIR: {approvedChildren}/{directionChildren.length} ✓
                                                             </span>
                                                         )}

@@ -65,18 +65,24 @@ export function Header() {
                                         <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/30 backdrop-blur-sm hover:bg-white/10 hover:border-red-500/40 transition-all duration-200">
                                             <Info className="h-4 w-4 text-red-400/80" />
                                             <span className="text-xs font-medium text-white/70">
-                                                Browser Storage
+                                                Browser Storage Demo
                                             </span>
                                         </button>
                                     </TooltipTrigger>
                                     <TooltipContent
                                         side="bottom"
-                                        className="max-w-[280px] bg-zinc-900/95 backdrop-blur-xl border-white/10 shadow-2xl"
+                                        className="max-w-[320px] bg-zinc-900/95 backdrop-blur-xl border-white/10 shadow-2xl"
                                     >
-                                        <div className="space-y-1.5">
-                                            <p className="font-semibold text-white">💾 Local Storage</p>
+                                        <div className="space-y-2">
+                                            <p className="font-semibold text-white">💾 Demo Mode - Local Storage Only</p>
                                             <p className="text-xs text-white/80 leading-relaxed">
-                                                Your generated images are stored in your browser. Export your projects before clearing browser data.
+                                                This is a <span className="font-semibold text-yellow-400">demo version</span> that stores all generated images in your browser's local storage (IndexedDB).
+                                            </p>
+                                            <p className="text-xs text-white/80 leading-relaxed">
+                                                ⚠️ Your data will be lost if you clear browser data, use incognito mode, or switch devices.
+                                            </p>
+                                            <p className="text-xs text-white/80 leading-relaxed">
+                                                <span className="font-semibold text-green-400">Always export your projects</span> as ZIP files to save your work permanently!
                                             </p>
                                         </div>
                                     </TooltipContent>

@@ -10,17 +10,28 @@
 
 :root {
   /* Primary Aurora Colors - Base Palette */
-  --aurora-deep-purple: #2d1b4e;      /* Deep twilight purple */
-  --aurora-soft-purple: #4a3768;       /* Soft evening purple */
-  --aurora-lavender: #6b5b95;          /* Gentle lavender */
-  --aurora-twilight-blue: #1e3a5f;     /* Deep twilight blue */
-  --aurora-soft-blue: #3d5a80;         /* Soft ocean blue */
-  --aurora-sky-blue: #5b7fa6;          /* Ethereal sky blue */
-  --aurora-pink: #c27ba0;              /* Gentle rose pink */
-  --aurora-soft-pink: #d4a5c4;         /* Soft blush pink */
-  --aurora-teal: #4a7c7e;              /* Ethereal teal */
-  --aurora-aqua: #6ba3a6;              /* Soft aquamarine */
-  --aurora-mint: #88c5c7;              /* Gentle mint */
+  --aurora-deep-purple: #2d1b4e;
+  /* Deep twilight purple */
+  --aurora-soft-purple: #4a3768;
+  /* Soft evening purple */
+  --aurora-lavender: #6b5b95;
+  /* Gentle lavender */
+  --aurora-twilight-blue: #1e3a5f;
+  /* Deep twilight blue */
+  --aurora-soft-blue: #3d5a80;
+  /* Soft ocean blue */
+  --aurora-sky-blue: #5b7fa6;
+  /* Ethereal sky blue */
+  --aurora-pink: #c27ba0;
+  /* Gentle rose pink */
+  --aurora-soft-pink: #d4a5c4;
+  /* Soft blush pink */
+  --aurora-teal: #4a7c7e;
+  /* Ethereal teal */
+  --aurora-aqua: #6ba3a6;
+  /* Soft aquamarine */
+  --aurora-mint: #88c5c7;
+  /* Gentle mint */
 
   /* Gradient Colors with Opacity - For Overlays */
   --aurora-purple-glass: rgba(74, 55, 104, 0.15);
@@ -29,30 +40,24 @@
   --aurora-teal-glass: rgba(74, 124, 126, 0.13);
 
   /* Background Gradients */
-  --bg-primary-gradient: linear-gradient(
-    135deg,
-    #1a0d2e 0%,
-    #2d1b4e 25%,
-    #1e3a5f 50%,
-    #2d1b4e 75%,
-    #1a0d2e 100%
-  );
+  --bg-primary-gradient: linear-gradient(135deg,
+      #1a0d2e 0%,
+      #2d1b4e 25%,
+      #1e3a5f 50%,
+      #2d1b4e 75%,
+      #1a0d2e 100%);
 
-  --bg-secondary-gradient: linear-gradient(
-    165deg,
-    rgba(74, 55, 104, 0.3) 0%,
-    rgba(61, 90, 128, 0.2) 50%,
-    rgba(74, 124, 126, 0.25) 100%
-  );
+  --bg-secondary-gradient: linear-gradient(165deg,
+      rgba(74, 55, 104, 0.3) 0%,
+      rgba(61, 90, 128, 0.2) 50%,
+      rgba(74, 124, 126, 0.25) 100%);
 
-  --bg-aurora-shimmer: linear-gradient(
-    90deg,
-    rgba(194, 123, 160, 0.0) 0%,
-    rgba(194, 123, 160, 0.15) 25%,
-    rgba(107, 91, 149, 0.2) 50%,
-    rgba(91, 127, 166, 0.15) 75%,
-    rgba(136, 197, 199, 0.0) 100%
-  );
+  --bg-aurora-shimmer: linear-gradient(90deg,
+      rgba(194, 123, 160, 0.0) 0%,
+      rgba(194, 123, 160, 0.15) 25%,
+      rgba(107, 91, 149, 0.2) 50%,
+      rgba(91, 127, 166, 0.15) 75%,
+      rgba(136, 197, 199, 0.0) 100%);
 
   /* ==========================================================================
      2. GLASSMORPHISM TOKENS
@@ -71,10 +76,10 @@
   --glass-teal-tint: rgba(106, 163, 166, 0.13);
 
   /* Backdrop Blur Values */
-  --blur-subtle: blur(8px);
-  --blur-medium: blur(12px);
-  --blur-strong: blur(20px);
-  --blur-intense: blur(30px);
+  --blur-subtle: blur(0.5rem);
+  --blur-medium: blur(0.75rem);
+  --blur-strong: blur(1.25rem);
+  --blur-intense: blur(1.875rem);
 
   /* Glass Borders */
   --glass-border-light: 1px solid rgba(255, 255, 255, 0.1);
@@ -82,77 +87,71 @@
   --glass-border-gradient: 1px solid transparent;
 
   /* Border Gradients */
-  --border-aurora-purple: linear-gradient(
-    135deg,
-    rgba(107, 91, 149, 0.3),
-    rgba(194, 123, 160, 0.2)
-  );
+  --border-aurora-purple: linear-gradient(135deg,
+      rgba(107, 91, 149, 0.3),
+      rgba(194, 123, 160, 0.2));
 
-  --border-aurora-blue: linear-gradient(
-    135deg,
-    rgba(91, 127, 166, 0.3),
-    rgba(106, 163, 166, 0.2)
-  );
+  --border-aurora-blue: linear-gradient(135deg,
+      rgba(91, 127, 166, 0.3),
+      rgba(106, 163, 166, 0.2));
 
-  --border-aurora-multi: linear-gradient(
-    90deg,
-    rgba(194, 123, 160, 0.2) 0%,
-    rgba(107, 91, 149, 0.3) 25%,
-    rgba(91, 127, 166, 0.3) 50%,
-    rgba(106, 163, 166, 0.2) 75%,
-    rgba(136, 197, 199, 0.15) 100%
-  );
+  --border-aurora-multi: linear-gradient(90deg,
+      rgba(194, 123, 160, 0.2) 0%,
+      rgba(107, 91, 149, 0.3) 25%,
+      rgba(91, 127, 166, 0.3) 50%,
+      rgba(106, 163, 166, 0.2) 75%,
+      rgba(136, 197, 199, 0.15) 100%);
 
   /* ==========================================================================
      3. GLOW & SHADOW EFFECTS
      ========================================================================== */
 
   /* Soft Glows (not harsh) */
-  --glow-soft-purple: 0 4px 20px rgba(107, 91, 149, 0.15),
-                       0 0 40px rgba(107, 91, 149, 0.08);
+  --glow-soft-purple: 0 0.25rem 1.25rem rgba(107, 91, 149, 0.15),
+    0 0 2.5rem rgba(107, 91, 149, 0.08);
 
-  --glow-soft-blue: 0 4px 20px rgba(91, 127, 166, 0.15),
-                     0 0 40px rgba(91, 127, 166, 0.08);
+  --glow-soft-blue: 0 0.25rem 1.25rem rgba(91, 127, 166, 0.15),
+    0 0 2.5rem rgba(91, 127, 166, 0.08);
 
-  --glow-soft-pink: 0 4px 20px rgba(194, 123, 160, 0.15),
-                     0 0 40px rgba(194, 123, 160, 0.08);
+  --glow-soft-pink: 0 0.25rem 1.25rem rgba(194, 123, 160, 0.15),
+    0 0 2.5rem rgba(194, 123, 160, 0.08);
 
-  --glow-soft-teal: 0 4px 20px rgba(106, 163, 166, 0.15),
-                     0 0 40px rgba(106, 163, 166, 0.08);
+  --glow-soft-teal: 0 0.25rem 1.25rem rgba(106, 163, 166, 0.15),
+    0 0 2.5rem rgba(106, 163, 166, 0.08);
 
-  --glow-aurora-mix: 0 4px 30px rgba(107, 91, 149, 0.12),
-                      0 8px 50px rgba(91, 127, 166, 0.08),
-                      0 0 80px rgba(106, 163, 166, 0.05);
+  --glow-aurora-mix: 0 0.25rem 1.875rem rgba(107, 91, 149, 0.12),
+    0 0.5rem 3.125rem rgba(91, 127, 166, 0.08),
+    0 0 5rem rgba(106, 163, 166, 0.05);
 
   /* Glass Shadows - Depth without Harshness */
-  --shadow-glass-sm: 0 2px 8px rgba(0, 0, 0, 0.1),
-                      0 4px 16px rgba(0, 0, 0, 0.05);
+  --shadow-glass-sm: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1),
+    0 0.25rem 1rem rgba(0, 0, 0, 0.05);
 
-  --shadow-glass-md: 0 4px 16px rgba(0, 0, 0, 0.15),
-                      0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-glass-md: 0 0.25rem 1rem rgba(0, 0, 0, 0.15),
+    0 0.5rem 2rem rgba(0, 0, 0, 0.08);
 
-  --shadow-glass-lg: 0 8px 32px rgba(0, 0, 0, 0.2),
-                      0 16px 64px rgba(0, 0, 0, 0.1);
+  --shadow-glass-lg: 0 0.5rem 2rem rgba(0, 0, 0, 0.2),
+    0 1rem 4rem rgba(0, 0, 0, 0.1);
 
   /* Inner Glow for Interactive Elements */
-  --inner-glow-hover: inset 0 0 20px rgba(255, 255, 255, 0.1);
+  --inner-glow-hover: inset 0 0 1.25rem rgba(255, 255, 255, 0.1);
 
   /* ==========================================================================
      4. SPACING & SIZING
      ========================================================================== */
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999rem;
 
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
 
   /* ==========================================================================
      5. TYPOGRAPHY
@@ -164,9 +163,9 @@
   --text-disabled: rgba(255, 255, 255, 0.3);
 
   /* Text with Aurora Glow */
-  --text-glow-purple: 0 0 10px rgba(107, 91, 149, 0.5);
-  --text-glow-blue: 0 0 10px rgba(91, 127, 166, 0.5);
-  --text-glow-pink: 0 0 10px rgba(194, 123, 160, 0.5);
+  --text-glow-purple: 0 0 0.625rem rgba(107, 91, 149, 0.5);
+  --text-glow-blue: 0 0 0.625rem rgba(91, 127, 166, 0.5);
+  --text-glow-pink: 0 0 0.625rem rgba(194, 123, 160, 0.5);
 
   /* ==========================================================================
      6. TRANSITIONS & ANIMATIONS
@@ -183,18 +182,23 @@
    ========================================================================== */
 
 @keyframes aurora-shift {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
     opacity: 1;
   }
+
   25% {
     background-position: 50% 25%;
     opacity: 0.95;
   }
+
   50% {
     background-position: 100% 50%;
     opacity: 1;
   }
+
   75% {
     background-position: 50% 75%;
     opacity: 0.95;
@@ -202,10 +206,13 @@
 }
 
 @keyframes aurora-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
     filter: brightness(1);
   }
+
   50% {
     opacity: 0.8;
     filter: brightness(1.2);
@@ -213,12 +220,16 @@
 }
 
 @keyframes soft-glow-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: var(--glow-soft-purple);
   }
+
   33% {
     box-shadow: var(--glow-soft-blue);
   }
+
   66% {
     box-shadow: var(--glow-soft-pink);
   }
@@ -229,9 +240,11 @@
     transform: translateX(-100%);
     opacity: 0;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     transform: translateX(100%);
     opacity: 0;
@@ -239,20 +252,24 @@
 }
 
 @keyframes float-gentle {
-  0%, 100% {
-    transform: translateY(0px);
+
+  0%,
+  100% {
+    transform: translateY(0);
   }
+
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-0.625rem);
   }
 }
 
 @keyframes fade-in-glass {
   from {
     opacity: 0;
-    backdrop-filter: blur(0px);
-    transform: translateY(10px);
+    backdrop-filter: blur(0);
+    transform: translateY(0.625rem);
   }
+
   to {
     opacity: 1;
     backdrop-filter: var(--blur-medium);
@@ -264,9 +281,11 @@
   0% {
     box-shadow: 0 0 0 0 var(--glass-bg-hover);
   }
+
   70% {
-    box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
+    box-shadow: 0 0 0 1.25rem rgba(255, 255, 255, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
@@ -276,9 +295,11 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -358,12 +379,10 @@ body::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent);
 }
 
 /* -------------------- Quality Dropdowns Bar -------------------- */
@@ -398,7 +417,7 @@ body::after {
 .quality-dropdowns-bar:hover {
   background: var(--glass-bg-hover);
   box-shadow: var(--shadow-glass-lg), var(--glow-aurora-mix);
-  transform: translateY(-2px);
+  transform: translateY(-0.125rem);
 }
 
 /* Individual Dropdown */
@@ -412,7 +431,7 @@ body::after {
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
-  min-width: 120px;
+  min-width: 7.5rem;
 }
 
 .quality-dropdown::after {
@@ -431,7 +450,7 @@ body::after {
 .quality-dropdown:hover {
   background: var(--glass-bg-medium);
   box-shadow: var(--glow-soft-blue);
-  transform: translateY(-1px);
+  transform: translateY(-0.0625rem);
 }
 
 .quality-dropdown:hover::after {
@@ -474,7 +493,7 @@ body::after {
 .chat-message:hover {
   background: var(--glass-bg-hover);
   box-shadow: var(--shadow-glass-md), var(--glow-soft-purple);
-  transform: translateX(4px);
+  transform: translateX(0.25rem);
 }
 
 .chat-message::before {
@@ -484,11 +503,9 @@ body::after {
   left: 0;
   right: 0;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 50%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 50%);
   border-radius: var(--radius-lg);
   pointer-events: none;
 }
@@ -497,7 +514,7 @@ body::after {
 .chat-message-text {
   color: var(--text-primary);
   line-height: 1.6;
-  font-size: 15px;
+  font-size: 0.9375rem;
   position: relative;
   z-index: 1;
 }
@@ -505,7 +522,7 @@ body::after {
 /* Message Timestamp */
 .chat-message-time {
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 0.75rem;
   margin-top: var(--space-xs);
   display: block;
 }
@@ -542,17 +559,15 @@ body::after {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(
-    circle at 50% 0%,
-    rgba(107, 91, 149, 0.1),
-    transparent 70%
-  );
+  background: radial-gradient(circle at 50% 0%,
+      rgba(107, 91, 149, 0.1),
+      transparent 70%);
   pointer-events: none;
 }
 
 .plan-preview-title {
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: var(--space-lg);
   text-shadow: var(--text-glow-purple);
@@ -571,7 +586,7 @@ body::after {
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-lg);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -587,11 +602,9 @@ body::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.15),
+      transparent);
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
@@ -599,7 +612,7 @@ body::after {
 .btn-glass:hover {
   background: var(--glass-bg-hover);
   box-shadow: var(--glow-soft-blue);
-  transform: translateY(-2px);
+  transform: translateY(-0.125rem);
 }
 
 .btn-glass:hover::before {
@@ -644,7 +657,7 @@ body::after {
   border-radius: var(--radius-md);
   padding: var(--space-md);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 0.9375rem;
   width: 100%;
   transition: all var(--transition-normal);
   outline: none;
@@ -673,9 +686,9 @@ body::after {
   border-radius: var(--radius-md);
   padding: var(--space-md);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 0.9375rem;
   width: 100%;
-  min-height: 120px;
+  min-height: 7.5rem;
   resize: vertical;
   transition: all var(--transition-normal);
   outline: none;
@@ -716,12 +729,12 @@ body::after {
 .card-glass:hover {
   background: var(--glass-bg-hover);
   box-shadow: var(--shadow-glass-lg), var(--glow-soft-purple);
-  transform: translateY(-4px);
+  transform: translateY(-0.25rem);
 }
 
 .card-glass-title {
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   margin-bottom: var(--space-md);
 }
@@ -739,7 +752,7 @@ body::after {
   border-radius: var(--radius-full);
   padding: var(--space-xs) var(--space-md);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -792,7 +805,7 @@ body::after {
   border: var(--glass-border-medium);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
-  max-width: 600px;
+  max-width: 37.5rem;
   width: 90%;
   box-shadow: var(--shadow-glass-lg), var(--glow-aurora-mix);
   position: relative;
@@ -813,7 +826,7 @@ body::after {
 
 .modal-glass-title {
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: var(--space-lg);
   text-shadow: var(--text-glow-purple);
@@ -826,8 +839,8 @@ body::after {
   background: var(--glass-bg-light);
   border: var(--glass-border-light);
   border-radius: var(--radius-full);
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -849,7 +862,7 @@ body::after {
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   box-shadow: var(--shadow-glass-md), var(--glow-soft-blue);
   position: absolute;
   z-index: 100;
@@ -883,12 +896,10 @@ body::after {
 
 .glass-divider {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent);
   margin: var(--space-lg) 0;
 }
 
@@ -906,8 +917,8 @@ body::after {
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 ::-webkit-scrollbar-track {

@@ -87,23 +87,23 @@ function AssetCard({
             {/* Mobility Badges - show asset classification */}
             <div className="flex gap-1 flex-wrap">
                 {asset.mobility.type === 'moveable' && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
+                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
                         {asset.mobility.directions || 4}-DIR
                     </span>
                 )}
                 {asset.mobility.type === 'animated' && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
+                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
                         ANIM:{asset.mobility.frames || '?'}
                     </span>
                 )}
                 {asset.mobility.type === 'static' && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
+                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
                         STATIC
                     </span>
                 )}
                 {/* Show variant animation info if available */}
                 {asset.variant.animationType && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-500/20 text-blue-300">
+                    <span className="px-1.5 py-0.5 text-[0.625rem] font-medium rounded bg-blue-500/20 text-blue-300">
                         {asset.variant.animationType}
                     </span>
                 )}

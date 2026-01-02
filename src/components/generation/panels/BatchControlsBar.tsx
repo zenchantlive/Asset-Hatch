@@ -2,7 +2,7 @@
  * BatchControlsBar Component (v2.1 - Simplified)
  * 
  * Cleaner top toolbar with only essential controls visible:
- * - Generate button (primary action)
+ * - Unified Action Bar (Generate/Pause/Resume/Prep)
  * - Model selector
  * - Cost/Time estimate (combined)
  * - Settings gear (advanced options hidden here)
@@ -11,8 +11,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Pause, Square, Settings2, X, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Settings2, X } from 'lucide-react'
 import {
     Select,
     SelectContent,
@@ -24,6 +23,7 @@ import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { GenerateAllWarning } from './GenerateAllWarning'
 import { getImageGenerationModels, getModelById, formatCost, estimateCost } from '@/lib/model-registry'
+import { UnifiedActionBar } from '../UnifiedActionBar'
 
 // Get available models from registry (curated list)
 const availableModels = getImageGenerationModels();
@@ -55,18 +55,15 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         selectedModel,
         setSelectedModel,
         startGeneration,
-        pauseGeneration,
-        resumeGeneration,
         assetStates,
     } = useGenerationContext()
 
     // Get layout context for selection state and cost data
     const {
         state,
-        selectAllVisible,
-        selectRemainingAssets,
         totalEstimatedCost,
         totalActualCost,
+        executeAction // We might use this if we wanted to trigger action programmatically, but UnifiedActionBar handles UI
     } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
 
@@ -79,6 +76,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
 
     // Calculate cost estimate using model registry
     const currentModel = getModelById(selectedModel);
+    // Logic from original: if selection > 0, count selection, else count remaining
     const assetsToGenerate = selectedCount > 0 ? selectedCount : remainingCount
     const estimatedCost = estimateCost(selectedModel, 500, assetsToGenerate)
 
@@ -94,39 +92,14 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         ? `~${estimatedTimeSeconds}s`
         : `~${Math.ceil(estimatedTimeSeconds / 60)}m`
 
-    // Determine button state
+    // Determine button state for model selector disabling
     const isGenerating = status === 'generating'
-    const isPaused = status === 'paused'
-    const canGenerate = parsedAssets.length > 0 && !isGenerating
-
-    // Handle generate button click
-    const handleGenerateClick = () => {
-        if (isGenerating) {
-            pauseGeneration()
-        } else if (isPaused) {
-            resumeGeneration()
-        } else if (selectedCount === 0) {
-            // Prep All mode: Just select all assets, don't generate yet
-            selectAllVisible(parsedAssets.map(a => a.id))
-        } else {
-            // Generate mode: Check if batch is large (>5 assets) and show warning
-            if (assetsToGenerate > 5) {
-                setShowWarning(true)
-            } else {
-                startGeneration(state.queue.selectedIds)
-            }
-        }
-    }
-
-    // Handle Prep Remaining button click
-    const handlePrepRemaining = () => {
-        // Just select remaining assets, don't generate yet (same as Prep All)
-        selectRemainingAssets(parsedAssets.map(a => a.id), assetStates)
-    }
 
     // Handle warning dialog confirmation
     const handleConfirmGeneration = () => {
         setShowWarning(false)
+        // Trigger generation directly via context, as this is a specific "Force Confirm" action
+        // that bypasses the standard action bar toggle
         startGeneration(state.queue.selectedIds)
     }
 
@@ -134,35 +107,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     if (compact) {
         return (
             <div className="flex items-center justify-between p-3 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-                {/* Generate button */}
-                <Button
-                    onClick={handleGenerateClick}
-                    disabled={!canGenerate && !isGenerating && !isPaused}
-                    className={`${isGenerating ? 'bg-yellow-600 hover:bg-yellow-700' : 'aurora-gradient'}`}
-                    size="sm"
-                >
-                    {isGenerating ? (
-                        <>
-                            <Pause className="w-4 h-4 mr-1" />
-                            Pause
-                        </>
-                    ) : isPaused ? (
-                        <>
-                            <Play className="w-4 h-4 mr-1" />
-                            Resume
-                        </>
-                    ) : selectedCount > 0 ? (
-                        <>
-                            <Play className="w-4 h-4 mr-1" />
-                            Generate
-                        </>
-                    ) : (
-                        <>
-                            <Sparkles className="w-4 h-4 mr-1" />
-                            Prep
-                        </>
-                    )}
-                </Button>
+                <UnifiedActionBar />
 
                 {/* Cost + Time combined */}
                 <span className={`text-sm font-medium ${hasActualCosts ? 'text-green-400' : 'text-white/70'}`}>
@@ -183,62 +128,9 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
     // Full mode for desktop/tablet
     return (
         <div className="relative flex items-center justify-between p-4 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-            {/* Left: Generate button with count */}
+            {/* Left: Unified Action Bar */}
             <div className="flex items-center gap-3">
-                {/* Main generate button */}
-                <Button
-                    onClick={handleGenerateClick}
-                    disabled={!canGenerate && !isGenerating && !isPaused}
-                    className={`${isGenerating ? 'bg-yellow-600 hover:bg-yellow-700' : 'aurora-gradient'} font-semibold`}
-                >
-                    {isGenerating ? (
-                        <>
-                            <Pause className="w-4 h-4 mr-2" />
-                            Pause
-                        </>
-                    ) : isPaused ? (
-                        <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Resume
-                        </>
-                    ) : selectedCount > 0 ? (
-                        <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Generate ({selectedCount})
-                        </>
-                    ) : (
-                        <>
-                            <Sparkles className="w-4 h-4 mr-2" />
-                            Prep All
-                        </>
-                    )}
-                </Button>
-
-                {/* Prep Remaining button (show when some assets are already generated) */}
-                {!isGenerating && !isPaused && remainingCount > 0 && remainingCount < parsedAssets.length && (
-                    <Button
-                        variant="outline"
-                        onClick={handlePrepRemaining}
-                        className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
-                    >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Prep Remaining ({remainingCount})
-                    </Button>
-                )}
-
-                {/* Stop button (only when generating) */}
-                {isGenerating && (
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                            // TODO: Implement stop functionality
-                            console.log('Stop generation')
-                        }}
-                    >
-                        <Square className="w-4 h-4" />
-                    </Button>
-                )}
+                <UnifiedActionBar />
             </div>
 
             {/* Center: Model selector */}

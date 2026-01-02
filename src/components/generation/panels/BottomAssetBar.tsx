@@ -114,7 +114,7 @@ export function BottomAssetBar() {
                                         {status === 'generating' ? (
                                             <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
                                         ) : (
-                                            <span className="text-[10px] text-white/30 text-center px-1 line-clamp-2 leading-tight">
+                                            <span className="text-[0.625rem] text-white/30 text-center px-1 line-clamp-2 leading-tight">
                                                 {asset.name}
                                             </span>
                                         )}

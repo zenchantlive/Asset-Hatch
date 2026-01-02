@@ -143,7 +143,7 @@ export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'pop
             className={cn(
               "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 border backdrop-blur-sm",
               isActive
-                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_15px_-4px_var(--color-primary)] ring-1 ring-primary/20"
+                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_0.9375rem_-0.25rem_var(--color-primary)] ring-1 ring-primary/20"
                 : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-zinc-200 hover:border-white/20"
             )}
           >
@@ -162,7 +162,7 @@ export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'pop
           align="start"
           className="bg-glass-panel border-glass-border backdrop-blur-xl p-1 z-50"
         >
-          <div className="max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
+          <div className="max-h-[18.75rem] overflow-y-auto px-1 custom-scrollbar">
             {QUALITY_OPTIONS[key].map((option) => (
               <DropdownMenuItem
                 key={option}
@@ -235,14 +235,14 @@ export function QualitiesBar({ qualities, onQualitiesChange, onSave, mode = 'pop
             <SlidersHorizontal className="w-4 h-4" />
             <span>Parameters</span>
             {activeCount > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 ml-1 text-[10px] font-bold rounded-full bg-primary/20 text-primary">
+              <span className="flex items-center justify-center w-5 h-5 ml-1 text-[0.625rem] font-bold rounded-full bg-primary/20 text-primary">
                 {activeCount}
               </span>
             )}
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[400px] p-5 glass-panel border-glass-border rounded-xl mt-2"
+          className="w-[25rem] p-5 glass-panel border-glass-border rounded-xl mt-2"
           align="end"
           sideOffset={8}
         >
@@ -319,7 +319,7 @@ function CollapsibleBar({
             className={cn(
               "h-6 text-xs font-medium gap-1 transition-all",
               hasChanges
-                ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-600 shadow-[0_0_10px_-4px_rgba(34,197,94,0.5)]"
+                ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-600 shadow-[0_0_0.625rem_-0.25rem_rgba(34,197,94,0.5)]"
                 : "text-muted-foreground hover:text-primary"
             )}
             title="Save changes and update plan"
