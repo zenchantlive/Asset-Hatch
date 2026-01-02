@@ -1,24 +1,29 @@
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-// Get database URL - must be defined for libsql
-const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+// Neon Postgres connection string
+const connectionString = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL
 
-// Only log database URL in development (avoid exposing in production logs)
+// Only log database info in development
 if (process.env.NODE_ENV === 'development') {
-  console.log('📦 Database URL:', databaseUrl);
+  console.log('📦 Database: Neon Postgres')
 }
 
-// Create Prisma adapter with config object
-// PrismaLibSql accepts either a Client or a Config with { url: string }
-const adapter = new PrismaLibSql({ url: databaseUrl })
+// Initialize PostgreSQL adapter (Prisma 7 pattern)
+// Using standard 'pg' driver (works for both dev and production)
+const pool = new Pool({ connectionString })
+const adapter = new PrismaPg(pool)
 
-// Initialize Prisma client with adapter (Prisma 7 requirement)
+// Initialize Prisma client with PostgreSQL adapter
 export const prisma =
   globalForPrisma.prisma ||
-  new PrismaClient({ adapter })
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
