@@ -438,6 +438,22 @@ Both are identical (serverless Postgres). Neon chosen because:
 
 ---
 
+### Recent Achievements
+- **Export Workflow Completed**: Finalized Phase 3 of the export strategy, enabling seamless ZIP export of approved assets.
+- **Generation UI Refactor (v2.1)**:
+  - Consolidated generation controls into `UnifiedActionBar`.
+  - Implemented **Front-First** generation workflow to ensure character consistency.
+  - Refactored `DirectionGrid` to remove redundant buttons and improve mobile UX by moving actions to a persistent bottom panel.
+  - Fixed data sync issues with quality parameters and prompts.
+- **Security Hardening**: Implemented OAuth account linking and fixed race conditions in persistence logic.
+
+### Active Session State
+- **Current Focus**: Verifying `DirectionGrid` workflow and committing changes.
+- **Active Branch**: `feat/direction-grid-workflow`
+- **Key Concepts**:
+  - `Front-First`: Front view must be approved before generating others.
+  - `UnifiedActionBar`: Central hub for page-level actions.
+  - `Active Direction Panel`: Dedicated area for reviewing and managing the currently selected direction.
 ## 🎓 Lessons Learned
 
 1. **Hybrid WSL/Windows environments are tricky** - Use one or the other
