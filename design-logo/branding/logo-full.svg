@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&amp;display=swap');
+    </style>
+    
+    <radialGradient id="coreGlow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C27BA0" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#4A7C7E" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#3D5A80" stop-opacity="0"/>
+    </radialGradient>
+    
+    <linearGradient id="glassSheen2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+    
+    <linearGradient id="shellGradient2" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#4A3768" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#2D1B4E" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#1E3A5F" stop-opacity="0.9"/>
+    </linearGradient>
+    
+    <linearGradient id="auroraBorder2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="33%" stop-color="#4A7C7E"/>
+      <stop offset="66%" stop-color="#3D5A80"/>
+      <stop offset="100%" stop-color="#C27BA0"/>
+    </linearGradient>
+    
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="100%" stop-color="#4A7C7E"/>
+    </linearGradient>
+    
+    <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="softGlow2" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Icon Section -->
+  <g transform="translate(10, 10)">
+    <ellipse cx="50" cy="55" rx="30" ry="35" fill="url(#coreGlow2)" filter="url(#glow2)" opacity="0.5"/>
+    <path d="M50 8 C 25 8, 10 35, 10 60 C 10 82, 25 92, 50 92 C 75 92, 90 82, 90 60 C 90 35, 75 8, 50 8 Z" fill="url(#shellGradient2)" stroke="url(#auroraBorder2)" stroke-width="1.5"/>
+    <path d="M50 8 C 25 8, 10 35, 10 60 C 10 82, 25 92, 50 92 C 75 92, 90 82, 90 60 C 90 35, 75 8, 50 8 Z" fill="url(#glassSheen2)"/>
+    <path d="M65 18 L72 28 L68 30 L78 42" stroke="#4A7C7E" stroke-width="1.5" fill="none" stroke-linecap="round" filter="url(#softGlow2)"/>
+    <g filter="url(#softGlow2)">
+      <polygon points="50,38 60,44 60,56 50,62 40,56 40,44" fill="none" stroke="#C27BA0" stroke-width="1.5"/>
+      <circle cx="50" cy="50" r="4" fill="#C27BA0"/>
+      <circle cx="35" cy="65" r="2.5" fill="#4A7C7E"/>
+      <circle cx="65" cy="65" r="2.5" fill="#4A7C7E"/>
+      <line x1="50" y1="54" x2="35" y2="65" stroke="#C27BA0" stroke-width="1" stroke-opacity="0.7"/>
+      <line x1="50" y1="54" x2="65" y2="65" stroke="#C27BA0" stroke-width="1" stroke-opacity="0.7"/>
+    </g>
+    <path d="M28 30 Q 38 18, 58 15" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.5" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Wordmark -->
+  <text x="120" y="72" font-family="Orbitron, sans-serif" font-size="36" font-weight="700" letter-spacing="6" fill="#FFFFFF" fill-opacity="0.95">ASSET</text>
+  <text x="290" y="72" font-family="Orbitron, sans-serif" font-size="36" font-weight="500" letter-spacing="6" fill="url(#textGradient)">HATCH</text>
+</svg>

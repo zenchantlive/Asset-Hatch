@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="bgGradCircle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4A3768"/>
+      <stop offset="100%" stop-color="#1A0F2E"/>
+    </radialGradient>
+    
+    <radialGradient id="coreGlowCircle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C27BA0" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#3D5A80" stop-opacity="0"/>
+    </radialGradient>
+    
+    <linearGradient id="auroraBorderCircle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="33%" stop-color="#4A7C7E"/>
+      <stop offset="66%" stop-color="#3D5A80"/>
+      <stop offset="100%" stop-color="#C27BA0"/>
+    </linearGradient>
+    
+    <linearGradient id="shellGradCircle" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#4A3768" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2D1B4E" stop-opacity="0.85"/>
+    </linearGradient>
+    
+    <linearGradient id="glassSheenCircle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    </linearGradient>
+    
+    <filter id="glowCircle" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="softGlowCircle" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Circle Background -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGradCircle)" stroke="url(#auroraBorderCircle)" stroke-width="2"/>
+  
+  <!-- Background Glow -->
+  <ellipse cx="100" cy="110" rx="50" ry="60" fill="url(#coreGlowCircle)" filter="url(#glowCircle)" opacity="0.5"/>
+  
+  <!-- Egg Shell -->
+  <path d="M100 30 
+           C 60 30, 40 65, 40 105 
+           C 40 140, 60 165, 100 165 
+           C 140 165, 160 140, 160 105 
+           C 160 65, 140 30, 100 30 Z" 
+        fill="url(#shellGradCircle)" 
+        stroke="url(#auroraBorderCircle)" 
+        stroke-width="1.5"/>
+  
+  <!-- Glass Overlay -->
+  <path d="M100 30 
+           C 60 30, 40 65, 40 105 
+           C 40 140, 60 165, 100 165 
+           C 140 165, 160 140, 160 105 
+           C 160 65, 140 30, 100 30 Z" 
+        fill="url(#glassSheenCircle)"/>
+  
+  <!-- Crack -->
+  <path d="M125 45 L135 60 L130 62 L145 80" 
+        stroke="#4A7C7E" 
+        stroke-width="2" 
+        fill="none" 
+        stroke-linecap="round"
+        filter="url(#softGlowCircle)"/>
+  
+  <!-- AI Core -->
+  <g filter="url(#softGlowCircle)">
+    <polygon points="100,70 118,82 118,106 100,118 82,106 82,82" 
+             fill="none" 
+             stroke="#C27BA0" 
+             stroke-width="2"/>
+    <polygon points="100,80 110,87 110,101 100,108 90,101 90,87" 
+             fill="#C27BA0" 
+             fill-opacity="0.3"/>
+    <circle cx="100" cy="94" r="6" fill="#C27BA0"/>
+    <circle cx="75" cy="120" r="4" fill="#4A7C7E"/>
+    <circle cx="125" cy="120" r="4" fill="#4A7C7E"/>
+    <circle cx="85" cy="140" r="3" fill="#3D5A80"/>
+    <circle cx="115" cy="140" r="3" fill="#3D5A80"/>
+    <line x1="100" y1="100" x2="75" y2="120" stroke="#C27BA0" stroke-width="1.5" stroke-opacity="0.7"/>
+    <line x1="100" y1="100" x2="125" y2="120" stroke="#C27BA0" stroke-width="1.5" stroke-opacity="0.7"/>
+    <line x1="75" y1="120" x2="85" y2="140" stroke="#4A7C7E" stroke-width="1" stroke-opacity="0.5"/>
+    <line x1="125" y1="120" x2="115" y2="140" stroke="#4A7C7E" stroke-width="1" stroke-opacity="0.5"/>
+  </g>
+  
+  <!-- Highlight -->
+  <path d="M60 60 Q 75 42, 110 38" 
+        stroke="#FFFFFF" 
+        stroke-width="2.5" 
+        stroke-opacity="0.4" 
+        fill="none" 
+        stroke-linecap="round"/>
+</svg>
