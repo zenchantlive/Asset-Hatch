@@ -1,28 +1,36 @@
 # Active State - Asset Hatch Development
 
-**Last Updated:** 2026-01-01
-**Current Phase:** Database Migration Complete - Ready for Testing
-**Status:** ✅ MAJOR REFACTOR COMPLETE
+**Last Updated:** 2026-01-02
+**Current Phase:** Mobile UX Redesign & Cleanup
+**Status:** ✅ ALL TASKS COMPLETE - LINT CLEAN
+
+
 
 ---
 
-## 🎯 Latest Session Summary (2026-01-01)
+## 🎯 Latest Session Summary (2026-01-02)
 
-### Problem: "Unknown Field" Error After BYOK Implementation
+### Problem: Mobile Planning/Style UX was "awful"
+- Persistent 50/50 split was cramped and unreadable on mobile.
+- User couldn't see the plan/style preview while chatting effectively.
+- AI tool calls were being processed but output was hidden or hard to access.
 
-**Root Cause Identified:**
-- User added `openRouterApiKey` field to User model for BYOK (Bring Your Own Key)
-- Migration applied successfully to Turso database
-- BUT: Switched from Turso to Neon mid-development
-- WSL/Windows hybrid environment caused Prisma client sync issues
-- Database stored 2MB image blobs, causing storage concerns for demo
+### Solution: Mobile-First "Chat + Slide-out Panels" Pattern
+- **Full-Width Chat by Default**: Mobile now starts in a full-width ChatInterface.
+- **View Toggles in Toolbar**: Added "📄 Plan" and "🎨 Style" buttons to the mobile toolbar.
+- **Full-Screen Slide-out Panels**: Tapping toggles opens the existing `PlanPreview` and `StylePreview` in full-screen overlays.
+- **Persistent Input**: Added `CompactChatInput` to the bottom of these panels so users can suggest changes directly from the preview without returning to chat.
+- **Clean Transitions**: Panels slide from right/bottom to match the Assets/Files panel pattern.
 
-### Solution: Complete Architecture Migration
+### Technical Cleanup & Debt Reduction (Phase 2)
+- **Resolved 15+ Lint Errors**: Fixed all remaining warnings across 9 files, including unused variables in `api/generate/route.ts` and `GenerationLayoutContext.tsx`.
+- **Next.js Image Optimizations**: Migrated `<img>` tags to `<Image />` in `DirectionGrid` and `VersionCarousel`, adopting better performance standards.
+- **Type Safety Hardening**: Replaced `any` types with specific enums and interfaces in the generation logic.
+- **Documentation**: Created ADR-021 and ADR-022 to archive the mobile design decisions.
 
-**FROM:** Turso (LibSQL) + Image Blobs in Database
-**TO:** Neon Postgres + Image Blobs in Browser IndexedDB
 
 ---
+
 
 ## 📋 Complete Changes Made
 
@@ -437,6 +445,29 @@ Both are identical (serverless Postgres). Neon chosen because:
    - Test production
 
 ---
+
+### Recent Achievements
+- **Mobile UI Redesign**:
+  - Implemented full-width mobile chat with slide-out preview panels for Planning/Style modes.
+  - Created `FlatAssetList` and `ModelsPanel` (modal-based) for the Generation phase on mobile.
+  - Added `CompactChatInput` for contextual edits within previews.
+- **Lint & Tech Cleanup**:
+  - Fixed 15+ ESLint issues (unused variables, Next.js optimization warnings, any types).
+  - Switched to `<Image />` for all generation previews.
+- **Generation UI Refactor (v2.1)**:
+  - Consolidated generation controls into `UnifiedActionBar`.
+  - Implemented **Front-First** generation workflow to ensure character consistency.
+  - Refactored `DirectionGrid` to remove redundant buttons and improve mobile UX.
+
+- **Security Hardening**: Implemented OAuth account linking and fixed race conditions in persistence logic.
+
+### Active Session State
+- **Current Focus**: Task closure and branch merge.
+- **Active Branch**: `feat/mobile-planning-ux-redesign`
+- **Key Concepts**:
+  - `Chat-First Overlay`: High-density chat with full-screen slide-outs.
+  - `Contextual AI`: Chatting while viewing content.
+  - `Lint-Clean`: Zero warnings in the current build.
 
 ## 🎓 Lessons Learned
 

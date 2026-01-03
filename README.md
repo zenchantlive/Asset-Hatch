@@ -1,4 +1,6 @@
-# 🎮 Asset Hatch
+<div align="center">
+  <img src="docs/branding/header-logo-dark.svg#gh-dark-mode-only" alt="Asset Hatch" width="600">
+</div>
 
 > **AI-powered game asset planning and generation tool** — Transform natural conversation into complete, production-ready game asset packs.
 

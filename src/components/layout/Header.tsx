@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -33,10 +34,39 @@ export function Header() {
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     {/* Branding */}
                     <div className="flex items-center gap-6">
-                        <Link href="/" className="flex items-center gap-2">
-                            <span className="text-xl font-bold font-heading text-zinc-900 dark:text-zinc-50 tracking-tight">
-                                Asset Hatch
-                            </span>
+                        <Link href="/" className="flex items-center gap-3 group">
+                            {/* Egg Icon with hover animation */}
+                            <div className="relative w-12 h-12 transition-transform duration-500 group-hover:rotate-12">
+                                <Image
+                                    src="/logo-icon.svg"
+                                    alt="Asset Hatch Icon"
+                                    width={48}
+                                    height={48}
+                                    className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(194,123,160,0.5)]"
+                                    priority
+                                />
+                            </div>
+                            {/* Wordmark Text - Theme Aware */}
+                            <div className="h-12 flex items-center">
+                                {/* Dark Mode Logo */}
+                                <Image
+                                    src="/logo-text-recreated.svg"
+                                    alt="Asset Hatch"
+                                    width={240}
+                                    height={48}
+                                    className="hidden dark:block h-full w-auto object-contain brightness-125 drop-shadow-[0_2px_10px_rgba(74,124,126,0.3)]"
+                                    priority
+                                />
+                                {/* Light Mode Logo */}
+                                <Image
+                                    src="/logo-text-light.svg"
+                                    alt="Asset Hatch"
+                                    width={240}
+                                    height={48}
+                                    className="block dark:hidden h-full w-auto object-contain drop-shadow-[0_2px_10px_rgba(74,124,126,0.2)]"
+                                    priority
+                                />
+                            </div>
                         </Link>
 
                         {/* Navigation */}
@@ -65,18 +95,24 @@ export function Header() {
                                         <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/30 backdrop-blur-sm hover:bg-white/10 hover:border-red-500/40 transition-all duration-200">
                                             <Info className="h-4 w-4 text-red-400/80" />
                                             <span className="text-xs font-medium text-white/70">
-                                                Browser Storage
+                                                Browser Storage Demo
                                             </span>
                                         </button>
                                     </TooltipTrigger>
                                     <TooltipContent
                                         side="bottom"
-                                        className="max-w-[280px] bg-zinc-900/95 backdrop-blur-xl border-white/10 shadow-2xl"
+                                        className="max-w-[320px] bg-zinc-900/95 backdrop-blur-xl border-white/10 shadow-2xl"
                                     >
-                                        <div className="space-y-1.5">
-                                            <p className="font-semibold text-white">💾 Local Storage</p>
+                                        <div className="space-y-2">
+                                            <p className="font-semibold text-white">💾 Demo Mode - Local Storage Only</p>
                                             <p className="text-xs text-white/80 leading-relaxed">
-                                                Your generated images are stored in your browser. Export your projects before clearing browser data.
+                                                This is a <span className="font-semibold text-yellow-400">demo version</span> that stores all generated images in your browser&apos;s local storage (IndexedDB).
+                                            </p>
+                                            <p className="text-xs text-white/80 leading-relaxed">
+                                                ⚠️ Your data will be lost if you clear browser data, use incognito mode, or switch devices.
+                                            </p>
+                                            <p className="text-xs text-white/80 leading-relaxed">
+                                                <span className="font-semibold text-green-400">Always export your projects</span> as ZIP files to save your work permanently!
                                             </p>
                                         </div>
                                     </TooltipContent>

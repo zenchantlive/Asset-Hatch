@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asset Hatch - Brand Assets</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #1A0F2E 0%, #2D1B4E 25%, #1E3A5F 50%, #2D1B4E 75%, #1A0F2E 100%);
+      background-size: 400% 400%;
+      animation: aurora-shift 20s ease infinite;
+      min-height: 100vh;
+      color: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+    }
+
+    @keyframes aurora-shift {
+
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #C27BA0, #4A7C7E);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .assets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+
+    .asset-card {
+      background: rgba(74, 55, 104, 0.2);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(194, 123, 160, 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .asset-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(194, 123, 160, 0.2);
+    }
+
+    .asset-card img {
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 16px;
+    }
+
+    .asset-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .asset-card p {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 400;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .color-swatch {
+      background: rgba(74, 55, 104, 0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .color-swatch .swatch {
+      height: 80px;
+    }
+
+    .color-swatch .info {
+      padding: 12px;
+    }
+
+    .color-swatch h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .color-swatch code {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .light-bg {
+      background: #f5f5f5;
+      padding: 30px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Asset Hatch</h1>
+  <p class="subtitle">Brand Assets & Guidelines</p>
+
+  <div class="section">
+    <h2>Proposed Rebrand (Generated)</h2>
+    <div class="assets-grid">
+      <div class="asset-card" style="grid-column: span 2;">
+        <img src="logo-generated-v2.png" alt="Generated Logo Concept" style="max-height: 200px;">
+        <h3>Robot Generated Concept</h3>
+        <p>Full Generated Image</p>
+      </div>
+      <div class="asset-card"
+        style="grid-column: span 2; display: flex; align-items: center; justify-content: center; gap: 20px; background: rgba(0,0,0,0.3);">
+        <img src="../../src/public/logo-icon.svg" alt="Original Icon" style="height: 80px; width: 80px; margin: 0;">
+        <img src="../../src/public/logo-text-recreated.svg" alt="Recreated SVG Text"
+          style="height: 80px; width: auto; margin: 0;">
+      </div>
+      <div class="asset-card" style="grid-column: span 2; text-align: center;">
+        <h3>Hybrid Vector Logo (Final)</h3>
+        <p>Original Vector Icon + Recreated SVG Typography (Scalable & Transparent)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Logo Variations</h2>
+    <div class="assets-grid">
+      <div class="asset-card">
+        <img src="logo-full.svg" alt="Full Logo" style="max-height: 100px;">
+        <h3>Full Logo</h3>
+        <p>Icon + Wordmark</p>
+      </div>
+      <div class="asset-card">
+        <img src="logo-icon.svg" alt="Icon Logo" style="max-height: 180px;">
+        <h3>Icon Only</h3>
+        <p>512x512 Primary Icon</p>
+      </div>
+      <div class="asset-card">
+        <img src="logo-icon-circle.svg" alt="Circle Icon" style="max-height: 150px;">
+        <h3>Circle Icon</h3>
+        <p>Social Media Avatar</p>
+      </div>
+      <div class="asset-card">
+        <img src="logo-icon-circle.svg" alt="Circle Icon" style="max-height: 150px;">
+        <h3>Circle Icon</h3>
+        <p>Social Media Avatar</p>
+      </div>
+      <div class="asset-card">
+        <img src="logo-wordmark-dark.svg" alt="Wordmark" style="max-height: 50px;">
+        <h3>Wordmark Only</h3>
+        <p>Text Logo</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Color Palette</h2>
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="swatch" style="background: #2D1B4E;"></div>
+        <div class="info">
+          <h4>Deep Purple</h4><code>#2D1B4E</code>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch" style="background: #4A3768;"></div>
+        <div class="info">
+          <h4>Soft Purple</h4><code>#4A3768</code>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch" style="background: #3D5A80;"></div>
+        <div class="info">
+          <h4>Soft Blue</h4><code>#3D5A80</code>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch" style="background: #C27BA0;"></div>
+        <div class="info">
+          <h4>Aurora Pink</h4><code>#C27BA0</code>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch" style="background: #4A7C7E;"></div>
+        <div class="info">
+          <h4>Ethereal Teal</h4><code>#4A7C7E</code>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch" style="background: #1A0F2E;"></div>
+        <div class="info">
+          <h4>Void</h4><code>#1A0F2E</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>On Light Backgrounds</h2>
+    <div class="light-bg">
+      <div class="assets-grid" style="gap: 40px;">
+        <img src="logo-full.svg" alt="Full Logo"
+          style="max-height: 80px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));">
+        <img src="logo-icon-circle.svg" alt="Circle Icon"
+          style="max-height: 100px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));">
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

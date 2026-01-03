@@ -1,0 +1,38 @@
+$ eslint
+
+C:\Users\Zenchant\Asset-Hatch\src\app\api\generate\route.ts
+  148:15  warning  'parentAsset' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\components\generation\DirectionGrid.tsx
+  323:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  400:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Zenchant\Asset-Hatch\src\components\generation\VersionCarousel.tsx
+  96:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Zenchant\Asset-Hatch\src\components\generation\layouts\TabletLayout.tsx
+  44:11  warning  'generationContext' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  45:11  warning  'layoutContext' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\components\generation\panels\BatchControlsBar.tsx
+  66:9  warning  'executeAction' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\components\generation\panels\CategoryQueuePanel.tsx
+  17:51  warning  'Circle' is defined but never used          @typescript-eslint/no-unused-vars
+  21:30  warning  'getParentAsset' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\debug-prisma.ts
+  10:5   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  13:95  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:57  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:15  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\lib\sync.test.ts
+  6:5  warning  'syncProjectToClient' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Zenchant\Asset-Hatch\src\test-schema-validation.js
+  4:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 15 problems (4 errors, 11 warnings)
+
+error: script "lint" exited with code 1

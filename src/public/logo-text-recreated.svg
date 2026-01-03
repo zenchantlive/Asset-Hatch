@@ -1,0 +1,52 @@
+<svg width="400" height="120" viewBox="0 0 400 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&amp;display=swap');
+    </style>
+    
+    <!-- Gradients -->
+    <linearGradient id="textGradientHighlight" x1="0" y1="0" x2="1" y2="1">
+// ... existing gradients ...
+    </linearGradient>
+
+     <linearGradient id="hatchGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9d5b7f" /> <!-- Darker Pink -->
+      <stop offset="50%" stop-color="#C27BA0" />
+      <stop offset="100%" stop-color="#4A7C7E" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Group with text -->
+  <g transform="translate(10, 65)">
+    <!-- ASSET (White, Heavy Bold) -->
+    <text x="5" y="0" 
+          font-family="'Orbitron', sans-serif" 
+          font-weight="900" 
+          font-size="52" 
+          fill="#FFFFFF"
+          letter-spacing="1"
+          filter="url(#glow)">
+      ASSET
+    </text>
+
+    <!-- HATCH (Gradient, Bold) -->
+    <text x="205" y="0" 
+          font-family="'Orbitron', sans-serif" 
+          font-weight="700" 
+          font-size="52" 
+          fill="url(#hatchGradient)"
+          letter-spacing="1"
+          filter="url(#glow)">
+      HATCH
+    </text>
+  </g>
+</svg>

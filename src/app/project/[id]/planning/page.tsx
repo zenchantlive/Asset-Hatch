@@ -13,6 +13,11 @@ import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db
 import { db } from "@/lib/client-db"
 import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
 import { ExportPanel } from "@/components/export/ExportPanel"
+import { PlanPanel } from "@/components/ui/PlanPanel"
+import { StylePanel } from "@/components/ui/StylePanel"
+
+
+
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -26,7 +31,13 @@ export default function PlanningPage() {
   const [mode, setMode] = useState<PlanningMode>('planning')
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
   const [assetsMenuOpen, setAssetsMenuOpen] = useState(false)
+  const [modelsMenuOpen, setModelsMenuOpen] = useState(false)
+  const [planPanelOpen, setPlanPanelOpen] = useState(false)
+  const [stylePanelOpen, setStylePanelOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const chatRef = useRef<ChatInterfaceHandle>(null)
+
+
 
   // Style phase state
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
@@ -63,6 +74,15 @@ export default function PlanningPage() {
     // This effect is for initialization/restoration only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, searchParams, router])
+
+  // Detect mobile view
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
 
   // Load saved plan and qualities from memory files on mount
   useEffect(() => {
@@ -338,6 +358,30 @@ export default function PlanningPage() {
               >
                 Files
               </button>
+              {mode === 'generation' && (
+                <button
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/70"
+                  onClick={() => setModelsMenuOpen(true)}
+                >
+                  Models
+                </button>
+              )}
+              {mode === 'planning' && (
+                <button
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600/80 text-white"
+                  onClick={() => setPlanPanelOpen(true)}
+                >
+                  📄 Plan
+                </button>
+              )}
+              {mode === 'style' && (
+                <button
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600/80 text-white"
+                  onClick={() => setStylePanelOpen(true)}
+                >
+                  🎨 Style
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -358,7 +402,11 @@ export default function PlanningPage() {
       <div className="flex-1 flex overflow-hidden relative z-10">
         {mode === 'generation' ? (
           // Generation mode: Full-width GenerationQueue (no chat)
-          <GenerationQueue projectId={params.id as string} />
+          <GenerationQueue
+            projectId={params.id as string}
+            modelsMenuOpen={modelsMenuOpen}
+            onModelsMenuClose={() => setModelsMenuOpen(false)}
+          />
         ) : mode === 'export' ? (
           // Export mode: Full-width ExportPanel (no chat)
           <div className="w-full flex items-center justify-center p-8 bg-glass-bg/10">
@@ -367,46 +415,68 @@ export default function PlanningPage() {
             </div>
           </div>
         ) : (
-          // Plan and Style modes: Keep 50/50 split with chat
+          // Responsive layout for Plan and Style modes
           <>
-            <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
-              <ChatInterface
-                ref={chatRef}
-                qualities={qualities}
-                projectId={typeof params.id === 'string' ? params.id : ''}
-                onQualityUpdate={handleQualityUpdate}
-                onPlanUpdate={handlePlanUpdate}
-                onPlanComplete={handleApprovePlan}
-                onStyleDraftUpdate={handleStyleDraftUpdate}
-                onStyleAnchorGenerated={handleStyleAnchorGenerated}
-                onStyleFinalized={handleStyleFinalized}
-                mode={mode}
-              />
-            </div>
-
-            <div className="w-1/2 flex flex-col relative bg-glass-bg/10">
-              {mode === 'planning' && (
-                <PlanPreview
-                  markdown={planMarkdown}
-                  onEdit={handleEditPlan}
-                  onApprove={handleApprovePlan}
-                  isLoading={isApproving}
+            {isMobile ? (
+              // Mobile: Full-width Chat with view panels for Plan/Style
+              <div className="w-full flex flex-col h-full">
+                <ChatInterface
+                  ref={chatRef}
+                  qualities={qualities}
+                  projectId={typeof params.id === 'string' ? params.id : ''}
+                  onQualityUpdate={handleQualityUpdate}
+                  onPlanUpdate={handlePlanUpdate}
+                  onPlanComplete={handleApprovePlan}
+                  onStyleDraftUpdate={handleStyleDraftUpdate}
+                  onStyleAnchorGenerated={handleStyleAnchorGenerated}
+                  onStyleFinalized={handleStyleFinalized}
+                  mode={mode}
                 />
-              )}
+              </div>
+            ) : (
+              // Desktop: Keep 50/50 split with chat
+              <>
+                <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
+                  <ChatInterface
+                    ref={chatRef}
+                    qualities={qualities}
+                    projectId={typeof params.id === 'string' ? params.id : ''}
+                    onQualityUpdate={handleQualityUpdate}
+                    onPlanUpdate={handlePlanUpdate}
+                    onPlanComplete={handleApprovePlan}
+                    onStyleDraftUpdate={handleStyleDraftUpdate}
+                    onStyleAnchorGenerated={handleStyleAnchorGenerated}
+                    onStyleFinalized={handleStyleFinalized}
+                    mode={mode}
+                  />
+                </div>
 
-              {mode === 'style' && (
-                <StylePreview
-                  styleDraft={styleDraft}
-                  generatedAnchor={generatedAnchor}
-                  isGenerating={isGeneratingStyle}
-                  onFinalize={handleStyleFinalized}
-                  onGenerateStyleAnchor={handleGenerateStyleAnchor}
-                />
-              )}
-            </div>
+                <div className="w-1/2 flex flex-col relative bg-glass-bg/10">
+                  {mode === 'planning' && (
+                    <PlanPreview
+                      markdown={planMarkdown}
+                      onEdit={handleEditPlan}
+                      onApprove={handleApprovePlan}
+                      isLoading={isApproving}
+                    />
+                  )}
+
+                  {mode === 'style' && (
+                    <StylePreview
+                      styleDraft={styleDraft}
+                      generatedAnchor={generatedAnchor}
+                      isGenerating={isGeneratingStyle}
+                      onFinalize={handleStyleFinalized}
+                      onGenerateStyleAnchor={handleGenerateStyleAnchor}
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
+
 
       {/* Assets panel - slide-out from right side */}
       <AssetsPanel
@@ -420,6 +490,30 @@ export default function PlanningPage() {
         projectId={typeof params.id === 'string' ? params.id : ''}
         isOpen={filesMenuOpen}
         onClose={() => setFilesMenuOpen(false)}
+      />
+
+      {/* Plan panel - slide-out for mobile */}
+      <PlanPanel
+        isOpen={planPanelOpen}
+        onClose={() => setPlanPanelOpen(false)}
+        markdown={planMarkdown}
+        onEdit={handleEditPlan}
+        onApprove={handleApprovePlan}
+        onSendMessage={(msg) => chatRef.current?.sendMessage(msg)}
+        isLoading={isApproving}
+      />
+
+      {/* Style panel - slide-out for mobile */}
+      <StylePanel
+        isOpen={stylePanelOpen}
+        onClose={() => setStylePanelOpen(false)}
+        styleDraft={styleDraft}
+        generatedAnchor={generatedAnchor}
+        isGenerating={isGeneratingStyle}
+        onFinalize={handleStyleFinalized}
+        onGenerateStyleAnchor={handleGenerateStyleAnchor}
+        onSendMessage={(msg) => chatRef.current?.sendMessage(msg)}
+        isLoading={isApproving}
       />
     </div>
   )

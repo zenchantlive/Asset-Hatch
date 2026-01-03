@@ -14,11 +14,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react'
+
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { ParsedAsset } from '@/lib/prompt-builder'
-import { isDirectionVariant, getParentAsset } from '@/lib/direction-utils'
+import { isDirectionVariant } from '@/lib/direction-utils'
+
 
 // PHASE 7: Helper to check if asset is a direction variant (child)
 function isChildAsset(asset: ParsedAsset): boolean {
@@ -220,7 +222,7 @@ export function CategoryQueuePanel() {
 
                                                         {/* PHASE 7: Direction badge for parent assets */}
                                                         {hasChildren && (
-                                                            <span className="text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 mr-2">
+                                                            <span className="text-[0.625rem] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 mr-2">
                                                                 {directionChildren.length}-DIR: {approvedChildren}/{directionChildren.length} ✓
                                                             </span>
                                                         )}

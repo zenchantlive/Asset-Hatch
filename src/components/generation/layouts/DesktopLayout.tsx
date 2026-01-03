@@ -80,7 +80,7 @@ export function DesktopLayout() {
                 {/* 1. Left Sidebar: Category Queue */}
                 <div
                     style={{ width: `${sidebarWidth}%` }}
-                    className="flex-shrink-0 min-w-[250px] overflow-hidden"
+                    className="flex-shrink-0 min-w-[15.625rem] overflow-hidden"
                 >
                     <CategoryQueuePanel />
                 </div>

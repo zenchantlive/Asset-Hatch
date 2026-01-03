@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Aurora Gradient for Core Glow -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C27BA0" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#4A7C7E" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#3D5A80" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- Glass Surface Gradient -->
+    <linearGradient id="glassSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+    
+    <!-- Shell Gradient -->
+    <linearGradient id="shellGradient" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#4A3768" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#2D1B4E" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#1E3A5F" stop-opacity="0.9"/>
+    </linearGradient>
+    
+    <!-- Aurora Border Gradient -->
+    <linearGradient id="auroraBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="33%" stop-color="#4A7C7E"/>
+      <stop offset="66%" stop-color="#3D5A80"/>
+      <stop offset="100%" stop-color="#C27BA0"/>
+    </linearGradient>
+    
+    <!-- Blur Filter for Glow -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background Glow -->
+  <ellipse cx="256" cy="280" rx="140" ry="160" fill="url(#coreGlow)" filter="url(#glow)" opacity="0.6"/>
+  
+  <!-- Egg Shell Base -->
+  <path d="M256 60 
+           C 140 60, 80 180, 80 300 
+           C 80 400, 150 452, 256 452 
+           C 362 452, 432 400, 432 300 
+           C 432 180, 372 60, 256 60 Z" 
+        fill="url(#shellGradient)" 
+        stroke="url(#auroraBorder)" 
+        stroke-width="2"/>
+  
+  <!-- Glass Overlay -->
+  <path d="M256 60 
+           C 140 60, 80 180, 80 300 
+           C 80 400, 150 452, 256 452 
+           C 362 452, 432 400, 432 300 
+           C 432 180, 372 60, 256 60 Z" 
+        fill="url(#glassSheen)"/>
+  
+  <!-- Crack Opening Effect -->
+  <path d="M320 100 L340 140 L330 145 L355 180 L345 185 L360 210" 
+        stroke="#4A7C7E" 
+        stroke-width="3" 
+        fill="none" 
+        stroke-linecap="round"
+        filter="url(#softGlow)"/>
+  
+  <!-- AI Core - Hexagonal Node Network -->
+  <g filter="url(#softGlow)">
+    <!-- Central Hexagon -->
+    <polygon points="256,200 286,218 286,254 256,272 226,254 226,218" 
+             fill="none" 
+             stroke="#C27BA0" 
+             stroke-width="2.5"/>
+    
+    <!-- Inner Hexagon -->
+    <polygon points="256,215 271,225 271,247 256,257 241,247 241,225" 
+             fill="#C27BA0" 
+             fill-opacity="0.4"/>
+    
+    <!-- Radiating Nodes -->
+    <circle cx="256" cy="236" r="8" fill="#C27BA0"/>
+    <circle cx="206" cy="280" r="5" fill="#4A7C7E"/>
+    <circle cx="306" cy="280" r="5" fill="#4A7C7E"/>
+    <circle cx="226" cy="330" r="4" fill="#3D5A80"/>
+    <circle cx="286" cy="330" r="4" fill="#3D5A80"/>
+    <circle cx="256" cy="360" r="5" fill="#4A7C7E"/>
+    
+    <!-- Connection Lines -->
+    <line x1="256" y1="244" x2="206" y2="280" stroke="#C27BA0" stroke-width="1.5" stroke-opacity="0.7"/>
+    <line x1="256" y1="244" x2="306" y2="280" stroke="#C27BA0" stroke-width="1.5" stroke-opacity="0.7"/>
+    <line x1="206" y1="280" x2="226" y2="330" stroke="#4A7C7E" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="306" y1="280" x2="286" y2="330" stroke="#4A7C7E" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="226" y1="330" x2="256" y2="360" stroke="#3D5A80" stroke-width="1.5" stroke-opacity="0.5"/>
+    <line x1="286" y1="330" x2="256" y2="360" stroke="#3D5A80" stroke-width="1.5" stroke-opacity="0.5"/>
+  </g>
+  
+  <!-- Highlight Curve -->
+  <path d="M160 160 Q 200 100, 280 90" 
+        stroke="#FFFFFF" 
+        stroke-width="3" 
+        stroke-opacity="0.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+</svg>

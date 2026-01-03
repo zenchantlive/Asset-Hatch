@@ -7,6 +7,7 @@
 
 import type { ParsedAsset } from '@/lib/prompt-builder'
 import type { AssetGenerationState } from '@/lib/types/generation'
+import type { ActionBarState, SelectionContext } from '@/lib/types/action-bar'
 
 /**
  * Layout breakpoint configuration
@@ -119,4 +120,46 @@ export interface GenerationLayoutContextValue {
     totalEstimatedCost?: number
     /** Total actual cost for display */
     totalActualCost?: number
+
+    /** Action Bar State */
+    actionBarState?: ActionBarState
+
+    /** Execute the primary action */
+    executeAction?: () => void
+
+    /** Execute the secondary action */
+    executeSecondaryAction?: () => void
+
+    /** Update selection context manually if needed */
+    updateSelectionContext?: (context: SelectionContext) => void
+
+    /** Whether the direction grid is currently visible (for hiding global action bar) */
+    isDirectionGridVisible: boolean
+
+    /** Set direction grid visibility (called by DirectionGrid on mount/unmount) */
+    setDirectionGridVisible: (visible: boolean) => void
+
+    // === Direction Mode State ===
+
+    /** The parent asset that has directions (moveable asset) */
+    activeDirectionAsset: ParsedAsset | null
+
+    /** Set the active direction asset (called when entering direction mode) */
+    setActiveDirectionAsset: (asset: ParsedAsset | null) => void
+
+    /** Selected direction keys for batch generation */
+    selectedDirections: Set<string>
+
+    /** Update selected directions */
+    setSelectedDirections: (directions: Set<string>) => void
+
+    /** Generate the selected directions - main callback for action bar */
+    generateSelectedDirections: () => Promise<void>
+
+    /** Number of selected directions */
+    selectedDirectionCount: number
+
+    /** Whether direction generation is in progress */
+    isGeneratingDirections: boolean
 }
+

@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SignInModal, RegisterModal } from "@/components/auth";
 import { ArrowRight, Sparkles, Palette, Zap } from "lucide-react";
@@ -41,6 +42,17 @@ export default function Home() {
         {/* Hero Section */}
         <main className="text-center py-20">
           <div className="max-w-4xl mx-auto">
+            {/* Egg Icon - Branding Anchor */}
+            <div className="flex justify-center mb-8">
+              <Image
+                src="/logo-icon.svg"
+                alt="Asset Hatch"
+                width={100}
+                height={100}
+                className="drop-shadow-[0_0_30px_rgba(194,123,160,0.6)] animate-pulse"
+                priority
+              />
+            </div>
             <h2 className="text-6xl font-bold text-zinc-50 mb-6">
               AI-Powered Game Asset Studio
             </h2>

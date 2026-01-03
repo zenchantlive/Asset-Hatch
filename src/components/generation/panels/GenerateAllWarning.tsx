@@ -37,7 +37,7 @@ export function GenerateAllWarning({
 }: GenerateAllWarningProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] bg-black/95 border-yellow-500/50">
+            <DialogContent className="sm:max-w-[31.25rem] bg-black/95 border-yellow-500/50">
                 <DialogHeader>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-yellow-500/20 rounded-lg">

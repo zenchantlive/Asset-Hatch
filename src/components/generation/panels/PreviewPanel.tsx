@@ -38,6 +38,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+    // Carousel visibility state - can be closed/minimized
+    const [isCarouselVisible, setIsCarouselVisible] = useState(true)
     // State for local version selection (if versions available)
     // const [localVersionIndex, setLocalVersionIndex] = useState<number | null>(null)
 
@@ -241,7 +243,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Check for version carousel
     const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
-    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1
+    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1 && isCarouselVisible
 
     // Get the image URL if available
     const imageUrl = hasResult && assetState?.result?.imageUrl
@@ -299,8 +301,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             </Button>
                         )}
 
-                        {/* Approve/Reject - Visible when awaiting approval */}
-                        {isAwaitingApproval && (
+                        {/* Approve/Reject - Visible ONLY when awaiting approval (not approved) */}
+                        {isAwaitingApproval && !isApproved && (
                             <>
                                 <Button
                                     onClick={handleReject}
@@ -337,15 +339,21 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             onIndexChange={(index) => updateVersionIndex(asset.id, index)}
                             onApprove={handleApprove}
                             onReject={handleReject}
+                            onClose={() => setIsCarouselVisible(false)}
                             isSyncingCost={isSyncingCost}
                             syncError={syncErrors[asset.id]}
                         />
                     </div>
-                ) : asset.mobility.type === 'moveable' ? (
-                    // REDESIGN: For moveable assets, show DirectionGrid as main preview
+                ) : asset.mobility.type === 'moveable' || asset.directionState?.parentAssetId ? (
+                    // REDESIGN: For moveable assets OR direction children, show DirectionGrid as main preview
                     <div className="mb-2">
                         <DirectionGrid
-                            asset={asset}
+                            asset={
+                                // If this is a direction child, show the parent's grid
+                                asset.directionState?.parentAssetId
+                                    ? parsedAssets.find(a => a.id === asset.directionState?.parentAssetId) || asset
+                                    : asset
+                            }
                             onDirectionSelect={handleDirectionSelect}
                         />
                     </div>
@@ -403,17 +411,17 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                 {/* Mobility badges */}
                                 <p className="text-sm text-white/60">{asset.category}</p>
                                 {asset.mobility.type === 'moveable' && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
+                                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
                                         {asset.mobility.directions || 4}-DIR
                                     </span>
                                 )}
                                 {asset.mobility.type === 'animated' && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
+                                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
                                         ANIM:{asset.mobility.frames || '?'}
                                     </span>
                                 )}
                                 {asset.mobility.type === 'static' && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
+                                    <span className="px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
                                         STATIC
                                     </span>
                                 )}
@@ -422,8 +430,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
                             {/* Status badge with action buttons */}
                             <div className="flex items-center gap-2">
-                                {/* Approve button - show when awaiting approval */}
-                                {isAwaitingApproval && (
+                                {/* Approve button - show ONLY when awaiting approval (not approved) */}
+                                {isAwaitingApproval && !isApproved && (
                                     <button
                                         onClick={handleApprove}
                                         className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
@@ -433,8 +441,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                     </button>
                                 )}
 
-                                {/* Reject button - show when awaiting approval */}
-                                {isAwaitingApproval && (
+                                {/* Reject button - show ONLY when awaiting approval (not approved) */}
+                                {isAwaitingApproval && !isApproved && (
                                     <button
                                         onClick={handleReject}
                                         className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
@@ -460,8 +468,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                     </button>
                                 )}
 
-                                {/* Regenerate button - show when asset has been generated */}
-                                {(hasResult || hasError) && (
+                                {/* Regenerate button - show when approved OR has error (but NOT awaiting approval) */}
+                                {(isApproved || hasError) && !isAwaitingApproval && (
                                     <button
                                         onClick={handleGenerateImage}
                                         disabled={isGenerating}

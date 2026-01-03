@@ -144,8 +144,8 @@ function createAsset(spec: {
   mode: GenerationMode;
   projectId: string;
   assetIndex: number;
-}): ParsedAsset | ParsedAsset[] {
-  const { category, name, variantText, mode, projectId, assetIndex } = spec;
+}): ParsedAsset {
+  const { category, name, variantText, projectId, assetIndex } = spec;
 
   // Parse mobility tag from name (e.g., "[MOVEABLE:4] Farmer" -> mobility info + "Farmer")
   // Also uses category for smart fallback when no explicit tag is found
@@ -165,43 +165,25 @@ function createAsset(spec: {
 
   // Check if this is a multi-directional animation
   if (animationInfo.isMultiDirection) {
-    if (mode === 'composite') {
-      // COMPOSITE: One sprite sheet with all directions
-      return {
-        id: baseId,
-        category,
-        name: cleanName,
-        type: 'sprite-sheet',
-        description,
-        mobility,
-        variant: {
-          id: `${baseId}-composite`,
-          name: animationInfo.animationName || variantText || 'Default',
-          pose: animationInfo.pose,
-          animationType: animationInfo.animationType,
-          frameCount: animationInfo.frameCount || animationInfo.directionCount,
-          arrangementType: 'horizontally in a single row',
-        },
-      };
-    } else {
-      // GRANULAR: Individual assets for each direction
-      const directions = ['front', 'left', 'right', 'back'];
-      return directions.slice(0, animationInfo.directionCount).map((dir) => ({
-        id: `${baseId}-${dir}`,
-        category,
-        name: cleanName,
-        type: 'character-sprite' as AssetType,
-        description: `${description} ${dir} view`,
-        mobility,
-        variant: {
-          id: `${baseId}-${dir}`,
-          name: `${animationInfo.animationName || variantText} - ${capitalize(dir)}`,
-          pose: `${animationInfo.pose} ${dir} view`,
-          animationType: animationInfo.animationType,
-          direction: dir,
-        },
-      }));
-    }
+    // ALWAYS return a single parent asset (formerly 'composite' mode behavior)
+    // The DirectionGrid component now handles exploring directional variants dynamically.
+    // Creating multiple assets here would cause duplication in the Asset Queue.
+    return {
+      id: baseId,
+      category,
+      name: cleanName,
+      type: 'sprite-sheet',
+      description,
+      mobility,
+      variant: {
+        id: `${baseId}-composite`,
+        name: animationInfo.animationName || variantText || 'Default',
+        pose: animationInfo.pose,
+        animationType: animationInfo.animationType,
+        frameCount: animationInfo.frameCount || animationInfo.directionCount,
+        arrangementType: 'horizontally in a single row',
+      },
+    };
   }
 
   // Single variant asset
@@ -304,10 +286,20 @@ function parseMobilityTag(assetName: string, category?: string): {
   const moveableMatch = assetName.match(/^\[MOVEABLE:(\d+)\]\s*/i);
   const animMatch = assetName.match(/^\[ANIM:(\d+)\]\s*/i);
 
+  // Helper to clean name
+  const clean = (name: string): string => {
+    return name
+      .replace(/\*\*/g, '') // Remove bold **
+      .replace(/__/g, '')   // Remove bold __
+      .replace(/\*/g, '')   // Remove italic *
+      .replace(/_/g, '')    // Remove italic _
+      .trim();
+  };
+
   if (staticMatch) {
     return {
       mobility: { type: 'static' },
-      cleanName: assetName.replace(staticMatch[0], '').trim(),
+      cleanName: clean(assetName.replace(staticMatch[0], '')),
     };
   }
 
@@ -318,7 +310,7 @@ function parseMobilityTag(assetName: string, category?: string): {
         type: 'moveable',
         directions: dirCount === 8 ? 8 : 4, // Default to 4 if not 8
       },
-      cleanName: assetName.replace(moveableMatch[0], '').trim(),
+      cleanName: clean(assetName.replace(moveableMatch[0], '')),
     };
   }
 
@@ -329,12 +321,12 @@ function parseMobilityTag(assetName: string, category?: string): {
         type: 'animated',
         frames: frames > 0 ? frames : undefined,
       },
-      cleanName: assetName.replace(animMatch[0], '').trim(),
+      cleanName: clean(assetName.replace(animMatch[0], '')),
     };
   }
 
   // No explicit tag found - use smart fallback based on category and name
-  const cleanName = assetName.trim();
+  const cleanName = clean(assetName);
   const nameLower = cleanName.toLowerCase();
   const categoryLower = (category || '').toLowerCase();
 
@@ -472,12 +464,7 @@ function determineAnimationType(animationName: string): string | undefined {
   return undefined;
 }
 
-/**
- * Capitalize first letter
- */
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+
 
 /**
  * Example usage:

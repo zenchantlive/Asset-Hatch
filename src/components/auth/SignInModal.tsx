@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Github, Mail, Loader2 } from "lucide-react";
+import { ModalLogo } from "@/components/auth/ModalLogo";
 
 // =============================================================================
 // COMPONENT PROPS
@@ -99,7 +100,8 @@ export function SignInModal({
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
+                <DialogHeader className="flex flex-col items-center">
+                    <ModalLogo />
                     <DialogTitle className="text-2xl font-bold text-center">
                         Welcome Back
                     </DialogTitle>

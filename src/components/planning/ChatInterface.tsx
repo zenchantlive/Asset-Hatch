@@ -299,7 +299,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
-            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_30px_-10px_var(--color-primary)]">
+            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
@@ -387,7 +387,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                 onClick={() => setInput(preset.prompt)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap
                   ${preset.id === 'style-infer'
-                    ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_10px_-4px_var(--color-primary)]'
+                    ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_0.625rem_-0.25rem_var(--color-primary)]'
                     : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-white/70 hover:text-white'
                   }`}
               >

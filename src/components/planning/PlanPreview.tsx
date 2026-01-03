@@ -164,7 +164,7 @@ export function PlanPreview({ markdown, onEdit, onApprove, isLoading }: PlanPrev
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent opacity-50" />
 
             <div className="relative z-10 p-8 glass-panel border-white/5 max-w-md animate-float">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20 shadow-[0_0_30px_-5px_var(--color-primary)]">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20 shadow-[0_0_1.875rem_-0.3125rem_var(--color-primary)]">
                 <FileText className="w-8 h-8 text-primary" />
               </div>
 
@@ -201,7 +201,7 @@ export function PlanPreview({ markdown, onEdit, onApprove, isLoading }: PlanPrev
           <Button
             onClick={onApprove}
             disabled={!markdown || isLoading}
-            className="flex-1 max-w-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_-5px_var(--color-primary)] hover:shadow-[0_0_30px_-5px_var(--color-primary)] transition-all duration-300"
+            className="flex-1 max-w-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_1.25rem_-0.3125rem_var(--color-primary)] hover:shadow-[0_0_1.875rem_-0.3125rem_var(--color-primary)] transition-all duration-300"
           >
             Approve Plan
             <ArrowRight className="w-4 h-4 ml-2" />

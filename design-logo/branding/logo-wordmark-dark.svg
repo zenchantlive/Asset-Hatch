@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 55">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&amp;display=swap');
+    </style>
+    <linearGradient id="hatchGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="100%" stop-color="#4A7C7E"/>
+    </linearGradient>
+  </defs>
+  
+  <text x="0" y="42" font-family="Orbitron, sans-serif" font-size="42" font-weight="700" letter-spacing="8" fill="#FFFFFF" fill-opacity="0.95">ASSET</text>
+  <text x="220" y="42" font-family="Orbitron, sans-serif" font-size="42" font-weight="500" letter-spacing="8" fill="url(#hatchGrad)">HATCH</text>
+</svg>

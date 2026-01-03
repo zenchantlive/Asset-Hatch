@@ -185,7 +185,7 @@ export function MiniGridPanel({ compact = false }: MiniGridPanelProps) {
                                         {status === 'generating' ? (
                                             <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
                                         ) : (
-                                            <span className="text-[10px] text-white/40 text-center px-1 line-clamp-2">
+                                            <span className="text-[0.625rem] text-white/40 text-center px-1 line-clamp-2">
                                                 {asset.name.slice(0, 8)}
                                             </span>
                                         )}
@@ -194,10 +194,10 @@ export function MiniGridPanel({ compact = false }: MiniGridPanelProps) {
 
                                 {/* Status indicator dot */}
                                 <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${status === 'generating' ? 'bg-purple-500 animate-pulse' :
-                                        status === 'awaiting_approval' ? 'bg-amber-500' :
-                                            status === 'approved' ? 'bg-green-500' :
-                                                status === 'error' || status === 'rejected' ? 'bg-red-500' :
-                                                    'bg-white/30'
+                                    status === 'awaiting_approval' ? 'bg-amber-500' :
+                                        status === 'approved' ? 'bg-green-500' :
+                                            status === 'error' || status === 'rejected' ? 'bg-red-500' :
+                                                'bg-white/30'
                                     }`} />
                             </button>
                         )
@@ -207,7 +207,7 @@ export function MiniGridPanel({ compact = false }: MiniGridPanelProps) {
 
             {/* Footer with legend */}
             <div className="p-2 border-t border-white/10 bg-black/20">
-                <div className="flex items-center justify-center gap-3 text-[10px] text-white/50">
+                <div className="flex items-center justify-center gap-3 text-[0.625rem] text-white/50">
                     <span className="flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                         Done

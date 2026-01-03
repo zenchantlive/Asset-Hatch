@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4A3768"/>
+      <stop offset="100%" stop-color="#2D1B4E"/>
+    </radialGradient>
+    <linearGradient id="auroraBorderFav" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C27BA0"/>
+      <stop offset="50%" stop-color="#4A7C7E"/>
+      <stop offset="100%" stop-color="#C27BA0"/>
+    </linearGradient>
+    <filter id="glowFav" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Circle Background -->
+  <circle cx="16" cy="16" r="14" fill="url(#bgGrad)" stroke="url(#auroraBorderFav)" stroke-width="1.5"/>
+  
+  <!-- Simplified AI Core -->
+  <g filter="url(#glowFav)">
+    <polygon points="16,8 22,12 22,20 16,24 10,20 10,12" 
+             fill="none" 
+             stroke="#C27BA0" 
+             stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="3" fill="#C27BA0"/>
+    <circle cx="10" cy="22" r="1.5" fill="#4A7C7E"/>
+    <circle cx="22" cy="22" r="1.5" fill="#4A7C7E"/>
+    <line x1="16" y1="19" x2="10" y2="22" stroke="#C27BA0" stroke-width="1" stroke-opacity="0.7"/>
+    <line x1="16" y1="19" x2="22" y2="22" stroke="#C27BA0" stroke-width="1" stroke-opacity="0.7"/>
+  </g>
+</svg>

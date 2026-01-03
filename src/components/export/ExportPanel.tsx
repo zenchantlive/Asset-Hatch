@@ -83,10 +83,21 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                 approvedAssets.map(async (asset) => {
                     let imageBlob = '';
                     if (asset.image_blob) {
-                        // Convert Blob to base64
-                        const arrayBuffer = await asset.image_blob.arrayBuffer();
-                        const bytes = new Uint8Array(arrayBuffer);
-                        imageBlob = btoa(String.fromCharCode(...bytes));
+                        // Convert Blob to base64 using FileReader (avoids stack overflow)
+                        imageBlob = await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                if (typeof reader.result === 'string') {
+                                    // Remove data URL prefix (data:image/png;base64,)
+                                    const base64 = reader.result.split(',')[1];
+                                    resolve(base64);
+                                } else {
+                                    reject(new Error('Failed to read blob as data URL.'));
+                                }
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(asset.image_blob);
+                        });
                     }
                     return {
                         id: asset.id,

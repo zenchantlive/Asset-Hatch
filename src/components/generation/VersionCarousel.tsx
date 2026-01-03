@@ -9,7 +9,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react'
+import Image from 'next/image'
+
+import { ChevronLeft, ChevronRight, Check, X, AlertCircle, X as Close } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { AssetVersion } from '@/lib/client-db'
 
@@ -27,6 +29,8 @@ interface VersionCarouselProps {
   onApprove: (version: AssetVersion) => void;
   /** Callback when user rejects a version */
   onReject: (versionId: string) => void;
+  /** Optional callback to close/minimize the carousel */
+  onClose?: () => void;
   isSyncingCost?: boolean;
   syncError?: Error | null;
 }
@@ -42,6 +46,7 @@ export function VersionCarousel({
   onIndexChange,
   onApprove,
   onReject,
+  onClose,
   isSyncingCost = false,
   syncError = null,
 }: VersionCarouselProps) {
@@ -89,11 +94,22 @@ export function VersionCarousel({
     <div className="relative">
       {/* Main image display */}
       <div className="relative rounded-lg overflow-hidden bg-black/30 border border-white/10">
-        <img
-          src={imageUrl}
-          alt={`Version ${currentIndex + 1}`}
-          className="w-full h-auto"
-        />
+        {imageUrl ? (
+          <div className="relative aspect-square w-full">
+            <Image
+              src={imageUrl}
+              alt={`Version ${currentIndex + 1}`}
+              fill
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+
+        ) : (
+          <div className="w-full aspect-square flex items-center justify-center">
+            <span className="text-white/50 text-sm">Loading...</span>
+          </div>
+        )}
 
         {/* Navigation arrows (only if multiple versions) */}
         {versions.length > 1 && (
@@ -131,6 +147,18 @@ export function VersionCarousel({
           <div className="absolute top-2 right-2 px-3 py-1 rounded-full bg-black/70 backdrop-blur-sm text-xs text-white/80">
             v{currentIndex + 1} of {versions.length}
           </div>
+        )}
+
+        {/* Close/Minimize button (if onClose callback provided) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-2 left-2 p-1.5 rounded-full bg-black/70 backdrop-blur-sm hover:bg-black/90 text-white/80 hover:text-white transition-colors"
+            title="Close carousel"
+            aria-label="Close version carousel"
+          >
+            <Close className="w-4 h-4" />
+          </button>
         )}
       </div>
 
@@ -175,12 +203,12 @@ export function VersionCarousel({
             {isSyncingCost && (
               <div className="w-2.5 h-2.5 border-2 border-amber-300/30 border-t-amber-300 rounded-full animate-spin" />
             ) || (!isSyncingCost && !syncError && (
-              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
+              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_0.3125rem_rgba(34,197,94,0.5)]" />
             ))}
             {syncError && (
               <div className="flex items-center gap-1 text-red-400 group-hover:text-red-300 transition-colors cursor-help" title={`Sync failed: ${syncError.message}`}>
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold">ERR</span>
+                <span className="text-[0.625rem] font-bold">ERR</span>
               </div>
             )}
           </div>

@@ -188,8 +188,8 @@
 
   /* Global Scrollbar Styling */
   *::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
   }
 
   *::-webkit-scrollbar-track {
@@ -249,7 +249,7 @@
   }
 
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-0.625rem);
   }
 }
 

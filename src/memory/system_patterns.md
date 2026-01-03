@@ -177,6 +177,13 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     - **Regenerate:** Used when an asset already has a result or error. Icon: `RefreshCw`.
 * **Selection-Aware Actions:** Always check if an asset is part of a "Batch Selection" (`selectedIds`) before completing an action. If so, automatically deselect/remove it from the batch view upon success.
 
+### Mobile UX Patterns
+* **Chat-First Navigation**: On small screens, prioritize the AI conversation as the root view. Primary content (Plans, Styles, Models) should be accessed via high-visibility toolbar toggles.
+* **Full-Screen Slide-out Overlays**: Content panels on mobile must use `inset-0` (full screen) and slide-out from the right or bottom. This matches user expectations for "layered" navigation.
+* **Contextual Inputs**: Always provide a `CompactChatInput` within full-screen overlays so users can refine content without losing visual context.
+* **Flat Lists over Hierarchies**: Prefer flattened lists (e.g., `FlatAssetList`) on mobile to maximize vertical density and reduce header noise.
+
+
 ---
 
 ## 🧪 Testing Strategies

@@ -11,8 +11,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useGenerationContext } from '../GenerationQueue'
-import { useGenerationLayout } from '../GenerationLayoutContext'
+
 import { CategoryQueuePanel } from '../panels/CategoryQueuePanel'
 import { MiniGridPanel } from '../panels/MiniGridPanel'
 import { PreviewPanel } from '../panels/PreviewPanel'
@@ -41,8 +40,9 @@ export function TabletLayout() {
     const [rightTab, setRightTab] = useState<RightPanelTab>('preview')
 
     // Get contexts
-    const generationContext = useGenerationContext()
-    const layoutContext = useGenerationLayout()
+    // generationContext and layoutContext are currently unused in this layout
+    // but their providers wrap this component.
+
 
     return (
         <div className="flex flex-col h-full bg-glass-bg/10">
@@ -52,7 +52,7 @@ export function TabletLayout() {
             {/* Main content: 2-column layout */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left panel: Queue or Grid (40%) */}
-                <div className="w-2/5 min-w-[280px] border-r border-white/10 overflow-hidden flex flex-col">
+                <div className="w-2/5 min-w-[17.5rem] border-r border-white/10 overflow-hidden flex flex-col">
                     {/* Tab switcher */}
                     <div className="flex border-b border-white/10 bg-black/20">
                         <button
@@ -83,7 +83,7 @@ export function TabletLayout() {
                 </div>
 
                 {/* Right panel: Tabbed content (60%) */}
-                <div className="flex-1 min-w-[320px] overflow-hidden flex flex-col">
+                <div className="flex-1 min-w-[20rem] overflow-hidden flex flex-col">
                     {/* Tab switcher */}
                     <div className="flex border-b border-white/10 bg-black/20">
                         <button
