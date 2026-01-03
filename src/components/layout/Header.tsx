@@ -8,7 +8,9 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu, SignInModal, RegisterModal } from "@/components/auth";
 import { usePathname } from "next/navigation";
 
@@ -55,6 +57,33 @@ export function Header() {
 
                     {/* User Controls */}
                     <div className="flex items-center gap-4">
+                        {/* Storage Info Tooltip - Only show when authenticated */}
+                        {isAuthenticated && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/30 backdrop-blur-sm hover:bg-white/10 hover:border-red-500/40 transition-all duration-200">
+                                            <Info className="h-4 w-4 text-red-400/80" />
+                                            <span className="text-xs font-medium text-white/70">
+                                                Browser Storage
+                                            </span>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                        side="bottom"
+                                        className="max-w-[280px] bg-zinc-900/95 backdrop-blur-xl border-white/10 shadow-2xl"
+                                    >
+                                        <div className="space-y-1.5">
+                                            <p className="font-semibold text-white">💾 Local Storage</p>
+                                            <p className="text-xs text-white/80 leading-relaxed">
+                                                Your generated images are stored in your browser. Export your projects before clearing browser data.
+                                            </p>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+
                         {isLoading ? (
                             <div className="h-9 w-24 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-md" />
                         ) : isAuthenticated ? (

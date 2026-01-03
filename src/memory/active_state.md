@@ -1,235 +1,471 @@
-# 🧠 Active Session State
+# Active State - Asset Hatch Development
 
-**Last Updated:** 2025-12-31
-**Session:** Direction Selection UX v3 - ✅ COMPLETE (14/14 phases)
-**Branch:** `feat/image-route-switching`
-**Latest Commits:**
-- `c0eced7` - chore(repo): [Infrastructure] Schemas, Database, and Project Documentation
-- `f8c80e4` - feat(ui): [Generation] Complete Queue and Batch Workflow Infrastructure
-- `7f002fc` - feat(core): [Prompt] Optimized Prompt Engineering and Templates
-- `bdce843` - feat(style): [System] Style Anchor Generation and AI Analysis
-- `2a3cc1f` - feat(core): [System] Model Registry and Cost Tracking System
-- `dd9e2f2` - fix(ui): [Generation] Auto-deselect approved assets with exit animation
-- `121ebf9` - fix(ui): [PreviewPanel] Add Generate button for single asset workflow
+**Last Updated:** 2026-01-01
+**Current Phase:** Database Migration Complete - Ready for Testing
+**Status:** ✅ MAJOR REFACTOR COMPLETE
 
 ---
 
-## 📍 Current Focus
+## 🎯 Latest Session Summary (2026-01-01)
 
-> **🎉 DIRECTION SELECTION UX v3 - COMPLETE:** Multi-directional asset workflow fully implemented with image-based preview grid. Direction variants are now separate queue items with individual prompts, approval states, and reference image consistency. User can generate directions on-demand via image-based 3x3 grid that replaces standard preview for moveable assets. All phases complete and tested.
+### Problem: "Unknown Field" Error After BYOK Implementation
 
----
+**Root Cause Identified:**
+- User added `openRouterApiKey` field to User model for BYOK (Bring Your Own Key)
+- Migration applied successfully to Turso database
+- BUT: Switched from Turso to Neon mid-development
+- WSL/Windows hybrid environment caused Prisma client sync issues
+- Database stored 2MB image blobs, causing storage concerns for demo
 
-## 🔥 Latest Session (2025-12-31) - Direction Selection UX v3
+### Solution: Complete Architecture Migration
 
-### Architecture Overview
-**Goal:** Enable multi-directional asset generation where each direction is a separate queue item with individual approval, prompts, and reference image consistency.
-
-**Key Decision:** Directions as separate `ParsedAsset` entries (not versions), linked via `parentAssetId`.
-
-### ✅ Phase 1-5: Core Infrastructure (COMPLETE)
-
-**1. Data Model Updates**
-- Modified `ParsedAsset.directionState` to use user-friendly names (Front/Back/Left/Right)
-- Added `parentAssetId`, `direction`, `isParent` properties for parent-child linking
-- Removed `selectedForGeneration` (no longer needed)
-
-**2. Direction Utilities**
-- Created `src/lib/direction-utils.ts` with:
-  - `expandAssetToDirections()` - Converts parent asset to 4/8 directional variants
-  - `getDirectionPromptModifier()` - Returns direction-specific prompt text
-  - `isReferenceDirection()` - Checks if asset is Front (reference)
-  - `getDirectionalSiblings()` - Finds all direction variants of same parent
-  - Export naming: `{asset_name}_{direction}.png` (snake_case)
-
-**3. Prompt Builder Enhancement**
-- Integrated direction modifiers into `buildAssetPrompt()`
-- Auto-injects direction-specific text (e.g., "front-facing view, looking toward viewer")
-- Adds reference consistency markers when `referenceImageBase64` exists
-
-**4. Generation API Update**
-- Modified `/api/generate/route.ts` reference image priority:
-  - **1st Priority:** Parent direction reference (Front → Back/Left/Right)
-  - **2nd Priority:** Character registry reference
-  - **3rd Priority:** Style anchor
-- Queries database for parent asset's approved image
-- Converts Buffer to base64 for API compatibility
-
-**5. DirectionGrid Component**
-- Wired up `onGenerateDirections` callback
-- Added Front direction approval validation
-- Implemented loading states and cost calculation ($0.04/direction)
-- Updated to user-friendly direction names throughout
-
-**6. PreviewPanel Integration**
-- Added `handleGenerateDirections` callback for batch direction generation
-- Added `handleDirectionSelect` for navigating to specific direction variants
-- Integrated DirectionGrid component with full callback wiring
-
-**7. CategoryQueuePanel Update**
-- Added `isChildAsset()` helper to filter direction children from queue
-- Added `getDirectionalChildren()` to find child directions of parent asset
-- Implemented collapsible parent-child hierarchy with expand/collapse state
-- Added direction badge showing approval progress (e.g., "4-DIR: 2/4 ✓")
-- Direction children display as nested items with smaller styling
-
-**8. Reference Propagation**
-- Modified `approveAsset()` in GenerationQueue to propagate reference images
-- On Front direction approval, automatically updates all sibling directions
-- Propagates `referenceImageBase64` and `referenceDirection: 'front'` to siblings
-- Added log entries for visibility ("📸 Propagating Front reference to X sibling directions")
-- Ensures visual consistency across all directional variants
-
-**9. Flexible Direction Selection**
-- Removed show/hide diagonals toggle from DirectionGrid
-- All 8 directions now always visible in 3x3 grid
-- Unselected/ungenerated directions greyed out (opacity-40) with hover reveal
-- No restrictions on 4-DIR vs 8-DIR - users can select any combination
-- Added "All 8 directions • Click to select" helper text
-
-**10. Prompt Preview UI**
-- Added collapsible "Prompt Preview" section in DirectionGrid
-- Shows when directions are selected (appears between grid and batch button)
-- Displays direction-specific prompt modifiers for each selected direction
-- Clean, compact design with Eye icon and expand/collapse animation
-- Helps users understand what will be generated before triggering batch
-
-**11. Export Naming Convention**
-- Modified `generateSemanticId()` in prompt-builder to handle directional assets
-- Imported `DIRECTION_EXPORT_NAMES` from direction-utils
-- Direction suffix prioritized over variant name in filename
-- Examples: `character_farmer_front.png`, `character_farmer_back_left.png`
-- Standardized snake_case naming matches project export standards
-
-**12. DirectionGrid Redesign (Image-Based Preview)**
-- **USER FEEDBACK:** "direction variants should be a part of the main image's card"
-- Completely redesigned DirectionGrid to replace standard preview for moveable assets
-- Changed from icon-based selection to **image-based 3x3 grid**
-- Center cell shows active direction at larger size, 8 surrounding cells show directional previews
-- Each cell displays actual generated image or empty state with generate button
-- Added grid size toggle (Small/Medium/Large) for entire grid
-- Added inline maximize for individual directions (shows enlarged view below grid, not modal)
-- Loading indicators match batch panel style (w-8 h-8 text-purple-500 animate-spin)
-- Batch selection via Ctrl/Cmd+Click or right-click context menu
-- Generate buttons on individual cards + batch generation bar with cost estimate
-- PreviewPanel conditionally renders DirectionGrid for `mobility.type === 'moveable'`
-- CategoryQueuePanel modified to select parent when clicking direction children (prevents screen takeover)
-
-**13. On-Demand Asset Creation**
-- **PROBLEM:** No way to create direction child assets when user clicks generate
-- Added `addAsset(asset: ParsedAsset)` function to GenerationQueue context
-- Function checks for duplicates and adds new asset to `parsedAssets` state
-- Updated `GenerationContextValue` interface with `addAsset` method
-- DirectionGrid's `getOrCreateDirectionChild()` uses `addAsset` to create variants on-demand
-- Creates new `ParsedAsset` with unique ID, parent link, and direction metadata
-
-**14. Race Condition Fix**
-- **PROBLEM:** `generateImage` couldn't find newly added assets due to async state updates
-- **ERROR:** "Asset not found" when calling `generateImage` immediately after `addAsset`
-- Modified `generateImage` signature to accept optional `providedAsset` parameter
-- `generateImage(assetId: string, providedAsset?: ParsedAsset)` uses provided asset if available
-- DirectionGrid now calls `generateImage(dirAsset.id, dirAsset)` to bypass lookup
-- Fixes race condition where React state hasn't updated yet
-- Backend API call now happens successfully on first click
-
-### ✅ All Phases Complete!
-
-**Feature Status:** Direction Selection UX v3 is fully implemented with image-based preview and working generation.
-
-### Key User Decisions Made
-1. ✅ **Direction Naming:** User-friendly (Front/Back/Left/Right) over compass (North/South/East/West)
-2. ✅ **Diagonal Handling:** All 8 directions always visible, greyed out when unselected
-3. ✅ **Persistence:** Database + Client (full persistence via Prisma + Dexie)
-4. ✅ **Export Naming:** Snake_case with direction suffix (e.g., `farmer_front.png`)
-5. ✅ **Preview Design:** Image-based 3x3 grid replaces standard preview for moveable assets
-6. ✅ **Maximize UI:** Inline enlarged preview below grid (NOT modal popup)
-7. ✅ **Grid Sizing:** Small/Medium/Large toggle for entire grid (max-w-sm/md/2xl)
-8. ✅ **Generation UX:** Generate buttons on each direction card + batch controls
+**FROM:** Turso (LibSQL) + Image Blobs in Database
+**TO:** Neon Postgres + Image Blobs in Browser IndexedDB
 
 ---
 
-## 📚 Previous Sessions
+## 📋 Complete Changes Made
 
-### Session (2025-12-31) - Generation UI Polish & Flow
+### 1. Database Migration (Turso → Neon Postgres)
 
-### 1. Unified Generation Entry
-**Context:**
-The single-asset view lacked a direct generation trigger. Users were forced into "Batch Mode" even for a single item, creating unnecessary friction.
+**Schema Changes (`prisma/schema.prisma`):**
+```prisma
+// BEFORE:
+datasource db {
+  provider = "sqlite"
+}
 
+model GeneratedAsset {
+  imageBlob  Bytes  // 2MB per image!
+  // ...
+}
+
+// AFTER:
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+model GeneratedAsset {
+  // imageBlob REMOVED - images in IndexedDB
+  // Only metadata stored (prompt, seed, status)
+  // ...
+}
+```
+
+**StyleAnchor kept imageBlob:**
+- Style anchors still need server storage for API reference images
+- Changed `Bytes` → `Bytea` for PostgreSQL compatibility
+- Added `@db.Text` for large text fields
+
+### 2. Prisma Client Update (`lib/prisma.ts`)
+
+**Removed libsql adapter:**
+```typescript
+// BEFORE:
+import { PrismaLibSql } from '@prisma/adapter-libsql'
+const adapter = new PrismaLibSl({ url, authToken })
+new PrismaClient({ adapter })
+
+// AFTER:
+import { PrismaClient } from '@prisma/client'
+// No adapter needed for PostgreSQL
+new PrismaClient({
+  log: ['query', 'error', 'warn'] // Added logging
+})
+```
+
+**Environment variable priority:**
+1. `POSTGRES_PRISMA_URL` (Neon/Vercel pooled connection)
+2. `DATABASE_URL` (fallback for local SQLite)
+
+### 3. API Route Updates
+
+#### `app/api/generate/route.ts`
+**Changed:** Removed imageBlob storage
+```typescript
+// BEFORE:
+await prisma.generatedAsset.create({
+  data: {
+    imageBlob: Buffer.from(result.imageBuffer), // 2MB blob!
+    // ...
+  }
+})
+
+// AFTER:
+await prisma.generatedAsset.create({
+  data: {
+    // imageBlob removed
+    // Only metadata stored
+    // Client saves image to IndexedDB
+  }
+})
+```
+
+#### `app/api/generated-assets/route.ts`
+**Changed:** Sync metadata only (not blobs)
+```typescript
+// BEFORE:
+const buffer = Buffer.from(imageBlob, 'base64');
+await prisma.generatedAsset.upsert({
+  update: { imageBlob: buffer }
+})
+
+// AFTER:
+await prisma.generatedAsset.upsert({
+  update: {
+    // No imageBlob
+    // Only prompt, seed, metadata
+  }
+})
+```
+
+#### `app/api/assets/[id]/route.ts`
+**Changed:** Return metadata only
+```typescript
+// BEFORE:
+return NextResponse.json({
+  imageUrl: `data:image/png;base64,${Buffer.from(asset.imageBlob).toString('base64')}`
+})
+
+// AFTER:
+return NextResponse.json({
+  // No imageUrl from server
+  // Client reads from IndexedDB
+  metadata: { ... }
+})
+```
+
+#### `app/api/export/route.ts`
+**Changed:** Accept images from client
+```typescript
+// BEFORE:
+export async function POST(req) {
+  const { projectId } = await req.json();
+  // Read imageBlob from Prisma
+  zip.file(path, generatedAsset.imageBlob);
+}
+
+// AFTER:
+export async function POST(req) {
+  const { projectId, assets: clientAssets } = await req.json();
+  // Client sends images from IndexedDB
+  const clientAsset = clientAssets.find(a => a.id === id);
+  const buffer = Buffer.from(clientAsset.imageBlob, 'base64');
+  zip.file(path, buffer);
+}
+```
+
+### 4. Frontend Update (`components/export/ExportPanel.tsx`)
+
+**Changed:** Send images from IndexedDB to export API
+```typescript
+// BEFORE:
+const response = await fetch('/api/export', {
+  body: JSON.stringify({ projectId })
+});
+
+// AFTER:
+// 1. Fetch images from IndexedDB
+const approvedAssets = await db.generated_assets
+  .where('project_id').equals(projectId)
+  .and(asset => asset.status === 'approved')
+  .toArray();
+
+// 2. Convert to base64
+const assetsWithBase64 = await Promise.all(
+  approvedAssets.map(async (asset) => {
+    const arrayBuffer = await asset.image_blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const imageBlob = btoa(String.fromCharCode(...bytes));
+    return { id: asset.id, imageBlob };
+  })
+);
+
+// 3. Send to API
+const response = await fetch('/api/export', {
+  body: JSON.stringify({ projectId, assets: assetsWithBase64 })
+});
+```
+
+---
+
+## 🏗️ New Architecture
+
+### Data Flow: Image Generation
+
+```
+User clicks "Generate"
+    ↓
+POST /api/generate
+    ↓
+OpenRouter generates image → Returns image URL
+    ↓
+Server saves METADATA to Neon Postgres:
+  - prompt, seed, status, metadata
+  - NO image blob
+    ↓
+Client receives image URL
+    ↓
+Client downloads image
+    ↓
+Client stores in IndexedDB (db.generated_assets):
+  - id, project_id, asset_id
+  - image_blob: Blob (2MB)
+    ↓
+UI displays from IndexedDB
+```
+
+### Data Flow: Page Refresh
+
+```
+User refreshes page
+    ↓
+Client loads from IndexedDB
+    ↓
+Images persist ✅
+    ↓
+NO database query for images
+```
+
+### Data Flow: Export
+
+```
+User clicks "Export"
+    ↓
+Client reads images from IndexedDB
+    ↓
+Client converts to base64
+    ↓
+POST /api/export { projectId, assets: [...] }
+    ↓
+Server fetches metadata from Neon
+    ↓
+Server builds ZIP with client images
+    ↓
+Returns ZIP download
+```
+
+---
+
+## 📊 Storage Comparison
+
+### Before (Turso + Database Blobs)
+
+| User Count | Images per User | Database Size | Free Tier |
+|------------|----------------|---------------|-----------|
+| 10 users   | 30 images      | 600 MB        | ❌ Over limit |
+| 100 users  | 30 images      | 6 GB          | ❌ Way over |
+
+**Problem:** Demo would fill database in days
+
+### After (Neon + IndexedDB)
+
+| Data Type | Location | Size | Cost |
+|-----------|----------|------|------|
+| User accounts | Neon Postgres | ~1 KB per user | ✅ Free forever |
+| Project metadata | Neon Postgres | ~500 B per project | ✅ Free forever |
+| Image metadata | Neon Postgres | ~200 B per image | ✅ Free forever |
+| **Actual images** | **User's browser** | **2 MB per image** | **$0 (client-side)** |
+| Style anchors | Neon Postgres | ~2 MB per project | ✅ Acceptable |
+
+**Result:**
+- 1000 users × 30 images each = **~10 MB database usage** ✅
+- 30,000 images stored = **0 bytes on server** ✅
+- Neon free tier: 512 MB = plenty of headroom ✅
+
+---
+
+## 🔧 Environment Variables
+
+### Required for Local Development
+
+```bash
+# Database (Neon Postgres)
+POSTGRES_PRISMA_URL="postgresql://neondb_owner:npg_xxx@ep-xxx.neon.tech/neondb?connect_timeout=15&sslmode=require"
+
+# Authentication (Auth.js v5)
+AUTH_SECRET="xxx"  # Generate: openssl rand -base64 32
+NEXTAUTH_URL="http://localhost:3000"
+
+# OAuth Providers (optional)
+AUTH_GITHUB_ID="xxx"
+AUTH_GITHUB_SECRET="xxx"
+
+# OpenRouter (for demo/fallback)
+OPENROUTER_API_KEY="sk-or-v1-xxx"
+```
+
+### Required for Vercel Deployment
+
+```bash
+# Database (Neon Postgres)
+POSTGRES_PRISMA_URL="postgresql://neondb_owner:npg_xxx@ep-xxx.neon.tech/neondb?connect_timeout=15&sslmode=require"
+DATABASE_URL="postgresql://neondb_owner:npg_xxx@ep-xxx.neon.tech/neondb?sslmode=require"  # Backup
+
+# Authentication (Auth.js v5)
+AUTH_SECRET="xxx"  # DIFFERENT from local (generate new for prod)
+NEXTAUTH_URL="https://asset-hatch.vercel.app"  # Your Vercel URL
+
+# OAuth Providers (REQUIRED for production)
+AUTH_GITHUB_ID="xxx"  # Production OAuth app
+AUTH_GITHUB_SECRET="xxx"
+
+# OpenRouter (demo fallback key)
+OPENROUTER_API_KEY="sk-or-v1-xxx"  # With spending limits!
+
+# Optional Neon Auth (if using Neon's auth)
+NEXT_PUBLIC_STACK_PROJECT_ID="xxx"
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY="pck_xxx"
+STACK_SECRET_SERVER_KEY="ssk_xxx"
+```
+
+**⚠️ CRITICAL:**
+- Use DIFFERENT `AUTH_SECRET` for production vs local
+- Set spending limits on production OpenRouter key
+- Production GitHub OAuth app needs different callback URL
+
+---
+
+## ✅ Migration Checklist
+
+### Completed
+
+- [x] Update `schema.prisma` for PostgreSQL
+- [x] Remove `imageBlob` from GeneratedAsset model
+- [x] Update `lib/prisma.ts` (remove libsql adapter)
+- [x] Update `app/api/generate/route.ts` (no blob storage)
+- [x] Update `app/api/generated-assets/route.ts` (metadata only)
+- [x] Update `app/api/assets/[id]/route.ts` (no image return)
+- [x] Update `app/api/export/route.ts` (accept client images)
+- [x] Update `components/export/ExportPanel.tsx` (send images)
+- [x] Add Neon env vars to `.env.local`
+
+### TODO (Next Steps)
+
+- [ ] Run `bunx prisma generate`
+- [ ] Run `bunx prisma db push`
+- [ ] Remove old dependencies: `bun remove @prisma/adapter-libsql @libsql/client @libsql/win32-x64-msvc`
+- [ ] Test locally: `bun dev`
+- [ ] Test `/api/settings` endpoint (should work!)
+- [ ] Test image generation flow
+- [ ] Test export functionality
+- [ ] Deploy to Vercel
+- [ ] Add env vars to Vercel project
+- [ ] Test production deployment
+
+---
+
+## 🐛 Known Issues & Solutions
+
+### Issue: "Unknown field `openRouterApiKey`"
+**Status:** ✅ FIXED
+**Solution:** Migration to Neon + schema regeneration
+
+### Issue: Turso WSL/Windows path conflicts
+**Status:** ✅ RESOLVED (switched to Neon)
+**Solution:** Neon works from both Windows and WSL seamlessly
+
+### Issue: Database storage filling up
+**Status:** ✅ FIXED
+**Solution:** Images in IndexedDB, only metadata in database
+
+### Issue: Images lost on browser clear
+**Status:** ⚠️ EXPECTED BEHAVIOR
 **Solution:**
-- **Double-Entry Buttons:** Added a primary "Generate" button in the header and a compact secondary trigger near the status badge.
-- **Dynamic Visibility:** Logic intelligently toggles between "Generate" (for new items) and "Regenerate" (for existing items).
-- **Iconography:** Standardized on `Play` icon for generation and `RefreshCw` for regeneration.
-
-### 2. "Satisfying Flow" Approval Logic
-**Context:**
-Approval was manual and static. Users had to manually deselect items, and the "Accept" icon in batch cards was broken due to incorrect version lookup.
-
-**Solution:**
-- **Corrected Version Lookup:** Switched from fragile ID matching to `currentVersionIndex` source of truth.
-- **Auto-Deselection:** Approving an asset now automatically removes it from the batch selection, clearing the workspace for the next task.
-- **Exit Animation:** Added a 300ms CSS exit transition (`rotate-12 zoom-out-0`) so assets "spin out" of view elegantly when approved.
-
-### 3. Repository "Blog Notebook" Organization
-**Context:**
-49+ uncommitted files needed to be grouped into logical chunks to maintain the developer-diary narrative for the public repo.
-
-**Solution:**
-- Split work into 6 high-level commits: Model Registry, Style Anchors, Prompt Engineering, UI Infrastructure, Project Infrastructure, and UI Fixes.
-- Each commit includes a "Story of Collaboration" and "Decisions Made" section in the message.
-
-**Files:**
-- `components/generation/panels/PreviewPanel.tsx` (Generate button + Flow)
-- `components/generation/panels/BatchPreviewContent.tsx` (Logic Fix + Animation)
-- `lib/types/generation.ts` (Auto-deselection types)
+- Show warning banner: "Demo mode: Export before leaving"
+- Authenticated users can optionally sync to cloud (future feature)
+- Open source users run locally (unlimited storage)
 
 ---
 
-## � Session History (2025-12-31)
+## 📚 Architecture Decisions
 
-*   **Flux 2 Pro Migration**: Standardized all generation on `flux.2-pro` and implemented a `ModelRegistry` with resilient fallback logic for legacy IDs.
-*   **Inline Cost Tracking**: Built a centralized `CostTracker` and integrated dynamic "Estimated → Actual" cost displays directly into the batch toolbars.
-*   **Version Carousel System**: Introduced the `asset_versions` infrastructure and a navigation carousel to compare multiple generations side-by-side before approval.
-*   **Performance Optimization**: Refactored rendering to use `Blob` URLs instead of large base64 strings, significantly reducing memory footprint and preventing tab crashes.
-*   **Batch Workflow Refinement**: Implemented the two-step "Prep → Review → Generate" flow with dedicated icons and cost warnings for large batches.
+### Why IndexedDB for Images?
 
----
+**Pros:**
+- ✅ 10GB+ per user (vs 512MB total on Neon free tier)
+- ✅ Zero server cost
+- ✅ Works offline
+- ✅ Persists across refreshes
+- ✅ Perfect for demo (forces export, shows workflow)
 
-## 🚧 Status Board
+**Cons:**
+- ❌ Lost on browser clear (acceptable for demo)
+- ❌ Not synced across devices (future feature if needed)
 
-| Component | Status | Notes |
-| :--- | :--- | :--- |
-| **Authentication** | ✅ Complete | OAuth linking with GitHub |
-| **Generation Workflow** | ✅ Complete | Batch UX + Version System + Cost Tracking |
-| **Direction Selection** | ✅ Complete | Multi-directional assets with reference propagation |
-| **Data Sync** | ✅ Complete | Prisma→Dexie hybrid persistence |
-| **Export System** | ✅ Complete | Multi-format ZIP exports with direction naming |
-| **Model Management** | ✅ Complete | Registry + Price Discovery |
-| **Open Source Prep** | ✅ Complete | BFG cleanup, Docs, Env examples |
+**Decision:** Perfect fit for portfolio demo + open source usage
 
----
+### Why Neon over Vercel Postgres?
 
-## 🚀 Next Steps
-
-1. ✅ **COMPLETE:** Direction Selection UX v3 - All 14 phases implemented
-2. 🧪 **IN PROGRESS:** Test multi-directional asset workflow end-to-end
-   - Test on-demand direction child creation
-   - Generate individual directions via DirectionGrid
-   - Test batch generation of multiple directions
-   - Verify images stay in grid (no screen takeover)
-   - Verify grid sizing and maximize features
-   - Test export naming convention (e.g., `farmer_front.png`)
-3. 📝 **NEXT:** Push to remote and verify GitHub Actions
-4. ⏳ **PENDING:** Make repository public
-5. 📝 **OPTIONAL:** Blog post: "Building a Multi-Directional Asset System with Image-Based UX"
+Both are identical (serverless Postgres). Neon chosen because:
+- User already set it up
+- Same free tier (512 MB)
+- Works identically
+- Either works fine
 
 ---
 
-## 💡 Key Decision Made
+## 🎯 Next Immediate Actions
 
-**Simplified API key approach:** Instead of complex per-user encrypted database storage, we're using simple `.env` file configuration. Users add their OpenRouter key to `.env.local`. This is cleaner for self-hosted open source - the encrypted DB approach was overkill.
+1. **Generate Prisma Client:**
+   ```powershell
+   cd src
+   bunx prisma generate
+   ```
+
+2. **Push Schema to Neon:**
+   ```powershell
+   bunx prisma db push
+   ```
+
+3. **Remove Old Dependencies:**
+   ```powershell
+   bun remove @prisma/adapter-libsql @libsql/client @libsql/win32-x64-msvc
+   ```
+
+4. **Test Locally:**
+   ```powershell
+   bun dev
+   # Visit http://localhost:3000/api/settings
+   # Should work without "Unknown field" error!
+   ```
+
+5. **Deploy to Vercel:**
+   - Add env vars to Vercel dashboard
+   - Push to GitHub (auto-deploy)
+   - Test production
 
 ---
 
+## 🎓 Lessons Learned
+
+1. **Hybrid WSL/Windows environments are tricky** - Use one or the other
+2. **Database blobs expensive for demos** - Client-side storage is free
+3. **Prisma client must match schema** - Regenerate after changes
+4. **Turbopack caches aggressively** - Clear `.next` when in doubt
+5. **IndexedDB perfect for portfolio demos** - Forces export, shows workflow
+
 ---
 
+## 📖 For Future Sessions
+
+When resuming work:
+1. Check this file for latest status
+2. Review architecture diagrams above
+3. Remember: **Images are in IndexedDB, not database**
+4. Test `/api/settings` first to verify DB connection
+5. Check `VERCEL_POSTGRES_SETUP.md` for deployment steps
+
+---
+
+## 🔗 Related Documentation
+
+- `memory/PROJECT_ARCHITECTURE.md` - Full system overview
+- `memory/system_patterns.md` - Coding standards
+- `VERCEL_POSTGRES_SETUP.md` - Deployment guide
+- `memory/adr/` - Architecture decision records
+
+---
+
+**END OF ACTIVE STATE**

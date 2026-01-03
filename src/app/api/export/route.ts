@@ -15,18 +15,30 @@ import type { ExportManifest, ExportAssetMetadata } from '@/lib/types';
 
 /**
  * POST /api/export
- * 
- * Request body: { projectId: string }
+ *
+ * Request body: {
+ *   projectId: string,
+ *   assets: Array<{ id: string, imageBlob: string (base64) }>
+ * }
  * Returns: ZIP file as blob
+ *
+ * Note: Images must be sent from client IndexedDB since they're no longer in database
  */
 export async function POST(req: NextRequest) {
     try {
-        // Parse request body
-        const { projectId } = await req.json();
+        // Parse request body (now includes images from client)
+        const { projectId, assets: clientAssets } = await req.json();
 
         if (!projectId) {
             return NextResponse.json(
                 { error: 'Project ID is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!clientAssets || !Array.isArray(clientAssets) || clientAssets.length === 0) {
+            return NextResponse.json(
+                { error: 'No assets provided. Images must be sent from client IndexedDB.' },
                 { status: 400 }
             );
         }
@@ -177,8 +189,15 @@ export async function POST(req: NextRequest) {
             // Add to manifest
             manifest.assets.push(assetMetadata);
 
-            // Add asset image to ZIP
-            zip.file(filePath, generatedAsset.imageBlob);
+            // Get image from client-provided assets (images are in IndexedDB, not database)
+            const clientAsset = clientAssets.find((a: { id: string }) => a.id === generatedAsset.id);
+            if (clientAsset && clientAsset.imageBlob) {
+                // Convert base64 to Buffer for ZIP
+                const imageBuffer = Buffer.from(clientAsset.imageBlob, 'base64');
+                zip.file(filePath, imageBuffer);
+            } else {
+                console.warn(`⚠️ Missing image for asset ${generatedAsset.id}`);
+            }
         }
 
         // Add manifest.json to ZIP root

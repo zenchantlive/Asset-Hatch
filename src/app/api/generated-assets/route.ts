@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/generated-assets
- * 
- * Syncs approved assets from client (Dexie) to server (Prisma)
+ *
+ * Syncs approved asset METADATA from client (Dexie) to server (Prisma)
+ * Images stay in IndexedDB - only metadata is synced
  * Called when user approves an asset in GenerationQueue
  */
 export async function POST(req: NextRequest) {
@@ -13,29 +14,26 @@ export async function POST(req: NextRequest) {
             id,
             projectId,
             assetId,
-            imageBlob, // base64 string
+            variantId,
             promptUsed,
             seed,
             metadata,
             status,
         } = await req.json();
 
-        // Validate required fields
-        if (!id || !projectId || !assetId || !imageBlob) {
+        // Validate required fields (imageBlob no longer required)
+        if (!id || !projectId || !assetId) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
             );
         }
 
-        // Convert base64 to Buffer for Prisma Bytes field
-        const buffer = Buffer.from(imageBlob, 'base64');
-
-        // Create or update the generated asset in Prisma
+        // Create or update the generated asset metadata in Prisma
+        // Image blob stays in client IndexedDB
         const generatedAsset = await prisma.generatedAsset.upsert({
             where: { id },
             update: {
-                imageBlob: buffer,
                 promptUsed: promptUsed || '',
                 seed: seed || 0,
                 metadata: metadata ? JSON.stringify(metadata) : '{}',
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
                 id,
                 projectId,
                 assetId,
-                imageBlob: buffer,
+                variantId: variantId || '',
                 promptUsed: promptUsed || '',
                 seed: seed || 0,
                 metadata: metadata ? JSON.stringify(metadata) : '{}',

@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, Settings } from "lucide-react";
 import { CreateProjectButton } from "@/components/dashboard/CreateProjectButton";
 
 // =============================================================================
@@ -59,7 +59,14 @@ export default async function DashboardPage() {
                         </div>
                     </div>
 
-                    <CreateProjectButton />
+                    <div className="flex items-center gap-2">
+                        <Link href="/settings">
+                            <Button variant="ghost" size="icon" title="Settings">
+                                <Settings className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <CreateProjectButton />
+                    </div>
                 </header>
 
                 {/* Projects grid */}

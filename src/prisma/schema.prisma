@@ -9,7 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  // No url needed - connection handled by Neon adapter in lib/prisma.ts
 }
 
 // =============================================================================
@@ -19,17 +20,18 @@ datasource db {
 
 // User model - stores authenticated users from OAuth or credentials
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?   // For credentials provider (email/password auth)
-  accounts       Account[]
-  sessions       Session[]
-  projects       Project[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  name             String?
+  email            String    @unique
+  emailVerified    DateTime?
+  image            String?
+  hashedPassword   String?   // For credentials provider (email/password auth)
+  openRouterApiKey String?   // User's own OpenRouter API key for BYOK
+  accounts         Account[]
+  sessions         Session[]
+  projects         Project[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 // Account model - links OAuth providers to users (GitHub, Google, etc.)
@@ -116,11 +118,11 @@ model StyleAnchor {
   projectId            String
   project              Project  @relation(fields: [projectId], references: [id])
   referenceImageName   String
-  referenceImageBlob   Bytes
-  referenceImageBase64 String?
+  referenceImageBlob   Bytes    @db.ByteA  // PostgreSQL bytea type
+  referenceImageBase64 String?  @db.Text
   styleKeywords        String
   lightingKeywords     String
-  colorPalette         String   // Stored as JSON string
+  colorPalette         String   @db.Text // Stored as JSON string
   fluxModel            String
   aiSuggested          Boolean  @default(false)
   createdAt            DateTime @default(now())
@@ -146,7 +148,7 @@ model CharacterRegistry {
   updatedAt            DateTime @updatedAt
 }
 
-// GeneratedAsset model - stores generated images as Blobs with metadata
+// GeneratedAsset model - stores metadata only (images in IndexedDB)
 model GeneratedAsset {
   id         String   @id @default(uuid())
   projectId  String
@@ -154,7 +156,7 @@ model GeneratedAsset {
   assetId    String
   status     String
   seed       Int?
-  imageBlob  Bytes
+  // imageBlob removed - images stored in browser IndexedDB
   metadata   String?  // Stored as JSON string
   promptUsed String?
   variantId  String?

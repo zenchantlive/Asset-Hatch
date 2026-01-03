@@ -16,6 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/auth';
 import { buildAssetPrompt, calculateGenerationSize, type ParsedAsset } from '@/lib/prompt-builder';
 import { prepareStyleAnchorForAPI } from '@/lib/image-utils';
 import { generateFluxImage } from '@/lib/openrouter-image';
@@ -31,6 +32,19 @@ interface GenerateRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated session to check for user's API key
+    const session = await auth();
+    let userApiKey: string | null = null;
+
+    // Check if user has their own API key configured (BYOK)
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { openRouterApiKey: true },
+      });
+      userApiKey = user?.openRouterApiKey || null;
+    }
+
     const body: GenerateRequest = await request.json();
     // modelKey is now a full model ID from registry (e.g., 'google/gemini-2.5-flash-image')
     // Default to multimodal model for style-consistent generation
@@ -142,18 +156,11 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (parentAsset?.imageBlob) {
-          // Convert Buffer to base64 for API compatibility
-          referenceImageBase64 = `data:image/png;base64,${parentAsset.imageBlob.toString('base64')}`;
-          isUsingCharacterReference = true;
-          console.log(
-            `🎯 PHASE 4: Using parent direction reference for ${asset.directionState.direction} (parent ID: ${asset.directionState.parentAssetId})`
-          );
-        } else {
-          console.warn(
-            `⚠️ No approved parent image found for ${asset.directionState.direction}. Falling back to character registry or style anchor.`
-          );
-        }
+        // Note: Parent images no longer stored in database (moved to IndexedDB)
+        // Fall back to character registry reference instead
+        console.log(
+          `ℹ️ Parent direction reference not available (images in IndexedDB). Using character registry or style anchor.`
+        );
       }
 
       // Fallback to character registry if parent reference not available
@@ -177,12 +184,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Call OpenRouter using shared utility (correct endpoint + response parsing)
+    // Use user's API key if available (BYOK), otherwise use default from env
     const result = await generateFluxImage({
       modelId: model.id,
       prompt: prompt,
       referenceImageBase64, // Uses character reference OR style anchor
       width: genSize.width,
       height: genSize.height,
+      apiKey: userApiKey || undefined, // BYOK: use user's key if available
     });
 
     // Use seed from result or generate random fallback
@@ -198,7 +207,7 @@ export async function POST(request: NextRequest) {
       generationId: result.generationId,
     });
 
-    // 9. Save to SQLite
+    // 9. Save metadata to database (image stored in client IndexedDB)
     const createdAsset = await prisma.generatedAsset.create({
       data: {
         projectId: projectId,
@@ -206,7 +215,7 @@ export async function POST(request: NextRequest) {
         variantId: asset.variant.id,
         status: 'generated',
         seed: seed,
-        imageBlob: Buffer.from(result.imageBuffer),
+        // imageBlob removed - client stores image in IndexedDB
         promptUsed: prompt,
         metadata: JSON.stringify({
           model: model.id,
@@ -218,7 +227,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('💾 Saved to SQLite:', createdAsset.id);
+    console.log('💾 Saved metadata to database:', createdAsset.id);
 
     // 10. Update character registry if this is a new pose
     if (characterRegistry && asset.variant.pose) {
