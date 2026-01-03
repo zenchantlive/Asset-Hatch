@@ -91,6 +91,8 @@ export interface GenerationLogEntry {
  */
 export interface GenerationQueueProps {
   projectId: string
+  modelsMenuOpen?: boolean
+  onModelsMenuClose?: () => void
 }
 
 /**
