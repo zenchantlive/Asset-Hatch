@@ -21,7 +21,7 @@ export interface StyleDraft {
     styleKeywords: string;
     lightingKeywords: string;
     colorPalette: string[];
-    fluxModel: 'flux-2-dev' | 'flux-2-pro';
+    fluxModel?: string;
 }
 
 // Generated style anchor data
@@ -223,19 +223,16 @@ export function StylePreview({
                                             </div>
                                         )}
 
-                                        {/* Flux Model */}
-                                        {styleDraft.fluxModel && (
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-medium text-white/60">
-                                                    Model
-                                                </span>
-                                                <span className="text-sm text-white/90">
-                                                    {styleDraft.fluxModel === 'flux-2-dev'
-                                                        ? 'Flux.2 Dev (Fast)'
-                                                        : 'Flux.2 Pro (Best Quality)'}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-medium text-white/60">
+                                                Model
+                                            </span>
+                                            <span className="text-sm text-white/90">
+                                                {styleDraft.fluxModel === 'black-forest-labs/flux.2-pro'
+                                                    ? 'Flux.2 Pro (Best Quality)'
+                                                    : styleDraft.fluxModel}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -252,5 +249,5 @@ export const emptyStyleDraft: StyleDraft = {
     styleKeywords: '',
     lightingKeywords: '',
     colorPalette: [],
-    fluxModel: 'flux-2-dev',
+    fluxModel: 'black-forest-labs/flux.2-pro',
 };

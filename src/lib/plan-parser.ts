@@ -86,8 +86,10 @@ export function parsePlan(
     const item = parsed[i];
 
     if (item.level === 1) {
-      // Main asset line
-      currentAssetName = item.text;
+      // Main asset line - extract mobility tag and clean name
+      // Pass category for smart fallback when no explicit tag
+      const mobilityResult = parseMobilityTag(item.text, item.category);
+      currentAssetName = mobilityResult.cleanName;
       currentAssetCategory = item.category!;
 
       // If no variants follow, create single asset
@@ -145,15 +147,21 @@ function createAsset(spec: {
 }): ParsedAsset | ParsedAsset[] {
   const { category, name, variantText, mode, projectId, assetIndex } = spec;
 
-  // Determine asset type from category and name
-  const assetType = determineAssetType(category, name);
+  // Parse mobility tag from name (e.g., "[MOVEABLE:4] Farmer" -> mobility info + "Farmer")
+  // Also uses category for smart fallback when no explicit tag is found
+  const mobilityResult = parseMobilityTag(name, category);
+  const cleanName = mobilityResult.cleanName;
+  const mobility = mobilityResult.mobility;
+
+  // Determine asset type from category and clean name
+  const assetType = determineAssetType(category, cleanName);
 
   // Extract animation details from variant text
   const animationInfo = parseAnimationInfo(variantText);
 
   // Base asset properties
   const baseId = `${projectId}-asset-${assetIndex}`;
-  const description = `${name.toLowerCase()}${variantText ? ` ${variantText.toLowerCase()}` : ''}`;
+  const description = `${cleanName.toLowerCase()}${variantText ? ` ${variantText.toLowerCase()}` : ''}`;
 
   // Check if this is a multi-directional animation
   if (animationInfo.isMultiDirection) {
@@ -162,9 +170,10 @@ function createAsset(spec: {
       return {
         id: baseId,
         category,
-        name,
+        name: cleanName,
         type: 'sprite-sheet',
         description,
+        mobility,
         variant: {
           id: `${baseId}-composite`,
           name: animationInfo.animationName || variantText || 'Default',
@@ -180,9 +189,10 @@ function createAsset(spec: {
       return directions.slice(0, animationInfo.directionCount).map((dir) => ({
         id: `${baseId}-${dir}`,
         category,
-        name,
+        name: cleanName,
         type: 'character-sprite' as AssetType,
         description: `${description} ${dir} view`,
+        mobility,
         variant: {
           id: `${baseId}-${dir}`,
           name: `${animationInfo.animationName || variantText} - ${capitalize(dir)}`,
@@ -198,9 +208,10 @@ function createAsset(spec: {
   return {
     id: baseId,
     category,
-    name,
+    name: cleanName,
     type: assetType,
     description,
+    mobility,
     variant: {
       id: `${baseId}-variant`,
       name: variantText || 'Default',
@@ -265,6 +276,103 @@ function determineAssetType(category: string, name: string): AssetType {
 
   // Default fallback
   return 'character-sprite';
+}
+
+/**
+ * Parse mobility tag from asset name
+ * Extracts tags like [STATIC], [MOVEABLE:4], [ANIM:8] and returns clean name
+ * 
+ * If no explicit tag found, infers mobility from category/name:
+ * - Characters/NPCs → moveable:4 (needs N/S/E/W directions)
+ * - Fire/water/torch → animated (looping animation)
+ * - Everything else → static
+ * 
+ * @param assetName - Raw asset name with potential mobility tag
+ * @param category - Optional category for smart fallback detection
+ * @returns Object with mobility classification and cleaned asset name
+ */
+function parseMobilityTag(assetName: string, category?: string): {
+  mobility: {
+    type: 'static' | 'moveable' | 'animated';
+    directions?: 4 | 8;
+    frames?: number;
+  };
+  cleanName: string;
+} {
+  // Match patterns like [STATIC], [MOVEABLE:4], [ANIM:8]
+  const staticMatch = assetName.match(/^\[STATIC\]\s*/i);
+  const moveableMatch = assetName.match(/^\[MOVEABLE:(\d+)\]\s*/i);
+  const animMatch = assetName.match(/^\[ANIM:(\d+)\]\s*/i);
+
+  if (staticMatch) {
+    return {
+      mobility: { type: 'static' },
+      cleanName: assetName.replace(staticMatch[0], '').trim(),
+    };
+  }
+
+  if (moveableMatch) {
+    const dirCount = parseInt(moveableMatch[1], 10);
+    return {
+      mobility: {
+        type: 'moveable',
+        directions: dirCount === 8 ? 8 : 4, // Default to 4 if not 8
+      },
+      cleanName: assetName.replace(moveableMatch[0], '').trim(),
+    };
+  }
+
+  if (animMatch) {
+    const frames = parseInt(animMatch[1], 10);
+    return {
+      mobility: {
+        type: 'animated',
+        frames: frames > 0 ? frames : undefined,
+      },
+      cleanName: assetName.replace(animMatch[0], '').trim(),
+    };
+  }
+
+  // No explicit tag found - use smart fallback based on category and name
+  const cleanName = assetName.trim();
+  const nameLower = cleanName.toLowerCase();
+  const categoryLower = (category || '').toLowerCase();
+
+  // Heuristic 1: Characters/NPCs are moveable by default
+  if (
+    categoryLower.includes('character') ||
+    categoryLower.includes('npc') ||
+    categoryLower.includes('player') ||
+    categoryLower.includes('enemy') ||
+    categoryLower.includes('creature')
+  ) {
+    return {
+      mobility: { type: 'moveable', directions: 4 },
+      cleanName,
+    };
+  }
+
+  // Heuristic 2: Animated environment elements
+  if (
+    nameLower.includes('fire') ||
+    nameLower.includes('flame') ||
+    nameLower.includes('torch') ||
+    nameLower.includes('water') ||
+    nameLower.includes('flag') ||
+    nameLower.includes('smoke') ||
+    nameLower.includes('fountain')
+  ) {
+    return {
+      mobility: { type: 'animated', frames: 4 },
+      cleanName,
+    };
+  }
+
+  // Default to static
+  return {
+    mobility: { type: 'static' },
+    cleanName,
+  };
 }
 
 /**

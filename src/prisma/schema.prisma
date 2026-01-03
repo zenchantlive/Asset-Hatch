@@ -94,6 +94,7 @@ model Project {
   styleAnchors      StyleAnchor[]
   generatedAssets   GeneratedAsset[]
   characterRegistry CharacterRegistry[]
+  generationCosts   GenerationCost[]
 }
 
 // MemoryFile model - stores JSON content like entities.json, conversation history
@@ -128,18 +129,21 @@ model StyleAnchor {
 
 // CharacterRegistry model - tracks character descriptions, colors, successful seeds
 model CharacterRegistry {
-  id              String   @id @default(uuid())
-  projectId       String
-  project         Project  @relation(fields: [projectId], references: [id])
-  name            String
-  baseDescription String
-  colorHex        String   // Stored as JSON string
-  styleKeywords   String
-  successfulSeed  Int?
-  posesGenerated  String   // Stored as comma-separated or JSON
-  animations      String   // Stored as JSON string
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  projectId            String
+  project              Project  @relation(fields: [projectId], references: [id])
+  name                 String
+  baseDescription      String
+  colorHex             String   // Stored as JSON string
+  styleKeywords        String
+  successfulSeed       Int?
+  posesGenerated       String   // Stored as comma-separated or JSON
+  animations           String   // Stored as JSON string
+  // Reference direction for multi-directional consistency
+  referenceDirection   String?  // e.g., "south", "north", "east", "west"
+  referenceImageBase64 String?  // Base64 of first-generated direction (replaces style anchor)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 // GeneratedAsset model - stores generated images as Blobs with metadata
@@ -156,4 +160,19 @@ model GeneratedAsset {
   variantId  String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// GenerationCost model - tracks actual costs from OpenRouter
+model GenerationCost {
+  id               String   @id @default(uuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id])
+  generationId     String   @unique // OpenRouter generation ID
+  modelId          String
+  totalCost        Float
+  promptTokens     Int?
+  completionTokens Int?
+  imageCount       Int      @default(1)
+  metadata         String?  // Additional usage details as JSON
+  createdAt        DateTime @default(now())
 }

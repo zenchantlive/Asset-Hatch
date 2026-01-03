@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2025-12-26
+**Last Updated:** 2025-12-31
 
 ---
 
@@ -166,6 +166,16 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Card Aspect:** Strictly enforce `aspect-square` for all generation preview cards.
 * **Constraints:** Use `max-w-[80vh]` on grid containers to prevent layout stretching on large screens.
 * **Animations:** Use `animate-in fade-in zoom-in-50` for item entry sequences.
+* **Satisfying Exit Flow:** When an item is "completed" or "approved" in a batch view, use an exit animation before removal.
+    - **Pattern:** `animate-out zoom-out-0 fade-out-0 duration-300 scale-0 opacity-0 rotate-12`
+    - **Logic:** Set `isExiting` state → Wait 300ms (setTimeout) → Perform actual state removal.
+    - **Why:** Prevents jarring layout shifts and provides positive reinforcement for task completion.
+
+### Generation & Editing Logic
+* **Generate vs Regenerate:**
+    - **Generate:** Used for the *initial* creation of an asset (when `isPending` and has prompt). Icon: `Play`.
+    - **Regenerate:** Used when an asset already has a result or error. Icon: `RefreshCw`.
+* **Selection-Aware Actions:** Always check if an asset is part of a "Batch Selection" (`selectedIds`) before completing an action. If so, automatically deselect/remove it from the batch view upon success.
 
 ---
 
@@ -265,6 +275,45 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     ```typescript
     const prompt = customPrompt || buildAssetPrompt(...);
     ```
+
+### Model Management & Cost Tracking
+* **Centralized Registry**: Use `lib/model-registry.ts` as the single source of truth for model capabilities, pricing, and provider IDs. Enable `auto-discovery` for real-time updates.
+* **Inline Cost Metrics**: Prefer inline metrics (e.g., in Toolbars/Control Bars) over floating overlays for non-intrusive budget awareness.
+* **Cost Transparency (Est. → Total)**: Always show estimated costs before an action and transition to actual costs (highlighted in green) once confirmed by the API.
+
+### React Async State Race Conditions
+* **Problem:** When adding items to state arrays and immediately using them, React's async state updates cause "not found" errors.
+  - **Example:** `addAsset(newAsset)` → `generateImage(newAsset.id)` → "Asset not found"
+  - **Root Cause:** `setState` is asynchronous, so dependent code may run before state updates
+
+* **Solution Pattern - Pass Object Directly:**
+  - **Pattern:**
+    ```typescript
+    // Context provides function that accepts optional object
+    const someAction = useCallback(async (id: string, providedObject?: T) => {
+      const object = providedObject || stateArray.find(o => o.id === id)
+      if (!object) return
+      // Use object...
+    }, [stateArray])
+
+    // Consumer passes object directly to bypass lookup
+    const newObject = createNewObject()
+    addToState(newObject)  // Async state update
+    await someAction(newObject.id, newObject)  // Bypasses lookup
+    ```
+  - **Why:** Avoids race condition by using the object reference directly instead of looking it up in state
+  - **Example:** `generateImage(assetId: string, providedAsset?: ParsedAsset)` in GenerationQueue
+
+* **Alternative Pattern - Callback After State Update:**
+  - Use functional setState with callback:
+    ```typescript
+    setState(prev => {
+      const newState = [...prev, newItem]
+      // Trigger action here with access to newState
+      return newState
+    })
+    ```
+  - **Trade-off:** Mixes state updates with side effects; harder to test
 
 ---
 

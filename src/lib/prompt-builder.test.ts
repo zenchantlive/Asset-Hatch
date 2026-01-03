@@ -1,4 +1,3 @@
-import { describe, test, expect } from 'bun:test';
 import { buildAssetPrompt, calculateGenerationSize, estimateBatchCost, type ParsedAsset } from './prompt-builder';
 import type { Project, StyleAnchor, CharacterRegistry } from './types';
 
@@ -24,6 +23,7 @@ describe('prompt-builder', () => {
         name: 'Farmer',
         type: 'character-sprite',
         description: 'farmer with a straw hat',
+        mobility: { type: 'moveable', directions: 4 },
         variant: {
             id: 'v1',
             name: 'Idle',
@@ -50,7 +50,7 @@ describe('prompt-builder', () => {
                 style_keywords: 'Studio Ghibli style, hand-drawn',
                 color_palette: ['#FF0000', '#00FF00'],
                 lighting_keywords: 'soft lighting',
-                flux_model: 'flux-2-dev',
+                flux_model: 'black-forest-labs/flux.2-pro',
                 reference_image_name: 'ref.png',
                 reference_image_blob: new Blob([]),
                 ai_suggested: true,
@@ -127,10 +127,8 @@ describe('prompt-builder', () => {
 
     describe('estimateBatchCost', () => {
         test('estimates cost correctly for different models', () => {
-            // flux-2-dev cost is 0.04
-            expect(estimateBatchCost(10, 'flux-2-dev')).toBeCloseTo(0.4);
-            // flux-2-pro cost is 0.15
-            expect(estimateBatchCost(5, 'flux-2-pro')).toBeCloseTo(0.75);
+            // black-forest-labs/flux.2-pro cost is 0.04
+            expect(estimateBatchCost(10, 'black-forest-labs/flux.2-pro')).toBeCloseTo(0.4);
         });
 
         test('throws on unknown model', () => {

@@ -1,11 +1,10 @@
-import { describe, test, expect, mock, beforeAll, afterAll } from 'bun:test';
 import type { FluxGenerationOptions } from './openrouter-image';
 
 // Mock process.env
 const originalEnv = process.env;
 
 // Setup global fetch mock
-const mockFetch = mock();
+const mockFetch = jest.fn();
 
 describe('openrouter-image', () => {
     beforeAll(() => {
@@ -48,7 +47,7 @@ describe('openrouter-image', () => {
         });
 
         const options: FluxGenerationOptions = {
-            modelId: 'flux-2-dev',
+            modelId: 'black-forest-labs/flux.2-pro',
             prompt: 'test prompt',
             width: 1024,
             height: 1024
@@ -68,7 +67,7 @@ describe('openrouter-image', () => {
         expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
         expect(requestInit.method).toBe('POST');
         const body = JSON.parse(requestInit.body);
-        expect(body.model).toBe('flux-2-dev');
+        expect(body.model).toBe('black-forest-labs/flux.2-pro');
         expect(body.modalities).toEqual(['image', 'text']);
         expect(body.messages[0].content).toBe('test prompt');
     });

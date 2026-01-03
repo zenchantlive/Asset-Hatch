@@ -15,6 +15,7 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { db, type StyleAnchor } from '@/lib/client-db';
 import { extractColorPalette, blobToBase64 } from '@/lib/image-utils';
+import { getImageGenerationModels } from '@/lib/model-registry';
 
 interface StyleAnalysisResult {
   style_keywords: string;
@@ -54,7 +55,7 @@ export function StyleAnchorEditor({
   const [styleKeywords, setStyleKeywords] = useState(initialStyleKeywords || '');
   const [lightingKeywords, setLightingKeywords] = useState(initialLightingKeywords || '');
   const [selectedColors, setSelectedColors] = useState<string[]>(initialColorPalette || []);
-  const [fluxModel, setFluxModel] = useState('black-forest-labs/flux-2-dev');
+  const [fluxModel, setFluxModel] = useState('black-forest-labs/flux.2-pro');
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -305,7 +306,6 @@ export function StyleAnchorEditor({
             </div>
           )}
 
-          {/* Step 5: Model Selection */}
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium text-white/80">
               5. Flux Model
@@ -315,8 +315,11 @@ export function StyleAnchorEditor({
               onChange={(e) => setFluxModel(e.target.value)}
               className="px-3 py-2 bg-white/5 border border-white/10 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="black-forest-labs/flux-2-dev">Flux.2 Dev (Fast, good quality)</option>
-              <option value="black-forest-labs/flux-2-pro">Flux.2 Pro (Slow, best quality)</option>
+              {getImageGenerationModels().map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.displayName}
+                </option>
+              ))}
             </select>
           </div>
         </>

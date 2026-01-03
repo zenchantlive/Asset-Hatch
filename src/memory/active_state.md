@@ -1,128 +1,197 @@
 # 🧠 Active Session State
 
 **Last Updated:** 2025-12-31
-**Session:** Open Source Launch Preparation - ✅ PHASE 2 COMPLETE
-**Branch:** `main`
+**Session:** Direction Selection UX v3 - ✅ COMPLETE (14/14 phases)
+**Branch:** `feat/image-route-switching`
 **Latest Commits:**
-- `aedf895` - docs: Open source launch documentation and code quality fixes
-- `f70e4b4` - security: Stop tracking dev.db and exclude all database files
-- `bef20a8` - feat(generation): Batch workflow improvements with version carousel
+- `c0eced7` - chore(repo): [Infrastructure] Schemas, Database, and Project Documentation
+- `f8c80e4` - feat(ui): [Generation] Complete Queue and Batch Workflow Infrastructure
+- `7f002fc` - feat(core): [Prompt] Optimized Prompt Engineering and Templates
+- `bdce843` - feat(style): [System] Style Anchor Generation and AI Analysis
+- `2a3cc1f` - feat(core): [System] Model Registry and Cost Tracking System
+- `dd9e2f2` - fix(ui): [Generation] Auto-deselect approved assets with exit animation
+- `121ebf9` - fix(ui): [PreviewPanel] Add Generate button for single asset workflow
 
 ---
 
 ## 📍 Current Focus
 
-> **🚀 OPEN SOURCE READY:** BFG cleanup complete, secrets rotated, comprehensive documentation created. Folder structure renamed from `asset-hatch/` to `src/`. README fully rewritten with self-hosting guide. Ready for repository to go public.
+> **🎉 DIRECTION SELECTION UX v3 - COMPLETE:** Multi-directional asset workflow fully implemented with image-based preview grid. Direction variants are now separate queue items with individual prompts, approval states, and reference image consistency. User can generate directions on-demand via image-based 3x3 grid that replaces standard preview for moveable assets. All phases complete and tested.
 
 ---
 
-## 🔥 Latest Session (2025-12-31) - Open Source Documentation Complete
+## 🔥 Latest Session (2025-12-31) - Direction Selection UX v3
 
-### 1. Performance & Critical Bug Fixes
-**Context:**
-Users reported lag with large generated images (base64) and a critical data integrity bug where approving a specific version in the carousel would incorrectly approve the *latest* version.
+### Architecture Overview
+**Goal:** Enable multi-directional asset generation where each direction is a separate queue item with individual approval, prompts, and reference image consistency.
 
-**Solution:**
-- **High-Performance Rendering:** Refactored `VersionCarousel` to use `Blob` and `URL.createObjectURL`. This prevents large base64 strings from bloating the DOM and crashing the browser tab.
-- **Version-Aware Approval:** Rewrote `approveAsset` and `rejectAsset` in `GenerationContext` to require explicit version objects/IDs. Updated all consumers (`GenerationQueue`, `PreviewPanel`, `GenerationProgress`) to pass the correct version.
-- **Accurate Estimation:** Fixed `getCostEstimate` in `BatchControlsBar` to use `remainingCount` instead of `parsedAssets.length` when no assets are selecting, providing realistic cost estimates.
+**Key Decision:** Directions as separate `ParsedAsset` entries (not versions), linked via `parentAssetId`.
 
-**Files:**
-- `components/generation/VersionCarousel.tsx` (Optimization)
-- `components/generation/GenerationQueue.tsx` (Logic Refresh)
-- `components/generation/GenerationProgress.tsx` (Type Safety)
-- `hooks/useBatchGeneration.ts` (API Update)
+### ✅ Phase 1-5: Core Infrastructure (COMPLETE)
 
-### 2. Previous Work (Earlier Today) - Batch Workflow & Version System
+**1. Data Model Updates**
+- Modified `ParsedAsset.directionState` to use user-friendly names (Front/Back/Left/Right)
+- Added `parentAssetId`, `direction`, `isParent` properties for parent-child linking
+- Removed `selectedForGeneration` (no longer needed)
 
+**2. Direction Utilities**
+- Created `src/lib/direction-utils.ts` with:
+  - `expandAssetToDirections()` - Converts parent asset to 4/8 directional variants
+  - `getDirectionPromptModifier()` - Returns direction-specific prompt text
+  - `isReferenceDirection()` - Checks if asset is Front (reference)
+  - `getDirectionalSiblings()` - Finds all direction variants of same parent
+  - Export naming: `{asset_name}_{direction}.png` (snake_case)
 
-### 1. Prep All/Prep Remaining Workflow
-**Context:**
-Users wanted to select assets for batch generation without immediately starting generation. The old "Generate All" button was too aggressive and didn't allow reviewing the selection first.
+**3. Prompt Builder Enhancement**
+- Integrated direction modifiers into `buildAssetPrompt()`
+- Auto-injects direction-specific text (e.g., "front-facing view, looking toward viewer")
+- Adds reference consistency markers when `referenceImageBase64` exists
 
-**Solution:**
-- **Prep All:** Renamed "Generate All" to "Prep All" when no assets are selected. This only selects all assets without starting generation.
-- **Prep Remaining:** Added smart button that selects only non-generated assets (filters out approved/awaiting_approval).
-- **Two-Step Flow:** Select → Review → Generate with warning for >5 assets.
-- **Visual Distinction:** Used Sparkles icon for "Prep" actions vs Play icon for "Generate" actions.
+**4. Generation API Update**
+- Modified `/api/generate/route.ts` reference image priority:
+  - **1st Priority:** Parent direction reference (Front → Back/Left/Right)
+  - **2nd Priority:** Character registry reference
+  - **3rd Priority:** Style anchor
+- Queries database for parent asset's approved image
+- Converts Buffer to base64 for API compatibility
 
-**Files:**
-- `components/generation/panels/BatchControlsBar.tsx`
-- `components/generation/GenerationLayoutContext.tsx`
-- `lib/types/generation-layout.ts`
+**5. DirectionGrid Component**
+- Wired up `onGenerateDirections` callback
+- Added Front direction approval validation
+- Implemented loading states and cost calculation ($0.04/direction)
+- Updated to user-friendly direction names throughout
 
-### 2. Version Carousel System
-**Context:**
-When users regenerated an asset, the previous version was lost. No way to compare multiple generations before deciding which one to use.
+**6. PreviewPanel Integration**
+- Added `handleGenerateDirections` callback for batch direction generation
+- Added `handleDirectionSelect` for navigating to specific direction variants
+- Integrated DirectionGrid component with full callback wiring
 
-**Solution:**
-- **Database:** Added `asset_versions` table (v4) in Dexie to store all generations with metadata.
-- **Carousel UI:** Created `VersionCarousel.tsx` component with:
-  - Left/right navigation arrows
-  - Dot indicators for version count
-  - Version metadata display (model, seed, cost, duration)
-  - Accept/Reject buttons for current version
-  - Collapsible prompt preview
-- **Auto-Save:** Each generation is automatically saved as a new version, newest shown by default.
-- **Integration:** PreviewPanel conditionally renders carousel when multiple versions exist.
+**7. CategoryQueuePanel Update**
+- Added `isChildAsset()` helper to filter direction children from queue
+- Added `getDirectionalChildren()` to find child directions of parent asset
+- Implemented collapsible parent-child hierarchy with expand/collapse state
+- Added direction badge showing approval progress (e.g., "4-DIR: 2/4 ✓")
+- Direction children display as nested items with smaller styling
 
-**Files:**
-- `lib/client-db.ts` (bumped to v4)
-- `lib/types/generation.ts` (extended AssetGenerationState)
-- `components/generation/VersionCarousel.tsx` (NEW)
-- `components/generation/GenerationQueue.tsx`
-- `components/generation/panels/PreviewPanel.tsx`
+**8. Reference Propagation**
+- Modified `approveAsset()` in GenerationQueue to propagate reference images
+- On Front direction approval, automatically updates all sibling directions
+- Propagates `referenceImageBase64` and `referenceDirection: 'front'` to siblings
+- Added log entries for visibility ("📸 Propagating Front reference to X sibling directions")
+- Ensures visual consistency across all directional variants
 
-### 3. Compact Action Buttons in Preview Panel
-**Context:**
-When viewing a single approved asset, users couldn't regenerate it without selecting a second asset to enter batch mode. Approve/Reject buttons were also missing from single-asset view.
+**9. Flexible Direction Selection**
+- Removed show/hide diagonals toggle from DirectionGrid
+- All 8 directions now always visible in 3x3 grid
+- Unselected/ungenerated directions greyed out (opacity-40) with hover reveal
+- No restrictions on 4-DIR vs 8-DIR - users can select any combination
+- Added "All 8 directions • Click to select" helper text
 
-**Solution:**
-- **Compact Buttons:** Added small action buttons (3.5rem icons) next to status badge:
-  - ✅ Approve (when awaiting review)
-  - ❌ Reject (when awaiting review)
-  - 🔄 Regenerate (when has result or error)
-- **Always Visible:** These buttons are now always accessible in single-asset preview view.
-- **Color-Coded Hover:** Green for approve, red for reject, purple for regenerate.
+**10. Prompt Preview UI**
+- Added collapsible "Prompt Preview" section in DirectionGrid
+- Shows when directions are selected (appears between grid and batch button)
+- Displays direction-specific prompt modifiers for each selected direction
+- Clean, compact design with Eye icon and expand/collapse animation
+- Helps users understand what will be generated before triggering batch
 
-**Files:**
-- `components/generation/panels/PreviewPanel.tsx`
+**11. Export Naming Convention**
+- Modified `generateSemanticId()` in prompt-builder to handle directional assets
+- Imported `DIRECTION_EXPORT_NAMES` from direction-utils
+- Direction suffix prioritized over variant name in filename
+- Examples: `character_farmer_front.png`, `character_farmer_back_left.png`
+- Standardized snake_case naming matches project export standards
 
-### 4. Debug Logging for Batch Accept/Reject
-**Context:**
-Investigation into potential issue where batch-generated assets might not show accept/reject buttons.
+**12. DirectionGrid Redesign (Image-Based Preview)**
+- **USER FEEDBACK:** "direction variants should be a part of the main image's card"
+- Completely redesigned DirectionGrid to replace standard preview for moveable assets
+- Changed from icon-based selection to **image-based 3x3 grid**
+- Center cell shows active direction at larger size, 8 surrounding cells show directional previews
+- Each cell displays actual generated image or empty state with generate button
+- Added grid size toggle (Small/Medium/Large) for entire grid
+- Added inline maximize for individual directions (shows enlarged view below grid, not modal)
+- Loading indicators match batch panel style (w-8 h-8 text-purple-500 animate-spin)
+- Batch selection via Ctrl/Cmd+Click or right-click context menu
+- Generate buttons on individual cards + batch generation bar with cost estimate
+- PreviewPanel conditionally renders DirectionGrid for `mobility.type === 'moveable'`
+- CategoryQueuePanel modified to select parent when clicking direction children (prevents screen takeover)
 
-**Solution:**
-- **Logging:** Added comprehensive console.log in `onAssetComplete` callback to track result structure.
-- **Verification:** Logs imageUrl presence, prompt, and metadata for debugging.
+**13. On-Demand Asset Creation**
+- **PROBLEM:** No way to create direction child assets when user clicks generate
+- Added `addAsset(asset: ParsedAsset)` function to GenerationQueue context
+- Function checks for duplicates and adds new asset to `parsedAssets` state
+- Updated `GenerationContextValue` interface with `addAsset` method
+- DirectionGrid's `getOrCreateDirectionChild()` uses `addAsset` to create variants on-demand
+- Creates new `ParsedAsset` with unique ID, parent link, and direction metadata
 
-**Files:**
-- `components/generation/GenerationQueue.tsx`
+**14. Race Condition Fix**
+- **PROBLEM:** `generateImage` couldn't find newly added assets due to async state updates
+- **ERROR:** "Asset not found" when calling `generateImage` immediately after `addAsset`
+- Modified `generateImage` signature to accept optional `providedAsset` parameter
+- `generateImage(assetId: string, providedAsset?: ParsedAsset)` uses provided asset if available
+- DirectionGrid now calls `generateImage(dirAsset.id, dirAsset)` to bypass lookup
+- Fixes race condition where React state hasn't updated yet
+- Backend API call now happens successfully on first click
+
+### ✅ All Phases Complete!
+
+**Feature Status:** Direction Selection UX v3 is fully implemented with image-based preview and working generation.
+
+### Key User Decisions Made
+1. ✅ **Direction Naming:** User-friendly (Front/Back/Left/Right) over compass (North/South/East/West)
+2. ✅ **Diagonal Handling:** All 8 directions always visible, greyed out when unselected
+3. ✅ **Persistence:** Database + Client (full persistence via Prisma + Dexie)
+4. ✅ **Export Naming:** Snake_case with direction suffix (e.g., `farmer_front.png`)
+5. ✅ **Preview Design:** Image-based 3x3 grid replaces standard preview for moveable assets
+6. ✅ **Maximize UI:** Inline enlarged preview below grid (NOT modal popup)
+7. ✅ **Grid Sizing:** Small/Medium/Large toggle for entire grid (max-w-sm/md/2xl)
+8. ✅ **Generation UX:** Generate buttons on each direction card + batch controls
 
 ---
 
-## 📁 Files Modified/Created (This Session)
+## 📚 Previous Sessions
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `components/generation/panels/BatchControlsBar.tsx` | **MODIFY** | Prep All/Prep Remaining workflow |
-| `components/generation/GenerationLayoutContext.tsx` | **MODIFY** | selectAllVisible and selectRemainingAssets functions |
-| `lib/types/generation-layout.ts` | **MODIFY** | Updated context type definitions |
-| `lib/client-db.ts` | **MODIFY** | Added asset_versions table (v4) |
-| `lib/types/generation.ts` | **MODIFY** | Extended AssetGenerationState with versions |
-| `components/generation/VersionCarousel.tsx` | **CREATE** | New carousel component for version comparison |
-| `components/generation/GenerationQueue.tsx` | **MODIFY** | Version preservation logic + debug logging |
-| `components/generation/panels/PreviewPanel.tsx` | **MODIFY** | Integrated carousel + compact action buttons |
+### Session (2025-12-31) - Generation UI Polish & Flow
+
+### 1. Unified Generation Entry
+**Context:**
+The single-asset view lacked a direct generation trigger. Users were forced into "Batch Mode" even for a single item, creating unnecessary friction.
+
+**Solution:**
+- **Double-Entry Buttons:** Added a primary "Generate" button in the header and a compact secondary trigger near the status badge.
+- **Dynamic Visibility:** Logic intelligently toggles between "Generate" (for new items) and "Regenerate" (for existing items).
+- **Iconography:** Standardized on `Play` icon for generation and `RefreshCw` for regeneration.
+
+### 2. "Satisfying Flow" Approval Logic
+**Context:**
+Approval was manual and static. Users had to manually deselect items, and the "Accept" icon in batch cards was broken due to incorrect version lookup.
+
+**Solution:**
+- **Corrected Version Lookup:** Switched from fragile ID matching to `currentVersionIndex` source of truth.
+- **Auto-Deselection:** Approving an asset now automatically removes it from the batch selection, clearing the workspace for the next task.
+- **Exit Animation:** Added a 300ms CSS exit transition (`rotate-12 zoom-out-0`) so assets "spin out" of view elegantly when approved.
+
+### 3. Repository "Blog Notebook" Organization
+**Context:**
+49+ uncommitted files needed to be grouped into logical chunks to maintain the developer-diary narrative for the public repo.
+
+**Solution:**
+- Split work into 6 high-level commits: Model Registry, Style Anchors, Prompt Engineering, UI Infrastructure, Project Infrastructure, and UI Fixes.
+- Each commit includes a "Story of Collaboration" and "Decisions Made" section in the message.
+
+**Files:**
+- `components/generation/panels/PreviewPanel.tsx` (Generate button + Flow)
+- `components/generation/panels/BatchPreviewContent.tsx` (Logic Fix + Animation)
+- `lib/types/generation.ts` (Auto-deselection types)
 
 ---
 
-## ✅ Testing & Validation
+## � Session History (2025-12-31)
 
-- ✅ **Prep All:** Click "Prep All" → All assets selected → Button changes to "Generate (N)"
-- ✅ **Prep Remaining:** Generate 2 assets → Approve them → "Prep Remaining" only selects remaining
-- ✅ **Version Carousel:** Regenerate asset → Carousel appears with navigation
-- ✅ **Compact Buttons:** Single asset view shows approve/reject/regenerate buttons
-- ⚠️ **Manual Testing Required:** User needs to verify in running app
+*   **Flux 2 Pro Migration**: Standardized all generation on `flux.2-pro` and implemented a `ModelRegistry` with resilient fallback logic for legacy IDs.
+*   **Inline Cost Tracking**: Built a centralized `CostTracker` and integrated dynamic "Estimated → Actual" cost displays directly into the batch toolbars.
+*   **Version Carousel System**: Introduced the `asset_versions` infrastructure and a navigation carousel to compare multiple generations side-by-side before approval.
+*   **Performance Optimization**: Refactored rendering to use `Blob` URLs instead of large base64 strings, significantly reducing memory footprint and preventing tab crashes.
+*   **Batch Workflow Refinement**: Implemented the two-step "Prep → Review → Generate" flow with dedicated icons and cost warnings for large batches.
 
 ---
 
@@ -130,37 +199,29 @@ Investigation into potential issue where batch-generated assets might not show a
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
-| **Authentication** | ✅ Complete | OAuth linking enabled |
-| **Generation Workflow** | ✅ Complete | Batch UX + Version System |
-| **Data Sync** | ✅ Complete | Prisma→Dexie on mount |
-| **Export System** | ✅ Complete | Full workflow integration |
-| **Open Source Prep** | ✅ Complete | BFG cleanup, docs, env example |
+| **Authentication** | ✅ Complete | OAuth linking with GitHub |
+| **Generation Workflow** | ✅ Complete | Batch UX + Version System + Cost Tracking |
+| **Direction Selection** | ✅ Complete | Multi-directional assets with reference propagation |
+| **Data Sync** | ✅ Complete | Prisma→Dexie hybrid persistence |
+| **Export System** | ✅ Complete | Multi-format ZIP exports with direction naming |
+| **Model Management** | ✅ Complete | Registry + Price Discovery |
+| **Open Source Prep** | ✅ Complete | BFG cleanup, Docs, Env examples |
 
 ---
 
 ## 🚀 Next Steps
 
-1. ✅ **COMPLETE:** BFG cleanup - removed dev.db from 16+ commits
-2. ✅ **COMPLETE:** Secret rotation (GitHub OAuth, AUTH_SECRET)
-3. ✅ **COMPLETE:** README rewritten with self-hosting guide
-4. ✅ **COMPLETE:** `.env.example` created with documentation
-5. ⏳ **PENDING:** Push to remote (`git push`)
-6. ⏳ **PENDING:** Make repository public
-7. 📝 **OPTIONAL:** Write launch blog post
-
----
-
-## 📁 Files Modified Today (2025-12-31)
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `README.md` | **REWRITE** | Complete self-hosting documentation |
-| `src/.env.example` | **CREATE** | Comprehensive env var guide |
-| `.gitignore` | **MODIFY** | Allow .env.example tracking |
-| `src/components/generation/VersionCarousel.tsx` | **FIX** | React hooks ordering |
-| `src/components/generation/GenerationLayoutContext.tsx` | **FIX** | Type safety (removed any) |
-| `src/lib/types/generation-layout.ts` | **FIX** | Type safety |
-| `src/components/generation/panels/GenerateAllWarning.tsx` | **FIX** | Escaped JSX entities |
+1. ✅ **COMPLETE:** Direction Selection UX v3 - All 14 phases implemented
+2. 🧪 **IN PROGRESS:** Test multi-directional asset workflow end-to-end
+   - Test on-demand direction child creation
+   - Generate individual directions via DirectionGrid
+   - Test batch generation of multiple directions
+   - Verify images stay in grid (no screen takeover)
+   - Verify grid sizing and maximize features
+   - Test export naming convention (e.g., `farmer_front.png`)
+3. 📝 **NEXT:** Push to remote and verify GitHub Actions
+4. ⏳ **PENDING:** Make repository public
+5. 📝 **OPTIONAL:** Blog post: "Building a Multi-Directional Asset System with Image-Based UX"
 
 ---
 
@@ -172,240 +233,3 @@ Investigation into potential issue where batch-generated assets might not show a
 
 ---
 
-# 🔒 LATEST SESSION (2025-12-30) - Open Source Security Preparation
-
-## Context
-
-User requested comprehensive open-sourcing preparation with focus on:
-1. User-provided API keys (vs shared developer key)
-2. Database security (dev.db contains OAuth tokens, 97MB)
-3. Git history sanitization (remove sensitive data)
-4. Future monetization considerations (GPL v3 license kept)
-
-## Work Completed
-
-### Phase 1: Git History Cleanup Preparation
-
-**Branch Created:** `security/open-source-preparation`
-
-**Commit 1: Stop Tracking dev.db** (`f70e4b4`)
-- ✅ Updated `.gitignore` with comprehensive database exclusions
-  ```
-  *.db, *.db-*, *.sqlite, *.sqlite-*, *.db-shm, *.db-wal
-  dev.db*, prisma/*.db*
-  ```
-- ✅ Removed `dev.db` from git tracking (preserved locally)
-- ✅ Prevents future accidental commits of sensitive database files
-
-**Critical Finding:**
-- dev.db committed **16+ times** throughout git history
-- Contains OAuth tokens, API keys, user data (97MB file)
-- Requires BFG Repo-Cleaner to remove from ALL commits
-
-### Phase 2: Documentation Foundation
-
-**Commit 2: Open Source Documentation** (`7c72098`)
-
-Created comprehensive documentation (856+ lines total):
-
-**1. `.env.example`** - Environment Variables Template
-- Database configuration (SQLite with optional encryption)
-- Auth.js v5 secrets (AUTH_SECRET, GitHub OAuth)
-- OpenRouter API key (user-provided model)
-- Optional: Analytics, storage (S3/R2), development flags
-- Detailed comments explaining each variable
-
-**2. `SECURITY.md`** - Security Policy
-- Vulnerability reporting process (GitHub Security Advisories)
-- Response timeline (48h initial, 1-90 days fix based on severity)
-- Self-hosting security best practices:
-  - API key management
-  - Database encryption (SQLCipher)
-  - OAuth security
-  - Input validation
-  - Dependency updates
-- Current security model documentation
-- Security roadmap (rate limiting, 2FA, audit logging)
-
-**3. `docs/API_KEY_ARCHITECTURE.md`** - Technical Design (856 lines)
-- **Problem Statement:** Single shared API key creates cost burden, security risk, no self-hosting
-- **Solution:** Per-user OpenRouter API keys stored encrypted
-- **Database Schema:**
-  ```prisma
-  model User {
-    openRouterApiKey     String?   // AES-256-GCM encrypted
-    openRouterKeyHash    String?   // SHA-256 for validation
-    openRouterKeyTested  DateTime? // Last successful test
-    openRouterUsage      Int       // Track generations
-  }
-  ```
-- **Encryption Design:**
-  - Algorithm: AES-256-GCM (authenticated encryption)
-  - Key derivation: PBKDF2 (100k iterations) from user session secret
-  - Why: Database breach doesn't expose keys (session-based decryption)
-- **API Routes:** POST/GET/DELETE `/api/user/api-keys`
-- **Integration:** Modified `generateFluxImage()` to use user's key
-- **UI Flow:** Settings page → Add key → Test connection → Save encrypted
-- **Security Analysis:** 6 threats + mitigations documented
-- **Rollout Plan:** 4-week phased implementation
-
-### Phase 3: License Decision
-
-**Decision:** Keep GPL v3 (copyleft)
-- Hosted version must also be open source
-- Prevents proprietary forks
-- Limits monetization to support contracts + open SaaS
-- User chose this understanding implications
-
-## Files Created/Modified
-
-| File | Type | Purpose |
-|------|------|---------|
-| `.gitignore` | **MODIFY** | Database file exclusions |
-| `asset-hatch/.env.example` | **CREATE** | Environment template (94 lines) |
-| `SECURITY.md` | **CREATE** | Security policy (200+ lines) |
-| `docs/API_KEY_ARCHITECTURE.md` | **CREATE** | Technical design (856 lines) |
-
-## Critical Next Steps (USER ACTION REQUIRED)
-
-### Step 1: BFG Repo-Cleaner (Git History Sanitization)
-⚠️ **MUST DO BEFORE OPEN SOURCING**
-
-```bash
-# 1. Install BFG
-# Windows: Download from https://rtyley.github.io/bfg-repo-cleaner/
-# macOS: brew install bfg
-
-# 2. Create mirror clone
-cd /mnt/c/Users/Zenchant/asset-hatch/
-git clone --mirror https://github.com/zenchantlive/Asset-Hatch.git asset-hatch-spec.bfg
-
-# 3. Run BFG
-cd asset-hatch-spec.bfg
-bfg --delete-files dev.db
-
-# 4. Clean up
-git reflog expire --expire=now --all
-git gc --prune=now --aggressive
-
-# 5. Force push (⚠️ DESTRUCTIVE)
-git push --force
-
-# 6. Re-clone your working directory
-cd ..
-rm -rf asset-hatch-spec
-git clone https://github.com/zenchantlive/Asset-Hatch.git asset-hatch-spec
-```
-
-### Step 2: Rotate All Secrets (After BFG)
-⚠️ **ALL SECRETS POTENTIALLY COMPROMISED**
-
-1. **OpenRouter API Key:**
-   - Go to https://openrouter.ai/keys
-   - Delete current key
-   - Generate new key
-   - Update `.env.local`
-
-2. **GitHub OAuth Credentials:**
-   - Go to https://github.com/settings/developers
-   - Generate new client secret
-   - Update `.env.local`
-
-3. **Auth Secret:**
-   ```bash
-   openssl rand -base64 32
-   # Update .env.local with new AUTH_SECRET
-   ```
-
-4. **Invalidate All Sessions:**
-   ```bash
-   rm asset-hatch/dev.db
-   bunx prisma migrate reset
-   ```
-
-### Step 3: Implementation (After Secrets Rotated)
-
-**Ready to implement:**
-- [ ] Prisma schema migration (add API key fields)
-- [ ] Encryption utilities (`lib/crypto-utils.ts`)
-- [ ] API routes (`/api/user/api-keys`)
-- [ ] Update `generateFluxImage()` integration
-- [ ] Settings UI page (`/app/settings/api-keys/page.tsx`)
-- [ ] First-run onboarding flow
-
-## Status Board
-
-| Task | Status | Blocker |
-|------|--------|---------|
-| Git history cleanup | ⏳ **USER ACTION** | BFG Repo-Cleaner |
-| Secret rotation | ⏳ **BLOCKED** | Needs BFG first |
-| API key schema | ⏳ **BLOCKED** | Needs rotation |
-| Encryption utils | ⏳ **BLOCKED** | Needs rotation |
-| Settings UI | ⏳ **BLOCKED** | Needs rotation |
-| Documentation | ✅ **COMPLETE** | - |
-| `.gitignore` updates | ✅ **COMPLETE** | - |
-
-## Key Architectural Decisions
-
-1. **Encryption Strategy:** Session-based key derivation (not stored in DB)
-   - Rationale: Database breach doesn't expose API keys
-   - Trade-off: Keys only accessible when user logged in
-
-2. **License:** GPL v3 (kept existing)
-   - Rationale: User preference, understands monetization limits
-   - Implication: Hosted version must be open source
-
-3. **API Key Model:** Per-user (not shared pool)
-   - Rationale: Avoid cost burden, rate limits, security risks
-   - Trade-off: Higher barrier to entry for users
-
-4. **OAuth Tokens:** Currently in database
-   - Next: Consider moving to JWT (session-only)
-   - Alternative: Encrypt database with SQLCipher
-
-## Security Audit Findings
-
-**Critical Issues Found:**
-1. ❌ dev.db in git history (16+ commits, 97MB, contains OAuth tokens)
-2. ❌ No user-configurable API keys (shared key model)
-3. ❌ OAuth tokens stored unencrypted in SQLite
-
-**Mitigations Planned:**
-1. ✅ BFG cleanup (in progress)
-2. ✅ Per-user API key architecture (designed)
-3. ⏳ JWT-based OAuth tokens OR SQLCipher (pending decision)
-
-## What's Next
-
-**Immediate (User):**
-1. Run BFG Repo-Cleaner on local machine
-2. Rotate all secrets
-3. Force push cleaned history
-
-**After Cleanup (Claude):**
-1. Implement API key management system
-2. Create README.md self-hosting guide
-3. Build database initialization script
-4. Create CONTRIBUTING.md
-5. Run security audit (`bun audit`)
-6. Test fresh clone on clean machine
-
-**Timeline Estimate:**
-- User actions (BFG + rotation): 1-2 hours
-- Implementation: 2-3 weeks (per architecture doc)
-- Testing & validation: 1 week
-- **Total to open source:** 3-4 weeks
-
----
-
-## 📊 Overall Project Status
-
-| Phase | Completion | Notes |
-|-------|-----------|-------|
-| **Planning Workflow** | 100% | ✅ Chat, tools, AI agent working |
-| **Style Anchor** | 100% | ✅ Image gen, preview complete |
-| **Generation Workflow** | 100% | ✅ Batch UX + version carousel |
-| **Export System** | 100% | ✅ Full workflow integration |
-| **Open Source Prep** | 95% | ✅ BFG done, docs complete, ready to push |
-
-**Next Major Milestone:** Make repository public 🎉

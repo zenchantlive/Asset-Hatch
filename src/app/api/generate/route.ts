@@ -18,20 +18,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildAssetPrompt, calculateGenerationSize, type ParsedAsset } from '@/lib/prompt-builder';
 import { prepareStyleAnchorForAPI } from '@/lib/image-utils';
-import { generateFluxImage, OPENROUTER_FLUX_MODELS } from '@/lib/openrouter-image';
+import { generateFluxImage } from '@/lib/openrouter-image';
+import { getModelById, getDefaultModel, estimateCost } from '@/lib/model-registry';
 
 // Request body interface
 interface GenerateRequest {
   projectId: string;
   asset: ParsedAsset;
-  modelKey?: string; // 'flux-2-dev' or 'flux-2-pro'
+  modelKey?: string; // e.g. 'black-forest-labs/flux.2-pro'
   customPrompt?: string; // Optional custom prompt override
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { projectId, asset, modelKey = 'flux-2-dev', customPrompt } = body;
+    // modelKey is now a full model ID from registry (e.g., 'google/gemini-2.5-flash-image')
+    // Default to multimodal model for style-consistent generation
+    const defaultModelId = getDefaultModel('multimodal').id;
+    const { projectId, asset, modelKey = defaultModelId, customPrompt } = body;
 
     console.log('🎨 Starting asset generation:', {
       projectId,
@@ -79,7 +83,7 @@ export async function POST(request: NextRequest) {
       style_keywords: styleAnchor.styleKeywords,
       lighting_keywords: styleAnchor.lightingKeywords,
       color_palette: JSON.parse(styleAnchor.colorPalette),
-      flux_model: styleAnchor.fluxModel,
+      fluxModel: styleAnchor.fluxModel || 'black-forest-labs/flux.2-pro',
     };
 
     // 3. Load character registry (if applicable)
@@ -100,6 +104,9 @@ export async function POST(request: NextRequest) {
           successful_seed: char.successfulSeed || undefined,
           poses_generated: JSON.parse(char.posesGenerated),
           animations: JSON.parse(char.animations),
+          // Reference image for direction consistency
+          referenceDirection: char.referenceDirection || undefined,
+          referenceImageBase64: char.referenceImageBase64 || undefined,
         };
       }
     }
@@ -113,11 +120,55 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const styleAnchorBase64 = await prepareStyleAnchorForAPI(legacyStyleAnchor as any);
 
+    // 5b. PHASE 4: Determine reference image for consistency
+    // Priority: Parent direction reference > Character registry > Style anchor
+    let referenceImageBase64 = styleAnchorBase64;
+    let isUsingCharacterReference = false;
+
+    // Decision: Prefer directional reference over style anchor for moveable assets
+    if (asset.mobility?.type === 'moveable') {
+      // PHASE 4: Check if this is a direction variant with a parent reference
+      // If this asset has a parentAssetId, it's a child direction (Back/Left/Right)
+      // and should use the parent's approved image (Front) for consistency
+      if (asset.directionState?.parentAssetId) {
+        const parentAsset = await prisma.generatedAsset.findFirst({
+          where: {
+            projectId: projectId,
+            assetId: asset.directionState.parentAssetId,
+            status: 'approved', // Only use approved parent images
+          },
+          orderBy: {
+            createdAt: 'desc', // Get most recent if multiple exist
+          },
+        });
+
+        if (parentAsset?.imageBlob) {
+          // Convert Buffer to base64 for API compatibility
+          referenceImageBase64 = `data:image/png;base64,${parentAsset.imageBlob.toString('base64')}`;
+          isUsingCharacterReference = true;
+          console.log(
+            `🎯 PHASE 4: Using parent direction reference for ${asset.directionState.direction} (parent ID: ${asset.directionState.parentAssetId})`
+          );
+        } else {
+          console.warn(
+            `⚠️ No approved parent image found for ${asset.directionState.direction}. Falling back to character registry or style anchor.`
+          );
+        }
+      }
+
+      // Fallback to character registry if parent reference not available
+      if (!isUsingCharacterReference && characterRegistry?.referenceImageBase64) {
+        referenceImageBase64 = characterRegistry.referenceImageBase64;
+        isUsingCharacterReference = true;
+        console.log('🎯 Using character registry reference for consistency');
+      }
+    }
+
     // 6. Calculate generation size (2x for pixel-perfect downscaling)
     const genSize = calculateGenerationSize(project.baseResolution || '32x32');
 
-    // 7. Get model config from shared utility
-    const model = OPENROUTER_FLUX_MODELS[modelKey];
+    // 7. Get model config from registry
+    const model = getModelById(modelKey);
     if (!model) {
       return NextResponse.json(
         { error: `Unknown model: ${modelKey}` },
@@ -127,9 +178,9 @@ export async function POST(request: NextRequest) {
 
     // 8. Call OpenRouter using shared utility (correct endpoint + response parsing)
     const result = await generateFluxImage({
-      modelId: model.modelId,
+      modelId: model.id,
       prompt: prompt,
-      referenceImageBase64: styleAnchorBase64,
+      referenceImageBase64, // Uses character reference OR style anchor
       width: genSize.width,
       height: genSize.height,
     });
@@ -137,10 +188,14 @@ export async function POST(request: NextRequest) {
     // Use seed from result or generate random fallback
     const seed = result.seed || Math.floor(Math.random() * 1000000);
 
+    // Estimate cost using registry pricing (actual cost will be fetched later)
+    const estimatedCostValue = estimateCost(model.id, 500, 1);
+
     console.log('✅ Image generated successfully:', {
       duration: `${result.durationMs}ms`,
       seed,
       size: `${genSize.width}x${genSize.height}`,
+      generationId: result.generationId,
     });
 
     // 9. Save to SQLite
@@ -154,10 +209,11 @@ export async function POST(request: NextRequest) {
         imageBlob: Buffer.from(result.imageBuffer),
         promptUsed: prompt,
         metadata: JSON.stringify({
-          model: model.modelId,
-          cost: model.costPerImage,
+          model: model.id,
+          cost: estimatedCostValue,
           duration_ms: result.durationMs,
           seed: seed,
+          generation_id: result.generationId, // For actual cost lookup
         }),
       },
     });
@@ -186,6 +242,23 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+    }
+
+    // 10b. Store as reference image for moveable assets (first direction only)
+    // This enables consistency across N/S/E/W directions
+    if (
+      asset.mobility?.type === 'moveable' &&
+      characterRegistry &&
+      !isUsingCharacterReference // Only if we used style anchor (not existing reference)
+    ) {
+      console.log('📸 Storing generated image as character reference');
+      await prisma.characterRegistry.update({
+        where: { id: characterRegistry.id },
+        data: {
+          referenceDirection: asset.variant.direction || 'south',
+          referenceImageBase64: result.imageUrl, // Store the generated image URL/base64
+        },
+      });
     }
 
     // 11. Return generated image to client

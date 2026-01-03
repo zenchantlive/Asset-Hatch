@@ -18,6 +18,17 @@ import { ChevronDown, ChevronRight, CheckCircle2, Circle, Clock, AlertCircle, Lo
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { ParsedAsset } from '@/lib/prompt-builder'
+import { isDirectionVariant, getParentAsset } from '@/lib/direction-utils'
+
+// PHASE 7: Helper to check if asset is a direction variant (child)
+function isChildAsset(asset: ParsedAsset): boolean {
+    return isDirectionVariant(asset)
+}
+
+// PHASE 7: Helper to get directional children of a parent asset
+function getDirectionalChildren(asset: ParsedAsset, allAssets: ParsedAsset[]): ParsedAsset[] {
+    return allAssets.filter(a => a.directionState?.parentAssetId === asset.id)
+}
 
 /**
  * Group assets by category
@@ -51,10 +62,21 @@ export function CategoryQueuePanel() {
     // State for expanded categories (default all collapsed as per user request)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
+    // PHASE 7: State for expanded parent assets (to show direction children)
+    const [expandedAssets, setExpandedAssets] = useState<Record<string, boolean>>({})
+
     const toggleCategory = (category: string) => {
         setExpandedCategories(prev => ({
             ...prev,
             [category]: !prev[category]
+        }))
+    }
+
+    // PHASE 7: Toggle expanded state for parent assets
+    const toggleAssetExpanded = (assetId: string) => {
+        setExpandedAssets(prev => ({
+            ...prev,
+            [assetId]: !prev[assetId]
         }))
     }
 
@@ -131,46 +153,126 @@ export function CategoryQueuePanel() {
                                 </div>
                             </button>
 
-                            {/* Asset List (Accordion Body) */}
+                            {/* Asset List (Accordion Body) - PHASE 7: Filter out direction children */}
                             {isExpanded && (
                                 <div className="border-t border-white/5">
-                                    {assets.map(asset => {
-                                        const isSelected = selectedAssetId === asset.id
-                                        const isChecked = state.queue.selectedIds.has(asset.id)
+                                    {assets
+                                        .filter(asset => !isChildAsset(asset)) // Hide direction children
+                                        .map(asset => {
+                                            const isSelected = selectedAssetId === asset.id
+                                            const isChecked = state.queue.selectedIds.has(asset.id)
 
-                                        return (
-                                            <div
-                                                key={asset.id}
-                                                className={`w-full flex items-center px-4 py-2 text-sm transition-colors cursor-pointer border-l-2 ${isSelected
-                                                    ? 'bg-purple-500/10 border-purple-500'
-                                                    : 'hover:bg-white/5 border-transparent'
-                                                    }`}
-                                                onClick={() => selectAsset(asset, 'queue')}
-                                            >
-                                                {/* Selection Checkbox */}
-                                                <div
-                                                    className="mr-3 flex-shrink-0 cursor-pointer p-1 group/checkbox"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        toggleAssetSelection(asset.id)
-                                                    }}
-                                                >
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked
-                                                            ? 'bg-purple-500 border-purple-500'
-                                                            : 'border-white/30 group-hover/checkbox:border-white/60 bg-transparent'
-                                                        }`}>
-                                                        {isChecked && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                            // PHASE 7: Get directional children for this asset
+                                            const directionChildren = getDirectionalChildren(asset, parsedAssets)
+                                            const hasChildren = directionChildren.length > 0
+                                            const isAssetExpanded = expandedAssets[asset.id]
+
+                                            // Calculate approval stats for children
+                                            const approvedChildren = directionChildren.filter(
+                                                child => assetStates.get(child.id)?.status === 'approved'
+                                            ).length
+
+                                            return (
+                                                <div key={asset.id}>
+                                                    {/* Parent Asset Row */}
+                                                    <div
+                                                        className={`w-full flex items-center px-4 py-2 text-sm transition-colors cursor-pointer border-l-2 ${isSelected
+                                                            ? 'bg-purple-500/10 border-purple-500'
+                                                            : 'hover:bg-white/5 border-transparent'
+                                                            }`}
+                                                        onClick={() => selectAsset(asset, 'queue')}
+                                                    >
+                                                        {/* PHASE 7: Expand toggle for assets with children */}
+                                                        {hasChildren && (
+                                                            <div
+                                                                className="mr-2 cursor-pointer p-1"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    toggleAssetExpanded(asset.id)
+                                                                }}
+                                                            >
+                                                                {isAssetExpanded ?
+                                                                    <ChevronDown className="w-3 h-3 text-white/60" /> :
+                                                                    <ChevronRight className="w-3 h-3 text-white/60" />
+                                                                }
+                                                            </div>
+                                                        )}
+
+                                                        {/* Selection Checkbox */}
+                                                        <div
+                                                            className={`${hasChildren ? '' : 'ml-5'} mr-3 flex-shrink-0 cursor-pointer p-1 group/checkbox`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                toggleAssetSelection(asset.id)
+                                                            }}
+                                                        >
+                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked
+                                                                ? 'bg-purple-500 border-purple-500'
+                                                                : 'border-white/30 group-hover/checkbox:border-white/60 bg-transparent'
+                                                                }`}>
+                                                                {isChecked && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                                            </div>
+                                                        </div>
+
+                                                        <span className={`truncate flex-1 ${isSelected ? 'text-white font-medium' : 'text-white/70'}`}>
+                                                            {asset.name}
+                                                        </span>
+
+                                                        {/* PHASE 7: Direction badge for parent assets */}
+                                                        {hasChildren && (
+                                                            <span className="text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50 px-1.5 py-0.5 mr-2">
+                                                                {directionChildren.length}-DIR: {approvedChildren}/{directionChildren.length} ✓
+                                                            </span>
+                                                        )}
+
+                                                        {getStatusIcon(asset.id)}
                                                     </div>
+
+                                                    {/* PHASE 7: Expandable direction children */}
+                                                    {hasChildren && isAssetExpanded && (
+                                                        <div className="ml-8 border-l border-white/10">
+                                                            {directionChildren.map(child => {
+                                                                const childSelected = selectedAssetId === child.id
+                                                                const childChecked = state.queue.selectedIds.has(child.id)
+
+                                                                return (
+                                                                    <div
+                                                                        key={child.id}
+                                                                        className={`w-full flex items-center px-4 py-1.5 text-xs transition-colors cursor-pointer border-l-2 ${childSelected
+                                                                            ? 'bg-purple-500/10 border-purple-500'
+                                                                            : 'hover:bg-white/5 border-transparent'
+                                                                            }`}
+                                                                        onClick={() => selectAsset(asset, 'queue')}
+                                                                    >
+                                                                        {/* Child checkbox */}
+                                                                        <div
+                                                                            className="mr-2 flex-shrink-0 cursor-pointer p-1 group/checkbox"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                toggleAssetSelection(child.id)
+                                                                            }}
+                                                                        >
+                                                                            <div className={`w-3 h-3 rounded border flex items-center justify-center transition-colors ${childChecked
+                                                                                ? 'bg-purple-500 border-purple-500'
+                                                                                : 'border-white/30 group-hover/checkbox:border-white/60 bg-transparent'
+                                                                                }`}>
+                                                                                {childChecked && <CheckCircle2 className="w-2 h-2 text-white" />}
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <span className={`truncate flex-1 ${childSelected ? 'text-white font-medium' : 'text-white/60'}`}>
+                                                                            {child.directionState?.direction || 'Unknown'} direction
+                                                                        </span>
+
+                                                                        {getStatusIcon(child.id)}
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
-
-                                                <span className={`truncate flex-1 ${isSelected ? 'text-white font-medium' : 'text-white/70'}`}>
-                                                    {asset.name}
-                                                </span>
-
-                                                {getStatusIcon(asset.id)}
-                                            </div>
-                                        )
-                                    })}
+                                            )
+                                        })}
                                 </div>
                             )}
                         </div>

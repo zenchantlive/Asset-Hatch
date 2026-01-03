@@ -23,6 +23,10 @@ import {
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { GenerateAllWarning } from './GenerateAllWarning'
+import { getImageGenerationModels, getModelById, formatCost, estimateCost } from '@/lib/model-registry'
+
+// Get available models from registry (curated list)
+const availableModels = getImageGenerationModels();
 
 /**
  * Props for BatchControlsBar
@@ -56,8 +60,14 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         assetStates,
     } = useGenerationContext()
 
-    // Get layout context for selection state
-    const { state, selectAllVisible, selectRemainingAssets } = useGenerationLayout()
+    // Get layout context for selection state and cost data
+    const {
+        state,
+        selectAllVisible,
+        selectRemainingAssets,
+        totalEstimatedCost,
+        totalActualCost,
+    } = useGenerationLayout()
     const selectedCount = state.queue.selectedIds.size
 
     // Calculate remaining count (assets not approved or awaiting approval)
@@ -67,13 +77,18 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
             (state.status !== 'approved' && state.status !== 'awaiting_approval')
     }).length
 
-    // Calculate cost estimate
-    const costPerImage = selectedModel === 'flux-2-dev' ? 0.04 : 0.15
+    // Calculate cost estimate using model registry
+    const currentModel = getModelById(selectedModel);
     const assetsToGenerate = selectedCount > 0 ? selectedCount : remainingCount
-    const estimatedCost = assetsToGenerate * costPerImage
+    const estimatedCost = estimateCost(selectedModel, 500, assetsToGenerate)
 
-    // Calculate time estimate (rough: 4s per asset for dev, 8s for pro)
-    const timePerAsset = selectedModel === 'flux-2-dev' ? 4 : 8
+    // Determine which cost to display (actual if available, otherwise estimated)
+    const hasActualCosts = totalActualCost && totalActualCost > 0
+    const displayCost = hasActualCosts ? totalActualCost : (totalEstimatedCost || estimatedCost)
+    const costLabel = hasActualCosts ? 'Total:' : 'Est:'
+
+    // Calculate time estimate (rough: multimodal ~4s, dedicated image-gen ~2s)
+    const timePerAsset = currentModel?.category === 'image-gen' ? 2 : 4
     const estimatedTimeSeconds = assetsToGenerate * timePerAsset
     const estimatedTimeDisplay = estimatedTimeSeconds < 60
         ? `~${estimatedTimeSeconds}s`
@@ -150,8 +165,8 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                 </Button>
 
                 {/* Cost + Time combined */}
-                <span className="text-sm text-white/70">
-                    ${estimatedCost.toFixed(2)} • {estimatedTimeDisplay}
+                <span className={`text-sm font-medium ${hasActualCosts ? 'text-green-400' : 'text-white/70'}`}>
+                    {costLabel} {formatCost(displayCost, true)} • {estimatedTimeDisplay}
                 </span>
 
                 {/* Settings gear */}
@@ -231,21 +246,21 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
                 <span className="text-sm text-white/60">Model:</span>
                 <Select
                     value={selectedModel}
-                    onValueChange={(value: 'flux-2-dev' | 'flux-2-pro') => setSelectedModel(value)}
+                    onValueChange={(value: string) => setSelectedModel(value)}
                     disabled={isGenerating}
                 >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-48">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="flux-2-dev">
-                            <span className="font-medium">Flux.2 Dev</span>
-                            <span className="text-xs text-white/50 ml-2">$0.04</span>
-                        </SelectItem>
-                        <SelectItem value="flux-2-pro">
-                            <span className="font-medium">Flux.2 Pro</span>
-                            <span className="text-xs text-white/50 ml-2">$0.15</span>
-                        </SelectItem>
+                        {availableModels.map(model => (
+                            <SelectItem key={model.id} value={model.id}>
+                                <span className="font-medium">{model.displayName}</span>
+                                <span className="text-xs text-white/50 ml-2">
+                                    {model.pricing.perImage ? formatCost(model.pricing.perImage) : 'Token-based'}
+                                </span>
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -253,8 +268,8 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
             {/* Right: Cost + Time + Settings */}
             <div className="flex items-center gap-4">
                 {/* Combined cost and time */}
-                <span className="text-sm text-white/70">
-                    ${estimatedCost.toFixed(2)} • {estimatedTimeDisplay}
+                <span className={`text-sm font-medium ${hasActualCosts ? 'text-green-400' : 'text-white/70'}`}>
+                    {costLabel} {formatCost(displayCost, true)} • {estimatedTimeDisplay}
                 </span>
 
                 {/* Settings gear */}

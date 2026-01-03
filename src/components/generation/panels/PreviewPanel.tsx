@@ -12,12 +12,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Check, X, RotateCcw, Edit3, Loader2, Maximize2, X as Close, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, X, RotateCcw, Edit3, Loader2, Maximize2, X as Close, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { BatchPreviewContent } from './BatchPreviewContent'
 import { VersionCarousel } from '../VersionCarousel'
+import { DirectionGrid } from '../DirectionGrid'
+import { expandAssetToDirections, type Direction } from '@/lib/direction-utils'
 
 /**
  * Props for PreviewPanel
@@ -36,8 +38,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
-    // Version carousel state
-    const [currentVersionIndex, setCurrentVersionIndex] = useState(0)
+    // State for local version selection (if versions available)
+    // const [localVersionIndex, setLocalVersionIndex] = useState<number | null>(null)
 
     // Get contexts
     const {
@@ -49,9 +51,12 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
         approveAsset,
         rejectAsset,
         updatePrompt,
+        updateVersionIndex,
+        isSyncingCost,
+        syncErrors,
     } = useGenerationContext()
 
-    const { state, openPromptEditor, selectAsset } = useGenerationLayout()
+    const { state, openPromptEditor, selectAsset, toggleAssetSelection } = useGenerationLayout()
 
     const { selectedAsset } = state.preview
 
@@ -106,6 +111,10 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
             const currentVersion = assetState.versions[assetState.currentVersionIndex || 0]
             if (currentVersion) {
                 await approveAsset(asset.id, currentVersion)
+                // Auto-deselect from batch if selected
+                if (state.queue.selectedIds.has(asset.id)) {
+                    toggleAssetSelection(asset.id)
+                }
             }
         }
     }
@@ -125,6 +134,57 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
             // Not fully supported by new signature, but let's assume awaiting_approval
         }
     }
+
+    // PHASE 6: Handle direction generation
+    const handleGenerateDirections = async (directions: Direction[]) => {
+        if (!asset) return;
+
+        console.log(`🎨 PHASE 6: Generating ${directions.length} directional variants for ${asset.name}`);
+
+        // Expand the parent asset into directional variants
+        const directionCount = asset.mobility.directions || 4;
+        const expandedAssets = expandAssetToDirections(asset, directionCount);
+
+        // Filter to only the selected directions
+        const selectedAssets = expandedAssets.filter(
+            (dirAsset) => directions.includes(dirAsset.directionState?.direction!)
+        );
+
+        console.log(`📦 Created ${selectedAssets.length} direction variants:`, selectedAssets.map(a => a.directionState?.direction));
+
+        // Generate each selected direction
+        for (const dirAsset of selectedAssets) {
+            try {
+                // Note: In a real implementation, you'd need to add these assets to the queue first
+                // For now, we'll just generate them directly
+                await generateImage(dirAsset.id);
+                console.log(`✅ Generated ${dirAsset.directionState?.direction} direction`);
+            } catch (error) {
+                console.error(`❌ Failed to generate ${dirAsset.directionState?.direction}:`, error);
+            }
+        }
+    };
+
+    // PHASE 6: Handle direction selection
+    const handleDirectionSelect = (direction: Direction) => {
+        if (!asset) return;
+
+        console.log(`🎯 PHASE 6: Selecting direction variant: ${direction}`);
+
+        // Find the direction variant in the parsed assets
+        const dirAsset = parsedAssets.find(
+            (a) =>
+                a.directionState?.parentAssetId === asset.id &&
+                a.directionState?.direction === direction
+        );
+
+        if (dirAsset) {
+            selectAsset(dirAsset, 'queue');
+            console.log(`✅ Navigated to ${direction} direction variant`);
+        } else {
+            console.warn(`⚠️ Direction variant not found for ${direction}. It may not be created yet.`);
+        }
+    };
 
     // Navigate to prev/next asset (for lightbox)
     const navigateTo = (direction: 'prev' | 'next') => {
@@ -164,11 +224,14 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     }
 
     // Determine what to show based on asset state
+    const isPending = !assetState || assetState?.status === 'pending'
     const isGenerating = assetState?.status === 'generating'
     const isAwaitingApproval = assetState?.status === 'awaiting_approval'
     const isApproved = assetState?.status === 'approved'
     const hasError = assetState?.status === 'error'
     const hasResult = isAwaitingApproval || isApproved
+    // Can generate if pending and has a prompt ready
+    const canGenerate = isPending && !!currentPrompt
 
     // Check for version carousel
     const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
@@ -192,8 +255,26 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                         Back to Batch ({selectedCount} assets)
                     </Button>
 
-                    {/* Header Actions - Approve/Reject/Regenerate */}
+                    {/* Header Actions - Generate/Approve/Reject/Regenerate */}
                     <div className="flex items-center gap-2">
+                        {/* Generate - Visible when pending and has prompt */}
+                        {canGenerate && (
+                            <Button
+                                onClick={handleGenerateImage}
+                                disabled={isGenerating}
+                                variant="outline"
+                                size="sm"
+                                className="border-green-500/30 hover:bg-green-500/10 text-green-300 hover:text-green-200"
+                            >
+                                {isGenerating ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                    <Play className="w-3 h-3" />
+                                )}
+                                <span className="ml-2">Generate</span>
+                            </Button>
+                        )}
+
                         {/* Regenerate - Visible when has result or error */}
                         {(hasResult || hasError) && (
                             <Button
@@ -247,20 +328,19 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                         <VersionCarousel
                             versions={assetState.versions}
                             currentIndex={assetState.currentVersionIndex || 0}
-                            onIndexChange={setCurrentVersionIndex}
-                            onApprove={(versionId) => {
-                                if (asset && assetState?.versions) {
-                                    const versionToApprove = assetState.versions.find(v => v.id === versionId);
-                                    if (versionToApprove) {
-                                        approveAsset(asset.id, versionToApprove);
-                                    }
-                                }
-                            }}
-                            onReject={(versionId) => {
-                                if (asset) {
-                                    rejectAsset(asset.id, versionId);
-                                }
-                            }}
+                            onIndexChange={(index) => updateVersionIndex(asset.id, index)}
+                            onApprove={handleApprove}
+                            onReject={handleReject}
+                            isSyncingCost={isSyncingCost}
+                            syncError={syncErrors[asset.id]}
+                        />
+                    </div>
+                ) : asset.mobility.type === 'moveable' ? (
+                    // REDESIGN: For moveable assets, show DirectionGrid as main preview
+                    <div className="mb-2">
+                        <DirectionGrid
+                            asset={asset}
+                            onDirectionSelect={handleDirectionSelect}
                         />
                     </div>
                 ) : (
@@ -306,231 +386,271 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                     </div>
                 )}
 
-                {/* Asset info section */}
-                <div className="mb-4">
-                    <div className="flex items-start justify-between mb-2">
+                {/* Asset info section - Compact */}
+                <div className="mb-2">
+                    <div className="flex items-start justify-between mb-1">
                         <div>
                             <h2 className={`font-semibold text-white/90 ${compact ? 'text-base' : 'text-lg'}`}>
                                 {asset.name}
                             </h2>
-                            <p className="text-sm text-white/60">{asset.category}</p>
-                        </div>
-
-                        {/* Status badge with action buttons */}
-                        <div className="flex items-center gap-2">
-                            {/* Approve button - show when awaiting approval */}
-                            {isAwaitingApproval && (
-                                <button
-                                    onClick={handleApprove}
-                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
-                                    title="Approve asset"
-                                >
-                                    <Check className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
-                                </button>
-                            )}
-
-                            {/* Reject button - show when awaiting approval */}
-                            {isAwaitingApproval && (
-                                <button
-                                    onClick={handleReject}
-                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
-                                    title="Reject asset"
-                                >
-                                    <X className="w-3.5 h-3.5 text-white/60 hover:text-red-400" />
-                                </button>
-                            )}
-
-                            {/* Regenerate button - show when asset has been generated */}
-                            {(hasResult || hasError) && (
-                                <button
-                                    onClick={handleGenerateImage}
-                                    disabled={isGenerating}
-                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Regenerate asset"
-                                >
-                                    {isGenerating ? (
-                                        <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
-                                    ) : (
-                                        <RotateCcw className="w-3.5 h-3.5 text-white/60 hover:text-purple-400" />
-                                    )}
-                                </button>
-                            )}
-
-                            {/* Status badge */}
-                            {assetState && (
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
-                                    isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
-                                        isApproved ? 'bg-green-500/20 text-green-400' :
-                                            hasError ? 'bg-red-500/20 text-red-400' :
-                                                'bg-white/10 text-white/60'
-                                    }`}>
-                                    {isGenerating ? 'Generating...' :
-                                        isAwaitingApproval ? 'Awaiting Review' :
-                                            isApproved ? 'Approved' :
-                                                hasError ? 'Failed' :
-                                                    'Pending'}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    {asset.description && (
-                        <p className="text-sm text-white/70">{asset.description}</p>
-                    )}
-                </div>
-
-                {/* Prompt section - full visible, not truncated */}
-                <div className="mb-4 flex-1 min-h-0 overflow-auto">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-white/70">Prompt</span>
-                        <button
-                            onClick={openPromptEditor}
-                            className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
-                        >
-                            <Edit3 className="w-3 h-3" />
-                            Edit
-                        </button>
-                    </div>
-
-                    {currentPrompt ? (
-                        isEditingPrompt ? (
-                            <div className="space-y-2">
-                                <textarea
-                                    value={editedPrompt}
-                                    onChange={(e) => setEditedPrompt(e.target.value)}
-                                    className="w-full h-32 p-3 bg-black/50 border border-white/20 rounded-lg text-sm text-white/90 font-mono resize-none focus:border-purple-500 focus:outline-none"
-                                    placeholder="Enter your prompt..."
-                                />
-                                <div className="flex gap-2">
-                                    <Button
-                                        size="sm"
-                                        onClick={() => {
-                                            if (asset) {
-                                                updatePrompt(asset.id, editedPrompt)
-                                                setIsEditingPrompt(false)
-                                            }
-                                        }}
-                                        className="bg-purple-600 hover:bg-purple-700"
-                                    >
-                                        Save
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                            setEditedPrompt(currentPrompt)
-                                            setIsEditingPrompt(false)
-                                        }}
-                                        className="bg-white/5 hover:bg-white/10"
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                {/* Mobility badges */}
+                                <p className="text-sm text-white/60">{asset.category}</p>
+                                {asset.mobility.type === 'moveable' && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
+                                        {asset.mobility.directions || 4}-DIR
+                                    </span>
+                                )}
+                                {asset.mobility.type === 'animated' && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
+                                        ANIM:{asset.mobility.frames || '?'}
+                                    </span>
+                                )}
+                                {asset.mobility.type === 'static' && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
+                                        STATIC
+                                    </span>
+                                )}
                             </div>
-                        ) : (
-                            <div
-                                className="p-3 bg-black/30 rounded-lg border border-white/10 cursor-text hover:bg-black/40 transition-colors"
-                                onClick={() => {
-                                    setEditedPrompt(currentPrompt)
-                                    setIsEditingPrompt(true)
-                                }}
+
+
+                            {/* Status badge with action buttons */}
+                            <div className="flex items-center gap-2">
+                                {/* Approve button - show when awaiting approval */}
+                                {isAwaitingApproval && (
+                                    <button
+                                        onClick={handleApprove}
+                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
+                                        title="Approve asset"
+                                    >
+                                        <Check className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
+                                    </button>
+                                )}
+
+                                {/* Reject button - show when awaiting approval */}
+                                {isAwaitingApproval && (
+                                    <button
+                                        onClick={handleReject}
+                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
+                                        title="Reject asset"
+                                    >
+                                        <X className="w-3.5 h-3.5 text-white/60 hover:text-red-400" />
+                                    </button>
+                                )}
+
+                                {/* Generate button - show when pending and has prompt */}
+                                {canGenerate && (
+                                    <button
+                                        onClick={handleGenerateImage}
+                                        disabled={isGenerating}
+                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Generate asset"
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 className="w-3.5 h-3.5 text-green-400 animate-spin" />
+                                        ) : (
+                                            <Play className="w-3.5 h-3.5 text-white/60 hover:text-green-400" />
+                                        )}
+                                    </button>
+                                )}
+
+                                {/* Regenerate button - show when asset has been generated */}
+                                {(hasResult || hasError) && (
+                                    <button
+                                        onClick={handleGenerateImage}
+                                        disabled={isGenerating}
+                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Regenerate asset"
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+                                        ) : (
+                                            <RotateCcw className="w-3.5 h-3.5 text-white/60 hover:text-purple-400" />
+                                        )}
+                                    </button>
+                                )}
+
+                                {/* Status badge */}
+                                {assetState && (
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${isGenerating ? 'bg-purple-500/20 text-purple-400' :
+                                        isAwaitingApproval ? 'bg-amber-500/20 text-amber-400' :
+                                            isApproved ? 'bg-green-500/20 text-green-400' :
+                                                hasError ? 'bg-red-500/20 text-red-400' :
+                                                    'bg-white/10 text-white/60'
+                                        }`}>
+                                        {isGenerating ? 'Generating...' :
+                                            isAwaitingApproval ? 'Awaiting Review' :
+                                                isApproved ? 'Approved' :
+                                                    hasError ? 'Failed' :
+                                                        'Pending'}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+
+
+
+                        {/* Description */}
+                        {asset.description && (
+                            <p className="text-sm text-white/70">{asset.description}</p>
+                        )}
+                    </div>
+
+                    {/* Direction Grid moved to main preview area for moveable assets */}
+
+                    {/* Prompt section - Compact */}
+                    <div className="mb-2">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-white/70">Prompt</span>
+                            <button
+                                onClick={openPromptEditor}
+                                className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
                             >
-                                <p className="text-sm text-white/80 font-mono whitespace-pre-wrap">
-                                    {currentPrompt}
+                                <Edit3 className="w-3 h-3" />
+                                Edit
+                            </button>
+                        </div>
+
+                        {currentPrompt ? (
+                            isEditingPrompt ? (
+                                <div className="space-y-2">
+                                    <textarea
+                                        value={editedPrompt}
+                                        onChange={(e) => setEditedPrompt(e.target.value)}
+                                        className="w-full h-20 p-2 bg-black/50 border border-white/20 rounded-lg text-xs text-white/90 font-mono resize-none focus:border-purple-500 focus:outline-none"
+                                        placeholder="Enter your prompt..."
+                                    />
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                if (asset) {
+                                                    updatePrompt(asset.id, editedPrompt)
+                                                    setIsEditingPrompt(false)
+                                                }
+                                            }}
+                                            className="bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Save
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setEditedPrompt(currentPrompt)
+                                                setIsEditingPrompt(false)
+                                            }}
+                                            className="bg-white/5 hover:bg-white/10"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    className="p-2 bg-black/30 rounded-lg border border-white/10 cursor-text hover:bg-black/40 transition-colors"
+                                    onClick={() => {
+                                        setEditedPrompt(currentPrompt)
+                                        setIsEditingPrompt(true)
+                                    }}
+                                >
+                                    <p className="text-xs text-white/80 font-mono whitespace-pre-wrap leading-snug">
+                                        {currentPrompt}
+                                    </p>
+                                </div>
+                            )
+                        ) : (
+                            <div className="p-2 bg-black/30 rounded-lg border border-white/10">
+                                <p className="text-xs text-white/50 italic mb-1">No prompt generated</p>
+                                <Button
+                                    onClick={handleGeneratePrompt}
+                                    disabled={isGeneratingPrompt}
+                                    size="sm"
+                                >
+                                    {isGeneratingPrompt ? (
+                                        <>
+                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        'Generate Prompt'
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Action buttons - moved here to be visible above bottom bar */}
+                    {/* Action buttons - moved here to be visible above bottom bar */}
+                    <div className="space-y-3">
+                        {/* Approve/Reject (when awaiting approval) - PRIMARY ACTION */}
+
+
+
+
+                        {/* Error message */}
+                        {hasError && assetState?.error && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                <p className="text-sm text-red-400">
+                                    Error: {assetState.error.message || 'Generation failed'}
                                 </p>
                             </div>
-                        )
-                    ) : (
-                        <div className="p-3 bg-black/30 rounded-lg border border-white/10">
-                            <p className="text-sm text-white/50 italic mb-2">No prompt generated</p>
-                            <Button
-                                onClick={handleGeneratePrompt}
-                                disabled={isGeneratingPrompt}
-                                size="sm"
-                            >
-                                {isGeneratingPrompt ? (
-                                    <>
-                                        <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                        Generating...
-                                    </>
-                                ) : (
-                                    'Generate Prompt'
-                                )}
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Action buttons - moved here to be visible above bottom bar */}
-                {/* Action buttons - moved here to be visible above bottom bar */}
-                <div className="space-y-3">
-                    {/* Approve/Reject (when awaiting approval) - PRIMARY ACTION */}
-
-
-
-
-                    {/* Error message */}
-                    {hasError && assetState?.error && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-sm text-red-400">
-                                Error: {assetState.error.message || 'Generation failed'}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Lightbox Modal */}
-            {isLightboxOpen && imageUrl && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-                    onClick={() => setIsLightboxOpen(false)}
-                >
-                    {/* Close button */}
-                    <button
-                        onClick={() => setIsLightboxOpen(false)}
-                        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                    >
-                        <Close className="w-6 h-6 text-white" />
-                    </button>
-
-                    {/* Navigation - Previous */}
-                    {currentIndex > 0 && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); navigateTo('prev') }}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                        >
-                            <ChevronLeft className="w-6 h-6 text-white" />
-                        </button>
-                    )}
-
-                    {/* Image */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={imageUrl}
-                        alt={asset.name}
-                        className="max-w-[90vw] max-h-[90vh] object-contain"
-                        onClick={(e) => e.stopPropagation()}
-                    />
-
-                    {/* Navigation - Next */}
-                    {currentIndex < parsedAssets.length - 1 && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); navigateTo('next') }}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                        >
-                            <ChevronRight className="w-6 h-6 text-white" />
-                        </button>
-                    )}
-
-                    {/* Asset name caption */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 rounded-lg">
-                        <p className="text-white font-medium">{asset.name}</p>
-                        <p className="text-white/60 text-sm text-center">{currentIndex + 1} of {parsedAssets.length}</p>
+                        )}
                     </div>
                 </div>
-            )}
+
+                {/* Lightbox Modal */}
+                {isLightboxOpen && imageUrl && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+                        onClick={() => setIsLightboxOpen(false)}
+                    >
+                        {/* Close button */}
+                        <button
+                            onClick={() => setIsLightboxOpen(false)}
+                            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                        >
+                            <Close className="w-6 h-6 text-white" />
+                        </button>
+
+                        {/* Navigation - Previous */}
+                        {currentIndex > 0 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); navigateTo('prev') }}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                                <ChevronLeft className="w-6 h-6 text-white" />
+                            </button>
+                        )}
+
+                        {/* Image */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={imageUrl}
+                            alt={asset.name}
+                            className="max-w-[90vw] max-h-[90vh] object-contain"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Navigation - Next */}
+                        {currentIndex < parsedAssets.length - 1 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); navigateTo('next') }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                                <ChevronRight className="w-6 h-6 text-white" />
+                            </button>
+                        )}
+
+                        {/* Asset name caption */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 rounded-lg">
+                            <p className="text-white font-medium">{asset.name}</p>
+                            <p className="text-white/60 text-sm text-center">{currentIndex + 1} of {parsedAssets.length}</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </>
     )
 }

@@ -18,6 +18,8 @@ import {
   getPerspectiveKeywords,
   getConsistencyMarkers,
 } from './prompt-templates';
+// PHASE 11: Import export naming convention for directional assets
+import { getDirectionPromptModifier, DIRECTION_EXPORT_NAMES } from './direction-utils';
 
 /**
  * Parsed asset from entities.json plan
@@ -28,6 +30,38 @@ export interface ParsedAsset {
   name: string; // "Farmer", "Grass Tileset", etc.
   type: AssetType; // Determines which template to use
   description: string; // User's description of the asset
+  // Mobility classification for direction/animation awareness
+  mobility: {
+    // Asset movement type: static (no movement), moveable (directions), or animated (frames)
+    type: 'static' | 'moveable' | 'animated';
+    // Number of directions (4 or 8) for moveable assets
+    directions?: 4 | 8;
+    // Number of frames for animated assets
+    frames?: number;
+  };
+  // Generation state for direction variants
+  // USER DECISION: Using user-friendly direction names (Front/Back/Left/Right) instead of compass directions
+  directionState?: {
+    // Which directions have been generated
+    generated: Set<'front' | 'back' | 'left' | 'right' | 'front-left' | 'front-right' | 'back-left' | 'back-right'>;
+
+    // Parent-child relationship for directional variants
+    // Links child directions (Back/Left/Right) to the parent asset (Front)
+    parentAssetId?: string;
+
+    // This asset's specific direction (e.g., 'front', 'back', 'left', 'right')
+    direction?: 'front' | 'back' | 'left' | 'right' | 'front-left' | 'front-right' | 'back-left' | 'back-right';
+
+    // True if this is the root asset (not a direction variant)
+    isParent?: boolean;
+
+    // Reference direction for consistency (typically 'front')
+    referenceDirection?: 'front' | 'back' | 'left' | 'right';
+
+    // Base64 of reference image (typically from the Front direction)
+    // Used for maintaining visual consistency across all directional variants
+    referenceImageBase64?: string;
+  };
   variant: {
     id: string;
     name: string; // "Idle", "Walking", "4-direction", etc.
@@ -38,6 +72,7 @@ export interface ParsedAsset {
     direction?: string; // "front", "left", "right", "back"
   };
 }
+
 
 /**
  * Build a complete Flux.2 optimized prompt for an asset
@@ -97,6 +132,31 @@ export function buildAssetPrompt(
       asset.type === 'sprite-sheet'
     ),
   };
+
+  // PHASE 3: Direction-specific prompt enhancement
+  // If this is a directional variant, override the view direction with direction-specific modifier
+  if (asset.directionState?.direction) {
+    const directionModifier = getDirectionPromptModifier(
+      asset.directionState.direction
+    );
+    vars.viewDirection = directionModifier; // Override default view direction
+    console.log(
+      `🧭 Direction modifier applied: ${asset.directionState.direction} → "${directionModifier}"`
+    );
+  }
+
+  // PHASE 3: Reference image consistency
+  // If this direction variant has a reference image (from Front direction), add consistency markers
+  if (asset.directionState?.referenceImageBase64) {
+    vars.consistencyMarkers.push(
+      'maintain exact same character design, colors, and proportions as the reference image',
+      'same character appearance from different angle',
+      'consistent visual style with reference'
+    );
+    console.log(
+      `📸 Reference consistency markers added for ${asset.directionState.direction} direction`
+    );
+  }
 
   // Select appropriate template and build prompt
   const templateFn = selectTemplate(asset.type);
@@ -262,7 +322,7 @@ export interface ModelConfig {
 }
 
 export const FLUX_MODELS: Record<string, ModelConfig> = {
-  'flux-2-dev': {
+  'black-forest-labs/flux.2-pro': {
     // Note: OpenRouter uses dot notation (flux.2-) not dash (flux-2-)
     modelId: 'black-forest-labs/flux.2-pro',  // No "dev" on OpenRouter, using pro for now
     provider: 'openrouter',
@@ -271,20 +331,12 @@ export const FLUX_MODELS: Record<string, ModelConfig> = {
     qualityRating: 7,
     maxContextImages: 8,
   },
-  'flux-2-pro': {
-    modelId: 'black-forest-labs/flux.2-pro',
-    provider: 'openrouter',
-    costPerImage: 0.15,
-    speedRating: 5,
-    qualityRating: 10,
-    maxContextImages: 8,
-  },
 };
 
 /**
  * Estimate cost for batch generation
  */
-export function estimateBatchCost(assetCount: number, modelKey: string = 'flux-2-dev'): number {
+export function estimateBatchCost(assetCount: number, modelKey: string = 'black-forest-labs/flux.2-pro'): number {
   const model = FLUX_MODELS[modelKey];
   if (!model) {
     throw new Error(`Unknown model: ${modelKey}`);
@@ -332,10 +384,20 @@ export function generateSemanticId(asset: ParsedAsset): string {
       .replace(/[^a-z0-9_]/g, '')
     : null;
 
-  // Combine parts
-  return variant
-    ? `${category}_${name}_${variant}`
-    : `${category}_${name}`;
+  // PHASE 11: Add direction suffix for directional assets
+  // Examples: "character_farmer_front", "character_farmer_back_left"
+  const direction = asset.directionState?.direction
+    ? DIRECTION_EXPORT_NAMES[asset.directionState.direction]
+    : null;
+
+  // Combine parts (direction takes precedence over variant for naming)
+  if (direction) {
+    return `${category}_${name}_${direction}`;
+  } else if (variant) {
+    return `${category}_${name}_${variant}`;
+  } else {
+    return `${category}_${name}`;
+  }
 }
 
 /**

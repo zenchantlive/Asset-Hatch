@@ -41,6 +41,10 @@ export interface FluxGenerationResult {
     seed?: number;
     // Duration in milliseconds
     durationMs: number;
+    // OpenRouter generation ID for cost tracking via /api/v1/generation endpoint
+    generationId: string;
+    // The model ID that was used for this generation
+    modelId: string;
 }
 
 /**
@@ -196,23 +200,8 @@ export async function generateFluxImage(
         imageBuffer,
         seed,
         durationMs,
+        // Return generation ID for cost tracking
+        generationId: responseData.id || '',
+        modelId,
     };
 }
-
-/**
- * Correct Flux model IDs for OpenRouter
- * 
- * Note: These are the actual OpenRouter model IDs, not marketing names.
- * - black-forest-labs/flux.2-pro is faster and cheaper (good for testing)
- * - flux.2-pro is higher quality (good for production)
- */
-export const OPENROUTER_FLUX_MODELS: Record<string, { modelId: string; costPerImage: number }> = {
-    'flux-2-dev': {
-        modelId: 'black-forest-labs/flux.2-pro',
-        costPerImage: 0.025,
-    },
-    'flux-2-pro': {
-        modelId: 'black-forest-labs/flux.2-pro',
-        costPerImage: 0.055,
-    },
-};

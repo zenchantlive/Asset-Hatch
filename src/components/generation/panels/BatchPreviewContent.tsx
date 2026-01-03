@@ -25,7 +25,8 @@ function AssetCard({
     onClickPending,
     onNavigateToSingle,
     onApprove,
-    onReject
+    onReject,
+    isExiting
 }: {
     asset: ParsedAsset
     state: AssetGenerationState | undefined // Typed state
@@ -36,6 +37,7 @@ function AssetCard({
     onNavigateToSingle?: () => void
     onApprove?: (id: string) => void
     onReject?: (id: string) => void
+    isExiting?: boolean
 }) {
     const isGenerating = state?.status === 'generating'
     const result = (state?.status === 'approved' || state?.status === 'awaiting_approval') ? state.result : null
@@ -46,8 +48,9 @@ function AssetCard({
             className={`
                 aspect-square bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-4 group 
                 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:bg-white/10 
-                relative overflow-hidden animate-in zoom-in-50 fill-mode-both 
+                relative overflow-hidden fill-mode-both 
                 ${isExpandedItem ? 'ring-2 ring-purple-500 bg-white/10' : ''}
+                ${isExiting ? 'animate-out zoom-out-0 fade-out-0 duration-300 scale-0 opacity-0 rotate-12' : 'animate-in zoom-in-50'}
             `}
         // Stagger animation delay logic would need index passed, omitting for simplicity in sub-component
         >
@@ -78,6 +81,31 @@ function AssetCard({
                         <div className="w-10 h-10 rounded-full bg-white/10" />
                         <span className="text-xs uppercase tracking-widest font-medium">Pending</span>
                     </div>
+                )}
+            </div>
+
+            {/* Mobility Badges - show asset classification */}
+            <div className="flex gap-1 flex-wrap">
+                {asset.mobility.type === 'moveable' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-purple-500/30 text-purple-300 border border-purple-500/50">
+                        {asset.mobility.directions || 4}-DIR
+                    </span>
+                )}
+                {asset.mobility.type === 'animated' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-500/30 text-amber-300 border border-amber-500/50">
+                        ANIM:{asset.mobility.frames || '?'}
+                    </span>
+                )}
+                {asset.mobility.type === 'static' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-slate-500/30 text-slate-400 border border-slate-500/50">
+                        STATIC
+                    </span>
+                )}
+                {/* Show variant animation info if available */}
+                {asset.variant.animationType && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-500/20 text-blue-300">
+                        {asset.variant.animationType}
+                    </span>
                 )}
             </div>
 
@@ -165,6 +193,35 @@ export function BatchPreviewContent({ selectedIds }: BatchPreviewContentProps) {
     const { toggleAssetSelection, selectAsset } = useGenerationLayout()
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
     const [lightboxAssetId, setLightboxAssetId] = useState<string | null>(null)
+    const [exitingIds, setExitingIds] = useState<Set<string>>(new Set())
+
+    // Handle approve with animation
+    const handleApprove = async (id: string) => {
+        const state = assetStates.get(id)
+        if (state?.status === 'awaiting_approval' && state.versions) {
+            const version = state.versions[state.currentVersionIndex || 0]
+            if (version) {
+                await approveAsset(id, version)
+
+                // Trigger exit animation
+                setExitingIds(prev => {
+                    const next = new Set(prev)
+                    next.add(id)
+                    return next
+                })
+
+                // Remove after animation (300ms)
+                setTimeout(() => {
+                    toggleAssetSelection(id)
+                    setExitingIds(prev => {
+                        const next = new Set(prev)
+                        next.delete(id)
+                        return next
+                    })
+                }, 300)
+            }
+        }
+    }
 
     // Filter to get only selected asset objects
     const selectedAssets = useMemo(() => {
@@ -251,15 +308,8 @@ export function BatchPreviewContent({ selectedIds }: BatchPreviewContentProps) {
                                                     onClick={() => setLightboxAssetId(asset.id)}
                                                     onClickPending={() => selectAsset(asset, 'grid')}
                                                     onNavigateToSingle={() => selectAsset(asset, 'grid')}
-                                                    onApprove={async (id) => {
-                                                        const state = assetStates.get(id)
-                                                        if (state?.status === 'awaiting_approval' && state.versions) {
-                                                            const version = state.versions.find(v => v.id === state.result.id)
-                                                            if (version) {
-                                                                await approveAsset(id, version)
-                                                            }
-                                                        }
-                                                    }}
+                                                    onApprove={handleApprove}
+                                                    isExiting={exitingIds.has(asset.id)}
                                                     onReject={(id) => {
                                                         const state = assetStates.get(id)
                                                         if (state?.status === 'awaiting_approval' && state.result?.id) {
@@ -381,15 +431,8 @@ export function BatchPreviewContent({ selectedIds }: BatchPreviewContentProps) {
                         onClick={() => setLightboxAssetId(asset.id)}
                         onClickPending={() => selectAsset(asset, 'grid')}
                         onNavigateToSingle={() => selectAsset(asset, 'grid')}
-                        onApprove={async (id) => {
-                            const state = assetStates.get(id)
-                            if (state?.status === 'awaiting_approval' && state.versions) {
-                                const version = state.versions.find(v => v.id === state.result.id)
-                                if (version) {
-                                    await approveAsset(id, version)
-                                }
-                            }
-                        }}
+                        onApprove={handleApprove}
+                        isExiting={exitingIds.has(asset.id)}
                         onReject={(id) => {
                             const state = assetStates.get(id)
                             if (state?.status === 'awaiting_approval' && state.result?.id) {
