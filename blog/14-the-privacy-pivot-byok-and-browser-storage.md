@@ -57,5 +57,5 @@ We’re lean, we’re private, and we’re ready. The infrastructure is solid. T
 
 Now, it’s time to look back at the last 8 days and see what we actually built.
 
-**Next:** [Part 15: Reflections - What I Actually Learned](15-reflections-lessons-learned.md)
+**Next:** [Part 15: The Mobile Pivot - Chat-First UX and Technical Debt](15-the-mobile-pivot-ux-redesign.md)
 **Previous:** [← Part 13: The Great Migration - Neon and Prisma](13-the-great-migration-neon-and-prisma.md)
