@@ -3,8 +3,8 @@ import {
     isValidMemoryFileType,
     qualityFieldMap,
     reverseQualityFieldMap,
-    syncProjectToClient
 } from './sync';
+
 
 // Mock client-db
 jest.mock('@/lib/client-db', () => ({

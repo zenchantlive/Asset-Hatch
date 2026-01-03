@@ -2,8 +2,10 @@
 import type {
     ActionBarState,
     DeriveActionBarStateParams,
-    ActionDefinition
+    ActionDefinition,
+    ActionMode
 } from '@/lib/types/action-bar'
+
 import { estimateCost } from '@/lib/model-registry'
 
 /**
@@ -141,7 +143,7 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
                 onExecute: () => {
                     // Find all awaiting IDs
                     const awaitingIds = Array.from(assetStates.entries())
-                        .filter(([_, state]) => state.status === 'awaiting_approval')
+                        .filter(([, state]) => state.status === 'awaiting_approval')
                         .map(([id]) => id)
                     callbacks.onApproveAll(awaitingIds)
                 }
@@ -154,7 +156,7 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
                 enabled: true,
                 onExecute: () => {
                     const awaitingIds = Array.from(assetStates.entries())
-                        .filter(([_, state]) => state.status === 'awaiting_approval')
+                        .filter(([, state]) => state.status === 'awaiting_approval')
                         .map(([id]) => id)
                     callbacks.onRejectAll(awaitingIds)
                 }
@@ -192,7 +194,8 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
     }
 
     return {
-        mode: mode as any,
+        mode: mode as ActionMode,
+
         selection: {
             type: selectionCount > 0 ? 'assets' : 'none',
             count: selectionCount,

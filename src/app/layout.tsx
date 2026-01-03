@@ -28,6 +28,14 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Asset Hatch",
   description: "AI-Powered Game Asset Studio",
+  icons: {
+    icon: "/logo-icon.svg",
+  },
+  openGraph: {
+    title: "Asset Hatch",
+    description: "AI-Powered Game Asset Studio",
+    images: ["/logo-generated-v2.png"],
+  },
 };
 
 // =============================================================================

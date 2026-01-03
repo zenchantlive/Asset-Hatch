@@ -9,7 +9,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react'
+import Image from 'next/image'
+
+import { ChevronLeft, ChevronRight, Check, X, AlertCircle, X as Close } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { AssetVersion } from '@/lib/client-db'
 
@@ -27,6 +29,8 @@ interface VersionCarouselProps {
   onApprove: (version: AssetVersion) => void;
   /** Callback when user rejects a version */
   onReject: (versionId: string) => void;
+  /** Optional callback to close/minimize the carousel */
+  onClose?: () => void;
   isSyncingCost?: boolean;
   syncError?: Error | null;
 }
@@ -42,6 +46,7 @@ export function VersionCarousel({
   onIndexChange,
   onApprove,
   onReject,
+  onClose,
   isSyncingCost = false,
   syncError = null,
 }: VersionCarouselProps) {
@@ -89,11 +94,22 @@ export function VersionCarousel({
     <div className="relative">
       {/* Main image display */}
       <div className="relative rounded-lg overflow-hidden bg-black/30 border border-white/10">
-        <img
-          src={imageUrl}
-          alt={`Version ${currentIndex + 1}`}
-          className="w-full h-auto"
-        />
+        {imageUrl ? (
+          <div className="relative aspect-square w-full">
+            <Image
+              src={imageUrl}
+              alt={`Version ${currentIndex + 1}`}
+              fill
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+
+        ) : (
+          <div className="w-full aspect-square flex items-center justify-center">
+            <span className="text-white/50 text-sm">Loading...</span>
+          </div>
+        )}
 
         {/* Navigation arrows (only if multiple versions) */}
         {versions.length > 1 && (
@@ -131,6 +147,18 @@ export function VersionCarousel({
           <div className="absolute top-2 right-2 px-3 py-1 rounded-full bg-black/70 backdrop-blur-sm text-xs text-white/80">
             v{currentIndex + 1} of {versions.length}
           </div>
+        )}
+
+        {/* Close/Minimize button (if onClose callback provided) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-2 left-2 p-1.5 rounded-full bg-black/70 backdrop-blur-sm hover:bg-black/90 text-white/80 hover:text-white transition-colors"
+            title="Close carousel"
+            aria-label="Close version carousel"
+          >
+            <Close className="w-4 h-4" />
+          </button>
         )}
       </div>
 

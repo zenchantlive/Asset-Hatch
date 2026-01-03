@@ -1,7 +1,9 @@
 // Test Prisma DMMF (Data Model Meta Format) to verify field existence
 // This checks the RUNTIME schema, not the TypeScript types
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Prisma } = require('@prisma/client');
+
 
 console.log('🔍 Checking Prisma Runtime Data Model (DMMF)...\n');
 

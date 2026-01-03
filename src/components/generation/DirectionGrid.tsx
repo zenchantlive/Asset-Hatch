@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerLeftUp, CornerRightUp, CornerLeftDown, CornerRightDown, Maximize2, Minimize2, ChevronDown, ChevronUp, Play, Check, X, type LucideIcon } from 'lucide-react'
+
 import { type ParsedAsset } from '@/lib/prompt-builder'
 import { type Direction, getDirectionPromptModifier, DIRECTION_LABELS } from '@/lib/direction-utils'
 import { useGenerationContext } from './GenerationQueue'
@@ -320,11 +322,14 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                         </div>
                     ) : activeImage ? (
                         <>
-                            <img
+                            <Image
                                 src={activeImage}
                                 alt={`${DIRECTION_LABELS[activeDirection]} view`}
-                                className="w-full h-full object-contain"
+                                fill
+                                className="object-contain"
+                                unoptimized
                             />
+
                             {/* Maximize button - show on hover */}
                             <button
                                 onClick={(e) => {
@@ -397,11 +402,14 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                     </div>
                 ) : image ? (
                     <>
-                        <img
+                        <Image
                             src={image}
                             alt={`${dirInfo.label} view`}
-                            className="w-full h-full object-contain bg-black/40"
+                            fill
+                            className="object-contain bg-black/40"
+                            unoptimized
                         />
+
 
                         {/* Overlay Controls - Always Visible for Clarity */}
                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 pointer-events-none">

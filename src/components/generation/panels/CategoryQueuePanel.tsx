@@ -14,11 +14,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react'
+
 import { useGenerationContext } from '../GenerationQueue'
 import { useGenerationLayout } from '../GenerationLayoutContext'
 import { ParsedAsset } from '@/lib/prompt-builder'
-import { isDirectionVariant, getParentAsset } from '@/lib/direction-utils'
+import { isDirectionVariant } from '@/lib/direction-utils'
+
 
 // PHASE 7: Helper to check if asset is a direction variant (child)
 function isChildAsset(asset: ParsedAsset): boolean {

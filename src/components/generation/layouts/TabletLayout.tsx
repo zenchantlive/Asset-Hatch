@@ -11,8 +11,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useGenerationContext } from '../GenerationQueue'
-import { useGenerationLayout } from '../GenerationLayoutContext'
+
 import { CategoryQueuePanel } from '../panels/CategoryQueuePanel'
 import { MiniGridPanel } from '../panels/MiniGridPanel'
 import { PreviewPanel } from '../panels/PreviewPanel'
@@ -41,8 +40,9 @@ export function TabletLayout() {
     const [rightTab, setRightTab] = useState<RightPanelTab>('preview')
 
     // Get contexts
-    const generationContext = useGenerationContext()
-    const layoutContext = useGenerationLayout()
+    // generationContext and layoutContext are currently unused in this layout
+    // but their providers wrap this component.
+
 
     return (
         <div className="flex flex-col h-full bg-glass-bg/10">

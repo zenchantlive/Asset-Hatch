@@ -7,12 +7,12 @@ async function main() {
     console.log('🔍 Debugging Prisma Client...');
 
     // 1. Check DMMF (Internal Data Model)
-    // @ts-ignore
-    const dmmf = prisma._baseDmmf || prisma._dmmf;
+    // @ts-expect-error - prisma._baseDmmf is internal
+    const dmmf = prisma._baseDmmf || (prisma as unknown as { _dmmf: Record<string, unknown> })._dmmf;
     if (dmmf) {
-        const userModel = dmmf.modelMap ? dmmf.modelMap.User : dmmf.datamodel.models.find((m: any) => m.name === 'User');
+        const userModel = dmmf.modelMap ? dmmf.modelMap.User : dmmf.datamodel.models.find((m: { name: string }) => m.name === 'User');
         if (userModel) {
-            const fieldNames = userModel.fields.map((f: any) => f.name);
+            const fieldNames = userModel.fields.map((f: { name: string }) => f.name);
             console.log('📋 User model fields in runtime:', fieldNames);
             console.log('✅ Has openRouterApiKey:', fieldNames.includes('openRouterApiKey'));
         } else {
@@ -32,10 +32,11 @@ async function main() {
                 openRouterApiKey: true
             }
         });
-        console.log('✅ Query executed successfully (result might be null, but no error)');
+        console.log('✅ Query executed successfully:', user ? 'User found' : 'No user found');
     } catch (e) {
         console.error('❌ Query failed:', e);
     }
+
 }
 
 main()

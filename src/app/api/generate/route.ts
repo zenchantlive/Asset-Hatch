@@ -145,23 +145,13 @@ export async function POST(request: NextRequest) {
       // If this asset has a parentAssetId, it's a child direction (Back/Left/Right)
       // and should use the parent's approved image (Front) for consistency
       if (asset.directionState?.parentAssetId) {
-        const parentAsset = await prisma.generatedAsset.findFirst({
-          where: {
-            projectId: projectId,
-            assetId: asset.directionState.parentAssetId,
-            status: 'approved', // Only use approved parent images
-          },
-          orderBy: {
-            createdAt: 'desc', // Get most recent if multiple exist
-          },
-        });
-
         // Note: Parent images no longer stored in database (moved to IndexedDB)
         // Fall back to character registry reference instead
         console.log(
           `ℹ️ Parent direction reference not available (images in IndexedDB). Using character registry or style anchor.`
         );
       }
+
 
       // Fallback to character registry if parent reference not available
       if (!isUsingCharacterReference && characterRegistry?.referenceImageBase64) {

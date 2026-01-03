@@ -18,8 +18,8 @@ import type {
 } from '@/lib/types/generation-layout'
 import type { AssetGenerationState, GenerationContextValue } from '@/lib/types/generation'
 import { useBreakpoint } from '@/hooks/useMediaQuery'
-import type { ActionBarState } from '@/lib/types/action-bar'
 import { deriveActionBarState } from '@/lib/generation/action-logic'
+
 
 /**
  * Context for generation layout state
@@ -87,9 +87,10 @@ export function GenerationLayoutProvider({
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
 
     // Mini grid state
-    const [scrollPosition, setScrollPosition] = useState(0)
-    const [columns, setColumns] = useState(3)
+    const [scrollPosition] = useState(0)
+    const [columns] = useState(3)
     const [isMiniGridCollapsed, setIsMiniGridCollapsed] = useState(false)
+
 
     // Direction grid visibility (for hybrid action bar approach)
     const [isDirectionGridVisible, setDirectionGridVisible] = useState(false)
@@ -97,7 +98,8 @@ export function GenerationLayoutProvider({
     // Direction mode state
     const [activeDirectionAsset, setActiveDirectionAsset] = useState<ParsedAsset | null>(null)
     const [selectedDirections, setSelectedDirections] = useState<Set<string>>(new Set())
-    const [isGeneratingDirections, setIsGeneratingDirections] = useState(false)
+    const [isGeneratingDirections] = useState(false)
+
 
     // Toggle mini-grid collapse
     const toggleMiniGridCollapse = useCallback(() => {
@@ -235,11 +237,12 @@ export function GenerationLayoutProvider({
         return deriveActionBarState({
             generationStatus: generationContext.status,
             selectedIds,
-            assetStates: generationContext.assetStates as any,
+            assetStates: generationContext.assetStates as Map<string, { status: import('@/lib/types/action-bar').AssetApprovalStatus }>,
             totalAssets: generationContext.parsedAssets.length,
             isDirectionGridActive: isDirectionGridVisible,
             activeAssetId: selectedAsset.asset?.id,
             selectedModel: generationContext.selectedModel,
+
             callbacks: {
                 onPrepAll: () => {
                     selectRemainingAssets(
@@ -298,21 +301,14 @@ export function GenerationLayoutProvider({
             }
         })
     }, [
-        generationContext.status,
-        generationContext.assetStates,
-        generationContext.parsedAssets,
-        generationContext.selectedModel,
+        generationContext, // Use the whole object as suggested by React Compiler
         selectedIds,
         selectedAsset.asset?.id,
-        generationContext.startGeneration,
-        generationContext.pauseGeneration,
-        generationContext.resumeGeneration,
-        generationContext.approveAsset,
-        generationContext.rejectAsset,
+        isDirectionGridVisible,
         selectRemainingAssets,
-        clearSelection,
-        isDirectionGridVisible
+        clearSelection
     ])
+
 
     // Execute handlers
     const executeAction = useCallback(() => {

@@ -9,7 +9,6 @@
  */
 
 import type { ParsedAsset } from './prompt-builder';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Direction type - user-friendly names for game asset directions
@@ -93,7 +92,9 @@ export function expandAssetToDirections(
   // Create a child asset for each direction
   return directions.map((direction) => ({
     ...parentAsset,
-    id: uuidv4(), // New unique ID for each direction variant
+    // CRITICAL FIX: Use deterministic ID for persistence!
+    // uuidv4() causes loss of state on reload because IDs change.
+    id: `${parentAsset.id}-${direction}`,
     name: `${parentAsset.name} (${DIRECTION_LABELS[direction]})`, // e.g., "Farmer (Front)"
     variant: {
       ...parentAsset.variant,
