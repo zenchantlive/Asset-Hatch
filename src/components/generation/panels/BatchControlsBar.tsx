@@ -63,8 +63,8 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
         state,
         totalEstimatedCost,
         totalActualCost,
-        executeAction // We might use this if we wanted to trigger action programmatically, but UnifiedActionBar handles UI
     } = useGenerationLayout()
+
     const selectedCount = state.queue.selectedIds.size
 
     // Calculate remaining count (assets not approved or awaiting approval)
@@ -134,7 +134,7 @@ export function BatchControlsBar({ compact = false }: BatchControlsBarProps) {
             </div>
 
             {/* Center: Model selector */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-model-selector>
                 <span className="text-sm text-white/60">Model:</span>
                 <Select
                     value={selectedModel}

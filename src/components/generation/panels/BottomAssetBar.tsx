@@ -64,73 +64,76 @@ export function BottomAssetBar() {
             {/* Content Area */}
             <div className={`flex-1 overflow-x-auto overflow-y-hidden transition-all duration-300 ${isMinimized ? 'px-2' : 'px-4 pb-4 pt-6'}`}>
                 <div className={`flex h-full items-center min-w-max transition-all duration-300 ${isMinimized ? 'gap-1 sm:gap-2 md:gap-3 justify-center w-full px-4' : 'gap-3'}`}>
-                    {parsedAssets.map(asset => {
-                        const assetState = assetStates.get(asset.id)
-                        const status = assetState?.status
-                        const isSelected = selectedAssetId === asset.id
-                        const hasImage = (status === 'awaiting_approval' || status === 'approved') && assetState?.result?.imageUrl
+                    {/* Only show parent assets (not direction children) - parent represents "front" */}
+                    {parsedAssets
+                        .filter(asset => !asset.directionState?.parentAssetId)
+                        .map(asset => {
+                            const assetState = assetStates.get(asset.id)
+                            const status = assetState?.status
+                            const isSelected = selectedAssetId === asset.id
+                            const hasImage = (status === 'awaiting_approval' || status === 'approved') && assetState?.result?.imageUrl
 
-                        if (isMinimized) {
-                            // Minimized View: Just dots/indicators
+                            if (isMinimized) {
+                                // Minimized View: Just dots/indicators
+                                return (
+                                    <button
+                                        key={asset.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            selectAsset(asset, 'grid')
+                                        }}
+                                        className={`relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-150 ${isSelected
+                                            ? 'w-4 h-4 ring-2 ring-white ring-offset-2 ring-offset-black scale-110 z-10'
+                                            : 'w-2 sm:w-2.5 h-2 sm:h-2.5 hover:z-10'
+                                            } rounded-full ${status === 'generating' ? 'bg-purple-500 animate-pulse' :
+                                                status === 'awaiting_approval' ? 'bg-amber-500' :
+                                                    status === 'approved' ? 'bg-green-500' :
+                                                        status === 'error' || status === 'rejected' ? 'bg-red-500' :
+                                                            'bg-white/20 hover:bg-white/60'
+                                            }`}
+                                        title={asset.name}
+                                    />
+                                )
+                            }
+
+                            // Expanded View: Thumbnails
                             return (
                                 <button
                                     key={asset.id}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        selectAsset(asset, 'grid')
-                                    }}
-                                    className={`relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-150 ${isSelected
-                                        ? 'w-4 h-4 ring-2 ring-white ring-offset-2 ring-offset-black scale-110 z-10'
-                                        : 'w-2 sm:w-2.5 h-2 sm:h-2.5 hover:z-10'
-                                        } rounded-full ${status === 'generating' ? 'bg-purple-500 animate-pulse' :
-                                            status === 'awaiting_approval' ? 'bg-amber-500' :
-                                                status === 'approved' ? 'bg-green-500' :
-                                                    status === 'error' || status === 'rejected' ? 'bg-red-500' :
-                                                        'bg-white/20 hover:bg-white/60'
-                                        }`}
+                                    onClick={() => selectAsset(asset, 'grid')}
+                                    className={`relative aspect-square h-full max-h-28 rounded-lg border-2 overflow-hidden transition-all hover:scale-105 ${getStatusBorderClass(status)
+                                        } ${isSelected ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-black shadow-lg shadow-purple-500/20' : ''}`}
                                     title={asset.name}
-                                />
+                                >
+                                    {hasImage ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={assetState!.result!.imageUrl}
+                                            alt={asset.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                                            {status === 'generating' ? (
+                                                <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                                            ) : (
+                                                <span className="text-[0.625rem] text-white/30 text-center px-1 line-clamp-2 leading-tight">
+                                                    {asset.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Status dot overlay */}
+                                    <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${status === 'generating' ? 'bg-purple-500 animate-pulse' :
+                                        status === 'awaiting_approval' ? 'bg-amber-500' :
+                                            status === 'approved' ? 'bg-green-500' :
+                                                status === 'error' ? 'bg-red-500' :
+                                                    'hidden'
+                                        }`} />
+                                </button>
                             )
-                        }
-
-                        // Expanded View: Thumbnails
-                        return (
-                            <button
-                                key={asset.id}
-                                onClick={() => selectAsset(asset, 'grid')}
-                                className={`relative aspect-square h-full max-h-28 rounded-lg border-2 overflow-hidden transition-all hover:scale-105 ${getStatusBorderClass(status)
-                                    } ${isSelected ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-black shadow-lg shadow-purple-500/20' : ''}`}
-                                title={asset.name}
-                            >
-                                {hasImage ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                        src={assetState!.result!.imageUrl}
-                                        alt={asset.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                                        {status === 'generating' ? (
-                                            <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                                        ) : (
-                                            <span className="text-[0.625rem] text-white/30 text-center px-1 line-clamp-2 leading-tight">
-                                                {asset.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Status dot overlay */}
-                                <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${status === 'generating' ? 'bg-purple-500 animate-pulse' :
-                                    status === 'awaiting_approval' ? 'bg-amber-500' :
-                                        status === 'approved' ? 'bg-green-500' :
-                                            status === 'error' ? 'bg-red-500' :
-                                                'hidden'
-                                    }`} />
-                            </button>
-                        )
-                    })}
+                        })}
                 </div>
             </div>
         </div>

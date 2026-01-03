@@ -38,6 +38,8 @@ interface PreviewPanelProps {
 export function PreviewPanel({ compact = false }: PreviewPanelProps) {
     // Lightbox state
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+    // Carousel visibility state - can be closed/minimized
+    const [isCarouselVisible, setIsCarouselVisible] = useState(true)
     // State for local version selection (if versions available)
     // const [localVersionIndex, setLocalVersionIndex] = useState<number | null>(null)
 
@@ -241,7 +243,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
     // Check for version carousel
     const hasVersions = isAwaitingApproval && assetState?.versions && assetState.versions.length > 0
-    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1
+    const shouldShowCarousel = hasVersions && assetState.versions!.length > 1 && isCarouselVisible
 
     // Get the image URL if available
     const imageUrl = hasResult && assetState?.result?.imageUrl
@@ -299,8 +301,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             </Button>
                         )}
 
-                        {/* Approve/Reject - Visible when awaiting approval */}
-                        {isAwaitingApproval && (
+                        {/* Approve/Reject - Visible ONLY when awaiting approval (not approved) */}
+                        {isAwaitingApproval && !isApproved && (
                             <>
                                 <Button
                                     onClick={handleReject}
@@ -337,6 +339,7 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                             onIndexChange={(index) => updateVersionIndex(asset.id, index)}
                             onApprove={handleApprove}
                             onReject={handleReject}
+                            onClose={() => setIsCarouselVisible(false)}
                             isSyncingCost={isSyncingCost}
                             syncError={syncErrors[asset.id]}
                         />
@@ -427,8 +430,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
 
                             {/* Status badge with action buttons */}
                             <div className="flex items-center gap-2">
-                                {/* Approve button - show when awaiting approval */}
-                                {isAwaitingApproval && (
+                                {/* Approve button - show ONLY when awaiting approval (not approved) */}
+                                {isAwaitingApproval && !isApproved && (
                                     <button
                                         onClick={handleApprove}
                                         className="p-1.5 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/30 transition-all"
@@ -438,8 +441,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                     </button>
                                 )}
 
-                                {/* Reject button - show when awaiting approval */}
-                                {isAwaitingApproval && (
+                                {/* Reject button - show ONLY when awaiting approval (not approved) */}
+                                {isAwaitingApproval && !isApproved && (
                                     <button
                                         onClick={handleReject}
                                         className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 transition-all"
@@ -465,8 +468,8 @@ export function PreviewPanel({ compact = false }: PreviewPanelProps) {
                                     </button>
                                 )}
 
-                                {/* Regenerate button - show when asset has been generated */}
-                                {(hasResult || hasError) && (
+                                {/* Regenerate button - show when approved OR has error (but NOT awaiting approval) */}
+                                {(isApproved || hasError) && !isAwaitingApproval && (
                                     <button
                                         onClick={handleGenerateImage}
                                         disabled={isGenerating}

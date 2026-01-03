@@ -43,7 +43,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
  * Renders the primary, secondary, and tertiary actions based on the 
  * current context derived by GenerationLayoutContext.
  */
-export function UnifiedActionBar({ className }: { className?: string }) {
+export function UnifiedActionBar({ className, compact = false }: { className?: string; compact?: boolean }) {
     const {
         actionBarState,
         executeAction,
@@ -56,11 +56,17 @@ export function UnifiedActionBar({ className }: { className?: string }) {
     // If no action bar state, render nothing
     if (!actionBarState) return null
 
+    // Base bar styles - smaller padding in compact mode
+    const barStyles = compact
+        ? "p-2 rounded-none"
+        : "p-2 rounded-xl"
+
     // In direction mode, show direction-specific controls
     if (isDirectionGridVisible) {
         return (
             <div className={cn(
-                "flex items-center gap-3 p-2 bg-zinc-900/80 backdrop-blur-md border border-white/10 rounded-xl transition-all duration-300",
+                "flex items-center gap-3 bg-zinc-900/80 backdrop-blur-md border border-white/10 transition-all duration-300",
+                barStyles,
                 className
             )}>
                 {/* Direction Mode Context (Left) */}
@@ -83,10 +89,11 @@ export function UnifiedActionBar({ className }: { className?: string }) {
                             onClick={executeAction}
                             disabled={selectedDirectionCount === 0 || isGeneratingDirections}
                             className={cn(
-                                "relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium",
+                                "relative flex items-center justify-center gap-2 rounded-lg text-sm font-medium",
                                 "transition-all duration-150 active:scale-95",
                                 "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
-                                "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25"
+                                "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25",
+                                compact ? "px-3 py-2 min-h-11" : "px-4 py-2.5"
                             )}
                         >
                             {isGeneratingDirections ? (
@@ -109,7 +116,8 @@ export function UnifiedActionBar({ className }: { className?: string }) {
 
     return (
         <div className={cn(
-            "flex items-center gap-3 p-2 bg-zinc-900/80 backdrop-blur-md border border-white/10 rounded-xl transition-all duration-300",
+            "flex items-center gap-3 bg-zinc-900/80 backdrop-blur-md border border-white/10 transition-all duration-300",
+            barStyles,
             className
         )}>
             {/* Selection Context (Left) */}

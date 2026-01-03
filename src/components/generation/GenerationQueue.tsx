@@ -27,6 +27,7 @@ import type {
 import { isReferenceDirection, getDirectionalSiblings } from '@/lib/direction-utils'
 // New layout system
 import { GenerationLayoutProvider } from './GenerationLayoutContext'
+import { ModelsPanel } from '../ui/ModelsPanel'
 
 import { GenerationLayout } from './GenerationLayout'
 
@@ -57,7 +58,7 @@ export function useGenerationContext(): GenerationContextValue {
  * Entry point for the generation phase. Manages state and provides
  * context to all child components.
  */
-export function GenerationQueue({ projectId }: GenerationQueueProps) {
+export function GenerationQueue({ projectId, modelsMenuOpen = false, onModelsMenuClose }: GenerationQueueProps) {
   // State for parsed assets from the plan
   const [parsedAssets, setParsedAssets] = useState<ParsedAsset[]>([])
 
@@ -994,6 +995,15 @@ export function GenerationQueue({ projectId }: GenerationQueueProps) {
         totalActualCost={totalActualCost}
       >
         <GenerationLayout />
+        {/* Models panel for mobile - has access to context */}
+        {onModelsMenuClose && (
+          <ModelsPanel
+            isOpen={modelsMenuOpen}
+            onClose={onModelsMenuClose}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+          />
+        )}
       </GenerationLayoutProvider>
     </GenerationContext.Provider>
   )
