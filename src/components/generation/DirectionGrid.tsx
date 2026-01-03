@@ -561,6 +561,12 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                                                                 const currentVersion = state.versions[state.currentVersionIndex]
                                                                 if (currentVersion) rejectAsset(dirAsset.id, currentVersion.id)
                                                             }
+                                                        } else if (activeDirection === 'front') {
+                                                            const state = assetStates.get(asset.id)
+                                                            if (state && 'versions' in state && state.versions && typeof state.currentVersionIndex === 'number') {
+                                                                const currentVersion = state.versions[state.currentVersionIndex]
+                                                                if (currentVersion) rejectAsset(asset.id, currentVersion.id)
+                                                            }
                                                         }
                                                     }}
                                                     className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
@@ -575,6 +581,12 @@ export function DirectionGrid({ asset, onDirectionSelect }: DirectionGridProps) 
                                                             if (state && 'versions' in state && state.versions && typeof state.currentVersionIndex === 'number') {
                                                                 const currentVersion = state.versions[state.currentVersionIndex]
                                                                 if (currentVersion) approveAsset(dirAsset.id, currentVersion)
+                                                            }
+                                                        } else if (activeDirection === 'front') {
+                                                            const state = assetStates.get(asset.id)
+                                                            if (state && 'versions' in state && state.versions && typeof state.currentVersionIndex === 'number') {
+                                                                const currentVersion = state.versions[state.currentVersionIndex]
+                                                                if (currentVersion) approveAsset(asset.id, currentVersion)
                                                             }
                                                         }
                                                     }}

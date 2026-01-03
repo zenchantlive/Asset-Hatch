@@ -135,18 +135,16 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
 
         case 'awaiting':
             // If we have items waiting for approval
+            const awaitingIds = Array.from(assetStates.entries())
+                .filter(([, state]) => state.status === 'awaiting_approval')
+                .map(([id]) => id)
+
             primaryAction = {
                 label: `Approve All (${awaitingApprovalCount})`,
                 icon: 'check',
                 variant: 'primary',
                 enabled: true,
-                onExecute: () => {
-                    // Find all awaiting IDs
-                    const awaitingIds = Array.from(assetStates.entries())
-                        .filter(([, state]) => state.status === 'awaiting_approval')
-                        .map(([id]) => id)
-                    callbacks.onApproveAll(awaitingIds)
-                }
+                onExecute: () => callbacks.onApproveAll(awaitingIds)
             }
 
             secondaryAction = {
@@ -154,12 +152,7 @@ export function deriveActionBarState(params: DeriveActionBarStateParams): Action
                 icon: 'x',
                 variant: 'destructive',
                 enabled: true,
-                onExecute: () => {
-                    const awaitingIds = Array.from(assetStates.entries())
-                        .filter(([, state]) => state.status === 'awaiting_approval')
-                        .map(([id]) => id)
-                    callbacks.onRejectAll(awaitingIds)
-                }
+                onExecute: () => callbacks.onRejectAll(awaitingIds)
             }
             break
 

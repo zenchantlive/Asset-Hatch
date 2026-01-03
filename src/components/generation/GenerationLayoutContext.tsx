@@ -315,13 +315,13 @@ export function GenerationLayoutProvider({
         if (actionBarState.primaryAction.enabled) {
             actionBarState.primaryAction.onExecute()
         }
-    }, [actionBarState.primaryAction])
+    }, [actionBarState])
 
     const executeSecondaryAction = useCallback(() => {
         if (actionBarState.secondaryAction?.enabled) {
             actionBarState.secondaryAction.onExecute()
         }
-    }, [actionBarState.secondaryAction])
+    }, [actionBarState])
 
     // Build the context value
     const contextValue: GenerationLayoutContextValue = useMemo(() => ({

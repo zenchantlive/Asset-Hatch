@@ -144,7 +144,7 @@ function createAsset(spec: {
   mode: GenerationMode;
   projectId: string;
   assetIndex: number;
-}): ParsedAsset | ParsedAsset[] {
+}): ParsedAsset {
   const { category, name, variantText, projectId, assetIndex } = spec;
 
   // Parse mobility tag from name (e.g., "[MOVEABLE:4] Farmer" -> mobility info + "Farmer")

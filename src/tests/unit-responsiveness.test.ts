@@ -22,7 +22,7 @@ const SCAN_DIRECTORIES = [
 const ALLOWED_EXTENSIONS = ['.css', '.tsx', '.ts'];
 
 // Pattern to find px values (matches numbers followed by px)
-const PX_PATTERN = /(\d+)px/g;
+const PX_PATTERN = /(?<!min-|max-)(\d+)px/g;
 
 // Allowed px values (1px and 2px for borders)
 const ALLOWED_PX_VALUES = new Set(['1px', '2px']);

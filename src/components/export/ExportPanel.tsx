@@ -87,9 +87,13 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                         imageBlob = await new Promise<string>((resolve, reject) => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                                // Remove data URL prefix (data:image/png;base64,)
-                                const base64 = (reader.result as string).split(',')[1];
-                                resolve(base64);
+                                if (typeof reader.result === 'string') {
+                                    // Remove data URL prefix (data:image/png;base64,)
+                                    const base64 = reader.result.split(',')[1];
+                                    resolve(base64);
+                                } else {
+                                    reject(new Error('Failed to read blob as data URL.'));
+                                }
                             };
                             reader.onerror = reject;
                             reader.readAsDataURL(asset.image_blob);
