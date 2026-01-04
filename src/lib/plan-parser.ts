@@ -330,13 +330,16 @@ function parseMobilityTag(assetName: string, category?: string): {
   const nameLower = cleanName.toLowerCase();
   const categoryLower = (category || '').toLowerCase();
 
-  // Heuristic 1: Characters/NPCs are moveable by default
+  // Heuristic 1: Characters/NPCs/Heroes are moveable by default
+  // These categories typically need directional sprites (N/S/E/W)
   if (
     categoryLower.includes('character') ||
     categoryLower.includes('npc') ||
     categoryLower.includes('player') ||
     categoryLower.includes('enemy') ||
-    categoryLower.includes('creature')
+    categoryLower.includes('creature') ||
+    categoryLower.includes('hero') ||    // "Heroes", "Main Hero", etc.
+    categoryLower.includes('playable')   // "Playable Characters", "Heroes (Playable)", etc.
   ) {
     return {
       mobility: { type: 'moveable', directions: 4 },
