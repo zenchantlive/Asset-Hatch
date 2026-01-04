@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Call shared generation logic with user's API key if available
     const result = await generateStyleAnchor({
       ...body,
-      apiKey: userApiKey || undefined, // BYOK: use user's key if available
+      apiKey: userApiKey ?? undefined, // BYOK: use user's key if available
     });
 
     // Return success with image data
