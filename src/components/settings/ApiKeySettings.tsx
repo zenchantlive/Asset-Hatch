@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Check, X, Eye, EyeOff, Trash2 } from "lucide-react";
@@ -13,7 +14,14 @@ interface SettingsResponse {
     apiKeyPreview: string | null;
 }
 
-export function ApiKeySettings() {
+// Component props
+interface ApiKeySettingsProps {
+    // Whether this is the welcome/onboarding flow
+    isWelcome?: boolean;
+}
+
+export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
+    const router = useRouter();
     // State for API key input and UI
     const [apiKey, setApiKey] = useState("");
     const [showKey, setShowKey] = useState(false);
@@ -80,8 +88,15 @@ export function ApiKeySettings() {
             setApiKey(""); // Clear input
             await fetchSettings(); // Refresh settings
 
-            // Clear success message after 3 seconds
-            setTimeout(() => setSuccess(false), 3000);
+            // If this is the welcome flow, redirect to dashboard after a brief delay
+            if (isWelcome) {
+                setTimeout(() => {
+                    router.push("/dashboard");
+                }, 1500);
+            } else {
+                // Clear success message after 3 seconds for normal flow
+                setTimeout(() => setSuccess(false), 3000);
+            }
         } catch (err) {
             console.error("Error saving API key:", err);
             setError(err instanceof Error ? err.message : "Failed to save API key");
@@ -181,7 +196,11 @@ export function ApiKeySettings() {
                 {success && (
                     <div className="flex items-center gap-2 text-green-400 text-sm">
                         <Check className="w-4 h-4" />
-                        <span>API key saved successfully!</span>
+                        <span>
+                            {isWelcome
+                                ? "API key saved! Redirecting to dashboard..."
+                                : "API key saved successfully!"}
+                        </span>
                     </div>
                 )}
 
