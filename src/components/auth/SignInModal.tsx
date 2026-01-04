@@ -55,6 +55,7 @@ export function SignInModal({
         setIsLoading(true);
         setError("");
         try {
+            // Note: Existing users will be redirected by auth callback based on API key status
             await signIn("github", { callbackUrl: "/dashboard" });
         } catch {
             setError("Failed to sign in with GitHub");

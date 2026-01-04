@@ -102,8 +102,8 @@ export function RegisterModal({
                 setIsLoading(false);
                 onSwitchToSignIn();
             } else {
-                // Redirect to dashboard on success
-                router.push("/dashboard");
+                // Redirect new users to settings page to configure API key
+                router.push("/settings?welcome=true");
             }
         } catch {
             setError("Registration failed. Please try again.");
@@ -140,7 +140,7 @@ export function RegisterModal({
                     <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+                        onClick={() => signIn("github", { callbackUrl: "/settings?welcome=true" })}
                         disabled={isLoading}
                     >
                         <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">

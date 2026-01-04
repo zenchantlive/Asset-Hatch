@@ -4,23 +4,36 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
+import Link from "next/link";
 
 // Server component - handles auth check
-export default async function SettingsPage() {
+export default async function SettingsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ welcome?: string }>;
+}) {
     // Check authentication
     const session = await auth();
     if (!session?.user) {
         redirect("/");
     }
 
+    // Check if this is a new user welcome flow
+    const params = await searchParams;
+    const isWelcome = params.welcome === "true";
+
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
             {/* Header */}
             <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm">
                 <div className="container mx-auto px-4 py-6">
-                    <h1 className="text-2xl font-bold text-white">Settings</h1>
+                    <h1 className="text-2xl font-bold text-white">
+                        {isWelcome ? "Welcome to Asset Hatch! 🎉" : "Settings"}
+                    </h1>
                     <p className="text-white/60 mt-1">
-                        Manage your account and API configuration
+                        {isWelcome
+                            ? "Let's get you set up with your OpenRouter API key to start generating assets"
+                            : "Manage your account and API configuration"}
                     </p>
                 </div>
             </div>
@@ -28,6 +41,26 @@ export default async function SettingsPage() {
             {/* Settings Content */}
             <div className="container mx-auto px-4 py-8">
                 <div className="max-w-2xl mx-auto space-y-8">
+                    {/* Welcome banner for new users */}
+                    {isWelcome && (
+                        <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 backdrop-blur-sm p-6">
+                            <h3 className="text-lg font-semibold text-white mb-2">
+                                🚀 Quick Start
+                            </h3>
+                            <p className="text-white/80 text-sm mb-4">
+                                To generate your own game assets, you'll need an OpenRouter API key.
+                                Add your key below to get started, or you can skip this step and add it later.
+                            </p>
+                            <Link
+                                href="/dashboard"
+                                className="inline-block px-4 py-2 text-sm bg-white/10 hover:bg-white/20
+                                         text-white rounded-lg transition-colors border border-white/10"
+                            >
+                                Skip for now → Go to Dashboard
+                            </Link>
+                        </div>
+                    )}
+
                     {/* API Key Section */}
                     <section className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">
@@ -40,7 +73,7 @@ export default async function SettingsPage() {
                         </p>
 
                         {/* Client component for API key management */}
-                        <ApiKeySettings />
+                        <ApiKeySettings isWelcome={isWelcome} />
                     </section>
 
                     {/* Get API Key Info */}

@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Settings } from "lucide-react";
 import Link from "next/link";
 
 // =============================================================================
@@ -85,6 +85,14 @@ export function UserMenu({ session }: UserMenuProps) {
                     <Link href="/dashboard" className="cursor-pointer">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         Dashboard
+                    </Link>
+                </DropdownMenuItem>
+
+                {/* Settings link */}
+                <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
                     </Link>
                 </DropdownMenuItem>
 
