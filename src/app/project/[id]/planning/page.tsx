@@ -35,6 +35,7 @@ export default function PlanningPage() {
   const [planPanelOpen, setPlanPanelOpen] = useState(false)
   const [stylePanelOpen, setStylePanelOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [projectName, setProjectName] = useState<string>("")
   const chatRef = useRef<ChatInterfaceHandle>(null)
 
 
@@ -110,6 +111,7 @@ export default function PlanningPage() {
           if (project.mood) loadedQualities.mood = project.mood;
           if (project.color_palette) loadedQualities.color_palette = project.color_palette;
           setQualities(loadedQualities);
+          setProjectName(project.name);
         }
       } catch (error) {
         console.error('Failed to load saved state:', error);
@@ -275,6 +277,9 @@ export default function PlanningPage() {
           <div className="flex items-center">
             <h1 className="text-sm font-heading font-medium tracking-wide text-white/80">
               Project Planning
+              {projectName && (
+                <span className="text-primary/80 ml-2">— {projectName}</span>
+              )}
             </h1>
           </div>
 
@@ -317,6 +322,14 @@ export default function PlanningPage() {
 
         {/* Mobile Toolbar (<lg) - Stacked layout */}
         <div className="lg:hidden flex flex-col gap-2 px-4 py-3">
+          {/* Row 0: Title */}
+          {projectName && (
+            <div className="text-center">
+              <h1 className="text-xs font-heading font-medium tracking-wide text-white/80">
+                Project Planning <span className="text-primary/80">— {projectName}</span>
+              </h1>
+            </div>
+          )}
           {/* Row 1: Tabs (centered, full width) */}
           <div className="flex items-center justify-center">
             <div className="flex items-center p-1 rounded-lg bg-black/20 border border-white/5 w-full max-w-xs">
