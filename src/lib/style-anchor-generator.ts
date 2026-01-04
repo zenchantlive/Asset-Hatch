@@ -20,6 +20,9 @@ export interface StyleAnchorGenerationParams {
   colorPalette: string[];
   // Full model ID from registry (e.g., 'black-forest-labs/flux.2-pro')
   fluxModel?: string;
+  // Optional user-provided API key (BYOK - Bring Your Own Key)
+  // If provided, uses this instead of the default env key
+  apiKey?: string;
 }
 
 /**
@@ -100,6 +103,7 @@ export async function generateStyleAnchor(
     lightingKeywords,
     colorPalette = [],
     fluxModel = 'black-forest-labs/flux.2-pro',
+    apiKey,
   } = params;
 
   // Default to image-gen model for style anchor (no reference needed)
@@ -141,10 +145,12 @@ export async function generateStyleAnchor(
   }
 
   // Call OpenRouter API
+  // Use user's API key if available (BYOK), otherwise use default from env
   const result = await generateFluxImage({
     modelId: model.id,
     prompt: optimizedPrompt,
     // No reference image for style anchor generation (this IS the reference)
+    apiKey: apiKey || undefined, // BYOK: use user's key if available
   });
 
   console.log('✅ Style reference image generated:', {
