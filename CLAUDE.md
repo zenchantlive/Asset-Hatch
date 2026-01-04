@@ -437,7 +437,7 @@ Before you start working, always:
 Before you commit, always:
 
 4. Update `memory/active_state.md` with progress
-5. Add any new patterns/updates to `memory/system_patterns.md`, 'Project Architecture', ect. 
+5. Add any new patterns/updates to `memory/system_patterns.md`, 'Project Architecture', etc. 
 6. Create ADR in `memory/adr/` for significant decisions
 ## Git & Collaboration (The "Blog Notebook" Strategy)
 
