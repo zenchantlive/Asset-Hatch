@@ -17,7 +17,7 @@ describe('API Integration Test Harness', () => {
         it(scenario.name, async () => {
             // 1. Setup Mocks
             if (scenario.setupMock) {
-                scenario.setupMock(prismaMock as any, authMock);
+                scenario.setupMock(prismaMock, authMock);
             }
 
             // 2. Import Handler Dynamically
@@ -44,8 +44,8 @@ describe('API Integration Test Harness', () => {
 
             // 3. Create Request
             const url = `http://localhost${scenario.path}`;
-            let body: any = scenario.body ? JSON.stringify(scenario.body) : undefined;
-            let headers: Record<string, string> = {};
+            let body: BodyInit | null | undefined = scenario.body ? JSON.stringify(scenario.body) : undefined;
+            const headers: Record<string, string> = {};
 
             if (scenario.isFormData && scenario.body) {
                 const formData = new FormData();

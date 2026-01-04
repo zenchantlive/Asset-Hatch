@@ -1,16 +1,28 @@
-import { mock } from 'bun:test';
+import { mock, type Mock } from "bun:test";
+
+interface MockModel {
+    findMany: Mock<() => Promise<unknown[]>>;
+    findUnique: Mock<() => Promise<unknown | null>>;
+    findFirst: Mock<() => Promise<unknown | null>>;
+    create: Mock<(data: unknown) => Promise<unknown>>;
+    update: Mock<(data: unknown) => Promise<unknown>>;
+    upsert: Mock<(data: unknown) => Promise<unknown>>;
+    delete: Mock<() => Promise<unknown>>;
+    mockReset: () => void;
+}
 
 // Create the mock objects first
-export const authMock = mock(() => Promise.resolve({ user: { id: 'test-user' } }));
+export const authMock = mock((): Promise<{ user: { id: string; email?: string; name?: string } } | null> =>
+    Promise.resolve({ user: { id: 'test-user' } }));
 
-const createMockModel = () => ({
+const createMockModel = (): MockModel => ({
     findUnique: mock(() => Promise.resolve(null)),
     findMany: mock(() => Promise.resolve([])),
     findFirst: mock(() => Promise.resolve(null)),
-    create: mock((data: any) => Promise.resolve({ id: 'mock-id', ...data })),
-    update: mock((data: any) => Promise.resolve({ id: 'mock-id', ...data })),
+    create: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
+    update: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
     delete: mock(() => Promise.resolve({ id: 'mock-id' })),
-    upsert: mock((data: any) => Promise.resolve({ id: 'mock-id', ...data })),
+    upsert: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
     mockReset: function () {
         this.findUnique.mockReset();
         this.findMany.mockReset();
@@ -28,39 +40,21 @@ export const prismaMock = {
     memoryFile: createMockModel(),
     styleAnchor: createMockModel(),
     generatedAsset: createMockModel(),
-    characterRegistry: createMockModel(),
     generationCost: createMockModel(),
 };
 
-/**
- * Configure Bun to intercept these modules
- * IMPORTANT: This must be active when the tests run
- */
+// Mock the modules themselves
+mock.module('@/auth', () => ({
+    auth: authMock,
+}));
+
 mock.module('@/lib/prisma', () => ({
     prisma: prismaMock,
 }));
 
-mock.module('@/auth', () => ({
-    auth: authMock,
-    handlers: { GET: mock(), POST: mock() }
-}));
-
-mock.module('@/lib/openrouter-image', () => ({
-    generateFluxImage: mock(() => Promise.resolve({ imageUrl: 'mock-url', seed: 123, durationMs: 100 })),
-}));
-
-mock.module('@/lib/image-utils', () => ({
-    prepareStyleAnchorForAPI: mock(() => Promise.resolve('mock-base64-image')),
-    base64ToBlob: mock(() => Promise.resolve(new Blob(['image-data']))),
-}));
-
-mock.module('ai', () => ({
-    generateText: mock(() => Promise.resolve({
-        text: JSON.stringify({
-            style_keywords: "pixel art, retro",
-            lighting_keywords: "flat",
-            color_notes: "vibrant"
-        })
+mock.module('@/lib/style-anchor-generator', () => ({
+    generateStyleAnchor: mock(() => Promise.resolve({
+        styleAnchor: { id: 's1', referenceImageBlob: Buffer.from([]) }
     })),
 }));
 
@@ -81,12 +75,45 @@ mock.module('@/lib/cost-tracker', () => ({
     })),
 }));
 
+mock.module('ai', () => ({
+    generateText: mock(() => Promise.resolve({
+        text: JSON.stringify({
+            style_keywords: "pixel art, retro",
+            lighting_keywords: "flat",
+            color_notes: "vibrant"
+        })
+    })),
+}));
+
+mock.module('@/lib/model-registry', () => ({
+    getDefaultModel: mock(() => ({ id: 'google/gemini-2.0-flash-exp' })),
+}));
+
+mock.module('@/lib/prompt-builder', () => ({
+    generatePrompt: mock(() => 'test prompt'),
+    generateSemanticId: mock(() => 'hero_v1'),
+    getCategoryFolder: mock(() => 'characters'),
+}));
+
+mock.module('@/lib/image-generator', () => ({
+    generateFluxImage: mock(() => Promise.resolve({
+        success: true,
+        data: {
+            url: 'mock-url',
+            revised_prompt: 'mock-prompt',
+            seed: 123,
+            duration_ms: 100
+        }
+    })),
+    base64ToBlob: mock(() => Promise.resolve(new Blob(['image-data']))),
+}));
+
 /**
  * Helper to reset all mocks between tests
  */
 export const resetAllMocks = () => {
-    Object.values(prismaMock).forEach((model: any) => {
-        if (model.mockReset) model.mockReset();
+    Object.values(prismaMock).forEach((model: MockModel) => {
+        model.mockReset();
     });
     authMock.mockReset();
     authMock.mockImplementation(() => Promise.resolve({ user: { id: 'test-user' } }));
