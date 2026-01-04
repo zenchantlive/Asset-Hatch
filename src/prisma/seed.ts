@@ -16,8 +16,8 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // Demo user credentials for resume
-  const DEMO_EMAIL = 'demo@assethatch.com';
-  const DEMO_PASSWORD = 'AssetHatch2026!'; // Strong password for security
+  const DEMO_EMAIL = process.env.DEMO_EMAIL || 'demo@assethatch.com';
+  const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'AssetHatch2026!'; // Strong password for security
   const DEMO_NAME = 'Demo User';
 
   // Hash password with bcrypt (10 rounds)
