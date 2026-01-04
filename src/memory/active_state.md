@@ -33,8 +33,8 @@ All PRs passed typecheck and lint verification.
 - **Fixed Prisma Seed Script**: Updated `prisma/seed.ts` to use PrismaPg adapter pattern (matching `lib/prisma.ts`)
 - **Fixed Prisma Config**: Added `seed` command to `prisma.config.ts` (package.json seed config is ignored when using prisma.config.ts)
 - **Verified Demo User Creation**: Successfully ran `bunx prisma db seed`
-  - Email: `demo@assethatch.com`
-  - Password: `AssetHatch2026!`
+  - Email: `*****`
+  - Password: `******`
 
 ### VS Code Configuration Fixes
 - **CSS Import Types**: Created `src/global.d.ts` for CSS module declarations (fixes TS2882)
@@ -539,3 +539,4 @@ When resuming work:
 ---
 
 **END OF ACTIVE STATE**
+
