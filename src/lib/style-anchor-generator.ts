@@ -150,7 +150,7 @@ export async function generateStyleAnchor(
     modelId: model.id,
     prompt: optimizedPrompt,
     // No reference image for style anchor generation (this IS the reference)
-    apiKey: apiKey || undefined, // BYOK: use user's key if available
+    apiKey: apiKey, // BYOK: use user's key if available
   });
 
   console.log('✅ Style reference image generated:', {
