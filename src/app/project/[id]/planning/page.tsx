@@ -245,7 +245,7 @@ export default function PlanningPage() {
       setPlanPanelOpen(true);
     }
     // Continue with normal approval flow
-    handleApprovePlan();
+    void handleApprovePlan();
   }
 
   const handleParametersSave = async () => {
