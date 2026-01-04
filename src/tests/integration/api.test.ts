@@ -24,14 +24,21 @@ describe('API Integration Test Harness', () => {
             const routePath = scenario.path.replace('/api/', '');
 
             // Intelligent route resolution for dynamic segments
+            const routeMappings: { [key: string]: string } = {
+                '^projects/([^/]+)$': 'projects/[id]',
+                '^projects/([^/]+)/memory-files$': 'projects/[id]/memory-files',
+                '^projects/([^/]+)/project-detail$': 'projects/[id]/project-detail',
+                '^projects/([^/]+)/style-analysis$': 'projects/[id]/style-analysis',
+                '^assets/([^/]+)$': 'assets/[id]',
+            };
+
             let resolvedRoute = routePath;
-            if (routePath.startsWith('assets/')) resolvedRoute = 'assets/[id]';
-            if (routePath.startsWith('projects/') && routePath.split('/').length === 2 && !routePath.endsWith('projects/')) {
-                resolvedRoute = 'projects/[id]';
+            for (const pattern in routeMappings) {
+                if (new RegExp(pattern).test(routePath)) {
+                    resolvedRoute = routeMappings[pattern];
+                    break;
+                }
             }
-            if (routePath.includes('/memory-files')) resolvedRoute = resolvedRoute.replace(/\/[^/]+\/memory-files/, '/[id]/memory-files');
-            if (routePath.includes('/project-detail')) resolvedRoute = resolvedRoute.replace(/\/[^/]+\/project-detail/, '/[id]/project-detail');
-            if (routePath.includes('/style-analysis')) resolvedRoute = resolvedRoute.replace(/\/[^/]+\/style-analysis/, '/[id]/style-analysis');
 
             const importPath = `../../app/api/${resolvedRoute}/route`;
 
