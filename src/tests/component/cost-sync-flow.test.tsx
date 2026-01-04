@@ -1,10 +1,9 @@
-/**
- * @jest-environment jsdom
- */
+import './setup-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { VersionCarousel } from '@/components/generation/VersionCarousel';
 import type { AssetVersion } from '@/lib/client-db';
+import { describe, it, expect, mock } from 'bun:test';
 
 describe('Cost Sync UI Feedback', () => {
     const mockVersion: AssetVersion = {
@@ -27,36 +26,32 @@ describe('Cost Sync UI Feedback', () => {
     const defaultProps = {
         versions: [mockVersion],
         currentIndex: 0,
-        onIndexChange: jest.fn(),
-        onApprove: jest.fn(),
-        onReject: jest.fn(),
+        onIndexChange: mock(() => { }),
+        onApprove: mock(() => { }),
+        onReject: mock(() => { }),
     };
 
     it('should display (est.) suffix when cost is an estimate', () => {
-        // This test is expected to fail initially as the label isn't implemented
         render(<VersionCarousel {...defaultProps} isSyncingCost={true} />);
 
         const costElement = screen.getByText(/Cost:/i).parentElement;
-        expect(costElement).toHaveTextContent(/\(est\.\)/i);
+        expect(costElement?.textContent).toMatch(/\(est\.\)/i);
     });
 
     it('should display (actual) prefix when cost sync is complete', () => {
-        // This test is expected to fail initially as the label isn't implemented
         render(<VersionCarousel {...defaultProps} isSyncingCost={false} />);
 
         const costElement = screen.getByText(/Cost:/i).parentElement;
-        expect(costElement).toHaveTextContent(/\(actual\)/i);
+        expect(costElement?.textContent).toMatch(/\(actual\)/i);
     });
 
     it('should show loading spinner during sync', () => {
-        // Already partially implemented, but let's verify it explicitly
         const { container } = render(<VersionCarousel {...defaultProps} isSyncingCost={true} />);
         const loader = container.querySelector('.animate-spin');
-        expect(loader).toBeInTheDocument();
+        expect(loader).not.toBeNull();
     });
 
     it('should show error state if sync fails', () => {
-        // This test is expected to fail initially as the error state isn't implemented
         const propsWithError = {
             ...defaultProps,
             syncError: new Error('Network error')
@@ -64,6 +59,6 @@ describe('Cost Sync UI Feedback', () => {
         render(<VersionCarousel {...propsWithError} />);
 
         const errorIcon = screen.getByTitle(/Sync failed/i);
-        expect(errorIcon).toBeInTheDocument();
+        expect(errorIcon).not.toBeNull();
     });
 });

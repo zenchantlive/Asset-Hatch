@@ -40,7 +40,10 @@ describe('parsePlan', () => {
         expect(assets[3].type).toBe('background');
     });
 
-    test('handles granular mode for multi-direction animations', () => {
+    test('granular mode now returns single parent asset (DirectionGrid handles directions)', () => {
+        // NOTE: Granular mode was deprecated per ADR-019. The DirectionGrid component
+        // now handles directional generation dynamically to prevent queue duplication.
+        // Both modes now return a single parent asset for multi-direction animations.
         const markdown = `
 ## Characters
 - Warrior
@@ -49,12 +52,11 @@ describe('parsePlan', () => {
 
         const assets = parsePlan(markdown, { mode: 'granular', projectId });
 
-        // 4 directions = 4 assets in granular mode
-        expect(assets.length).toBe(4);
-        expect(assets[0].variant.direction).toBe('front');
-        expect(assets[1].variant.direction).toBe('left');
-        expect(assets[2].variant.direction).toBe('right');
-        expect(assets[3].variant.direction).toBe('back');
+        // Now returns 1 parent asset, DirectionGrid expands directions dynamically
+        expect(assets.length).toBe(1);
+        expect(assets[0].name).toBe('Warrior');
+        expect(assets[0].type).toBe('sprite-sheet');
+        expect(assets[0].variant.frameCount).toBe(4); // Directions count stored here
     });
 
     test('handles composite mode for multi-direction animations', () => {
@@ -122,5 +124,103 @@ describe('parsePlan', () => {
         expect(parsePlan('', { mode: 'composite', projectId })).toEqual([]);
         expect(parsePlan('# Title Only', { mode: 'composite', projectId })).toEqual([]);
         expect(parsePlan('Just some text', { mode: 'composite', projectId })).toEqual([]);
+    });
+
+    // TDD: Mobility classification tests for "Heroes (Playable)" bug fix
+    describe('mobility classification', () => {
+        test('classifies "Heroes (Playable)" category as moveable', () => {
+            const markdown = `
+## Heroes (Playable)
+- Holy Cow (The Protagonist)
+- Chicken Rogue
+            `;
+
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            // Both assets should be moveable, not static
+            expect(assets.length).toBe(2);
+            expect(assets[0].mobility.type).toBe('moveable');
+            expect(assets[0].mobility.directions).toBe(4);
+            expect(assets[1].mobility.type).toBe('moveable');
+        });
+
+        test('classifies category containing "hero" keyword as moveable', () => {
+            const markdown = `
+## Main Hero
+- Knight
+            `;
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+            expect(assets[0].mobility.type).toBe('moveable');
+        });
+
+        test('classifies category containing "playable" keyword as moveable', () => {
+            const markdown = `
+## Playable Characters
+- Wizard
+            `;
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+            expect(assets[0].mobility.type).toBe('moveable');
+        });
+
+        test('classifies existing known categories as moveable', () => {
+            // Note: Uses singular forms that match the heuristics in parseMobilityTag()
+            // "Enemies" would NOT match "enemy" (different letters), but "Enemy" does
+            const markdown = `
+## Characters
+- Guard
+## NPC Vendors
+- Villager
+## Enemy Creatures
+- Slime
+            `;
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            expect(assets[0].mobility.type).toBe('moveable'); // Characters
+            expect(assets[1].mobility.type).toBe('moveable'); // NPC Vendors -> includes 'npc'
+            expect(assets[2].mobility.type).toBe('moveable'); // Enemy Creatures -> includes 'enemy' and 'creature'
+        });
+    });
+
+    describe('metadata filtering', () => {
+        test('does not create duplicate assets from Description/Animations sub-items', () => {
+            // This tests the exact format from the user's entities.json that was causing duplication
+            const markdown = `
+## Heroes (Playable)
+- [MOVEABLE:4] 'Holy Cow' (The Protagonist)
+  - Description: A dairy cow standing on hind legs wearing white priestly vestments.
+  - Animations: Idle, Walk, Cast Spell.
+- [MOVEABLE:4] Chicken Rogue
+  - Description: A small white chicken wearing a leather eye patch.
+  - Animations: Idle, Walk, Attack.
+- [MOVEABLE:4] Sheep Wizard
+  - Description: Very fluffy sheep wearing a blue wizard hat.
+  - Animations: Idle, Walk, Cast Spell.
+            `;
+
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            // Should be exactly 3 assets - NOT 6 (one for each Description + Animations)
+            expect(assets.length).toBe(3);
+            expect(assets[0].name).toBe("'Holy Cow' (The Protagonist)");
+            expect(assets[1].name).toBe('Chicken Rogue');
+            expect(assets[2].name).toBe('Sheep Wizard');
+        });
+
+        test('still creates variant assets for actual animation variants', () => {
+            // When sub-items are actual variants (not just metadata), they should create assets
+            const markdown = `
+## Characters
+- Farmer
+  - Idle (4-direction)
+  - Walking (4-direction)
+            `;
+
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            // Should create 2 variant assets: Farmer Idle + Farmer Walking
+            expect(assets.length).toBe(2);
+            expect(assets[0].variant.name).toBe('Idle');
+            expect(assets[1].variant.name).toBe('Walking');
+        });
     });
 });

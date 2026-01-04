@@ -1,26 +1,16 @@
 import { POST } from '@/app/api/generate/route';
-import { prismaMock } from './mocks/prisma';
-import { generateFluxImageMock } from './mocks/openrouter';
+import { prismaMock, generateFluxImageMock, resetAllMocks } from './harness-mocks';
 import { NextRequest } from 'next/server';
 import { GenerateResponse } from './types';
-
-// Mock image utils and prompt builder
-jest.mock('@/lib/image-utils', () => ({
-    prepareStyleAnchorForAPI: jest.fn().mockResolvedValue('base64-image'),
-}));
-
-jest.mock('@/lib/prompt-builder', () => ({
-    buildAssetPrompt: jest.fn().mockReturnValue('mocked-prompt'),
-    calculateGenerationSize: jest.fn().mockReturnValue({ width: 1024, height: 1024 }),
-}));
+import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('/api/generate', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        resetAllMocks();
     });
 
     it('returns 404 if project not found', async () => {
-        prismaMock.project.findUnique.mockResolvedValue(null);
+        prismaMock.project.findUnique.mockImplementation(() => Promise.resolve(null));
 
         const req = new NextRequest('http://localhost/api/generate', {
             method: 'POST',
@@ -31,8 +21,8 @@ describe('/api/generate', () => {
     });
 
     it('returns 400 if no style anchor found', async () => {
-        prismaMock.project.findUnique.mockResolvedValue({ id: 'p1', name: 'Project' });
-        prismaMock.styleAnchor.findFirst.mockResolvedValue(null);
+        prismaMock.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', name: 'Project' }));
+        prismaMock.styleAnchor.findFirst.mockImplementation(() => Promise.resolve(null));
 
         const req = new NextRequest('http://localhost/api/generate', {
             method: 'POST',
@@ -43,23 +33,28 @@ describe('/api/generate', () => {
     });
 
     it('generates an image and saves to database', async () => {
-        prismaMock.project.findUnique.mockResolvedValue({ id: 'p1', name: 'Project', baseResolution: '32x32' });
-        prismaMock.styleAnchor.findFirst.mockResolvedValue({
+        prismaMock.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', name: 'Project', baseResolution: '32x32' }));
+        prismaMock.styleAnchor.findFirst.mockImplementation(() => Promise.resolve({
             id: 's1',
             referenceImageBlob: Buffer.from('abc'),
             colorPalette: '[]',
             modelKey: 'black-forest-labs/flux.2-pro',
-        });
-        generateFluxImageMock.mockResolvedValue({
-            imageUrl: 'http://cdn/img.png',
-            imageBuffer: Buffer.from('generated-img'),
-            seed: 123,
-            durationMs: 5000
-        });
-        prismaMock.generatedAsset.create.mockResolvedValue({
+        }));
+
+        generateFluxImageMock.mockImplementation(() => Promise.resolve({
+            success: true,
+            data: {
+                url: 'http://cdn/img.png',
+                seed: 123,
+                duration_ms: 5000,
+                generationId: 'gen-123'
+            }
+        }));
+
+        prismaMock.generatedAsset.create.mockImplementation(() => Promise.resolve({
             id: 'ga1',
             metadata: '{}'
-        });
+        }));
 
         const req = new NextRequest('http://localhost/api/generate', {
             method: 'POST',
