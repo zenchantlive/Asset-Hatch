@@ -66,6 +66,6 @@ To top it off, we finally standardized the "Asset Hatch" branding. No more place
 
 ---
 
-**Next:** [Part 16: Reflections - What I Actually Learned](16-reflections-lessons-learned.md)
+**Next:** [Part 16: The Final Polish - UX Refinements and Front-First Workflow](16-the-final-polish-ux-refinements.md)
 
 **Previous:** [← Part 14: The Privacy Pivot - BYOK and Browser Storage](14-the-privacy-pivot-byok-and-browser-storage.md)

@@ -1,6 +1,6 @@
 # Building Asset Hatch: An AI-Assisted Development Journey
 
-A technical blog series documenting the complete development of Asset Hatch, from initial concept to production-ready AI-powered asset generation tool, built in 9 days using Claude Code and autonomous AI agents. Now featuring a complete 16-part narrative covering the full lifecycle from SQLite prototyping to Neon Postgres scalability.
+A technical blog series documenting the complete development of Asset Hatch, from initial concept to production-ready AI-powered asset generation tool, built in 11 days using Claude Code and autonomous AI agents. Now featuring a complete 17-part narrative covering the full lifecycle from SQLite prototyping to Neon Postgres scalability.
 
 ## Series Overview
 
@@ -110,19 +110,24 @@ Pivoting from split-screen desktop layouts to a mobile-native "Chat-First" exper
 
 ---
 
-### [Part 16: Reflections - What I Actually Learned](16-reflections-lessons-learned.md)
-The final retrospective: 13 hard lessons from 9 days of AI-assisted building.
+### [Part 16: The Final Polish - UX Refinements and Front-First Workflow](16-the-final-polish-ux-refinements.md)
+Documenting the shift to a "Front-First" generation workflow to ensure visual consistency, and implementing the Unified Action Bar for a premium UI experience.
+
+---
+
+### [Part 17: Reflections - What I Actually Learned](17-reflections-lessons-learned.md)
+The final retrospective: 14 hard lessons from 11 days of AI-assisted building.
 
 ---
 
 ## Document Statistics
 
 ```
-Total Posts: 16
-Total Words: ~30,000 words
-Total Reading Time: ~120 minutes
-Code Examples: 55+
-Architectural Decisions: 27 ADRs
+Total Posts: 17
+Total Words: ~32,000 words
+Total Reading Time: ~130 minutes
+Code Examples: 60+
+Architectural Decisions: 31 ADRs
 ```
 
 ## Why Read This?
