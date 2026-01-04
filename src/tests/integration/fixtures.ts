@@ -148,8 +148,8 @@ export const scenarios: EndpointScenario[] = [
         setupMock: (prisma) => {
             prisma.user.findUnique.mockImplementation(() => Promise.resolve(null));
             prisma.user.create.mockImplementation((data: unknown) => {
-                const d = data as object;
-                return Promise.resolve({ id: 'u2', ...d });
+                const d = data as { data: object };
+                return Promise.resolve({ id: 'u2', ...d.data });
             });
         }
     },
