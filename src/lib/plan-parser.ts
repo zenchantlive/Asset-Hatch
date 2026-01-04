@@ -82,6 +82,29 @@ export function parsePlan(
   let currentAssetCategory = '';
   let assetCounter = 0;
 
+  /**
+   * Helper to check if a sub-item is metadata (not a variant)
+   * 
+   * Sub-items like "Description: ...", "Animations: ..." are metadata that describe
+   * the parent asset, NOT separate variant assets. We skip these to prevent duplication.
+   * 
+   * Actual variants look like: "Idle (4-direction)", "Walking (8-frame)", "Attack"
+   */
+  const isMetadataLine = (text: string): boolean => {
+    const textLower = text.toLowerCase();
+    // These prefixes indicate metadata, not variants
+    const metadataPrefixes = [
+      'description:',
+      'animations:',
+      'animation:',
+      'notes:',
+      'note:',
+      'details:',
+      'info:',
+    ];
+    return metadataPrefixes.some(prefix => textLower.startsWith(prefix));
+  };
+
   for (let i = 0; i < parsed.length; i++) {
     const item = parsed[i];
 
@@ -92,9 +115,18 @@ export function parsePlan(
       currentAssetName = mobilityResult.cleanName;
       currentAssetCategory = item.category!;
 
-      // If no variants follow, create single asset
-      const nextItem = parsed[i + 1];
-      if (!nextItem || nextItem.level !== 2) {
+      // Check if next items are variants (level 2) or just metadata
+      // Count actual variants by looking ahead
+      let hasActualVariants = false;
+      for (let j = i + 1; j < parsed.length && parsed[j].level === 2; j++) {
+        if (!isMetadataLine(parsed[j].text)) {
+          hasActualVariants = true;
+          break;
+        }
+      }
+
+      // If no actual variants follow (only metadata or nothing), create single asset
+      if (!hasActualVariants) {
         const newAsset = createAsset({
           category: currentAssetCategory,
           name: currentAssetName,
@@ -111,7 +143,12 @@ export function parsePlan(
         }
       }
     } else if (item.level === 2) {
-      // Variant line
+      // Skip metadata lines - they describe the parent, not a variant
+      if (isMetadataLine(item.text)) {
+        continue;
+      }
+
+      // Variant line - create asset for actual variant
       const variantAssets = createAsset({
         category: currentAssetCategory,
         name: currentAssetName,

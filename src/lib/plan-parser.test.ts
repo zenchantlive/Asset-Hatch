@@ -180,4 +180,47 @@ describe('parsePlan', () => {
             expect(assets[2].mobility.type).toBe('moveable'); // Enemy Creatures -> includes 'enemy' and 'creature'
         });
     });
+
+    describe('metadata filtering', () => {
+        test('does not create duplicate assets from Description/Animations sub-items', () => {
+            // This tests the exact format from the user's entities.json that was causing duplication
+            const markdown = `
+## Heroes (Playable)
+- [MOVEABLE:4] 'Holy Cow' (The Protagonist)
+  - Description: A dairy cow standing on hind legs wearing white priestly vestments.
+  - Animations: Idle, Walk, Cast Spell.
+- [MOVEABLE:4] Chicken Rogue
+  - Description: A small white chicken wearing a leather eye patch.
+  - Animations: Idle, Walk, Attack.
+- [MOVEABLE:4] Sheep Wizard
+  - Description: Very fluffy sheep wearing a blue wizard hat.
+  - Animations: Idle, Walk, Cast Spell.
+            `;
+
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            // Should be exactly 3 assets - NOT 6 (one for each Description + Animations)
+            expect(assets.length).toBe(3);
+            expect(assets[0].name).toBe("'Holy Cow' (The Protagonist)");
+            expect(assets[1].name).toBe('Chicken Rogue');
+            expect(assets[2].name).toBe('Sheep Wizard');
+        });
+
+        test('still creates variant assets for actual animation variants', () => {
+            // When sub-items are actual variants (not just metadata), they should create assets
+            const markdown = `
+## Characters
+- Farmer
+  - Idle (4-direction)
+  - Walking (4-direction)
+            `;
+
+            const assets = parsePlan(markdown, { mode: 'composite', projectId });
+
+            // Should create 2 variant assets: Farmer Idle + Farmer Walking
+            expect(assets.length).toBe(2);
+            expect(assets[0].variant.name).toBe('Idle');
+            expect(assets[1].variant.name).toBe('Walking');
+        });
+    });
 });
