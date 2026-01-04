@@ -125,7 +125,7 @@ bunx prisma studio       # Open Prisma Studio GUI
 - `GeneratedAsset`: Stores generated images as Blobs with metadata
 
 **Quality Parameters** (7 parameters guide all generation):
-- `art_style`: "Pixel Art (8-bit)", "Pixel Art (16-bit)", "Hand-painted 2D", "Vector/Flat", "Voxel"
+- `art_style`: "Pixel Art (8-bit)", "Pixel Art (16-bit)", "Hand-painted 2D", "Vector/Flat"
 - `base_resolution`: "32x32", "64x64", "128x128"
 - `perspective`: "Top-down", "Side-view", "Isometric", "First-person"
 - `game_genre`: "Platformer", "RPG", "Strategy", "Farming Sim"

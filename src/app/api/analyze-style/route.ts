@@ -19,7 +19,7 @@ const STYLE_ANALYSIS_PROMPT = `You are a game asset art style analyzer. Analyze 
 
 1. **Art Style Keywords**: Describe the visual style in 3-8 words. Focus on:
    - Era/console generation (8-bit, 16-bit, modern)
-   - Art style type (pixel art, hand-painted, vector, voxel)
+   - Art style type (pixel art, hand-painted, vector/flat)
    - Specific game/franchise influences if recognizable
    - Distinctive visual characteristics
 

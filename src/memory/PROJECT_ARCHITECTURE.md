@@ -102,7 +102,7 @@ These guide ALL future generation:
 
 | Parameter | Purpose | Examples |
 |-----------|---------|----------|
-| **art_style** | Visual style | Pixel Art (8-bit), Pixel Art (16-bit), Hand-painted 2D, Vector/Flat, Voxel |
+| **art_style** | Visual style | Pixel Art (8-bit), Pixel Art (16-bit), Hand-painted 2D, Vector/Flat |
 | **base_resolution** | Asset size | 32x32, 64x64, 128x128 |
 | **perspective** | Camera angle | Top-down, Side-view, Isometric, First-person |
 | **game_genre** | Game type | Platformer, RPG, Strategy, Farming Sim |

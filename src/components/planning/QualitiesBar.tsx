@@ -41,7 +41,6 @@ const QUALITY_OPTIONS = {
     "Pixel Art (16-bit)",
     "Hand-painted 2D",
     "Vector/Flat",
-    "Voxel",
   ],
   base_resolution: [
     "16x16",
