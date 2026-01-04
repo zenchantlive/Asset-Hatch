@@ -10,7 +10,7 @@ import Link from "next/link";
 export default async function SettingsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ welcome?: string }>;
+    searchParams?: { welcome?: string };
 }) {
     // Check authentication
     const session = await auth();
@@ -19,8 +19,7 @@ export default async function SettingsPage({
     }
 
     // Check if this is a new user welcome flow
-    const params = await searchParams;
-    const isWelcome = params.welcome === "true";
+    const isWelcome = searchParams?.welcome === "true";
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
