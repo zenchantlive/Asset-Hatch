@@ -73,6 +73,6 @@
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "bun src/prisma/seed.ts"
+    "seed": "bun prisma/seed.ts"
   }
 }
