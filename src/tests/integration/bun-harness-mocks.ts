@@ -19,10 +19,10 @@ const createMockModel = (): MockModel => ({
     findUnique: mock(() => Promise.resolve(null)),
     findMany: mock(() => Promise.resolve([])),
     findFirst: mock(() => Promise.resolve(null)),
-    create: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
-    update: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
-    delete: mock(() => Promise.resolve({ id: 'mock-id' })),
-    upsert: mock((data: unknown) => Promise.resolve({ id: 'mock-id', ...(data as object) })),
+    create: mock((args: unknown) => Promise.resolve({ id: 'mock-id', ...((args as { data: object }).data) })), 
+    update: mock((args: unknown) => Promise.resolve({ id: 'mock-id', ...((args as { data: object }).data) })), 
+    delete: mock(() => Promise.resolve({ id: 'mock-id' })), 
+    upsert: mock((args: unknown) => Promise.resolve({ id: 'mock-id', ...((args as { create: object }).create) })), 
     mockReset: function () {
         this.findUnique.mockReset();
         this.findMany.mockReset();
