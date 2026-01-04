@@ -39,21 +39,21 @@ export default async function DashboardPage() {
     });
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-black">
+        <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
-                <header className="flex justify-between items-center mb-12">
+                <header className="flex justify-between items-center mb-12 p-6 rounded-lg glass-panel">
                     <div className="flex items-center gap-4">
                         <Link href="/">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" className="text-white/70 hover:text-white">
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50">
+                            <h1 className="text-4xl font-bold text-white/90">
                                 Your Projects
                             </h1>
-                            <p className="text-zinc-600 dark:text-zinc-400">
+                            <p className="text-white/60">
                                 Manage your game asset projects
                             </p>
                         </div>
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
 
                     <div className="flex items-center gap-2">
                         <Link href="/settings">
-                            <Button variant="ghost" size="icon" title="Settings">
+                            <Button variant="ghost" size="icon" title="Settings" className="text-white/70 hover:text-white">
                                 <Settings className="h-5 w-5" />
                             </Button>
                         </Link>
@@ -73,11 +73,11 @@ export default async function DashboardPage() {
                 <main>
                     {projects.length === 0 ? (
                         // Empty state
-                        <div className="text-center py-20 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
-                            <p className="text-xl text-zinc-500 dark:text-zinc-400 mb-4">
+                        <div className="text-center py-20 border border-dashed border-glass-border rounded-lg glass-panel">
+                            <p className="text-xl text-white/70 mb-4">
                                 No projects yet
                             </p>
-                            <p className="text-zinc-400 dark:text-zinc-500 mb-6">
+                            <p className="text-white/50 mb-6">
                                 Create your first project to start generating game assets.
                             </p>
                             <CreateProjectButton size="lg">
@@ -93,9 +93,9 @@ export default async function DashboardPage() {
                                     href={`/project/${project.id}/planning?mode=${project.phase}`}
                                     className="block"
                                 >
-                                    <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:border-primary/50 hover:shadow-lg transition-all">
+                                    <div className="p-6 glass-interactive rounded-lg transition-all">
                                         {/* Project name */}
-                                        <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+                                        <h3 className="text-xl font-semibold text-white/90 mb-2">
                                             {project.name}
                                         </h3>
 
@@ -103,12 +103,12 @@ export default async function DashboardPage() {
                                         <div className="flex items-center gap-2 mb-4">
                                             <span
                                                 className={`px-2 py-1 text-xs rounded-full ${project.phase === "planning"
-                                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                                                     : project.phase === "style"
-                                                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                                        ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                                                         : project.phase === "generation"
-                                                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                                            : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                                                            ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                                                            : "bg-white/10 text-white/70 border border-white/20"
                                                     }`}
                                             >
                                                 {project.phase.charAt(0).toUpperCase() +
@@ -117,7 +117,7 @@ export default async function DashboardPage() {
                                         </div>
 
                                         {/* Stats */}
-                                        <div className="flex gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                        <div className="flex gap-4 text-sm text-white/60">
                                             <span>
                                                 {project._count.generatedAssets} assets
                                             </span>
@@ -127,7 +127,7 @@ export default async function DashboardPage() {
                                         </div>
 
                                         {/* Last updated */}
-                                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-4">
+                                        <p className="text-xs text-white/40 mt-4">
                                             Updated{" "}
                                             {new Date(project.updatedAt).toLocaleDateString("en-US", {
                                                 month: "short",
