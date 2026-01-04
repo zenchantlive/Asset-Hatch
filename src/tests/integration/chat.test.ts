@@ -1,24 +1,11 @@
 import { POST } from '@/app/api/chat/route';
-import { prismaMock } from './mocks/prisma';
+import { prismaMock, resetAllMocks } from './harness-mocks';
 import { NextRequest } from 'next/server';
-
-// Mock AI SDK
-jest.mock('ai', () => ({
-    streamText: jest.fn().mockReturnValue({
-        toUIMessageStreamResponse: jest.fn().mockReturnValue(new Response('stream-ok')),
-    }),
-    tool: jest.fn((config) => config),
-    convertToModelMessages: jest.fn((m) => m),
-    stepCountIs: jest.fn(),
-}));
-
-jest.mock('@openrouter/ai-sdk-provider', () => ({
-    openrouter: jest.fn(),
-}));
+import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('/api/chat', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        resetAllMocks();
     });
 
     it('returns 400 if projectId is missing', async () => {
@@ -31,8 +18,8 @@ describe('/api/chat', () => {
     });
 
     it('creates project in SQLite if missing', async () => {
-        prismaMock.project.findUnique.mockResolvedValue(null);
-        prismaMock.project.create.mockResolvedValue({ id: 'p1' });
+        prismaMock.project.findUnique.mockImplementation(() => Promise.resolve(null));
+        prismaMock.project.create.mockImplementation(() => Promise.resolve({ id: 'p1' }));
 
         const req = new NextRequest('http://localhost/api/chat', {
             method: 'POST',
@@ -45,7 +32,7 @@ describe('/api/chat', () => {
     });
 
     it('returns a stream response', async () => {
-        prismaMock.project.findUnique.mockResolvedValue({ id: 'p1' });
+        prismaMock.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1' }));
 
         const req = new NextRequest('http://localhost/api/chat', {
             method: 'POST',

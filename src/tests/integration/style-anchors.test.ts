@@ -1,17 +1,15 @@
-import { prismaMock } from './mocks/prisma';
-
-// Ensure mock is hoisted
-jest.mock('@/lib/prisma', () => ({
-    prisma: prismaMock,
-}));
-
-import { POST } from '@/app/api/style-anchors/route';
+import { prismaMock, resetAllMocks } from './harness-mocks';
 import { NextRequest } from 'next/server';
 import { GenerateStyleResponse } from './types';
+import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('/api/style-anchors', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    let POST: (req: Request) => Promise<Response>;
+
+    beforeEach(async () => {
+        resetAllMocks();
+        const route = await import('@/app/api/style-anchors/route');
+        POST = route.POST;
     });
 
     it('returns 400 if projectId is missing', async () => {
@@ -33,7 +31,7 @@ describe('/api/style-anchors', () => {
     });
 
     it('creates a style anchor', async () => {
-        prismaMock.styleAnchor.create.mockResolvedValue({ id: 'sa1' });
+        prismaMock.styleAnchor.create.mockImplementation(() => Promise.resolve({ id: 'sa1' }));
 
         const req = new NextRequest('http://localhost/api/style-anchors', {
             method: 'POST',

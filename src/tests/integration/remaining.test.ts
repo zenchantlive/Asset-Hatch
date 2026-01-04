@@ -1,35 +1,34 @@
-import { POST as analyzePOST } from '@/app/api/analyze-style/route';
-import { POST as generateStylePOST } from '@/app/api/generate-style/route';
-import { POST as generatedAssetsPOST } from '@/app/api/generated-assets/route';
-import { GET as assetsGET } from '@/app/api/assets/[id]/route';
-import { GET as memoryFilesGET, POST as memoryFilesPOST } from '@/app/api/projects/[id]/memory-files/route';
-import { prismaMock } from './mocks/prisma';
-import { authMock } from './mocks/auth';
+import { prismaMock, authMock, resetAllMocks } from './harness-mocks';
 import { NextRequest } from 'next/server';
 import { AnalyzeStyleResponse, GenerateStyleResponse, MemoryFileResponse, AssetResponse } from './types';
-
-// Mock AI generateText
-jest.mock('ai', () => ({
-    generateText: jest.fn().mockResolvedValue({
-        text: JSON.stringify({
-            style_keywords: 'pixel art',
-            lighting_keywords: 'soft',
-            color_notes: 'vibrant'
-        })
-    }),
-}));
-
-// Mock style-anchor-generator
-jest.mock('@/lib/style-anchor-generator', () => ({
-    generateStyleAnchor: jest.fn().mockResolvedValue({
-        success: true,
-        styleAnchor: { id: 'sa1' }
-    }),
-}));
+import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('Remaining API Endpoints', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    let analyzePOST: any;
+    let generateStylePOST: any;
+    let generatedAssetsPOST: any;
+    let memoryFilesGET: any;
+    let memoryFilesPOST: any;
+    let assetsGET: any;
+
+    beforeEach(async () => {
+        resetAllMocks();
+
+        const analyzeRoute = await import('@/app/api/analyze-style/route');
+        analyzePOST = analyzeRoute.POST;
+
+        const generateStyleRoute = await import('@/app/api/generate-style/route');
+        generateStylePOST = generateStyleRoute.POST;
+
+        const generatedAssetsRoute = await import('@/app/api/generated-assets/route');
+        generatedAssetsPOST = generatedAssetsRoute.POST;
+
+        const memoryFilesRoute = await import('@/app/api/projects/[id]/memory-files/route');
+        memoryFilesGET = memoryFilesRoute.GET;
+        memoryFilesPOST = memoryFilesRoute.POST;
+
+        const assetsRoute = await import('@/app/api/assets/[id]/route');
+        assetsGET = assetsRoute.GET;
     });
 
     describe('/api/analyze-style', () => {
@@ -45,7 +44,7 @@ describe('Remaining API Endpoints', () => {
             const body = await res.json() as AnalyzeStyleResponse;
 
             expect(res.status).toBe(200);
-            expect(body.analysis.style_keywords).toBe('pixel art');
+            expect(body.analysis.style_keywords).toBe('pixel art, retro');
         });
     });
 
@@ -59,13 +58,13 @@ describe('Remaining API Endpoints', () => {
             const body = await res.json() as GenerateStyleResponse;
 
             expect(res.status).toBe(200);
-            expect(body.styleAnchor.id).toBe('sa1');
+            expect(body.styleAnchor.id).toBe('s1');
         });
     });
 
     describe('/api/generated-assets', () => {
         it('syncs an approved asset', async () => {
-            prismaMock.generatedAsset.upsert.mockResolvedValue({ id: 'ga1' });
+            prismaMock.generatedAsset.upsert.mockImplementation(() => Promise.resolve({ id: 'ga1' }));
 
             const req = new NextRequest('http://localhost/api/generated-assets', {
                 method: 'POST',
@@ -88,9 +87,9 @@ describe('Remaining API Endpoints', () => {
         const params = Promise.resolve({ id: 'p1' });
 
         it('GET returns memory files', async () => {
-            authMock.mockResolvedValue({ user: { id: 'user-1' } });
-            prismaMock.project.findFirst.mockResolvedValue({ id: 'p1', userId: 'user-1' });
-            prismaMock.memoryFile.findMany.mockResolvedValue([{ id: 'm1', type: 'entities.json' }]);
+            authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
+            prismaMock.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' }));
+            prismaMock.memoryFile.findMany.mockImplementation(() => Promise.resolve([{ id: 'm1', type: 'entities.json' }]));
 
             const req = new NextRequest('http://localhost/api/projects/p1/memory-files');
             const res = await memoryFilesGET(req, { params });
@@ -101,9 +100,9 @@ describe('Remaining API Endpoints', () => {
         });
 
         it('POST saves a memory file', async () => {
-            authMock.mockResolvedValue({ user: { id: 'user-1' } });
-            prismaMock.project.findFirst.mockResolvedValue({ id: 'p1', userId: 'user-1' });
-            prismaMock.memoryFile.upsert.mockResolvedValue({ id: 'm1' });
+            authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
+            prismaMock.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' }));
+            prismaMock.memoryFile.upsert.mockImplementation(() => Promise.resolve({ id: 'm1' }));
 
             const req = new NextRequest('http://localhost/api/projects/p1/memory-files', {
                 method: 'POST',
@@ -115,31 +114,32 @@ describe('Remaining API Endpoints', () => {
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
         });
-        describe('/api/assets/[id]', () => {
-            const params = Promise.resolve({ id: 'a1' });
+    });
 
-            it('returns asset data', async () => {
-                prismaMock.generatedAsset.findUnique.mockResolvedValue({
-                    id: 'a1',
-                    imageBlob: Buffer.from('abc'),
-                    promptUsed: 'test prompt',
-                    metadata: '{}'
-                });
+    describe('/api/assets/[id]', () => {
+        const params = Promise.resolve({ id: 'a1' });
 
-                const req = new NextRequest('http://localhost/api/assets/a1');
-                const res = await assetsGET(req, { params });
-                const body = await res.json() as AssetResponse;
+        it('returns asset data', async () => {
+            prismaMock.generatedAsset.findUnique.mockImplementation(() => Promise.resolve({
+                id: 'a1',
+                imageBlob: Buffer.from('abc'),
+                promptUsed: 'test prompt',
+                metadata: '{}'
+            }));
 
-                expect(res.status).toBe(200);
-                expect(body.id).toBe('a1');
-            });
+            const req = new NextRequest('http://localhost/api/assets/a1');
+            const res = await assetsGET(req, { params });
+            const body = await res.json() as AssetResponse;
 
-            it('returns 404 if not found', async () => {
-                prismaMock.generatedAsset.findUnique.mockResolvedValue(null);
-                const req = new NextRequest('http://localhost/api/assets/a1');
-                const res = await assetsGET(req, { params });
-                expect(res.status).toBe(404);
-            });
+            expect(res.status).toBe(200);
+            expect(body.id).toBe('a1');
+        });
+
+        it('returns 404 if not found', async () => {
+            prismaMock.generatedAsset.findUnique.mockImplementation(() => Promise.resolve(null));
+            const req = new NextRequest('http://localhost/api/assets/a1');
+            const res = await assetsGET(req, { params });
+            expect(res.status).toBe(404);
         });
     });
 });

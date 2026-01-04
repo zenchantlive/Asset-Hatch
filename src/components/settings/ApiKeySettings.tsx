@@ -89,17 +89,14 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
             await fetchSettings(); // Refresh settings
 
             // If this is the welcome flow, redirect to dashboard after a brief delay
-            useEffect(() => {
-                let timer: ReturnType<typeof setTimeout>;
-                if (success && isWelcome) {
-                    timer = setTimeout(() => {
-                        router.replace("/dashboard");
-                    }, 1500);
-                } else if (success) {
-                    timer = setTimeout(() => setSuccess(false), 3000);
-                }
-                return () => clearTimeout(timer);
-            }, [success, isWelcome]);
+            if (isWelcome) {
+                setTimeout(() => {
+                    router.push("/dashboard");
+                }, 1500);
+            } else {
+                // Clear success message after 3 seconds for normal flow
+                setTimeout(() => setSuccess(false), 3000);
+            }
         } catch (err) {
             console.error("Error saving API key:", err);
             setError(err instanceof Error ? err.message : "Failed to save API key");
