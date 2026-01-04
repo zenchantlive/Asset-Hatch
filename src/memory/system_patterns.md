@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2025-12-31
+**Last Updated:** 2026-01-03
 
 ---
 
@@ -127,6 +127,41 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - Browsers have storage quotas (varies by browser)
   - Typically 50-100MB for origin
   - **Mitigation:** Compress images, use external storage for large files
+
+### Prisma 7 / PostgreSQL Adapter
+* **Seed Script Adapter Mismatch**
+  - **Issue:** Seed scripts using `new PrismaClient()` directly fail when the project uses `PrismaPg` adapter
+  - **Symptom:** `TypeError: Cannot destructure property` or connection errors during `bunx prisma db seed`
+  - **Solution:** Use the same adapter pattern as `lib/prisma.ts`:
+    ```typescript
+    import { Pool } from 'pg';
+    import { PrismaPg } from '@prisma/adapter-pg';
+    import { PrismaClient } from '@prisma/client';
+    
+    const pool = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
+    const adapter = new PrismaPg(pool);
+    const prisma = new PrismaClient({ adapter });
+    ```
+
+* **prisma.config.ts vs package.json**
+  - **Issue:** When using `prisma.config.ts`, the `prisma.seed` field in `package.json` is **ignored**
+  - **Solution:** Add seed command to `prisma.config.ts`:
+    ```typescript
+    export default defineConfig({
+      migrations: {
+        seed: "bun prisma/seed.ts",  // Add this line
+      },
+    });
+    ```
+
+* **Environment Variables in Seed**
+  - Seed scripts don't automatically load `.env.local` 
+  - **Solution:** Use `dotenv` at the top of the seed file:
+    ```typescript
+    import { config } from 'dotenv';
+    config({ path: '.env.local' });
+    config();
+    ```
 
 ---
 

@@ -12,6 +12,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // Seed script for creating demo user account
+    seed: "bun prisma/seed.ts",
   },
   // For migrations: use Neon Postgres (same as runtime)
   datasource: {
