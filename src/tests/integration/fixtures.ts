@@ -1,4 +1,4 @@
-import { type prismaMock, type authMock } from './bun-harness-mocks';
+import { type prismaMock, type authMock } from './harness-mocks';
 
 export interface EndpointScenario {
     name: string;
@@ -47,13 +47,13 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1', email: 'test@example.com' } }));
-            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' } as unknown));
+            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' }));
             prisma.project.create.mockImplementation(() => Promise.resolve({
                 id: 'p-new',
                 name: 'New Project',
                 phase: 'planning',
                 userId: 'user-1'
-            } as unknown));
+            }));
         }
     },
     {
@@ -78,7 +78,7 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1', name: 'P1' } as unknown));
+            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1', name: 'P1' }));
         }
     },
     {
@@ -91,7 +91,7 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' } as unknown));
+            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' }));
             prisma.project.update.mockImplementation((data: unknown) => {
                 const d = data as { data: object };
                 return Promise.resolve({ id: 'p1', ...d.data });
@@ -107,8 +107,8 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' } as unknown));
-            prisma.project.delete.mockImplementation(() => Promise.resolve({ id: 'p1' } as unknown));
+            prisma.project.findFirst.mockImplementation(() => Promise.resolve({ id: 'p1', userId: 'user-1' }));
+            prisma.project.delete.mockImplementation(() => Promise.resolve({ id: 'p1' }));
         }
     },
 
@@ -120,21 +120,23 @@ export const scenarios: EndpointScenario[] = [
         auth: { user: { id: 'user-1' } },
         body: {
             projectId: 'p1',
-            assetId: 'a1',
-            assetName: 'Hero',
-            variantId: 'v1'
+            asset: {
+                id: 'a1',
+                name: 'Hero',
+                variant: { id: 'v1' }
+            }
         },
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1', openRouterApiKey: null } as unknown));
-            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', baseResolution: '32x32' } as unknown));
+            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1', openRouterApiKey: null } as any));
+            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', baseResolution: '32x32' } as any));
             prisma.styleAnchor.findFirst.mockImplementation(() => Promise.resolve({
                 id: 's1',
                 referenceImageBlob: Buffer.from([]),
                 colorPalette: '[]'
-            } as unknown));
-            prisma.generatedAsset.create.mockImplementation(() => Promise.resolve({ id: 'g1', metadata: '{}' } as unknown));
+            }));
+            prisma.generatedAsset.create.mockImplementation(() => Promise.resolve({ id: 'g1', metadata: '{}' }));
         }
     },
 
@@ -201,7 +203,7 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 400,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1' } as unknown));
+            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1' }));
             prisma.generatedAsset.findMany.mockImplementation(() => Promise.resolve([]));
         }
     }
