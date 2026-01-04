@@ -18,6 +18,8 @@ const outfit = Outfit({
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
+
+
 });
 
 // =============================================================================

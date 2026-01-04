@@ -138,6 +138,7 @@
 /* Force Dark Mode defaults since we want a "Space" theme primarily */
 .dark {
   /* Inherits root values as they are already dark-first */
+  color-scheme: dark;
 }
 
 @layer base {

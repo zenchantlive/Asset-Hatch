@@ -60,3 +60,6 @@ src/import-env-to-1password.ps1
 Jordan_Hindo_-__Resume_(OCT_25) (Repaired).docx
 src/VERCEL_POSTGRES_SETUP.md
 src/SWITCH_TO_VERCEL_POSTGRES.md
+
+# Auto Claude data directory
+.auto-claude/

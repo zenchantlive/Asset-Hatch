@@ -46,3 +46,6 @@ next-env.d.ts
 *_result.txt
 *_result_*.txt
 lint_output.txt
+
+# Auto Claude data directory
+.auto-claude/

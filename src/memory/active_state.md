@@ -1,14 +1,37 @@
 # Active State - Asset Hatch Development
 
-**Last Updated:** 2026-01-02
-**Current Phase:** Mobile UX Redesign & Cleanup
+**Last Updated:** 2026-01-03
+**Current Phase:** PR Cleanup & Deployment Prep
 **Status:** ✅ ALL TASKS COMPLETE - LINT CLEAN
 
 
 
 ---
 
-## 🎯 Latest Session Summary (2026-01-02)
+## 🎯 Latest Session Summary (2026-01-03)
+
+### PR Merges Completed
+- **PR #17**: `feat(auth): Add demo user account system for resume showcase`
+  - Added `DEMO_ACCOUNT.md` with credentials and setup instructions
+  - Added `src/prisma/seed.ts` for creating demo user
+  - Enables hiring managers to test the full application
+  
+- **PR #18**: `refactor(options): Remove all 3D art style options from the app`
+  - Replaced Low Poly/High Poly with 2D-focused options
+  - New options: Pixel Art (8-bit), Pixel Art (16-bit), Hand-painted 2D
+  - Updated CLAUDE.md, design system guide, and tests
+  
+- **PR #19**: `chore(deploy): Prepare Asset Hatch for Vercel deployment`
+  - Added `vercel.json` configuration
+  - Added `VERCEL_DEPLOYMENT.md` comprehensive guide
+  - Added `SECURITY_WORKFLOW.md` for security audit setup
+  - Updated `.env.example` with production variables
+
+All PRs passed typecheck and lint verification.
+
+---
+
+## 🎯 Previous Session Summary (2026-01-02)
 
 ### Problem: Mobile Planning/Style UX was "awful"
 - Persistent 50/50 split was cramped and unreadable on mobile.

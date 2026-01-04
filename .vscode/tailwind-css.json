@@ -1,0 +1,65 @@
+{
+    "version": 1.1,
+    "atDirectives": [
+        {
+            "name": "@tailwind",
+            "description": "Use the `@tailwind` directive to insert Tailwind's `base`, `components`, `utilities` and `variants` styles into your CSS.",
+            "references": [
+                {
+                    "name": "Tailwind Documentation",
+                    "url": "https://tailwindcss.com/docs/functions-and-directives#tailwind"
+                }
+            ]
+        },
+        {
+            "name": "@apply",
+            "description": "Use the `@apply` directive to inline any existing utility classes into your own custom CSS.",
+            "references": [
+                {
+                    "name": "Tailwind Documentation",
+                    "url": "https://tailwindcss.com/docs/functions-and-directives#apply"
+                }
+            ]
+        },
+        {
+            "name": "@layer",
+            "description": "Use the `@layer` directive to tell Tailwind which \"bucket\" a set of custom styles belong to. Valid layers are `base`, `components`, and `utilities`.",
+            "references": [
+                {
+                    "name": "Tailwind Documentation",
+                    "url": "https://tailwindcss.com/docs/functions-and-directives#layer"
+                }
+            ]
+        },
+        {
+            "name": "@theme",
+            "description": "Use the `@theme` directive in Tailwind CSS v4 to define design tokens like colors, fonts, and spacing that become available as utility classes.",
+            "references": [
+                {
+                    "name": "Tailwind CSS v4 Documentation",
+                    "url": "https://tailwindcss.com/docs/v4-beta"
+                }
+            ]
+        },
+        {
+            "name": "@config",
+            "description": "Use the `@config` directive to specify which config file Tailwind should use when compiling that CSS file.",
+            "references": [
+                {
+                    "name": "Tailwind Documentation",
+                    "url": "https://tailwindcss.com/docs/functions-and-directives#config"
+                }
+            ]
+        },
+        {
+            "name": "@import",
+            "description": "Use the `@import` directive to import Tailwind CSS or other CSS files.",
+            "references": [
+                {
+                    "name": "CSS Import",
+                    "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/@import"
+                }
+            ]
+        }
+    ]
+}
