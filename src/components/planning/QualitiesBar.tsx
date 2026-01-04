@@ -39,12 +39,8 @@ const QUALITY_OPTIONS = {
   art_style: [
     "Pixel Art (8-bit)",
     "Pixel Art (16-bit)",
-    "Low-poly 3D",
-    "Stylized 3D",
-    "Realistic 3D",
     "Hand-painted 2D",
     "Vector/Flat",
-    "Voxel",
   ],
   base_resolution: [
     "16x16",

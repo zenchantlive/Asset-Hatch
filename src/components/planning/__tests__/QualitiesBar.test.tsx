@@ -74,9 +74,9 @@ describe('QualitiesBar', () => {
 
     // Wait for dropdown menu to appear and select an option
     await waitFor(() => {
-      const lowPolyOption = screen.queryByText('Low-poly 3D')
-      if (lowPolyOption) {
-        user.click(lowPolyOption)
+      const vectorOption = screen.queryByText('Vector/Flat')
+      if (vectorOption) {
+        user.click(vectorOption)
       }
     })
 

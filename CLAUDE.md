@@ -125,7 +125,7 @@ bunx prisma studio       # Open Prisma Studio GUI
 - `GeneratedAsset`: Stores generated images as Blobs with metadata
 
 **Quality Parameters** (7 parameters guide all generation):
-- `art_style`: "Pixel Art", "Low Poly 3D", "Vector", "Hand-drawn"
+- `art_style`: "Pixel Art (8-bit)", "Pixel Art (16-bit)", "Hand-painted 2D", "Vector/Flat"
 - `base_resolution`: "32x32", "64x64", "128x128"
 - `perspective`: "Top-down", "Side-view", "Isometric", "First-person"
 - `game_genre`: "Platformer", "RPG", "Strategy", "Farming Sim"
@@ -407,8 +407,8 @@ Key decisions documented in `memory/adr/`:
 ## Development Tips
 
 1. **Use game designer terminology** in UI (not artist terms)
-   - ✅ "Pixel Art", "Low Poly 3D"
-   - ❌ "Watercolor", "3D Painted"
+   - ✅ "Pixel Art", "Hand-painted 2D", "Vector/Flat"
+   - ❌ "Watercolor", "Oil Painting"
 
 2. **AI should be agentic** (proactive, not reactive)
    - User: "I want pixel art" → AI immediately calls `updateQuality`

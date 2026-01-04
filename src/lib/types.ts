@@ -92,7 +92,7 @@ export interface ExportManifest {
         created: string; // ISO 8601 timestamp
     };
     style: {
-        artStyle: string; // "Pixel Art", "Low Poly 3D", etc.
+        artStyle: string; // "Pixel Art", "Hand-painted 2D", "Vector/Flat", etc.
         baseResolution: string; // "32x32", "64x64"
         perspective: string; // "Top-down", "Side-view", etc.
         colorPalette: string; // "Vibrant", "Muted", etc.
