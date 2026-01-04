@@ -428,6 +428,17 @@ Key decisions documented in `memory/adr/`:
    - <2s page loads
    - Avoid unnecessary re-renders (useCallback, useMemo)
 
+# Memory System Reminder
+Before you start working, always:
+
+1. Read `memory/active_state.md` - Current status and next steps
+2. Read `memory/PROJECT_ARCHITECTURE.md` - Complete system overview
+3. Read `memory/system_patterns.md` - Standards and gotchas
+Before you commit, always:
+
+4. Update `memory/active_state.md` with progress
+5. Add any new patterns/updates to `memory/system_patterns.md`, 'Project Architecture', etc. 
+6. Create ADR in `memory/adr/` for significant decisions
 ## Git & Collaboration (The "Blog Notebook" Strategy)
 
 We treat git commits as a **collaborative notebook** to feed our blog-writing AI agents later. This is critical for our "Building in Public" strategy.
@@ -480,3 +491,6 @@ The blog is our primary output for "Building in Public". It is not corporate mar
 - **Phase 1 (Commits)**: Detailed git messages capture the raw "Story of Collaboration".
 - **Phase 2 (Drafting)**: We synthesize commits into a narrative.
 - **Phase 3 (Humor Injection)**: We look for the "Loops"—recursive errors, funny misunderstandings, or ironic moments (e.g., "AI trying to help too much")—and highlight them.
+
+
+

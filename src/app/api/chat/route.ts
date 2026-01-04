@@ -3,6 +3,7 @@ import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/auth';
 import { generateStyleAnchor } from '@/lib/style-anchor-generator';
 import { getDefaultModel } from '@/lib/model-registry';
 import {
@@ -53,6 +54,22 @@ export async function POST(req: NextRequest) {
         },
       });
       console.log('✅ Project created in SQLite');
+    }
+
+    // Get authenticated session to check for user's API key (BYOK)
+    const session = await auth();
+    let userApiKey: string | null = null;
+
+    // Check if user has their own API key configured
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { openRouterApiKey: true },
+      });
+      userApiKey = user?.openRouterApiKey || null;
+      if (userApiKey) {
+        console.log('🔑 Using user\'s own API key (BYOK)');
+      }
     }
 
     // Convert UIMessages to ModelMessages for streamText
@@ -271,6 +288,7 @@ export async function POST(req: NextRequest) {
               const styleDraft = JSON.parse(styleDraftRecord.content);
 
               // Call the shared generation logic directly (no HTTP overhead)
+              // Pass user's API key for BYOK support
               const result = await generateStyleAnchor({
                 projectId,
                 prompt,
@@ -278,6 +296,7 @@ export async function POST(req: NextRequest) {
                 lightingKeywords: styleDraft.lightingKeywords,
                 colorPalette: styleDraft.colorPalette,
                 fluxModel: styleDraft.fluxModel,
+                apiKey: userApiKey ?? undefined, // BYOK: use user's key if available
               });
 
               // NOTE: We DO NOT return imageUrl to the LLM at all

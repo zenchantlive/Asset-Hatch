@@ -29,6 +29,22 @@
 
 All PRs passed typecheck and lint verification.
 
+### Demo Account Verification & Fixes
+- **Fixed Prisma Seed Script**: Updated `prisma/seed.ts` to use PrismaPg adapter pattern (matching `lib/prisma.ts`)
+- **Fixed Prisma Config**: Added `seed` command to `prisma.config.ts` (package.json seed config is ignored when using prisma.config.ts)
+- **Verified Demo User Creation**: Successfully ran `bunx prisma db seed`
+  - Email: `*****`
+  - Password: `******`
+
+### VS Code Configuration Fixes
+- **CSS Import Types**: Created `src/global.d.ts` for CSS module declarations (fixes TS2882)
+- **Tailwind v4 At-Rules**: Created `.vscode/tailwind-css.json` and updated `.vscode/settings.json` to recognize `@theme`, `@apply`, `@layer`
+- **Empty Ruleset**: Added `color-scheme: dark;` to `.dark` class in `globals.css`
+
+### New Files Created This Session
+- `src/global.d.ts` - TypeScript CSS module declarations
+- `.vscode/tailwind-css.json` - Custom CSS data for Tailwind v4 at-rules
+
 ---
 
 ## 🎯 Previous Session Summary (2026-01-02)
@@ -523,3 +539,4 @@ When resuming work:
 ---
 
 **END OF ACTIVE STATE**
+

@@ -3,15 +3,31 @@
 // Creates a demo user account for job applications and testing
 // -----------------------------------------------------------------------------
 
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { config } from 'dotenv';
+
+// Load environment variables (same pattern as prisma.config.ts)
+config({ path: '.env.local' });
+config();
 
 if (process.env.NODE_ENV === 'production') {
   console.error('❌ Seed script should not run in production.');
   process.exit(1);
 }
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL adapter (same pattern as lib/prisma.ts)
+const connectionString = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('❌ No database connection string found. Set POSTGRES_PRISMA_URL or DATABASE_URL.');
+  process.exit(1);
+}
+
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 /**
  * Main seed function
