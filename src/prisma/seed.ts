@@ -37,6 +37,7 @@ async function main() {
       // Update password if user already exists
       hashedPassword,
       name: DEMO_NAME,
+      emailVerified: new Date(),
       updatedAt: new Date(),
     },
     create: {
