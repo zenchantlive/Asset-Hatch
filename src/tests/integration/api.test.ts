@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prismaMock, authMock, resetAllMocks } from './bun-harness-mocks';
+import { prismaMock, authMock, resetAllMocks } from './harness-mocks';
 import { scenarios } from './fixtures';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
