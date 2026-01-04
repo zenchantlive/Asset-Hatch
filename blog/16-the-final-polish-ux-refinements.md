@@ -54,7 +54,7 @@ Instead of a dropdown or an inline panel (which ate up screen real estate), we m
 ## The Final Technical Debt Purge
 
 The last step before "Series Complete" was a comprehensive TypeScript audit. 
-- **Zero `any` policy:** We hunted down the last remaining `any` types in our generation hooks and replaced them with strict discriminating unions.
+- **Zero `any` policy:** AI hates typescript. I mean, it thinks it loves it, becauuse any time there is a type, all it has to do is say "any" and it can do any-thing... right? *sigh* another round of unsafe, pointless typing from AI. Today, we hunted down the last remaining **26** (mind you, 26 in one session, smh) `any` types in our generation hooks and replaced them with strict discriminating unions.
 - **Aurora Design System:** We standardized all colors, shadows, and blurs into a cohesive Aurora theme system, ensuring perfect accessibility (ARIA labels everywhere) and a premium "glassmorphism" look.
 
 ## Lessons from the Polish Phase

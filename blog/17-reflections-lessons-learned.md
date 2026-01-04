@@ -125,9 +125,9 @@ Building Asset Hatch in 9 days wasn't about AI doing the work for me.
 It was about **compressing the boring parts** into hours instead of days, so I could spend time on what matters: architecture, product decisions, UX, and consistency.
 
 **The velocity was real:**
-- 130+ TypeScript files
-- ~30,000 lines of code
-- 31+ ADRs (Architecture Decision Records)
+- 120+ TypeScript files
+- ~28,000 lines of code
+- 27+ ADRs (Architecture Decision Records)
 - 100% Feature Completion (Planning → Style → Generation → Export)
 
 AI didn't build Asset Hatch. **I built Asset Hatch with AI as my pair programmer.**
@@ -136,19 +136,18 @@ AI didn't build Asset Hatch. **I built Asset Hatch with AI as my pair programmer
 
 ---
 
-**Series Complete**
-
+**Next:** [Part 18: BONUS - How AI Wrote This Blog](18-bonus-how-ai-wrote-this-blog.md)
 **Previous:** [← Part 16: The Final Polish - UX Refinements and Front-First Workflow](16-the-final-polish-ux-refinements.md)
 **Start:** [Part 1: Genesis →](01-genesis-the-vision.md)
 
 ---
 
-**Series Stats:**
-- **Total Posts:** 17
+- **Total Posts:** 18
 - **Total Words:** ~32,000
 - **Days Documented:** Dec 24, 2025 - Jan 4, 2026
 - **Project Completion:** 100%
 - **Architectural Decisions:** 31 ADRs
+- **"Any"-Types Avoided:** I lost count after 146 .. smh
 
 ---
 

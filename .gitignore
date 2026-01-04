@@ -63,3 +63,5 @@ src/SWITCH_TO_VERCEL_POSTGRES.md
 
 # Auto Claude data directory
 .auto-claude/
+blog/asset-hatch-pics
+blog/public/

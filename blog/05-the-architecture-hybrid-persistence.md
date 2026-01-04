@@ -154,7 +154,7 @@ Their consensus? A tiered approach where each layer serves a specific purpose:
 3. **Dexie**: For the heavy lifting on the client (Reactivity, Offline).
 4. **Prisma**: The ultimate source of truth for the generation engine.
 
-![Council of AIs] (/images/ council-of-ais.png)
+![Council of AIs](/images/council-of-ais.png)
 
 ### Implementation: Hybrid Persistence
 
@@ -392,7 +392,7 @@ bun add -D fake-indexeddb
 
 **Trade-off:** This is a hack. But it works and unblocks development.
 
-## ADR-007: Hybrid Persistence Model
+## [ADR-007](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/007-hybrid-persistence-model.md): Hybrid Persistence Model
 
 **Status:** Accepted
 **Date:** 2025-12-26

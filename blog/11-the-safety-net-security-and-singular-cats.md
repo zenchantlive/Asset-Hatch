@@ -19,7 +19,7 @@ Welcome to Part 11. It’s about the checks, the balances, and why singularizati
 
 The biggest challenge today was "Style Consistency." You can't just tell an AI "make it look like my other assets" and expect it to work. You have to feed it the actual DNA of your style.
 
-We collaborated on the **Style Anchor system** (ADR-008). 
+We collaborated on the **Style Anchor system** ([ADR-008](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/008-style-anchor-image-generation.md)). 
 - We use **GPT-4o vision** to analyze user-uploaded reference images.
 - It extracts specific keywords for lighting, colors, and brushwork.
 - We even built a canvas-based color palette extractor.
@@ -34,7 +34,7 @@ Our AI has a tendency toward maximalism. You ask it for a "cat sprite," and it t
 
 No. I just want the cat.
 
-We implemented **The Safety Net** (ADR-014). We pulled in the `pluralize` library and wired it into the `prompt-builder.ts`. Now, the system looks at the AI's flowery descriptions and ruthlessly singularizes the subject.
+We implemented **The Safety Net** ([ADR-014](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/014-asset-extraction-strategy.md)). We pulled in the `pluralize` library and wired it into the `prompt-builder.ts`. Now, the system looks at the AI's flowery descriptions and ruthlessly singularizes the subject.
 
 **AI:** "A group of cheerful farmers tending to their crops in a sunny field."
 **The Safety Net:** "A cheerful farmer."

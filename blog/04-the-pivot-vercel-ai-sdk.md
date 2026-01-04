@@ -605,7 +605,7 @@ Insertions: 182
 Deletions: 104
 ```
 
-## ADR-005: Replace CopilotKit with Vercel AI SDK
+## [ADR-005](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/005-replace-copilotkit-with-vercel-ai-sdk.md): Replace CopilotKit with Vercel AI SDK
 
 **Status:** Accepted
 **Date:** 2025-12-26

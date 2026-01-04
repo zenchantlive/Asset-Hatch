@@ -26,7 +26,7 @@ He was right.
 
 ## Image-Based Directions: The 3x3 Grid
 
-We scrapped the icons and built an **Image-Based 3x3 Grid** (ADR-019). 
+We scrapped the icons and built an **Image-Based 3x3 Grid** ([ADR-019](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/019-direction-grid-image-based-preview.md)). 
 - The **Center Cell** is the "Reference direction" (usually Front).
 - The **8 surrounding cells** show actual generated previews of the other directions.
 - Uncaptured directions are greyed out with a ghost-like `opacity-40` and a hover reveal.

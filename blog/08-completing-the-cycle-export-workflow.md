@@ -17,7 +17,7 @@ status: published
 
 Building an AI generation tool is fun, but if the output is just a bunch of "Image_1.png", "Image_2.png" files in a browser library, it’s not a tool—it’s a toy. To make Asset Hatch a professional utility, we needed a robust export pipeline.
 
-## The Strategy: Single-Asset Extraction (ADR-014)
+## The Strategy: Single-Asset Extraction ([ADR-014](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/014-asset-extraction-strategy.md))
 
 Early in the project, I considered generating "sheets" of assets. However, as documented in **ADR-014**, we pivoted to a **Single-Asset Generation Strategy**.
 

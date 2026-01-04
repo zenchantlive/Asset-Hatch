@@ -30,11 +30,12 @@ A slice is a **vertically integrated feature** that touches every layer of the s
 **Not a slice:** "Build the ChatInterface component"
 **A slice:** "User can send a message and see AI response"
 
-After finishing the initial planning with Opus locally, I started a **new chat with Opus** specifically to determine the best coding methodology for the app. It weighed the options and chose **Vertical Slices**.
+After finishing the initial planning with Opus locally, I started a **new chat with Opus** specifically to determine the best coding methodology for the app. It weighed the options and chose **Vertical Slices**. LAter realizing the AI's tendency to focus only on the slices, I decided to use ADRs to guide the AI's behavior. Slices became too narrow for the AI to accurately implement the full stack without running into logic errors.
 
-![Vertical Slices Decision](TODO: Insert Screenshot of Opus Vertical Slice Decision)
+Before I relized this, I had it create the slice documents in `/asset-hatch-docs/slices/`:
 
-I had it create the slice documents in `/asset-hatch-docs/slices/`:
+![Vertical Slices Decision](asset-hatch-pics/Screenshot%202025-12-26%20002016.png)
+*Initial prompts with Claude about building the app*
 
 ```
 SLICE-00: Project runs (dev server, basic routing)
@@ -282,7 +283,8 @@ The dopamine hit of seeing that first AI response stream in was unreal.
 
 The initial UI was... humble. To put it mildly. It started as a "white on grey, no CSS looking website".
 
-![UI v1](TODO: Insert Screenshot of White/Grey UI)
+![UI v1 - Early Design](asset-hatch-pics/Screenshot%202025-12-26%20002113.png)
+*The first UI iteration - basic but functional*
 
 We iterated through two more designs, trying to find the right vibe.
 
@@ -328,7 +330,8 @@ We worked until Slice 3 with Sonnet 4, but the slice method wasn't working how I
 
 So I formed a "Council" of **Sonnet 4, GPT-5.2, and Perplexity** to devise a better solution. Together, we designed the `/memory` and `/memory/adr` system.
 
-![GPT-5.2 & Perplexity Logic](TODO: Insert Screenshot of Council of AIs Memory Design)
+![Memory System Design](asset-hatch-pics/Screenshot%202025-12-26%20002124.png)
+*Designing the memory system with the AI council*
 
 ### Memory Files
 
@@ -438,7 +441,7 @@ But I didn't know that yet. On the evening of December 25th, I pushed my cosmic 
 
 ## Technical Decisions Made
 
-### ADR-001: Use CopilotKit for AI Integration
+### [ADR-001](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/001-use-copilotkit.md): Use CopilotKit for AI Integration
 
 **Status:** Accepted (for now—superseded by ADR-005 in 24 hours)
 
@@ -457,7 +460,7 @@ But I didn't know that yet. On the evening of December 25th, I pushed my cosmic 
 
 (Narrator: It was not worth the risk.)
 
-### ADR-003: Glassmorphism Theme
+### [ADR-003](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/003-glassmorphism-theme.md): Glassmorphism Theme
 
 **Status:** Accepted
 
@@ -478,7 +481,7 @@ But I didn't know that yet. On the evening of December 25th, I pushed my cosmic 
 ## What I Learned
 
 **1. Slices > Components**
-Shipping vertically integrated features feels better and produces better code than building UI components in isolation.
+Initially, I thought vertically integrated features felt better and produced better code than building UI components in isolation. Turns out, asking the ai to create all the needded slies was ambiguous and it positioned the AI to only address the slices. This is where the ADRs come in. 
 
 **2. Memory systems prevent AI amnesia**
 Persistent context files are non-negotiable for conversational agents. Session storage isn't enough.

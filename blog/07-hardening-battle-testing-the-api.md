@@ -146,7 +146,7 @@ In [Part 8: Completing the Cycle - Export Workflow](08-completing-the-cycle-expo
 
 The build is finished. The API is hardened. But how do we get the assets out of the app and into the user's game engine? We deep dive into single-asset generation strategies and ZIP export architecture.
 
-**Final Stats Preview:** 9 posts, 50+ files, 14 ADRs, and a complete production-ready export pipeline.
+**Final Stats Preview:** 18 posts, 50+ files, 22 ADRs, and a complete production-ready export pipeline.
 
 ---
 

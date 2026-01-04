@@ -108,5 +108,5 @@ And we have an AI that is terrified to add a second subject to a prompt.
 
 It's beautiful chaos.
 
-**Next:** [Part 10: Reflections - What I Actually Learned](10-reflections-lessons-learned.md)
+**Next:** [Part 10: The Foundation - Models and Money](10-the-foundation-models-and-money.md)
 **Previous:** [← Part 8: Completing the Cycle](08-completing-the-cycle-export-workflow.md)

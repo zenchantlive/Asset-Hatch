@@ -24,7 +24,7 @@ We paired to build a **centralized Model Registry**. It’s more than just a lis
 - **Pricing**: How many pennies per mega-pixel are we spending?
 - **Route Switching**: Dynamically swapping between `flux.2-pro` for quality and `flux.2-pro` for speed during dev cycles.
 
-It’s documented in **ADR-018**, and it’s the reason why Asset Hatch can give you a cost estimate *before* you click Generate.
+It’s documented in **[ADR-018](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/018-model-registry-and-cost-tracking.md)**, and it’s the reason why Asset Hatch can give you a cost estimate *before* you click Generate.
 
 ## The Cost Tracker (or, "The Heartbeat")
 
@@ -57,3 +57,4 @@ Next, we tackle the AI's tendency to over-generate.
 
 **Next:** [Part 11: The Safety Net, Security, and Singular Cats](11-the-safety-net-security-and-singular-cats.md)
 **Previous:** [← Part 9: V2.1 - The UI Layer and The Split Brain](09-v2-1-ui-overhaul-chaos.md)
+
