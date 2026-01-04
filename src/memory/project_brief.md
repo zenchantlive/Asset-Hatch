@@ -74,8 +74,8 @@
 
 ### Design Principles
 1. **Game Designer Mental Model First**
-   - Use game dev terminology (Pixel Art, Low-poly 3D)
-   - NOT artist terms (Watercolor, 3D Painted)
+   - Use game dev terminology (Pixel Art, Hand-painted 2D, Vector/Flat)
+   - NOT artist terms (Watercolor, Oil Painting)
 
 2. **AI-Assisted, Not AI-Automated**
    - User always in control

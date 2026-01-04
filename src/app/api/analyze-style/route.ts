@@ -18,8 +18,8 @@ const VISION_MODEL = 'openai/gpt-4o'; // Vision-capable model via OpenRouter
 const STYLE_ANALYSIS_PROMPT = `You are a game asset art style analyzer. Analyze this reference image and extract:
 
 1. **Art Style Keywords**: Describe the visual style in 3-8 words. Focus on:
-   - Era/console generation (8-bit, 16-bit, 32-bit, modern)
-   - Art style type (pixel art, hand-drawn, low-poly, realistic)
+   - Era/console generation (8-bit, 16-bit, modern)
+   - Art style type (pixel art, hand-painted, vector, voxel)
    - Specific game/franchise influences if recognizable
    - Distinctive visual characteristics
 

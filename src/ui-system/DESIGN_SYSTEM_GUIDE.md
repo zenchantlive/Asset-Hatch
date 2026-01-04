@@ -53,8 +53,9 @@
 ```html
 <div class="quality-dropdowns-bar">
   <select class="quality-dropdown">
-    <option>Low Poly</option>
-    <option>High Poly</option>
+    <option>Pixel Art (8-bit)</option>
+    <option>Pixel Art (16-bit)</option>
+    <option>Hand-painted 2D</option>
   </select>
 
   <select class="quality-dropdown">
@@ -723,8 +724,9 @@ body.light-mode {
   <!-- Header -->
   <div class="quality-dropdowns-bar" style="margin-bottom: 24px;">
     <select class="quality-dropdown">
-      <option>Low Poly</option>
-      <option selected>High Poly</option>
+      <option>Pixel Art (8-bit)</option>
+      <option selected>Pixel Art (16-bit)</option>
+      <option>Hand-painted 2D</option>
     </select>
     <select class="quality-dropdown">
       <option>1024px</option>
