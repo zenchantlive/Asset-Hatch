@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
                 lightingKeywords: styleDraft.lightingKeywords,
                 colorPalette: styleDraft.colorPalette,
                 fluxModel: styleDraft.fluxModel,
-                apiKey: userApiKey || undefined, // BYOK: use user's key if available
+                apiKey: userApiKey ?? undefined, // BYOK: use user's key if available
               });
 
               // NOTE: We DO NOT return imageUrl to the LLM at all
