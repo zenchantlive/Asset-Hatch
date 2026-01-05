@@ -9,6 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
 ![Asset Hatch Demo](docs/demo.gif)
+<img width="1055" height="1058" alt="image" src="https://github.com/user-attachments/assets/01374f2b-09ba-431f-bf67-e630bfc26ed1" />
 
 ---
 
@@ -273,3 +274,4 @@ Questions? [Open an issue](https://github.com/zenchantlive/Asset-Hatch/issues/ne
 ---
 
 **Building in Public** — Follow our development journey in the [blog/](blog/) directory!
+
