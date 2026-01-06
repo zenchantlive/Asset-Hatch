@@ -34,7 +34,7 @@ Our AI has a tendency toward maximalism. You ask it for a "cat sprite," and it t
 
 No. I just want the cat.
 
-We implemented **The Safety Net** ([ADR-014](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/014-asset-extraction-strategy.md)). We pulled in the `pluralize` library and wired it into the `prompt-builder.ts`. Now, the system looks at the AI's flowery descriptions and ruthlessly singularizes the subject.
+We implemented **The Safety Net** ([ADR-008](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/008-style-anchor-image-generation.md)). We pulled in the `pluralize` library and wired it into the `prompt-builder.ts`. Now, the system looks at the AI's flowery descriptions and ruthlessly singularizes the subject.
 
 **AI:** "A group of cheerful farmers tending to their crops in a sunny field."
 **The Safety Net:** "A cheerful farmer."

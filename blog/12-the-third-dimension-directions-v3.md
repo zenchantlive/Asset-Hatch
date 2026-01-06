@@ -64,7 +64,9 @@ Finally, we rounded out the year with the **Batch Workflow Infrastructure** (f8c
 
 We’ve moved from a basic chat app to a high-speed production pipeline. We have model-swapping, cost-tracking, style-anchoring, and a 3rd-dimension direction grid that actually works.
 
-One more post to go. The reflections.
+One more post to go... Or now. I thought I was done. Turns out, I was wrong.
+Next up: Migrating to Neon and Prisma.
+
 
 **Next:** [Part 13: The Great Migration - Neon and Prisma](13-the-great-migration-neon-and-prisma.md)
 **Previous:** [← Part 11: The Safety Net, Security, and Singular Cats](11-the-safety-net-security-and-singular-cats.md)

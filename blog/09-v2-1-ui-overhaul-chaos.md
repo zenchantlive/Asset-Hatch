@@ -25,7 +25,7 @@ The User (me) wanted:
 - Responsive grids that actually respond.
 - A "Mini-Grid" that tucks away politely.
 - Glassmorphism everywhere.
-- **No white space.** (I hate white space).
+- **Reduced white space.** (ugh).
 
 The AI (Antigravity & co) delivered. But the cost was a localized war against CSS positioning. 
 

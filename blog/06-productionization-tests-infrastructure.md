@@ -435,7 +435,7 @@ Why? Because game development is iterative. You need to see if the AI understand
 ### 8. Asset Approval System (The User Pivot)
 
 User feedback (well, my own dog-fooding) led to a more interactive flow. Every generation now lands in an "Awaiting Approval" queue.
-
+![alt text](image-1.png)
 ```typescript
 // components/generation/AssetApprovalCard.tsx
 // Features a large preview, metadata, and big Approve/Reject buttons at the top.

@@ -26,6 +26,8 @@ We were trying to force a desktop paradigm into a vertical world.
 
 ## The Decision: Chat-First Navigation
 
+See [ADR-21](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/021-mobile-ux-redesign.md) and [ADR-22](https://github.com/zenchantlive/Asset-Hatch/blob/main/src/memory/adr/022-mobile-ux-redesign.md) for the full details.
+
 We sat down and made a hard call: **The persistent split-screen is dead on mobile.**
 
 Instead, we adopted what we're calling the **"Chat-First Overlay"** pattern. On a phone, the user is there to talk to the AI. That conversation deserves the full width of the screen.

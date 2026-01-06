@@ -13,7 +13,7 @@ status: published
 
 **The Setup:** December 24, 2025, 10:47 AM. I'm chatting with Opus in the Claude Desktop app, fleshing out a plan that might be completely unnecessary.
 
-![Opus Planning Session](TODO: Insert Opus Screenshot)
+
 
 But here's the thing about unnecessary projects: sometimes they're the most necessary of all.
 
