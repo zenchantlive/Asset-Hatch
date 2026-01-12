@@ -193,6 +193,11 @@ export default function PlanningPage() {
     console.log('🎨 Style anchor generated:', anchor.id);
     setGeneratedAnchor(anchor);
     setIsGeneratingStyle(false);
+
+    // Auto-open style panel on mobile when style anchor is generated
+    if (isMobile) {
+      setStylePanelOpen(true);
+    }
   };
 
   // Handler for style finalization
@@ -231,6 +236,16 @@ export default function PlanningPage() {
     } finally {
       setIsApproving(false)
     }
+  }
+
+  // Wrapper for when AI finalizes the plan - auto-opens panel on mobile
+  const handlePlanComplete = () => {
+    // Auto-open plan panel on mobile so user can review the finalized plan
+    if (isMobile) {
+      setPlanPanelOpen(true);
+    }
+    // Continue with normal approval flow
+    void handleApprovePlan();
   }
 
   const handleParametersSave = async () => {
@@ -439,7 +454,7 @@ export default function PlanningPage() {
                   projectId={typeof params.id === 'string' ? params.id : ''}
                   onQualityUpdate={handleQualityUpdate}
                   onPlanUpdate={handlePlanUpdate}
-                  onPlanComplete={handleApprovePlan}
+                  onPlanComplete={handlePlanComplete}
                   onStyleDraftUpdate={handleStyleDraftUpdate}
                   onStyleAnchorGenerated={handleStyleAnchorGenerated}
                   onStyleFinalized={handleStyleFinalized}
@@ -456,7 +471,7 @@ export default function PlanningPage() {
                     projectId={typeof params.id === 'string' ? params.id : ''}
                     onQualityUpdate={handleQualityUpdate}
                     onPlanUpdate={handlePlanUpdate}
-                    onPlanComplete={handleApprovePlan}
+                    onPlanComplete={handlePlanComplete}
                     onStyleDraftUpdate={handleStyleDraftUpdate}
                     onStyleAnchorGenerated={handleStyleAnchorGenerated}
                     onStyleFinalized={handleStyleFinalized}
