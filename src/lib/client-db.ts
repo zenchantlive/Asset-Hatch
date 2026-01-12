@@ -1,7 +1,9 @@
 import Dexie, { Table } from 'dexie';
 import { Project, MemoryFile, StyleAnchor, CharacterRegistry, GeneratedAsset } from './types';
+import type { Generated3DAsset } from '@/lib/types/3d-generation';
 
 export type { Project, MemoryFile, StyleAnchor, CharacterRegistry, GeneratedAsset };
+export type { Generated3DAsset };
 
 // AssetVersion interface for version carousel
 export interface AssetVersion {
@@ -29,6 +31,7 @@ export class AssetHatchDB extends Dexie {
   character_registry!: Table<CharacterRegistry>;
   generated_assets!: Table<GeneratedAsset>;
   asset_versions!: Table<AssetVersion>;
+  generated_3d_assets!: Table<Generated3DAsset>;
 
   constructor() {
     super('asset-hatch');
@@ -61,6 +64,17 @@ export class AssetHatchDB extends Dexie {
       character_registry: 'id, project_id, name, created_at',
       generated_assets: 'id, project_id, asset_id, status, created_at',
       asset_versions: 'id, project_id, asset_id, version_number, created_at',
+    });
+
+    // Version 5: Add 3D asset support (mode field on projects, generated_3d_assets table)
+    this.version(5).stores({
+      projects: 'id, name, phase, mode, created_at, updated_at',
+      memory_files: 'id, project_id, type, updated_at',
+      style_anchors: 'id, project_id, created_at',
+      character_registry: 'id, project_id, name, created_at',
+      generated_assets: 'id, project_id, asset_id, status, created_at',
+      asset_versions: 'id, project_id, asset_id, version_number, created_at',
+      generated_3d_assets: 'id, project_id, asset_id, status, created_at',
     });
   }
 }

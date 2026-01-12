@@ -13,6 +13,7 @@ describe('prompt-builder', () => {
         mood: 'cheerful',
         color_palette: 'vibrant',
         phase: 'planning',
+        mode: '2d',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
     };

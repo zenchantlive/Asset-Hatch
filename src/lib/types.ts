@@ -2,6 +2,7 @@ export interface Project {
     id: string;
     name: string;
     phase: 'planning' | 'style' | 'generation' | 'export';
+    mode: '2d' | '3d'; // Generation mode: 2D sprites or 3D models
     created_at: string;
     updated_at: string;
     // Quality fields for project configuration
