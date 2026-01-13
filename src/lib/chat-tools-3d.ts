@@ -167,7 +167,7 @@ function createUpdatePlan3DTool(projectId: string) {
                     create: {
                         id: `${projectId}-plan`,
                         projectId: projectId,
-                        type: 'entities.json',
+                        type: 'plan-3d.md',
                         content: planMarkdown,
                     },
                 });
