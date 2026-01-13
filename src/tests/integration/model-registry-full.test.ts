@@ -40,7 +40,8 @@ describe('Model Registry Integration Flow', () => {
                     seed: 123,
                     duration_ms: 5000,
                     generationId: 'gen-12345',
-                    modelId: testModelId
+                    modelId: testModelId,
+                    revised_prompt: 'A knight in shining armor'
                 }
             }));
 

@@ -99,7 +99,9 @@ export async function generateMeshFromText(
     return {
         taskId: task.task_id,
         modelUrl,
-        previewImageUrl: completedTask.output?.rendered_image?.url,
+        previewImageUrl: typeof completedTask.output?.rendered_image === 'object'
+            ? completedTask.output.rendered_image.url
+            : completedTask.output?.rendered_image,
         durationMs,
     };
 }
@@ -146,8 +148,10 @@ function getModelUrl(task: TripoTask): string | undefined {
             : task.output.pbr_model.url;
     }
     // Fall back to draft model
-    if (task.output?.model?.url) {
-        return task.output.model.url;
+    if (task.output?.model) {
+        return typeof task.output.model === 'string'
+            ? task.output.model
+            : task.output.model.url;
     }
     return undefined;
 }

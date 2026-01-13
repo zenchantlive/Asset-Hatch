@@ -4,7 +4,7 @@ import { GenerateStyleResponse } from './types';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('/api/style-anchors', () => {
-    let POST: (req: Request) => Promise<Response>;
+    let POST: (req: Request, context: { params: Promise<any> }) => Promise<Response>;
 
     beforeEach(async () => {
         resetAllMocks();
@@ -17,7 +17,7 @@ describe('/api/style-anchors', () => {
             method: 'POST',
             body: JSON.stringify({ referenceImageBase64DataUrl: 'data:...' })
         });
-        const res = await POST(req);
+        const res = await POST(req, { params: Promise.resolve({}) });
         expect(res.status).toBe(400);
     });
 
@@ -26,7 +26,7 @@ describe('/api/style-anchors', () => {
             method: 'POST',
             body: JSON.stringify({ projectId: 'p1' })
         });
-        const res = await POST(req);
+        const res = await POST(req, { params: Promise.resolve({}) });
         expect(res.status).toBe(400);
     });
 
@@ -46,7 +46,7 @@ describe('/api/style-anchors', () => {
             })
         });
 
-        const res = await POST(req);
+        const res = await POST(req, { params: Promise.resolve({}) });
         const body = await res.json() as GenerateStyleResponse & { success: boolean };
 
         expect(res.status).toBe(200);

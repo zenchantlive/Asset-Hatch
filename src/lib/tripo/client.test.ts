@@ -208,7 +208,10 @@ describe('Tripo3D Client', () => {
             // Verify result
             expect(task.task_id).toBe('task-789');
             expect(task.status).toBe('success');
-            expect(task.output?.model?.url).toBe('https://cdn.tripo3d.ai/model.glb');
+
+            const modelOutput = task.output?.model;
+            const modelUrl = typeof modelOutput === 'object' ? modelOutput.url : modelOutput;
+            expect(modelUrl).toBe('https://cdn.tripo3d.ai/model.glb');
 
             // Verify correct endpoint called
             const [url] = fetchSpy.mock.calls[0];
