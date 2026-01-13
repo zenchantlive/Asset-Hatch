@@ -135,11 +135,15 @@ export async function submitMeshGenerationTask(
 /**
  * Extract model URL from task output
  * Handles both draft and PBR model outputs
+ * Note: pbr_model can be either a direct URL string OR a TripoModelOutput object
  */
 function getModelUrl(task: TripoTask): string | undefined {
     // Prefer PBR model if available (from refine step)
-    if (task.output?.pbr_model?.url) {
-        return task.output.pbr_model.url;
+    if (task.output?.pbr_model) {
+        // Handle both string and object formats
+        return typeof task.output.pbr_model === 'string'
+            ? task.output.pbr_model
+            : task.output.pbr_model.url;
     }
     // Fall back to draft model
     if (task.output?.model?.url) {

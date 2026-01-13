@@ -42,10 +42,11 @@ import type { TaskStatusResponse } from '@/lib/types/3d-generation';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const { taskId } = params;
+    // Await params for Next.js 15 compatibility
+    const { taskId } = await params;
 
     if (!taskId) {
       return NextResponse.json(
@@ -93,18 +94,31 @@ export async function GET(
 
     // 3. Update database if status changed to success or failed
     if (asset) {
-      if (tripoTask.status === 'success' && tripoTask.output?.model?.url) {
-        // Task completed successfully - update with model URL
-        await prisma.generated3DAsset.update({
-          where: { id: asset.id },
-          data: {
-            status: 'generated',
-            draftModelUrl: tripoTask.output.model.url,
-            updatedAt: new Date(),
-          },
-        });
+      if (tripoTask.status === 'success') {
+        // Extract model URL from different possible locations in Tripo response
+        // Note: pbr_model can be either a direct string URL OR a TripoModelOutput object
+        const modelUrl =
+          (typeof tripoTask.output?.pbr_model === 'string'
+            ? tripoTask.output.pbr_model
+            : tripoTask.output?.pbr_model?.url) ||  // PBR model (string or object)
+          tripoTask.output?.model?.url ||            // Draft model (nested object)
+          null;
+        
+        if (modelUrl) {
+          // Task completed successfully - update with model URL
+          await prisma.generated3DAsset.update({
+            where: { id: asset.id },
+            data: {
+              status: 'generated',
+              draftModelUrl: modelUrl,
+              updatedAt: new Date(),
+            },
+          });
 
-        console.log('✅ Model URL saved to database:', tripoTask.output.model.url);
+          console.log('✅ Model URL saved to database:', modelUrl);
+        } else {
+          console.warn('⚠️  Task success but no model URL found in response');
+        }
       } else if (tripoTask.status === 'failed') {
         // Task failed - update with error message
         await prisma.generated3DAsset.update({
