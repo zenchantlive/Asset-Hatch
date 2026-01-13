@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
     // }
 
     // Parse and validate request body
-    const body: AnimateRequest = await request.json();
-    const { projectId, assetId, riggedModelUrl, animationPreset } = body;
+    const body: AnimateRequest & { rigTaskId?: string } = await request.json();
+    const { projectId, assetId, riggedModelUrl, animationPreset, rigTaskId } = body;
 
     // Validate required fields
     if (!projectId || !assetId || !riggedModelUrl || !animationPreset) {
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       projectId,
       assetId,
       animation: animationPreset,
+      rigTaskId: rigTaskId || 'lookup from db',
     });
 
     // 1. Verify project exists
@@ -129,12 +130,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validate rigged model URL exists
-    if (!asset.riggedModelUrl) {
+    // 3. Resolve Rig Task ID (Required for Tripo animate_retarget)
+    // Prefer ID from request, fallback to DB record
+    const finalRigTaskId = rigTaskId || asset.rigTaskId;
+
+    if (!finalRigTaskId) {
+      console.error('❌ Missing rigTaskId for animation request');
       return NextResponse.json(
         {
-          error: 'Rigged model not ready',
-          details: 'Wait for rigging to complete before applying animations',
+          error: 'Rig task ID missing',
+          details: 'Cannot animate without the original rig task ID. Try re-rigging the asset.',
         },
         { status: 400 }
       );
@@ -154,10 +159,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Submit animate_retarget task to Tripo
-    console.log('📤 Submitting animation task to Tripo3D...');
+    // Note: Use original_model_task_id (the rigging task) instead of model_url
+    console.log('📤 Submitting animation task to Tripo3D...', { original_model_task_id: finalRigTaskId });
+
     const tripoTask = await submitTripoTask(tripoApiKey, {
       type: 'animate_retarget',
-      model_url: riggedModelUrl,
+      original_model_task_id: finalRigTaskId,
       animation: animationPreset,
     });
 

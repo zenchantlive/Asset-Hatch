@@ -24,7 +24,8 @@ import { submitTripoTask } from '@/lib/tripo-client';
 interface RigRequest {
   projectId: string;
   assetId: string;
-  draftModelUrl: string; // URL from completed text_to_model task
+  draftTaskId: string;   // Task ID from completed text_to_model generation
+  draftModelUrl?: string; // Optional URL for legacy compatibility
 }
 
 /**
@@ -69,12 +70,12 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body: RigRequest = await request.json();
-    const { projectId, assetId, draftModelUrl } = body;
+    const { projectId, assetId, draftTaskId, draftModelUrl } = body;
 
-    // Validate required fields
-    if (!projectId || !assetId || !draftModelUrl) {
+    // Validate required fields - draftTaskId is required for Tripo animate_rig
+    if (!projectId || !assetId || !draftTaskId) {
       return NextResponse.json(
-        { error: 'Missing required fields: projectId, assetId, draftModelUrl' },
+        { error: 'Missing required fields: projectId, assetId, draftTaskId' },
         { status: 400 }
       );
     }
@@ -106,14 +107,31 @@ export async function POST(request: NextRequest) {
     });
 
     if (!asset) {
+      console.error('❌ Asset not found in database:', { projectId, assetId });
       return NextResponse.json(
         { error: 'Generated asset not found' },
         { status: 404 }
       );
     }
 
-    // 3. Validate draft model URL exists
-    if (!asset.draftModelUrl) {
+    // Debug: Log the full asset record
+    console.log('📋 Found asset record:', {
+      id: asset.id,
+      assetId: asset.assetId,
+      draftModelUrl: asset.draftModelUrl,
+      status: asset.status,
+    });
+
+    // 3. Get the model URL - prefer request body (frontend has latest from polling)
+    // Fall back to database record. This handles timing issues where DB hasn't synced yet.
+    const modelUrlToUse = draftModelUrl || asset.draftModelUrl;
+
+    if (!modelUrlToUse) {
+      console.error('❌ No draft model URL available:', {
+        fromRequest: draftModelUrl,
+        fromDatabase: asset.draftModelUrl,
+        assetStatus: asset.status,
+      });
       return NextResponse.json(
         {
           error: 'Draft model not ready',
@@ -121,6 +139,19 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // If we're using the request URL and DB doesn't have it, sync it now
+    if (!asset.draftModelUrl && draftModelUrl) {
+      console.log('📝 Syncing draftModelUrl to database from request');
+      await prisma.generated3DAsset.update({
+        where: { id: asset.id },
+        data: {
+          draftModelUrl: draftModelUrl,
+          status: 'generated',
+          updatedAt: new Date(),
+        },
+      });
     }
 
     // 4. Get Tripo API key
@@ -136,11 +167,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Submit animate_rig task to Tripo
-    console.log('📤 Submitting rigging task to Tripo3D...');
+    // 5. Submit animate_rig task to Tripo using original_model_task_id
+    // Note: Tripo API requires the task ID of the original model, not a URL
+    console.log('📤 Submitting rigging task to Tripo3D with task ID:', draftTaskId);
     const tripoTask = await submitTripoTask(tripoApiKey, {
       type: 'animate_rig',
-      model_url: draftModelUrl,
+      original_model_task_id: draftTaskId,
     });
 
     console.log('✅ Rigging task submitted:', tripoTask.task_id);

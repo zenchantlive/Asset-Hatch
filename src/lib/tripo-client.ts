@@ -28,8 +28,10 @@ export interface TripoTaskRequest {
   type: TripoTaskType;
   // Text prompt for text_to_model
   prompt?: string;
-  // Model URL for rigging/animation tasks
+  // Model URL for rigging/animation tasks (legacy, may not work for all tasks)
   model_url?: string;
+  // Original model task ID for rigging/animation tasks (required for animate_rig)
+  original_model_task_id?: string;
   // Animation preset for animate_retarget
   animation?: AnimationPreset;
 }
@@ -87,11 +89,11 @@ export async function submitTripoTask(
   }
 
   const responseData = await response.json();
-  
+
   // Unwrap the data field from Tripo API response wrapper
   // Tripo returns: { code: 0, data: { task_id, status, ... } }
   const taskData = responseData.data || responseData;
-  
+
   console.log('✅ Task submitted:', taskData.task_id);
 
   return taskData as TripoTask;
@@ -147,10 +149,10 @@ export async function pollTripoTaskStatus(
   }
 
   const responseData = await response.json();
-  
+
   // Unwrap the data field from Tripo API response wrapper
   const taskData = responseData.data || responseData;
-  
+
   console.log('📊 Task status:', {
     taskId,
     status: taskData.status,

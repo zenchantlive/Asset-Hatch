@@ -2,13 +2,15 @@
  * 3D Asset Generation Status Polling API Route
  *
  * Polls Tripo3D API for task status and updates database when complete.
+ * Handles draft generation, rigging, AND animation tasks.
  *
  * Workflow:
  * 1. Client polls this endpoint with taskId
  * 2. Query Tripo API for current status
- * 3. If status changed to 'success', update database with model URL
- * 4. If status is 'failed', update database with error
- * 5. Return current status to client
+ * 3. Find asset by taskId (draft, rig, OR animation task)
+ * 4. If status changed to 'success', update database with model URL
+ * 5. If status is 'failed', update database with error
+ * 6. Return current status to client
  *
  * @see lib/tripo-client.ts for Tripo API integration
  */
@@ -17,28 +19,160 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 // import { auth } from '@/auth'; // TODO: Uncomment when tripoApiKey added to User model
 import { pollTripoTaskStatus } from '@/lib/tripo-client';
-import type { TaskStatusResponse } from '@/lib/types/3d-generation';
+import type { TaskStatusResponse, TripoTaskOutput } from '@/lib/types/3d-generation';
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+/**
+ * Result of finding an asset by task ID
+ * Includes which type of task matched (for proper URL field update)
+ */
+interface AssetMatchResult {
+  // The matched database record
+  asset: {
+    id: string;
+    assetId: string;
+    status: string;
+    draftTaskId: string | null;
+    rigTaskId: string | null;
+    animationTaskIds: string | null;
+    animatedModelUrls: string | null;
+  };
+  // Type of task that matched
+  matchType: 'draft' | 'rig' | 'animation';
+  // If animation match, which preset (e.g., 'preset:walk')
+  animationPreset?: string;
+}
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Extract model URL from Tripo task output.
+ * Handles different response structures from various task types.
+ *
+ * @param output - Raw output from Tripo API
+ * @returns Model URL string or null if not found
+ */
+function extractModelUrl(output: TripoTaskOutput | undefined): string | null {
+  if (!output) return null;
+
+  // Direct pbr_model string (most common for text_to_model results)
+  if (typeof output.pbr_model === 'string') {
+    return output.pbr_model;
+  }
+
+  // pbr_model as object with url property (refine_model results)
+  if (output.pbr_model && typeof output.pbr_model === 'object') {
+    return output.pbr_model.url;
+  }
+
+  // Direct model string (rigging and animation task results)
+  // Tripo returns { "model": "https://..." } for animate_rig, animate_retarget
+  if (typeof output.model === 'string') {
+    return output.model;
+  }
+
+  // model as object with url property (fallback format)
+  if (output.model?.url) {
+    return output.model.url;
+  }
+
+  return null;
+}
+
+/**
+ * Find an asset by task ID, searching draft, rig, AND animation task IDs.
+ * Animation task IDs are stored as JSON strings and must be searched specially.
+ *
+ * @param taskId - The Tripo task ID to find
+ * @returns Asset match result with match type, or null if not found
+ */
+async function findAssetByTaskId(taskId: string): Promise<AssetMatchResult | null> {
+  // First, try fast lookup by draft or rig task ID
+  const directMatch = await prisma.generated3DAsset.findFirst({
+    where: {
+      OR: [
+        { draftTaskId: taskId },
+        { rigTaskId: taskId },
+      ],
+    },
+    select: {
+      id: true,
+      assetId: true,
+      status: true,
+      draftTaskId: true,
+      rigTaskId: true,
+      animationTaskIds: true,
+      animatedModelUrls: true,
+    },
+  });
+
+  if (directMatch) {
+    // Determine which type matched
+    const matchType = directMatch.rigTaskId === taskId ? 'rig' : 'draft';
+    return { asset: directMatch, matchType };
+  }
+
+  // If no direct match, search animation task IDs (stored as JSON strings)
+  // This is less efficient but necessary for animation task persistence
+  const allAssets = await prisma.generated3DAsset.findMany({
+    where: {
+      animationTaskIds: { not: null },
+    },
+    select: {
+      id: true,
+      assetId: true,
+      status: true,
+      draftTaskId: true,
+      rigTaskId: true,
+      animationTaskIds: true,
+      animatedModelUrls: true,
+    },
+  });
+
+  // Search through each asset's animation task IDs
+  for (const asset of allAssets) {
+    if (!asset.animationTaskIds) continue;
+
+    try {
+      // Parse JSON: { "preset:walk": "task-123", "preset:idle": "task-456" }
+      const taskIds = JSON.parse(asset.animationTaskIds) as Record<string, string>;
+
+      // Check if any animation preset has this task ID
+      for (const [preset, storedTaskId] of Object.entries(taskIds)) {
+        if (storedTaskId === taskId) {
+          return {
+            asset,
+            matchType: 'animation',
+            animationPreset: preset,
+          };
+        }
+      }
+    } catch (parseError) {
+      console.warn(`⚠️ Failed to parse animationTaskIds for asset ${asset.id}:`, parseError);
+    }
+  }
+
+  return null;
+}
+
+// -----------------------------------------------------------------------------
+// Route Handler
+// -----------------------------------------------------------------------------
 
 /**
  * GET /api/generate-3d/[taskId]/status
  *
  * Polls Tripo3D API for task status and updates database accordingly.
- *
- * Route params:
- * - taskId: string - Tripo task ID to check
- *
- * Response:
- * - taskId: string - Task ID
- * - status: TripoTaskStatus - Current status (queued/running/success/failed)
- * - progress?: number - Progress percentage (0-100) when running
- * - output?: TripoTaskOutput - Model URLs when complete
- * - error?: string - Error message if failed
+ * Supports draft generation, rigging, AND animation tasks.
  *
  * @example
- * ```typescript
  * GET /api/generate-3d/tripo-task-123/status
  * // Returns: { taskId: "...", status: "running", progress: 45 }
- * ```
  */
 export async function GET(
   request: NextRequest,
@@ -60,12 +194,8 @@ export async function GET(
     const userTripoApiKey: string | null = null;
 
     // TODO: Add tripoApiKey field to User model
-    // Check if user has their own Tripo API key configured (BYOK)
     // if (session?.user?.id) {
-    //   const user = await prisma.user.findUnique({
-    //     where: { id: session.user.id },
-    //     select: { tripoApiKey: true },
-    //   });
+    //   const user = await prisma.user.findUnique({ ... });
     //   userTripoApiKey = user?.tripoApiKey || null;
     // }
 
@@ -87,38 +217,71 @@ export async function GET(
     // 1. Poll Tripo API for status
     const tripoTask = await pollTripoTaskStatus(tripoApiKey, taskId);
 
-    // 2. Find database record by taskId
-    const asset = await prisma.generated3DAsset.findFirst({
-      where: { draftTaskId: taskId },
-    });
+    // 2. Find database record by taskId (draft, rig, OR animation)
+    const matchResult = await findAssetByTaskId(taskId);
 
     // 3. Update database if status changed to success or failed
-    if (asset) {
-      if (tripoTask.status === 'success') {
-        // Extract model URL from different possible locations in Tripo response
-        // Note: pbr_model can be either a direct string URL OR a TripoModelOutput object
-        const modelUrl =
-          (typeof tripoTask.output?.pbr_model === 'string'
-            ? tripoTask.output.pbr_model
-            : tripoTask.output?.pbr_model?.url) ||  // PBR model (string or object)
-          tripoTask.output?.model?.url ||            // Draft model (nested object)
-          null;
-        
-        if (modelUrl) {
-          // Task completed successfully - update with model URL
-          await prisma.generated3DAsset.update({
-            where: { id: asset.id },
-            data: {
-              status: 'generated',
-              draftModelUrl: modelUrl,
-              updatedAt: new Date(),
-            },
-          });
+    if (matchResult) {
+      const { asset, matchType, animationPreset } = matchResult;
 
-          console.log('✅ Model URL saved to database:', modelUrl);
+      if (tripoTask.status === 'success') {
+        // Log output for debugging
+        console.log('📦 Tripo Task Output:', JSON.stringify(tripoTask.output, null, 2));
+
+        // Extract model URL from output
+        const modelUrl = extractModelUrl(tripoTask.output);
+
+        if (modelUrl) {
+          if (matchType === 'draft') {
+            // Update DRAFT model URL
+            await prisma.generated3DAsset.update({
+              where: { id: asset.id },
+              data: {
+                status: 'generated',
+                draftModelUrl: modelUrl,
+                updatedAt: new Date(),
+              },
+            });
+            console.log('✅ Draft Model URL saved:', modelUrl);
+
+          } else if (matchType === 'rig') {
+            // Update RIGGED model URL
+            await prisma.generated3DAsset.update({
+              where: { id: asset.id },
+              data: {
+                status: 'rigged',
+                riggedModelUrl: modelUrl,
+                updatedAt: new Date(),
+              },
+            });
+            console.log('✅ Rigged Model URL saved:', modelUrl);
+
+          } else if (matchType === 'animation' && animationPreset) {
+            // Update ANIMATED model URL for specific preset
+            // Parse existing URLs, add new one, save back
+            const existingUrls = asset.animatedModelUrls
+              ? JSON.parse(asset.animatedModelUrls) as Record<string, string>
+              : {};
+
+            const updatedUrls = {
+              ...existingUrls,
+              [animationPreset]: modelUrl,
+            };
+
+            await prisma.generated3DAsset.update({
+              where: { id: asset.id },
+              data: {
+                status: 'complete', // Animation is the final step
+                animatedModelUrls: JSON.stringify(updatedUrls),
+                updatedAt: new Date(),
+              },
+            });
+            console.log(`✅ Animated Model URL saved for ${animationPreset}:`, modelUrl);
+          }
         } else {
-          console.warn('⚠️  Task success but no model URL found in response');
+          console.warn('⚠️ Task success but no model URL found in response');
         }
+
       } else if (tripoTask.status === 'failed') {
         // Task failed - update with error message
         await prisma.generated3DAsset.update({
@@ -130,16 +293,9 @@ export async function GET(
           },
         });
 
-        console.log('❌ Task failed:', tripoTask.error);
-      } else if (tripoTask.status === 'running' && asset.status === 'queued') {
-        // Update status from queued to generating
-        await prisma.generated3DAsset.update({
-          where: { id: asset.id },
-          data: {
-            status: 'generating',
-            updatedAt: new Date(),
-          },
-        });
+        const taskTypeName = matchType === 'animation' ? `Animation (${animationPreset})` :
+          matchType === 'rig' ? 'Rigging' : 'Generation';
+        console.log(`❌ ${taskTypeName} task failed:`, tripoTask.error);
       }
     }
 

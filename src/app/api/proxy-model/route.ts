@@ -14,34 +14,39 @@ export async function GET(request: NextRequest) {
   try {
     // Get the model URL from query params
     const url = request.nextUrl.searchParams.get('url');
-    
+
     if (!url) {
       return NextResponse.json(
         { error: 'Missing url parameter' },
         { status: 400 }
       );
     }
-    
+
     // Validate it's a legitimate Tripo URL to prevent SSRF
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
-    } catch (_) {
+    } catch {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
-    if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.tripo3d.ai')) {
+    // Tripo uses both .tripo3d.ai (API) and .tripo3d.com (CDN) domains
+    const isValidTripoHost =
+      parsedUrl.hostname.endsWith('.tripo3d.ai') ||
+      parsedUrl.hostname.endsWith('.tripo3d.com');
+
+    if (parsedUrl.protocol !== 'https:' || !isValidTripoHost) {
       return NextResponse.json(
-        { error: 'Invalid URL - must be a secure URL from a tripo3d.ai subdomain' },
+        { error: 'Invalid URL - must be a secure URL from a tripo3d.ai or tripo3d.com subdomain' },
         { status: 400 }
       );
     }
-    
+
     console.log('📥 Proxying model from:', url);
-    
+
     // Fetch the GLB file from Tripo
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       console.error('❌ Tripo fetch failed:', response.status);
       return NextResponse.json(
@@ -49,13 +54,13 @@ export async function GET(request: NextRequest) {
         { status: response.status }
       );
     }
-    
+
     // Get the binary data
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
+
     console.log('✅ Model fetched:', buffer.length, 'bytes');
-    
+
     // Return with proper headers
     return new NextResponse(buffer, {
       status: 200,
@@ -66,11 +71,11 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Origin': '*', // Allow CORS
       },
     });
-    
+
   } catch (error) {
     console.error('❌ Proxy error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to proxy model',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
