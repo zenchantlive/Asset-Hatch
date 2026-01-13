@@ -1,8 +1,8 @@
 # Active State - Asset Hatch Development
 
 **Last Updated:** 2026-01-13
-**Current Phase:** 3D Mode Implementation - Phase 4 Complete, Phase 5 Partial
-**Status:** ✅ Basic 3D Generation Fully Working
+**Current Phase:** 3D Mode Implementation - Phase 5 Complete (Rigging & Animation Stable)
+**Status:** ✅ 3D Generation, Rigging, & Animation Fully Working & Persistent
 
 ---
 
@@ -47,7 +47,7 @@ Successfully completed end-to-end 3D generation workflow from planning through m
 8. Download dropdown → User exports GLB file
 ```
 
-**Validation Results:**
+**Validation Results (Phase 4):**
 ```
 ✅ Test script generates cube successfully (~80s)
 ✅ Model URL extraction working (pbr_model)
@@ -58,15 +58,51 @@ Successfully completed end-to-end 3D generation workflow from planning through m
 ✅ TypeScript: Suspense import fixed, no new errors
 ```
 
+---
+
+## 🎯 Latest Session Summary (2026-01-13) - Continued
+
+### 3D Mode Feature - Phase 6: Animation Playback & UI Polish (Complete)
+
+Successfully implemented 3D animation playback and resolved critical bugs related to state persistence and rendering.
+
+**Deliverables & Fixes:**
+
+1.  **Animation Playback:**
+    *   **NEW Component:** `AnimatedModelViewer.tsx` implements GLB animation playback using `useAnimations` and `useFrame`.
+    *   **Playback Controls:** Added play/pause button, progress bar, and automatic play on view selection.
+    *   **Skeletal Cloning Fix:** Resolved "T-pose" bug where standard `scene.clone()` broke animation bindings. Now using `SkeletonUtils.clone()` for proper bone retargeting.
+    *   **Responsive Viewer:** Adjusted viewer height units (`max-h-[60vh]`) to ensure controls remain visible on shorter screens.
+
+2.  **Persistence & Hydration:**
+    *   **Self-Healing Hydration:** Added logic to `GenerationQueue3D.tsx` to automatically re-poll rig tasks if `riggedModelUrl` is missing but `rigTaskId` exists. This fixed "Apply Animation" button doing nothing after refresh.
+    *   **Debug Logging:** Added comprehensive console logging for hydration and action guards to simplify future troubleshooting.
+
+3.  **UI/UX Improvements:**
+    *   **Approval Feedback:** Updated `AssetActions3D.tsx` to show a green "Approved" badge and "Undo" button instead of repeating "Approve & Save".
+    *   **State Visibility:** Animation controls now remain visible for "Complete" assets, allowing users to add/manage multiple animations over time.
+
+**Validation:**
+```
+✅ Playback: animations play correctly on switch (Fixed T-pose bug).
+✅ UI: All controls visible on shorter screens (Fixed height bug).
+✅ Persistence: Rigged data restores automatically on refresh (Fixed hydration bug).
+✅ Gameplay: Immediate visual feedback for Approve/Reject actions.
+```
+
 **Next Steps (TODO):**
-- [ ] **Rigging Flow** - Backend exists, needs UI polling integration
-- [ ] **Animation Flow** - Backend exists, needs preset selection + retargeting
-- [ ] **Approval/Reject/Regenerate** - Asset management workflows
 - [ ] **Batch Export** - ZIP download with multiple models + metadata
+- [ ] **Educational Tooltips** - Add tooltips to status badges and animation buttons
 - [ ] **Additional Asset Types:**
   - Skybox generation (text-to-skybox via Tripo)
   - Environment props (trees, rocks, buildings)
   - Item models (weapons, tools, collectibles)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-13) - Continued
+
+### 3D Mode Feature - Phase 5: Rigging, Animation & Persistence (Debugging Complete)
 
 ---
 

@@ -23,7 +23,7 @@ export default function Test3DPage() {
           <h1 className="text-3xl font-bold text-white">
             🎨 3D Model Viewer Test
           </h1>
-          
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/80">
               Tripo GLB URL:
@@ -60,11 +60,10 @@ export default function Test3DPage() {
               Model Preview
             </h2>
             <div className="h-[500px]">
-              <ModelViewer 
+              <ModelViewer
                 modelUrl={loadUrl}
                 autoRotate={true}
                 onLoad={() => console.log("✅ Model loaded!")}
-                onError={(error) => console.error("❌ Model error:", error)}
               />
             </div>
           </div>
@@ -78,7 +77,7 @@ export default function Test3DPage() {
             <li>Paste it in the input above and click "Load Model"</li>
             <li>The model will load through the CORS proxy at <code className="px-2 py-1 bg-black/30 rounded">/api/proxy-model</code></li>
           </ol>
-          
+
           <div className="pt-4 space-y-2">
             <h4 className="font-semibold text-white">Sample Test URLs:</h4>
             <p className="text-xs">

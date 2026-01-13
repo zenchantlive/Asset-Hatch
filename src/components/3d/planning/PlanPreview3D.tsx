@@ -3,36 +3,68 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { User, Box, Layers, Bone, Clock } from "lucide-react";
-import { parse3DPlan } from "@/lib/3d-plan-parser";
+import { parse3DPlan, type Parsed3DAsset } from "@/lib/3d-plan-parser";
 import { cn } from "@/lib/utils";
 
 interface PlanPreview3DProps {
     markdown: string;
+    projectId?: string;
     onEdit?: () => void;
     onApprove?: () => void;
     isLoading?: boolean;
 }
 
+/**
+ * PlanPreview3D Component
+ *
+ * Displays a formatted preview of a 3D asset plan with:
+ * - Asset counts by type (rigged vs static)
+ * - Styled markdown rendering with RIG/STATIC icons
+ * - Animation requirements summary
+ *
+ * @param markdown - Raw markdown plan content
+ * @param projectId - Project ID for parsing (optional, defaults to "preview")
+ * @param onEdit - Callback when Edit button clicked
+ * @param onApprove - Callback when Approve button clicked
+ * @param isLoading - Whether approve action is in progress
+ */
 export function PlanPreview3D({
     markdown,
+    projectId = "preview",
     onEdit,
     onApprove,
     isLoading = false,
 }: PlanPreview3DProps) {
-    const parsedPlan = useMemo(() => {
-        if (!markdown) return null;
-        return parse3DPlan(markdown);
-    }, [markdown]);
+    // Parse markdown into structured assets using the 3D parser
+    // parse3DPlan returns Parsed3DAsset[] directly
+    const parsedAssets = useMemo((): Parsed3DAsset[] => {
+        if (!markdown) return [];
+        return parse3DPlan(markdown, { projectId });
+    }, [markdown, projectId]);
 
+    // Calculate asset counts by type
     const assetCount = useMemo(() => {
-        if (!parsedPlan) return { rig: 0, static: 0, total: 0 };
         return {
-            rig: parsedPlan.assets.filter((a) => a.type === "rigged").length,
-            static: parsedPlan.assets.filter((a) => a.type === "static").length,
-            total: parsedPlan.assets.length,
+            rig: parsedAssets.filter((a) => a.shouldRig).length,
+            static: parsedAssets.filter((a) => !a.shouldRig).length,
+            total: parsedAssets.length,
         };
-    }, [parsedPlan]);
+    }, [parsedAssets]);
 
+    // Extract unique animations from all assets
+    const allAnimations = useMemo(() => {
+        const animSet = new Set<string>();
+        for (const asset of parsedAssets) {
+            for (const anim of asset.animationsRequested) {
+                // Convert "preset:walk" to "Walk"
+                const label = anim.replace("preset:", "");
+                animSet.add(label.charAt(0).toUpperCase() + label.slice(1));
+            }
+        }
+        return Array.from(animSet);
+    }, [parsedAssets]);
+
+    // Empty state when no markdown provided
     if (!markdown) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -182,14 +214,14 @@ export function PlanPreview3D({
                 </div>
             </div>
 
-            {/* Animation Summary */}
-            {parsedPlan && parsedPlan.animations.length > 0 && (
+            {/* Animation Summary - only shown if animations are requested */}
+            {allAnimations.length > 0 && (
                 <div className="flex-shrink-0 px-6 py-4 border-t border-white/5 bg-glass-bg/20">
                     <h4 className="text-xs font-medium text-white/60 uppercase tracking-wider mb-3">
                         Animation Requirements
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                        {parsedPlan.animations.map((anim, i) => (
+                        {allAnimations.map((anim, i) => (
                             <span
                                 key={i}
                                 className="px-2.5 py-1 rounded-full text-xs font-medium bg-cyan-600/20 text-cyan-300 border border-cyan-500/20"
@@ -203,3 +235,4 @@ export function PlanPreview3D({
         </div>
     );
 }
+

@@ -514,7 +514,8 @@ A user can generate a single rigged, animated 3D character through the full work
 ## 15. Appendix
 
 ### Related Documents
-- [Implementation Plan](file:///C:/Users/Zenchant/.gemini/antigravity/brain/d3e911b6-db2c-46a0-bd93-dc7b1300dcf9/implementation_plan.md)
+- [Phase 5+ Implementation Plan](file:///c:/Users/Zenchant/Asset-Hatch/src/.agents/plans/3d-mode-phase-5-implementation.md)
+- [Original Implementation Plan](file:///C:/Users/Zenchant/.gemini/antigravity/brain/d3e911b6-db2c-46a0-bd93-dc7b1300dcf9/implementation_plan.md)
 - [Tripo3D API Docs](https://platform.tripo3d.ai/docs/introduction)
 - [Three.js Documentation](https://threejs.org/docs/)
 

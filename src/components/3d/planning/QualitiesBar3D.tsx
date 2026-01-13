@@ -162,7 +162,7 @@ export function QualitiesBar3D({
             <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-4">
                     <span className="text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                        3D Quality
+                        3D Mode
                     </span>
                     <div className="flex items-center gap-2 text-xs text-white/50">
                         <span className="px-2 py-0.5 rounded bg-cyan-600/20 text-cyan-300">
