@@ -1,12 +1,76 @@
 # Active State - Asset Hatch Development
 
-**Last Updated:** 2026-01-12
-**Current Phase:** 3D Mode Implementation - Phase 3 Execution Complete
-**Status:** ✅ Phase 3 Backend Fully Implemented
+**Last Updated:** 2026-01-13
+**Current Phase:** 3D Mode Implementation - Phase 4 Complete, Phase 5 Partial
+**Status:** ✅ Basic 3D Generation Fully Working
 
 ---
 
-## 🎯 Latest Session Summary (2026-01-12)
+## 🎯 Latest Session Summary (2026-01-13)
+
+### 3D Mode Feature - Phase 4 & 5: UI Integration & Core Flow Complete
+
+Successfully completed end-to-end 3D generation workflow from planning through model preview.
+
+**Branch:** `3d-gen-phase-4-ui` (ready to merge)
+
+**Deliverables Completed:**
+- **API Fixes:**
+  - `lib/tripo-client.ts` - Fixed response unwrapping (responseData.data)
+  - `app/api/generate-3d/[taskId]/status/route.ts` - Fixed Next.js 15 async params, correct model URL extraction (pbr_model)
+  - `app/api/proxy-model/route.ts` - **NEW** CORS proxy for Tripo CDN
+- **UI Components:**
+  - `components/3d/generation/ModelViewer.tsx` - Three.js GLB viewer with proxy integration, fixed Suspense import
+  - `components/3d/generation/GenerationQueue3D.tsx` - Asset tree, polling, status badges, download dropdown
+  - `app/test-3d/page.tsx` - **NEW** Test page for debugging
+- **Test Infrastructure:**
+  - `scripts/test-tripo-basic.ts` - Standalone API test script with clear GLB URL output
+  - `scripts/test-viewer.html` - Browser-based 3D viewer (unused, replaced by Next.js proxy)
+
+**Total New Code:** 3 new files, 5 files modified (~800 lines)
+
+**Key Implementation Fixes:**
+- **CORS Issue:** Tripo CDN blocks direct browser access → proxy through `/api/proxy-model`
+- **Response Parsing:** Tripo wraps responses as `{ code: 0, data: {...} }` → unwrap data field
+- **Model URL Location:** Model URL at `output.pbr_model` (direct string), NOT `output.model.url`
+- **Next.js 15 Breaking Change:** Route params now async → must await before destructuring
+
+**Working Flow:**
+```
+1. User creates 3D project → Planning phase
+2. Chat with AI → Generate [RIG]/[STATIC] plan
+3. Generation tab → Select asset from tree
+4. Click "Generate" → Tripo task submits
+5. Poll every 2s → Progress updates (0-100%)
+6. Status: success → Model URL extracted → Saves to DB
+7. ModelViewer loads GLB through proxy → 3D preview renders
+8. Download dropdown → User exports GLB file
+```
+
+**Validation Results:**
+```
+✅ Test script generates cube successfully (~80s)
+✅ Model URL extraction working (pbr_model)
+✅ CORS proxy functioning (streams GLB from Tripo)
+✅ ModelViewer renders with orbit controls
+✅ Status polling updates UI in real-time
+✅ Download dropdown provides GLB export
+✅ TypeScript: Suspense import fixed, no new errors
+```
+
+**Next Steps (TODO):**
+- [ ] **Rigging Flow** - Backend exists, needs UI polling integration
+- [ ] **Animation Flow** - Backend exists, needs preset selection + retargeting
+- [ ] **Approval/Reject/Regenerate** - Asset management workflows
+- [ ] **Batch Export** - ZIP download with multiple models + metadata
+- [ ] **Additional Asset Types:**
+  - Skybox generation (text-to-skybox via Tripo)
+  - Environment props (trees, rocks, buildings)
+  - Item models (weapons, tools, collectibles)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-12)
 
 ### 3D Mode Feature - Phase 3: Generation Backend (Implementation)
 

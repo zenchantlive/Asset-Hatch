@@ -24,7 +24,7 @@ Users get:
 
 ---
 
-## Four-Phase Workflow
+## Four-Phase Workflow (2D Mode)
 
 ```
 ┌─────────────────┐
@@ -47,6 +47,69 @@ Users get:
 │  (Packaging)    │   Download as ZIP
 └─────────────────┘
 ```
+
+## 3D Asset Generation Mode (NEW - 2026-01-13)
+
+Asset Hatch now supports **3D model generation** alongside 2D sprites. Users can create rigged, animated 3D characters through the same conversational workflow.
+
+### 3D Workflow
+
+```
+┌─────────────────┐
+│  1. PLANNING    │   User describes 3D assets → AI generates plan
+│  (Chat-driven)  │   Uses [RIG]/[STATIC] tags for rigging requirements
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  2. GENERATION  │   Text-to-3D mesh via Tripo3D API
+│  (Async Tasks)  │   Status polling (2s intervals, 0-100% progress)
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  3. PREVIEW     │   Three.js viewer with orbit controls
+│  (Interactive)  │   Real-time 3D model display in browser
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  4. EXPORT      │   Download GLB models from Tripo CDN
+│  (Download)     │   Via CORS proxy route
+└─────────────────┘
+```
+
+### 3D Mode Architecture
+
+**Key Components:**
+- **Tripo3D API Client** (`lib/tripo-client.ts`) - HTTP wrapper with response unwrapping
+- **API Routes:**
+  - `/api/generate-3d` - Submit text-to-3D tasks
+  - `/api/generate-3d/[taskId]/status` - Poll generation status with DB updates
+  - `/api/proxy-model` - CORS proxy for GLB files from Tripo CDN
+  - `/api/generate-3d/rig` - Auto-rigging endpoint (backend only, UI TODO)
+  - `/api/generate-3d/animate` - Animation retargeting (backend only, UI TODO)
+- **UI Components:**
+  - `components/3d/generation/GenerationQueue3D.tsx` - Generation workflow UI
+  - `components/3d/generation/ModelViewer.tsx` - Three.js viewer with GLB loading
+  - `components/3d/planning/PlanPreview3D.tsx` - 3D asset plan preview
+- **Test Infrastructure:**
+  - `scripts/test-tripo-basic.ts` - Standalone CLI test for API validation
+
+**Critical Technical Patterns:**
+
+1. **Response Unwrapping** - Tripo API returns `{ code: 0, data: {...} }`, must extract `data` field
+2. **Model URL Location** - GLB URL is at `output.pbr_model` (direct string), NOT `output.model.url`
+3. **CORS Proxy** - Tripo CDN blocks direct browser access, proxy through `/api/proxy-model`
+4. **Next.js 15 Async Params** - Route params are now Promises, must `await` before use
+5. **Polling Strategy** - 2-second intervals, progress tracked 0-100%, updates database on completion
+
+**Current Status (2026-01-13):**
+- ✅ Text-to-3D generation working end-to-end
+- ✅ Status polling with real-time progress updates
+- ✅ 3D model preview in browser (Three.js)
+- ✅ GLB download via CORS proxy
+- ⏳ Rigging/Animation backend exists but UI not integrated
+- ❌ Approval/Reject/Regenerate workflows not implemented
+- ❌ Batch export not implemented
+- ❌ Additional asset types (skybox, props) not implemented
 
 ---
 
