@@ -78,25 +78,27 @@ model VerificationToken {
 
 // Project model - main entity representing a game asset project
 model Project {
-  id                String             @id @default(uuid())
-  userId            String?            // Nullable for existing projects without auth
-  user              User?              @relation(fields: [userId], references: [id])
-  name              String
-  phase             String             @default("planning")
-  artStyle          String?
-  baseResolution    String?
-  perspective       String?
-  gameGenre         String?
-  theme             String?
-  mood              String?
-  colorPalette      String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  memoryFiles       MemoryFile[]
-  styleAnchors      StyleAnchor[]
-  generatedAssets   GeneratedAsset[]
-  characterRegistry CharacterRegistry[]
-  generationCosts   GenerationCost[]
+  id                  String              @id @default(uuid())
+  userId              String?             // Nullable for existing projects without auth
+  user                User?               @relation(fields: [userId], references: [id])
+  name                String
+  phase               String              @default("planning")
+  mode                String              @default("2d") // "2d" | "3d" - generation mode
+  artStyle            String?
+  baseResolution      String?
+  perspective         String?
+  gameGenre           String?
+  theme               String?
+  mood                String?
+  colorPalette        String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  memoryFiles         MemoryFile[]
+  styleAnchors        StyleAnchor[]
+  generatedAssets     GeneratedAsset[]
+  characterRegistry   CharacterRegistry[]
+  generationCosts     GenerationCost[]
+  generated3DAssets   Generated3DAsset[]
 }
 
 // MemoryFile model - stores JSON content like entities.json, conversation history
@@ -177,4 +179,32 @@ model GenerationCost {
   imageCount       Int      @default(1)
   metadata         String?  // Additional usage details as JSON
   createdAt        DateTime @default(now())
+}
+
+// Generated3DAsset model - tracks 3D asset generation pipeline
+// Stores task chain IDs and model URLs from Tripo3D API
+model Generated3DAsset {
+  id                String   @id @default(uuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id])
+  assetId           String   // Original asset ID from plan
+  status            String   // queued | generating | rigged | complete | failed
+
+  // Tripo task chain IDs
+  draftTaskId       String?
+  rigTaskId         String?
+  animationTaskIds  String?  // JSON: {"walk": "task-123", "idle": "task-456"}
+
+  // Model URLs from completed tasks
+  draftModelUrl     String?
+  riggedModelUrl    String?
+  animatedModelUrls String?  // JSON: {"walk": "url", "idle": "url"}
+
+  // Generation metadata
+  promptUsed        String   @db.Text
+  isRiggable        Boolean?
+  errorMessage      String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

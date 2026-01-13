@@ -18,6 +18,8 @@ import {
   UpdateStyleDraftInput,
   GenerateStyleAnchorInput,
 } from '@/lib/schemas';
+// 3D mode tools and system prompt (conditional based on project.mode)
+import { create3DChatTools, get3DSystemPrompt } from '@/lib/chat-tools-3d';
 
 export const maxDuration = 30;
 
@@ -40,13 +42,13 @@ export async function POST(req: NextRequest) {
 
     // Ensure project exists in SQLite (might only exist in IndexedDB)
     // This handles the hybrid persistence model sync issue
-    const existingProject = await prisma.project.findUnique({
+    let existingProject = await prisma.project.findUnique({
       where: { id: projectId },
     });
 
     if (!existingProject) {
       console.log('📦 Project not found in SQLite, creating...');
-      await prisma.project.create({
+      existingProject = await prisma.project.create({
         data: {
           id: projectId,
           name: 'Imported Project',
@@ -55,6 +57,12 @@ export async function POST(req: NextRequest) {
       });
       console.log('✅ Project created in SQLite');
     }
+
+    // Check if project is in 3D mode for conditional tool/prompt selection
+    // Note: mode field exists in schema.prisma but client may need regeneration
+    const projectMode = existingProject.mode;
+    const is3DMode = projectMode === '3d';
+    console.log(`🎮 Project mode: ${is3DMode ? '3D' : '2D'}`);
 
     // Get authenticated session to check for user's API key (BYOK)
     const session = await auth();
@@ -75,12 +83,10 @@ export async function POST(req: NextRequest) {
     // Convert UIMessages to ModelMessages for streamText
     const modelMessages = await convertToModelMessages(messages);
 
-    const result = streamText({
-      // Use chat model from registry instead of hardcoded model ID
-      model: openrouter(chatModel.id),
-      messages: modelMessages,
-      stopWhen: stepCountIs(10),
-      system: `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
+    // Use 3D system prompt for 3D mode, 2D system prompt otherwise
+    const systemPrompt = is3DMode
+      ? get3DSystemPrompt(projectId, qualities)
+      : `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
 
  CURRENT PROJECT CONTEXT:
  - Project ID: ${projectId}
@@ -131,7 +137,17 @@ export async function POST(req: NextRequest) {
  - [STATIC] Health Potion
    - Description: Red potion in glass bottle
  
- BE SPECIFIC: Each asset needs a clear, individual description for image generation.`,
+ BE SPECIFIC: Each asset needs a clear, individual description for image generation.`;
+
+    // Create 3D tools if in 3D mode (these will be merged with base tools)
+    const tools3D = is3DMode ? create3DChatTools(projectId) : {};
+
+    const result = streamText({
+      // Use chat model from registry instead of hardcoded model ID
+      model: openrouter(chatModel.id),
+      messages: modelMessages,
+      stopWhen: stepCountIs(10),
+      system: systemPrompt,
       tools: {
         updateQuality: tool({
           description: 'Update a specific quality parameter.',
@@ -330,6 +346,8 @@ export async function POST(req: NextRequest) {
             }
           },
         }),
+        // Spread 3D tools if in 3D mode (these are added for 3D-specific actions)
+        ...tools3D,
       },
     });
 

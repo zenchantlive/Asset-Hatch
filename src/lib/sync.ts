@@ -30,6 +30,7 @@ interface PrismaProject {
     id: string;
     name: string;
     phase: string;
+    mode: string; // "2d" | "3d" - generation mode
     artStyle: string | null;
     baseResolution: string | null;
     perspective: string | null;
@@ -99,6 +100,7 @@ export async function syncProjectToClient(
         id: projectData.id,
         name: projectData.name,
         phase,
+        mode: (projectData.mode === '3d' ? '3d' : '2d') as '2d' | '3d',
         art_style: projectData.artStyle || undefined,
         base_resolution: projectData.baseResolution || undefined,
         perspective: projectData.perspective || undefined,
