@@ -15,6 +15,7 @@ import { Prisma } from "@prisma/client";
 
 const createProjectSchema = z.object({
     name: z.string().min(1, "Name is required"),
+    mode: z.enum(["2d", "3d"]).default("2d"),
 });
 
 // =============================================================================
@@ -100,7 +101,7 @@ export async function POST(
             );
         }
 
-        const { name } = parsed.data;
+        const { name, mode } = parsed.data;
         const userId = session.user.id;
         const userEmail = session.user.email;
 
@@ -132,12 +133,13 @@ export async function POST(
             }
         }
 
-        // Create project with user ownership
+        // Create project with user ownership and mode
         const project = await prisma.project.create({
             data: {
                 name,
                 userId: userId,
                 phase: "planning",
+                mode: mode,
             },
         });
 
