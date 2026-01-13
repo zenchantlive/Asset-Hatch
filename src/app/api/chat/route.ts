@@ -346,7 +346,7 @@ export async function POST(req: NextRequest) {
             }
           },
         }),
-        // Spread 3D tools if in 3D mode (these override 2D equivalents)
+        // Spread 3D tools if in 3D mode (these are added for 3D-specific actions)
         ...tools3D,
       },
     });
