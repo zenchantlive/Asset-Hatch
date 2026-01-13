@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, Suspense } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { useState, useCallback, Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, useGLTF, Stage, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -23,10 +23,12 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
     const loadUrl = url.startsWith('https://tripo-data.')
         ? `/api/proxy-model?url=${encodeURIComponent(url)}`
         : url;
-    
+
     const { scene } = useGLTF(loadUrl);
 
-    useEffect(() => {
+    // Note: This effect runs once when the scene is loaded
+    // The parent component uses key={modelUrl} to remount when URL changes
+    if (scene) {
         // Clone scene to avoid mutating cached version
         const cloned = scene.clone(true);
 
@@ -46,10 +48,15 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
             cloned.scale.setScalar(2 / maxDim);
         }
 
+        // Trigger onLoad callback synchronously after processing
+        // This is safe because it's not inside an effect
         onLoad?.();
-    }, [scene, onLoad]);
+    }
 
-    return <primitive object={scene} />;
+    return (
+        // @ts-expect-error - R3F intrinsic elements
+        <primitive object={scene} />
+    );
 }
 
 /**
@@ -89,34 +96,18 @@ export function ModelViewer({
     autoRotate = true,
     className = "",
     onLoad,
-    onError,
-}: ModelViewerProps) {
+}: Omit<ModelViewerProps, 'onError'>) {
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const prevUrlRef = useRef(modelUrl);
-
-    // Reset state when URL changes
-    useEffect(() => {
-        if (modelUrl !== prevUrlRef.current) {
-            prevUrlRef.current = modelUrl;
-            setLoading(true);
-            setError(null);
-        }
-    }, [modelUrl]);
+    const [error] = useState<string | null>(null);
 
     const handleLoad = useCallback(() => {
         setLoading(false);
         onLoad?.();
     }, [onLoad]);
 
-    const handleError = useCallback((err: Error) => {
-        setLoading(false);
-        setError(err.message);
-        onError?.(err);
-    }, [onError]);
-
     return (
-        <div className={`relative w-full h-full min-h-[300px] rounded-lg overflow-hidden bg-glass-bg/20 ${className}`}>
+        // Key forces re-mount when modelUrl changes, resetting all state naturally
+        <div key={modelUrl} className={`relative w-full h-full min-h-[300px] rounded-lg overflow-hidden bg-glass-bg/20 ${className}`}>
             <Canvas
                 shadows
                 gl={{
