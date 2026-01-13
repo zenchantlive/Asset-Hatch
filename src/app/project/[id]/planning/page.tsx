@@ -15,9 +15,11 @@ import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
 import { ExportPanel } from "@/components/export/ExportPanel"
 import { PlanPanel } from "@/components/ui/PlanPanel"
 import { StylePanel } from "@/components/ui/StylePanel"
-
-
-
+import { applyModeTheme, resetModeTheme } from "@/lib/theme-utils"
+import { ProjectModeIndicator } from "@/components/dashboard/ProjectModeIndicator"
+import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
+import { PlanPreview3D } from "@/components/3d/planning/PlanPreview3D"
+import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -36,6 +38,7 @@ export default function PlanningPage() {
   const [stylePanelOpen, setStylePanelOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [projectName, setProjectName] = useState<string>("")
+  const [projectMode, setProjectMode] = useState<"2d" | "3d">("2d")
   const chatRef = useRef<ChatInterfaceHandle>(null)
 
 
@@ -119,6 +122,50 @@ export default function PlanningPage() {
     };
 
     loadSavedState();
+  }, [params.id]);
+
+  // Load project mode and apply 3D theme
+  // This runs after fetchAndSyncProject to ensure we have the latest data
+  useEffect(() => {
+    const loadProjectMode = async () => {
+      if (!params.id || typeof params.id !== 'string') return;
+
+      try {
+        // Force a re-fetch from server to get the latest mode
+        const response = await fetch(`/api/projects/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const serverProject = data.project;
+
+          // Update Dexie with the mode from server
+          await db.projects.update(params.id, {
+            mode: serverProject.mode === '3d' ? '3d' : '2d',
+          });
+
+          setProjectMode(serverProject.mode === '3d' ? '3d' : '2d');
+          applyModeTheme(serverProject.mode === '3d' ? '3d' : '2d');
+          console.log(`🎨 Applied ${serverProject.mode} mode theme from server`);
+        } else {
+          // Fallback to Dexie
+          const project = await db.projects.get(params.id);
+          if (project) {
+            const mode = (project as { mode?: string }).mode === '3d' ? '3d' : '2d';
+            setProjectMode(mode);
+            applyModeTheme(mode);
+            console.log(`🎨 Applied ${mode} mode theme from Dexie`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load project mode:', error);
+      }
+    };
+
+    loadProjectMode();
+
+    // Cleanup: reset theme when unmounting
+    return () => {
+      resetModeTheme();
+    };
   }, [params.id]);
 
   // Handle mode switching with persistence
@@ -367,12 +414,22 @@ export default function PlanningPage() {
 
           {/* Row 2: Action buttons */}
           <div className="flex items-center justify-between">
-            <QualitiesBar
-              qualities={qualities}
-              onQualitiesChange={setQualities}
-              onSave={handleParametersSave}
-              mode="popover"
-            />
+            {projectMode === '3d' ? (
+              <QualitiesBar3D
+                projectId={typeof params.id === 'string' ? params.id : undefined}
+                qualities={qualities}
+                onQualitiesChange={setQualities}
+                onSave={handleParametersSave}
+                mode="popover"
+              />
+            ) : (
+              <QualitiesBar
+                qualities={qualities}
+                onQualitiesChange={setQualities}
+                onSave={handleParametersSave}
+                mode="popover"
+              />
+            )}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setAssetsMenuOpen(true)}
@@ -417,24 +474,39 @@ export default function PlanningPage() {
 
       {/* Parameters Bar - Visible on desktop, shows selected values */}
       <div className="hidden lg:block shrink-0 z-10 border-b border-white/5">
-        <QualitiesBar
-          key={mode} // Re-mount when mode changes to reset default state
-          qualities={qualities}
-          onQualitiesChange={setQualities}
-          onSave={handleParametersSave}
-          mode="bar"
-          defaultExpanded={mode === 'planning'} // Only expanded by default in planning mode
-        />
+        {projectMode === '3d' ? (
+          <QualitiesBar3D
+            key={mode}
+            qualities={qualities}
+            onQualitiesChange={setQualities}
+            onSave={handleParametersSave}
+            mode="bar"
+            defaultExpanded={mode === 'planning'}
+          />
+        ) : (
+          <QualitiesBar
+            key={mode}
+            qualities={qualities}
+            onQualitiesChange={setQualities}
+            onSave={handleParametersSave}
+            mode="bar"
+            defaultExpanded={mode === 'planning'}
+          />
+        )}
       </div>
 
       <div className="flex-1 flex overflow-hidden relative z-10">
         {mode === 'generation' ? (
-          // Generation mode: Full-width GenerationQueue (no chat)
-          <GenerationQueue
-            projectId={params.id as string}
-            modelsMenuOpen={modelsMenuOpen}
-            onModelsMenuClose={() => setModelsMenuOpen(false)}
-          />
+          // Generation mode: Full-width GenerationQueue (or 3D version)
+          projectMode === '3d' ? (
+            <GenerationQueue3D projectId={params.id as string} />
+          ) : (
+            <GenerationQueue
+              projectId={params.id as string}
+              modelsMenuOpen={modelsMenuOpen}
+              onModelsMenuClose={() => setModelsMenuOpen(false)}
+            />
+          )
         ) : mode === 'export' ? (
           // Export mode: Full-width ExportPanel (no chat)
           <div className="w-full flex items-center justify-center p-8 bg-glass-bg/10">
@@ -459,12 +531,13 @@ export default function PlanningPage() {
                   onStyleAnchorGenerated={handleStyleAnchorGenerated}
                   onStyleFinalized={handleStyleFinalized}
                   mode={mode}
+                  is3D={projectMode === '3d'}
                 />
               </div>
             ) : (
               // Desktop: Keep 50/50 split with chat
               <>
-                <div className="w-1/2 flex flex-col border-r border-white/5 bg-glass-bg/20 backdrop-blur-sm relative transition-all duration-500 hover:bg-glass-bg/30">
+                <div className="w-1/2 flex flex-col border-r border-white/5 bg-transparent relative transition-all duration-500">
                   <ChatInterface
                     ref={chatRef}
                     qualities={qualities}
@@ -476,6 +549,7 @@ export default function PlanningPage() {
                     onStyleAnchorGenerated={handleStyleAnchorGenerated}
                     onStyleFinalized={handleStyleFinalized}
                     mode={mode}
+                    is3D={projectMode === '3d'}
                   />
                 </div>
 

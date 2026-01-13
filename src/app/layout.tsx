@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import "./globals-3d.css";
+import { Header } from "@/components/layout/Header";
 
 // =============================================================================
 // FONT CONFIGURATION
@@ -18,8 +20,6 @@ const outfit = Outfit({
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
-
-
 });
 
 // =============================================================================
@@ -39,19 +39,6 @@ export const metadata: Metadata = {
     images: ["/logo-generated-v2.png"],
   },
 };
-
-// =============================================================================
-// ROOT LAYOUT
-// Wraps all pages with providers and global styles
-// =============================================================================
-
-import { Header } from "@/components/layout/Header";
-
-// ... existing imports
-
-// ... existing font config
-
-// ... existing metadata
 
 // =============================================================================
 // ROOT LAYOUT
