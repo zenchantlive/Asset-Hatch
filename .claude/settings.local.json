@@ -45,7 +45,14 @@
       "Bash(file:*)",
       "Bash(node test-schema-validation.js:*)",
       "Bash(bun remove:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "WebFetch(domain:platform.tripo3d.ai)",
+      "mcp__plugin_serena_serena__think_about_task_adherence",
+      "mcp__plugin_serena_serena__replace_symbol_body",
+      "Bash(bunx eslint:*)",
+      "mcp__plugin_serena_serena__initial_instructions",
+      "mcp__plugin_serena_serena__get_symbols_overview",
+      "Bash(bun run:*)"
     ]
   }
 }

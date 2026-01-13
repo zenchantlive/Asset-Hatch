@@ -26,5 +26,6 @@
     "scss.lint.unknownAtRules": "ignore",
     "files.associations": {
         "*.css": "tailwindcss"
-    }
+    },
+    "kiroAgent.configureMCP": "Disabled"
 }
