@@ -359,4 +359,49 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 
 ---
 
+### Emoji Logging Pattern (API Routes)
+* **Pattern:** Use consistent emoji prefixes for console logs in API routes
+  - 🎨 Starting operation
+  - 📤 Submitting to external API
+  - 📊 Polling/checking status
+  - 💾 Database operation
+  - ✅ Success
+  - ❌ Error
+* **Why:** Makes console output scannable at a glance, helps identify operations quickly
+* **Example:**
+  ```typescript
+  console.log('🎨 Starting 3D asset generation:', { projectId, assetId });
+  console.log('📤 Submitting task to Tripo3D...');
+  console.log('✅ Task submitted:', tripoTask.task_id);
+  console.error('❌ 3D generation error:', error);
+  ```
+
+### TODO Comments for Future Schema Changes
+* **Pattern:** When code depends on a future schema field, comment out with clear TODO
+  ```typescript
+  // TODO: Add tripoApiKey field to User model in schema.prisma
+  // const session = await auth();
+  const userTripoApiKey: string | null = null;
+  // if (session?.user?.id) {
+  //   const user = await prisma.user.findUnique({...});
+  //   userTripoApiKey = user?.tripoApiKey || null;
+  // }
+  ```
+* **Why:** Keeps code ready to activate, documents what needs to be done, avoids schema migrations mid-PR
+* **Files:** `app/api/generate-3d/**/*.ts`
+
+### Tripo3D Task-Based API Pattern
+* **Flow:** Submit task → Poll status → Update database on completion
+  1. **Submit:** POST endpoint returns `{ taskId, status: 'queued' }`
+  2. **Poll:** GET status endpoint queries Tripo API and updates database
+  3. **Complete:** When status becomes 'success', save model URLs to database
+* **State Machine:** `queued → generating → generated → rigging → rigged → animating → complete`
+* **Key Files:**
+  - `lib/tripo-client.ts` - Shared API utilities
+  - `app/api/generate-3d/route.ts` - Task submission
+  - `app/api/generate-3d/[taskId]/status/route.ts` - Status polling
+* **Database:** `Generated3DAsset` model tracks task IDs and model URLs through entire chain
+
+---
+
 **Next Update:** When we establish a new pattern or encounter a new gotcha.

@@ -69,7 +69,15 @@ CORRECT FORMAT EXAMPLE:
 
 PRO-TIP: Include "T-pose" or "A-pose" in character descriptions for best rigging results.
 
-DO NOT USE 2D TAGS: No [MOVEABLE:4], [MOVEABLE:8], or [ANIM:N] tags - those are for 2D sprite generation only.`;
+DO NOT USE 2D TAGS: No [MOVEABLE:4], [MOVEABLE:8], or [ANIM:N] tags - those are for 2D sprite generation only.
+
+GENERATION WORKFLOW:
+Once plan is finalized, assets will be generated via:
+1. POST /api/generate-3d - Submit text_to_model task
+2. GET /api/generate-3d/[taskId]/status - Poll until complete (returns model URL)
+3. POST /api/generate-3d/rig - Auto-rig characters (if [RIG] tag)
+4. POST /api/generate-3d/animate - Apply animation presets
+5. All tasks are async - UI polls status endpoints for progress`;
 }
 
 // =============================================================================
