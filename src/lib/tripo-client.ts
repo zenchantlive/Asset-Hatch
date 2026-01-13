@@ -87,9 +87,14 @@ export async function submitTripoTask(
   }
 
   const responseData = await response.json();
-  console.log('✅ Task submitted:', responseData.task_id);
+  
+  // Unwrap the data field from Tripo API response wrapper
+  // Tripo returns: { code: 0, data: { task_id, status, ... } }
+  const taskData = responseData.data || responseData;
+  
+  console.log('✅ Task submitted:', taskData.task_id);
 
-  return responseData as TripoTask;
+  return taskData as TripoTask;
 }
 
 /**
@@ -143,13 +148,16 @@ export async function pollTripoTaskStatus(
 
   const responseData = await response.json();
   
+  // Unwrap the data field from Tripo API response wrapper
+  const taskData = responseData.data || responseData;
+  
   console.log('📊 Task status:', {
     taskId,
-    status: responseData.status,
-    progress: responseData.progress,
+    status: taskData.status,
+    progress: taskData.progress,
   });
 
-  return responseData as TripoTask;
+  return taskData as TripoTask;
 }
 
 /**

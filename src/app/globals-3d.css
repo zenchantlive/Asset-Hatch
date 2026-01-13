@@ -1,0 +1,188 @@
+/**
+ * 3D Mode Theme - Cyan/Teal Color Palette
+ * 
+ * This file defines the 3D-specific theme variables that are applied
+ * when [data-mode="3d"] is set on the document body.
+ */
+
+/* ==========================================================================
+   3D Mode Theme Variables
+   ========================================================================== */
+
+[data-mode="3d"] {
+  /* Aurora Palette - Cyan/Teal for 3D mode */
+  --aurora-1: oklch(0.45 0.20 190 / 0.4);  /* Cyan */
+  --aurora-2: oklch(0.40 0.18 175 / 0.4);  /* Teal */
+  --aurora-3: oklch(0.50 0.22 210 / 0.3);  /* Blue-cyan */
+  --aurora-4: oklch(0.35 0.15 185 / 0.3);  /* Deep teal */
+
+  /* 3D Primary - Cyan accent instead of purple */
+  --primary-3d: oklch(0.75 0.22 190);
+  --primary-3d-foreground: oklch(1 0 0);
+
+  /* 3D Chart Colors */
+  --chart-3d-1: oklch(0.75 0.22 190);   /* Cyan */
+  --chart-3d-2: oklch(0.70 0.20 175);   /* Teal */
+  --chart-3d-3: oklch(0.65 0.18 160);   /* Green-teal */
+  --chart-3d-4: oklch(0.80 0.20 200);   /* Blue-cyan */
+  --chart-3d-5: oklch(0.85 0.18 210);   /* Deep blue */
+
+  /* 3D Status Colors */
+  --status-3d-generating: oklch(0.70 0.20 175);   /* Teal - generating */
+  --status-3d-rigging: oklch(0.60 0.22 200);      /* Purple - rigging */
+  --status-3d-complete: oklch(0.50 0.25 140);     /* Green - complete */
+}
+
+/* ==========================================================================
+   3D Mode Overrides
+   Apply to specific elements when in 3D mode
+   ========================================================================== */
+
+[data-mode="3d"] .btn-3d-primary {
+  background: linear-gradient(
+    135deg,
+    oklch(0.75 0.22 190) 0%,
+    oklch(0.60 0.20 175) 100%
+  );
+  box-shadow: 
+    0 4px 20px -5px oklch(0.75 0.22 190 / 0.4),
+    0 0 15px -3px oklch(0.60 0.20 175 / 0.3);
+  border: 1px solid oklch(0.80 0.18 195 / 0.5);
+}
+
+[data-mode="3d"] .btn-3d-primary:hover {
+  background: linear-gradient(
+    135deg,
+    oklch(0.80 0.22 195) 0%,
+    oklch(0.65 0.20 180) 100%
+  );
+  box-shadow: 
+    0 6px 25px -5px oklch(0.75 0.22 190 / 0.5),
+    0 0 20px -5px oklch(0.60 0.20 175 / 0.4);
+}
+
+[data-mode="3d"] .glass-interactive:hover {
+  box-shadow:
+    0 12px 40px -8px rgba(0, 0, 0, 0.3),
+    0 0 20px -5px oklch(0.75 0.22 190);  /* Cyan glow instead of purple */
+}
+
+[data-mode="3d"] .aurora-gradient {
+  background: linear-gradient(
+    135deg,
+    oklch(0.45 0.20 190) 0%,
+    oklch(0.40 0.18 175) 50%,
+    oklch(0.50 0.22 210) 100%
+  );
+}
+
+[data-mode="3d"] .text-gradient-primary {
+  background-image: linear-gradient(
+    135deg,
+    oklch(0.90 0.08 190) 0%,
+    oklch(0.70 0.22 180) 50%,
+    oklch(0.60 0.20 200) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ==========================================================================
+   3D Mode Progress Indicators
+   ========================================================================== */
+
+[data-mode="3d"] .progress-3d {
+  background: oklch(0.30 0.08 190 / 0.3);
+}
+
+[data-mode="3d"] .progress-3d::-webkit-progress-bar {
+  background: oklch(0.30 0.08 190 / 0.3);
+  border-radius: var(--radius);
+}
+
+[data-mode="3d"] .progress-3d::-webkit-progress-value {
+  background: linear-gradient(
+    90deg,
+    oklch(0.60 0.20 175) 0%,
+    oklch(0.75 0.22 190) 100%
+  );
+  border-radius: var(--radius);
+}
+
+/* ==========================================================================
+   3D Mode Status Badges
+   ========================================================================== */
+
+[data-mode="3d"] .badge-3d-generating {
+  background: oklch(0.25 0.10 175 / 0.3);
+  border: 1px solid oklch(0.70 0.20 175 / 0.5);
+  color: oklch(0.85 0.10 175);
+}
+
+[data-mode="3d"] .badge-3d-rigging {
+  background: oklch(0.30 0.10 200 / 0.3);
+  border: 1px solid oklch(0.60 0.22 200 / 0.5);
+  color: oklch(0.85 0.10 200);
+}
+
+[data-mode="3d"] .badge-3d-complete {
+  background: oklch(0.25 0.12 140 / 0.3);
+  border: 1px solid oklch(0.50 0.25 140 / 0.5);
+  color: oklch(0.80 0.15 140);
+}
+
+[data-mode="3d"] .badge-3d-failed {
+  background: oklch(0.25 0.12 25 / 0.3);
+  border: 1px solid oklch(0.60 0.25 25 / 0.5);
+  color: oklch(0.85 0.12 25);
+}
+
+/* ==========================================================================
+   3D Mode Animations
+   ========================================================================== */
+
+@keyframes pulse-3d {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 oklch(0.75 0.22 190 / 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px oklch(0.75 0.22 190 / 0);
+  }
+}
+
+@keyframes rotate-3d {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-mode="3d"] .animate-pulse-3d {
+  animation: pulse-3d 2s ease-in-out infinite;
+}
+
+[data-mode="3d"] .animate-rotate-3d {
+  animation: rotate-3d 3s linear infinite;
+}
+
+/* ==========================================================================
+   3D Mode Viewer Container
+   ========================================================================== */
+
+[data-mode="3d"] .model-viewer-container {
+  background: linear-gradient(
+    180deg,
+    oklch(0.15 0.04 190) 0%,
+    oklch(0.10 0.04 185) 100%
+  );
+  border: 1px solid oklch(0.30 0.10 190 / 0.3);
+}
+
+[data-mode="3d"] .model-viewer-container canvas {
+  border-radius: calc(var(--radius) - 2px);
+}
