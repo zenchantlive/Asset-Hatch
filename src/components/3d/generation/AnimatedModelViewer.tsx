@@ -33,6 +33,8 @@ import type { AnimationState } from "./types/3d-queue-types";
 /** Props for AnimatedModelViewer component */
 interface AnimatedModelViewerProps {
     modelUrl: string;
+    /** Optional preset name to display (e.g., "Climb") instead of raw animation name */
+    presetName?: string;
     autoRotate?: boolean;
     autoPlay?: boolean;
     className?: string;
@@ -189,6 +191,7 @@ function AnimatedGLBModel({ url, isPlaying, onLoad, onStateChange }: AnimatedGLB
 /** Displays animated GLB models with playback controls */
 export function AnimatedModelViewer({
     modelUrl,
+    presetName,
     autoRotate = false,
     autoPlay = true,
     className = "",
@@ -284,8 +287,8 @@ export function AnimatedModelViewer({
                     >
                         {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
                     </button>
-                    {/* Animation Name */}
-                    <span className="text-xs text-white/70">{animState.currentAnimation || "Animation"}</span>
+                    {/* Animation Name - show preset name if provided, otherwise raw animation name */}
+                    <span className="text-xs text-white/70">{presetName || animState.currentAnimation || "Animation"}</span>
                     {/* Progress Bar */}
                     <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-yellow-400 transition-all" style={{ width: `${animState.progress * 100}%` }} />
