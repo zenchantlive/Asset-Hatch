@@ -22,10 +22,17 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Validate it's a Tripo URL
-    if (!url.startsWith('https://tripo-data.')) {
+    // Validate it's a legitimate Tripo URL to prevent SSRF
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch (_) {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    }
+
+    if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('.tripo3d.ai')) {
       return NextResponse.json(
-        { error: 'Invalid URL - must be from tripo-data domain' },
+        { error: 'Invalid URL - must be a secure URL from a tripo3d.ai subdomain' },
         { status: 400 }
       );
     }
