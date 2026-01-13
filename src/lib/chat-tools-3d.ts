@@ -162,13 +162,13 @@ function createUpdatePlan3DTool(projectId: string) {
             try {
                 // Persist to SQLite as a MemoryFile
                 await prisma.memoryFile.upsert({
-                    where: { id: `${projectId}-plan` },
-                    update: { content: planMarkdown },
-                    create: {
-                        id: `${projectId}-plan`,
-                        projectId: projectId,
-                        type: 'plan-3d.md',
-                        content: planMarkdown,
+                  where: { id: `${projectId}-plan-3d` },
+                  update: { content: planMarkdown },
+                  create: {
+                    id: `${projectId}-plan-3d`,
+                    projectId,
+                    type: 'plan-3d.md',
+                    content: planMarkdown,
                     },
                 });
 
