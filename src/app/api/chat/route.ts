@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     // Check if project is in 3D mode for conditional tool/prompt selection
     // Note: mode field exists in schema.prisma but client may need regeneration
-    const projectMode = (existingProject as { mode?: string }).mode;
+    const projectMode = existingProject.mode;
     const is3DMode = projectMode === '3d';
     console.log(`🎮 Project mode: ${is3DMode ? '3D' : '2D'}`);
 
