@@ -54,7 +54,10 @@
       "mcp__plugin_serena_serena__get_symbols_overview",
       "Bash(bun run:*)",
       "mcp__plugin_greptile_greptile__get_merge_request",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "mcp__mcp-agent-mail__health_check",
+      "mcp__mcp-agent-mail__macro_start_session",
+      "mcp__mcp-agent-mail__install_precommit_guard"
     ]
   }
 }
