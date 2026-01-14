@@ -163,7 +163,9 @@ export async function POST(request: NextRequest) {
         // Persist to database
         try {
             const skyboxAssetId = `${projectId}-skybox`;
-            await prisma.generated3DAsset.upsert({
+            console.log("💾 Attempting to save skybox to DB:", { projectId, skyboxAssetId, imageUrlLength: result.imageUrl?.length || 0 });
+
+            const savedAsset = await prisma.generated3DAsset.upsert({
                 where: {
                     projectId_assetId: {
                         projectId,
@@ -187,9 +189,14 @@ export async function POST(request: NextRequest) {
                     isRiggable: false,
                 },
             });
-            console.log("💾 Skybox saved to database:", skyboxAssetId);
+            console.log("✅ Skybox saved to database:", { id: savedAsset.id, assetId: savedAsset.assetId, status: savedAsset.status });
         } catch (dbError) {
-            console.error("⚠️ Failed to save skybox to DB:", dbError);
+            console.error("❌ CRITICAL: Failed to save skybox to Prisma DB");
+            console.error("   Error type:", dbError instanceof Error ? dbError.constructor.name : typeof dbError);
+            console.error("   Error message:", dbError instanceof Error ? dbError.message : String(dbError));
+            if (dbError instanceof Error && dbError.stack) {
+                console.error("   Stack:", dbError.stack.split('\n').slice(0, 5).join('\n'));
+            }
             // Don't fail the request if DB save fails, just warn
         }
 

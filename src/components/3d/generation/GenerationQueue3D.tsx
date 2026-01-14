@@ -141,8 +141,14 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 // Fetch existing asset states from database
                 try {
                     const response = await fetch(`/api/projects/${projectId}/3d-assets`);
+                    console.log("🌐 3D Assets API response status:", response.status);
                     if (response.ok) {
                         const data = await response.json();
+                        console.log("🌐 3D Assets API response data:", {
+                            success: data.success,
+                            assetsCount: Array.isArray(data.assets) ? data.assets.length : "not an array",
+                            assets: data.assets,
+                        });
                         if (data.success && Array.isArray(data.assets)) {
                             // Map DB assets to local state
                             const states = new Map<string, Asset3DState>();
@@ -174,6 +180,15 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                                 // Find matching parsed asset OR check if it's the manually injected Skybox
                                 const matchingParsed = parsed.find(p => p.id === dbAsset.assetId);
                                 const isSkyboxAsset = dbAsset.assetId === `${projectId}-skybox`;
+
+                                // DEBUG: Log skybox detection
+                                if (isSkyboxAsset) {
+                                    console.log("🌅 Skybox asset found in DB response:", {
+                                        assetId: dbAsset.assetId,
+                                        status: dbAsset.status,
+                                        draftModelUrl: dbAsset.draftModelUrl ? `${dbAsset.draftModelUrl.slice(0, 50)}...` : "MISSING",
+                                    });
+                                }
 
                                 if (matchingParsed || isSkyboxAsset) {
                                     // Use string for initial status (DB may have 'queued' which UI type doesn't include)

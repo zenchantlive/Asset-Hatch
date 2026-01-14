@@ -50,11 +50,21 @@ export async function GET(
             where.approvalStatus = status;
         }
 
+        // DEBUG: Log query parameters
+        console.log("🔍 GET /api/projects/[id]/3d-assets - Query:", { projectId, status: status || "any", where });
+
         // Fetch assets
         const assets = await prisma.generated3DAsset.findMany({
             where,
             orderBy: { createdAt: "desc" },
         });
+
+        // DEBUG: Log fetched assets
+        console.log("📦 3d-assets API - Fetched", assets.length, "assets:", assets.map(a => ({
+            assetId: a.assetId,
+            status: a.status,
+            hasDraftUrl: !!a.draftModelUrl,
+        })));
 
         // Database record type matching Prisma schema
         interface DbGenerated3DAsset {
