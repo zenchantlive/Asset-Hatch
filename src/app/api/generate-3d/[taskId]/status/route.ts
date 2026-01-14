@@ -223,19 +223,26 @@ export async function GET(
     // 2. Find database record by taskId (draft, rig, OR animation)
     const matchResult = await findAssetByTaskId(taskId);
 
-    // 3. Verify user owns the project (if authenticated and asset found)
-    if (matchResult && session?.user?.id) {
-      const project = await prisma.project.findUnique({
-        where: { id: matchResult.asset.projectId },
-        select: { userId: true },
-      });
-
-      if (project && project.userId !== session.user.id) {
+    // 3. Verify user owns the project (authentication required)
+    if (!session?.user?.id) {
         return NextResponse.json(
-          { error: 'You do not have permission to access this asset' },
-          { status: 403 }
+            { error: 'Authentication required to access this asset' },
+            { status: 401 }
         );
-      }
+    }
+
+    if (matchResult) {
+        const project = await prisma.project.findUnique({
+            where: { id: matchResult.asset.projectId },
+            select: { userId: true },
+        });
+
+        if (project && project.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: 'You do not have permission to access this asset' },
+                { status: 403 }
+            );
+        }
     }
 
     // 3. Update database if status changed to success or failed

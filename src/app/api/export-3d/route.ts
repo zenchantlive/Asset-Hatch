@@ -75,15 +75,24 @@ interface Export3DAssetMetadata {
  * @returns Buffer containing the GLB file
  */
 async function fetchModelAsBuffer(url: string): Promise<Buffer> {
-    // Fetch directly from the URL server-side (no CORS issues)
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch model: ${response.statusText}`);
-    }
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    // Convert to buffer
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    try {
+        // Fetch directly from the URL server-side (no CORS issues)
+        const response = await fetch(url, { signal: controller.signal });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch model: ${response.statusText}`);
+        }
+
+        // Convert to buffer
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
@@ -142,8 +151,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Verify user owns project (if authenticated)
-        if (session?.user?.id && project.userId !== session.user.id) {
+        // Verify user owns project (authentication required)
+        if (!session?.user?.id || project.userId !== session.user.id) {
             return NextResponse.json(
                 { error: "You do not have permission to access this project" },
                 { status: 403 }

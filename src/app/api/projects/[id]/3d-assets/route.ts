@@ -36,8 +36,8 @@ export async function GET(
             );
         }
 
-        // Verify user owns project (if authenticated)
-        if (session?.user?.id && project.userId !== session.user.id) {
+        // Verify user owns project (authentication required)
+        if (!session?.user?.id || project.userId !== session.user.id) {
             return NextResponse.json(
                 { error: "You do not have permission to access this project" },
                 { status: 403 }
