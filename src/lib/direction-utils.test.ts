@@ -392,14 +392,14 @@ describe('direction-utils', () => {
     });
 
     test('returns base name for non-directional assets', () => {
-      const asset = createMockAsset({ name: 'Tree' });
-      expect(getDirectionalAssetFilename(asset)).toBe('tree.png');
+      const asset = createMockAsset({ name: 'Big Tree' });
+      expect(getDirectionalAssetFilename(asset)).toBe('big_tree.png');
     });
 
     test('returns base name when directionState is undefined', () => {
-      const asset = createMockAsset({ name: 'Rock' });
+      const asset = createMockAsset({ name: 'A Rock' });
       delete asset.directionState;
-      expect(getDirectionalAssetFilename(asset)).toBe('rock.png');
+      expect(getDirectionalAssetFilename(asset)).toBe('a_rock.png');
     });
 
     test('handles uppercase names', () => {
