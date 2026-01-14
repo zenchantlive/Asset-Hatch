@@ -167,12 +167,14 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                                 taskId: string;
                             }[] = [];
 
-                            // Iterate over parsed assets to ensure we only map valid ones
-                            // But use data from DB where available
+                            // Iterate over DB assets and hydrate their state
+                            // Include both parsed plan assets AND manually injected Skybox
                             (data.assets as DBAssetResponse[]).forEach((dbAsset) => {
-                                // Find matching parsed asset to ensure validity
+                                // Find matching parsed asset OR check if it's the manually injected Skybox
                                 const matchingParsed = parsed.find(p => p.id === dbAsset.assetId);
-                                if (matchingParsed) {
+                                const isSkyboxAsset = dbAsset.assetId === `${projectId}-skybox`;
+
+                                if (matchingParsed || isSkyboxAsset) {
                                     // Use string for initial status (DB may have 'queued' which UI type doesn't include)
                                     let hydratedStatus: string = dbAsset.status;
 

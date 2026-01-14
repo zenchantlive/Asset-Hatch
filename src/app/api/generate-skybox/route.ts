@@ -156,6 +156,37 @@ export async function POST(request: NextRequest) {
             modelId: result.modelId,
         };
 
+        // Persist to database
+        try {
+            const skyboxAssetId = `${projectId}-skybox`;
+            await prisma.generated3DAsset.upsert({
+                where: {
+                    projectId_assetId: {
+                        projectId,
+                        assetId: skyboxAssetId,
+                    },
+                },
+                update: {
+                    status: 'complete', // Skyboxes are complete immediately (no rigging)
+                    draftModelUrl: result.imageUrl, // We reuse this field for the image
+                    promptUsed: prompt,
+                    updatedAt: new Date(),
+                },
+                create: {
+                    projectId,
+                    assetId: skyboxAssetId,
+                    status: 'complete',
+                    draftModelUrl: result.imageUrl,
+                    promptUsed: prompt,
+                    isRiggable: false,
+                },
+            });
+            console.log("💾 Skybox saved to database:", skyboxAssetId);
+        } catch (dbError) {
+            console.error("⚠️ Failed to save skybox to DB:", dbError);
+            // Don't fail the request if DB save fails, just warn
+        }
+
         return NextResponse.json(response);
     } catch (error) {
         console.error("❌ Skybox generation error:", error);

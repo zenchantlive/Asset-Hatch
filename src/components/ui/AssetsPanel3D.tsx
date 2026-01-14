@@ -246,10 +246,21 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                   className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
                   onClick={() => setSelectedAsset(asset)}
                 >
-                  {/* Placeholder for 3D model thumbnail */}
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                    <Box className="w-12 h-12 text-cyan-400/50" />
-                  </div>
+                  {/* Use image for Skybox, otherwise placeholder */}
+                  {asset.asset_id.endsWith('-skybox') && asset.draft_model_url ? (
+                    <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={asset.draft_model_url}
+                        alt="Skybox"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                      <Box className="w-12 h-12 text-cyan-400/50" />
+                    </div>
+                  )}
 
                   {/* Asset info */}
                   <div>
@@ -259,9 +270,19 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
 
                   {/* Status badges */}
                   <div className="flex flex-wrap gap-2">
-                    {getStatusBadge(asset)}
-                    {getRigBadge(asset)}
-                    {getAnimationBadge(asset)}
+                    {/* Skybox Badge */}
+                    {asset.asset_id.endsWith('-skybox') ? (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
+                        <Box className="h-3 w-3" />
+                        <span>Skybox</span>
+                      </div>
+                    ) : (
+                      <>
+                        {getStatusBadge(asset)}
+                        {getRigBadge(asset)}
+                        {getAnimationBadge(asset)}
+                      </>
+                    )}
                   </div>
 
                   {/* Metadata */}
@@ -292,17 +313,38 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                 <div>
                   <h3 className="text-lg font-semibold text-white/90">{selectedAsset.asset_id}</h3>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {getStatusBadge(selectedAsset)}
-                    {getRigBadge(selectedAsset)}
-                    {getAnimationBadge(selectedAsset)}
+                    {selectedAsset.asset_id.endsWith('-skybox') ? (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
+                        <Box className="h-3 w-3" />
+                        <span>Skybox</span>
+                      </div>
+                    ) : (
+                      <>
+                        {getStatusBadge(selectedAsset)}
+                        {getRigBadge(selectedAsset)}
+                        {getAnimationBadge(selectedAsset)}
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Placeholder for 3D model viewer */}
-                <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                  <Box className="w-16 h-16 text-cyan-400/50" />
-                  <p className="absolute bottom-4 text-xs text-white/40">3D Model Viewer</p>
-                </div>
+                {/* Skybox Preview or 3D Model Viewer Placeholder */}
+                {selectedAsset.asset_id.endsWith('-skybox') && selectedAsset.draft_model_url ? (
+                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selectedAsset.draft_model_url}
+                      alt="Skybox Full"
+                      className="w-full h-full object-cover"
+                    />
+                    <p className="absolute bottom-4 left-4 text-xs text-white/80 bg-black/50 px-2 py-1 rounded">2D Preview</p>
+                  </div>
+                ) : (
+                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                    <Box className="w-16 h-16 text-cyan-400/50" />
+                    <p className="absolute bottom-4 text-xs text-white/40">3D Model Viewer</p>
+                  </div>
+                )}
 
                 {/* Prompt */}
                 <div className="bg-black/20 rounded-lg p-3 border border-white/10">
@@ -315,7 +357,9 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                   <p className="text-xs text-white/60 font-semibold">Model Files:</p>
                   {selectedAsset.draft_model_url && (
                     <div className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
-                      <span className="text-sm text-white/80">Draft Model</span>
+                      <span className="text-sm text-white/80">
+                        {selectedAsset.asset_id.endsWith('-skybox') ? "Skybox Image" : "Draft Model"}
+                      </span>
                       <Button size="sm" variant="outline" className="h-7 text-xs">
                         Download
                       </Button>
@@ -352,12 +396,14 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                     <span className="text-white/60">Created:</span>
                     <span className="ml-2 text-white/90 font-medium">{formatTimestamp(selectedAsset.created_at)}</span>
                   </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Riggable:</span>
-                    <span className="ml-2 text-white/90 font-medium">
-                      {selectedAsset.is_riggable ? 'Yes' : 'No'}
-                    </span>
-                  </div>
+                  {!selectedAsset.asset_id.endsWith('-skybox') && (
+                    <div className="bg-black/20 rounded p-2 border border-white/10">
+                      <span className="text-white/60">Riggable:</span>
+                      <span className="ml-2 text-white/90 font-medium">
+                        {selectedAsset.is_riggable ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

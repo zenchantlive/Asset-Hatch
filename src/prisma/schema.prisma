@@ -211,4 +211,6 @@ model Generated3DAsset {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@unique([projectId, assetId])
 }

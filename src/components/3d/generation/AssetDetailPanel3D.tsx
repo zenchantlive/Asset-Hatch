@@ -127,20 +127,7 @@ export function AssetDetailPanel3D({
     asset,
     assetState,
 }: AssetDetailPanel3DProps) {
-    // Check if this is a skybox asset - show specialized UI
-    if (asset.category === "Skybox") {
-        // Extract projectId from asset.id (format: projectId-skybox)
-        const projectId = asset.id.replace("-skybox", "");
-
-        return (
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Skybox generator UI */}
-                <SkyboxSection projectId={projectId} />
-            </div>
-        );
-    }
-
-    // Regular 3D asset UI
+    // Regular 3D asset UI state (hoisted)
     // State to track which version of the model to show
     const [selectedView, setSelectedView] = useState<string>("draft");
 
@@ -154,6 +141,24 @@ export function AssetDetailPanel3D({
         }
         return assetState.draftModelUrl;
     }, [selectedView, assetState]);
+
+    // Check if this is a skybox asset - show specialized UI
+    if (asset.category === "Skybox") {
+        // Extract projectId from asset.id (format: projectId-skybox)
+        const projectId = asset.id.replace("-skybox", "");
+
+        return (
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Skybox generator UI */}
+                <SkyboxSection
+                    projectId={projectId}
+                    initialUrl={assetState.draftModelUrl}
+                />
+            </div>
+        );
+    }
+
+    // Regular 3D asset UI continues below with the hoisted state
     return (
         <div className="flex-1 flex flex-col bg-glass-bg/10">
             {/* Asset Header - shows name, type, and description */}

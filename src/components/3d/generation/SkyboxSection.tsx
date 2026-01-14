@@ -54,6 +54,8 @@ interface SkyboxSectionProps {
     projectId: string;
     // Callback when skybox is generated
     onGenerated?: (url: string) => void;
+    // Initial URL from persistence
+    initialUrl?: string | null;
 }
 
 // =============================================================================
@@ -82,6 +84,7 @@ const DEFAULT_MODEL = "google/gemini-3-pro-image-preview";
 export function SkyboxSection({
     projectId,
     onGenerated,
+    initialUrl,
 }: SkyboxSectionProps) {
     // Section collapse state
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -102,7 +105,7 @@ export function SkyboxSection({
     const [isBlending, setIsBlending] = useState(false);
 
     // Generated skybox URL
-    const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+    const [generatedUrl, setGeneratedUrl] = useState<string | null>(initialUrl || null);
 
     // Error state
     const [error, setError] = useState<string | null>(null);
@@ -129,7 +132,8 @@ export function SkyboxSection({
             const blendedUrl = await blendSeams(generatedUrl);
             setGeneratedUrl(blendedUrl);
 
-            // Notify parent of updated URL
+            // Notify parent to update DB if possible (though we don't have a direct endpoint for update yet)
+            // For now, this is client-side only until next generation
             if (onGenerated) {
                 onGenerated(blendedUrl);
             }
