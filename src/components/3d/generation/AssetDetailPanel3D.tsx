@@ -24,6 +24,13 @@ import {
 import { cn } from "@/lib/utils";
 import { ModelViewer } from "./ModelViewer";
 import { AnimatedModelViewer } from "./AnimatedModelViewer";
+import { SkyboxSection } from "./SkyboxSection";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Asset3DState, Asset3DStatus, Asset3DItem } from "./types/3d-queue-types";
 
 // =============================================================================
@@ -39,6 +46,25 @@ interface AssetDetailPanel3DProps {
     // Current generation state of the asset
     assetState: Asset3DState;
 }
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Tooltip messages for each asset status.
+ * Provides educational context about what each status means.
+ */
+const STATUS_TOOLTIPS: Record<Asset3DStatus, string> = {
+    ready: "Asset is ready to generate. Click Generate to start.",
+    generating: "3D model is being created by Tripo AI...",
+    generated: "Draft model complete. You can now rig or approve.",
+    rigging: "Adding skeleton and bones for animation...",
+    rigged: "Model has skeleton. Select animations to apply.",
+    animating: "Applying animation presets to rigged model...",
+    complete: "All processing complete. Approve to add to export.",
+    failed: "An error occurred. Check the error message below.",
+};
 
 // =============================================================================
 // Helper Components
@@ -101,6 +127,7 @@ export function AssetDetailPanel3D({
     asset,
     assetState,
 }: AssetDetailPanel3DProps) {
+    // Regular 3D asset UI state (hoisted)
     // State to track which version of the model to show
     const [selectedView, setSelectedView] = useState<string>("draft");
 
@@ -114,6 +141,26 @@ export function AssetDetailPanel3D({
         }
         return assetState.draftModelUrl;
     }, [selectedView, assetState]);
+
+    // Check if this is a skybox asset - show specialized UI
+    if (asset.category === "Skybox") {
+        // Use projectId from asset if available, otherwise fallback to brittle slicing
+        const projectId = asset.projectId || (asset.id.endsWith('-skybox')
+          ? asset.id.slice(0, -'-skybox'.length)
+          : asset.id);
+
+        return (
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Skybox generator UI */}
+                <SkyboxSection
+                    projectId={projectId}
+                    initialUrl={assetState.draftModelUrl}
+                />
+            </div>
+        );
+    }
+
+    // Regular 3D asset UI continues below with the hoisted state
     return (
         <div className="flex-1 flex flex-col bg-glass-bg/10">
             {/* Asset Header - shows name, type, and description */}
@@ -219,7 +266,16 @@ export function AssetDetailPanel3D({
             <div className="px-4 py-2 border-t border-white/5 flex items-center gap-4">
                 {/* Main status */}
                 <span className="text-xs text-white/50">Status:</span>
-                <StatusBadge status={assetState.status} progress={assetState.progress} />
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span>
+                                <StatusBadge status={assetState.status} progress={assetState.progress} />
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{STATUS_TOOLTIPS[assetState.status]}</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
 
                 {/* Rig status for RIG assets that are generated */}
                 {assetState.status === "generated" && asset.shouldRig && (

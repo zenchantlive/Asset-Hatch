@@ -177,6 +177,8 @@ export interface Asset3DItem {
     shouldRig: boolean;
     // Animation presets requested (if rigging)
     animations?: AnimationPreset[];
+    // Project ID for linkage (optional, used for skybox)
+    projectId?: string;
 }
 
 /**

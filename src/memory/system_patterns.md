@@ -405,3 +405,12 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 ---
 
 **Next Update:** When we establish a new pattern or encounter a new gotcha.
+
+### Client-Side Image Processing
+*   **Pattern:** For light image manipulations (like seam blending or resizing), prefer using the HTML5 Canvas API in the browser over sending data back to the server.
+*   **Why:**
+    - Zero server load.
+    - Faster feedback for user (no network roundtrip).
+    - Keeps sensitive/large image data local until final save.
+*   **Example:** `src/lib/image-processing.ts` (`blendSeams` function).
+*   **Gotcha:** Canvas becomes "tainted" if drawing cross-origin images without `crossOrigin="anonymous"`. Always handle CORS requirements for source images.

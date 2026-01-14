@@ -30,6 +30,8 @@ export interface Parsed3DAsset {
     shouldRig: boolean;
     // Animation presets to apply after rigging
     animationsRequested: AnimationPreset[];
+    // Project ID for linkage
+    projectId: string;
 }
 
 /**
@@ -251,5 +253,6 @@ function finalizeAsset(
         description: partial.description || '',
         shouldRig: partial.shouldRig ?? false,
         animationsRequested: partial.animationsRequested || [],
+        projectId: projectId,
     };
 }

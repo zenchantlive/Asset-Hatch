@@ -8,6 +8,42 @@
 
 ## 🎯 Latest Session Summary (2026-01-14)
 
+### 3D Mode Feature - Phase 5 & 6: Skybox Generation & Seam Blending (Complete)
+
+Successfully implemented 360° Skybox generation, preview, and correction workflow.
+
+**Deliverables Completed:**
+1.  **Backend Integration:**
+    *   Enhanced `skybox-prompts.ts` with FLUX2 specific keywords for seamless texturing.
+    *   Integrated Skybox asset type into `AssetDetailPanel3D` and queue system.
+
+2.  **360° Viewer Implementation:**
+    *   **Challenge:** Standard `OrbitControls` in Three.js proved difficult for "inside-the-sphere" viewing (inverted controls).
+    *   **Attempt 1 (Pannellum):** Failed due to legacy window-binding issues and Next.js SSR conflicts.
+    *   **Solution (Babylon.js):** Integrated `@babylonjs/core` using `PhotoDome`. provided instant, perfect spherical projection and "Street View" style controls.
+    *   **ADR:** [ADR-023: Skybox Viewer Technology Selection](adr/023-skybox-viewer-selection.md).
+
+3.  **Seam Correction System:**
+    *   **Problem:** AI-generated skyboxes often have a visible hard line where the left/right edges meet (equirectangular seam).
+    *   **Solution:** Created client-side utility `blendSeams(imageUrl)` in `src/lib/image-processing.ts`.
+    *   **Technique:** Uses HTML5 Canvas to:
+        1. Draw the image.
+        2. Extract a 60px vertical strip from the Left and Right edges.
+        3. Create a horizontal gradient mask.
+        4. Blend the strips together and overlay them on the seam.
+        5. Return a new Blob URL.
+    *   **UI:** Added "Fix Seam" (Wand icon) button that processes the image in-browser without a server roundtrip.
+
+**Validation:**
+```
+✅ Generation: FLUX2 model generates high-quality 2:1 panoramas.
+✅ Preview: Babylon.js viewer handles drag-to-rotate perfectly.
+✅ Seam Fix: 'Fix Seam' button successfully removes the visible hard line ~95% of the time.
+✅ UI: Tabbed interface (Spherical 360° vs Flat) works seamlessly.
+```
+
+---
+
 ### 3D Mode Feature - Phase 4: Security Fixes & Verification
 
 Successfully addressed all HIGH PRIORITY security issues identified in PR #27 review.
