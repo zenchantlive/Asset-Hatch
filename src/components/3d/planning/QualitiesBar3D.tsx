@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, Save } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, Lock, Unlock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -10,6 +10,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { meshStyleSchema, textureQualitySchema } from "@/lib/schemas-3d";
 import { db } from "@/lib/client-db";
 import type { ProjectQualities } from "@/components/planning/QualitiesBar";
@@ -49,6 +57,10 @@ interface QualitiesBar3DProps {
     onSave?: () => void;
     mode?: "bar" | "popover";
     defaultExpanded?: boolean;
+    /** Whether parameters are locked (e.g., during Generation phase) */
+    locked?: boolean;
+    /** Callback when user confirms unlock in dialog */
+    onUnlock?: () => void;
 }
 
 export function QualitiesBar3D({
@@ -58,9 +70,12 @@ export function QualitiesBar3D({
     onSave,
     mode = "bar",
     defaultExpanded = false,
+    locked = false,
+    onUnlock,
 }: QualitiesBar3DProps) {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [isSaving, setIsSaving] = useState(false);
+    const [showUnlockDialog, setShowUnlockDialog] = useState(false);
 
     // Internal state for 3D-specific qualities
     const [meshStyle, setMeshStyle] = useState(externalQualities.meshStyle || "realistic");
@@ -129,6 +144,7 @@ export function QualitiesBar3D({
                         setMeshStyle(value);
                         onQualitiesChange({ ...externalQualities, meshStyle: value });
                     }}
+                    disabled={locked}
                 >
                     <SelectTrigger className="w-24 h-8 bg-white/5 border-white/10 text-xs text-white">
                         <SelectValue placeholder="Mesh" />
@@ -172,9 +188,26 @@ export function QualitiesBar3D({
                             {textureQuality}
                         </span>
                     </div>
+                    {locked && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-300 text-xs">
+                            <Lock className="h-3 w-3" />
+                            <span>Locked</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {locked && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowUnlockDialog(true)}
+                            className="text-yellow-400 hover:text-yellow-300"
+                            title="Unlock parameters"
+                        >
+                            <Unlock className="h-4 w-4" />
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -182,15 +215,6 @@ export function QualitiesBar3D({
                         className="text-white/60 hover:text-white"
                     >
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="bg-cyan-600 hover:bg-cyan-500 text-white"
-                    >
-                        <Save className="h-4 w-4 mr-1" />
-                        {isSaving ? "Saving..." : "Save"}
                     </Button>
                 </div>
             </div>
@@ -208,6 +232,7 @@ export function QualitiesBar3D({
                                     setMeshStyle(value);
                                     onQualitiesChange({ ...externalQualities, meshStyle: value });
                                 }}
+                                disabled={locked}
                             >
                                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                                     <SelectValue />
@@ -231,6 +256,7 @@ export function QualitiesBar3D({
                                     setTextureQuality(value);
                                     onQualitiesChange({ ...externalQualities, textureQuality: value });
                                 }}
+                                disabled={locked}
                             >
                                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                                     <SelectValue />
@@ -254,6 +280,7 @@ export function QualitiesBar3D({
                                     setPolyCount(value);
                                     onQualitiesChange({ ...externalQualities, polyCount: value });
                                 }}
+                                disabled={locked}
                             >
                                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                                     <SelectValue />
@@ -277,6 +304,7 @@ export function QualitiesBar3D({
                                     setRigging(value);
                                     onQualitiesChange({ ...externalQualities, rigging: value });
                                 }}
+                                disabled={locked}
                             >
                                 <SelectTrigger className="bg-white/5 border-white/10 text-white">
                                     <SelectValue />
@@ -291,8 +319,50 @@ export function QualitiesBar3D({
                             </Select>
                         </div>
                     </div>
+
+                    {/* Save Button - moved inside expanded section */}
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
+                        >
+                            <Save className="h-4 w-4 mr-2" />
+                            {isSaving ? "Saving..." : "Save Parameters"}
+                        </Button>
+                    </div>
                 </div>
             )}
+
+            {/* Unlock Warning Dialog */}
+            <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            Unlock Parameters?
+                        </DialogTitle>
+                        <DialogDescription>
+                            Changing parameters during generation may affect the style anchor and consistency of generated assets.
+                            Are you sure you want to unlock and modify these parameters?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowUnlockDialog(false)}>
+                            Keep Locked
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                setShowUnlockDialog(false);
+                                onUnlock?.();
+                            }}
+                        >
+                            Unlock Anyway
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

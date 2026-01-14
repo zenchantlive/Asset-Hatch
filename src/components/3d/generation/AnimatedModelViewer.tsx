@@ -25,6 +25,7 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { Loader2, AlertCircle, Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnimationState } from "./types/3d-queue-types";
+import { ANIMATION_PRESET_LABELS } from "@/lib/types/3d-generation";
 
 // =============================================================================
 // Types
@@ -48,6 +49,46 @@ interface AnimatedGLBModelProps {
     isPlaying: boolean;
     onLoad?: () => void;
     onStateChange?: (state: AnimationState) => void;
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Format animation name to be user-friendly
+ * Maps raw animation names (like "NlaTrack") to preset labels when possible
+ */
+function formatAnimationName(rawName: string | null, presetName?: string): string {
+    // If preset name is provided, use it
+    if (presetName) {
+        return presetName;
+    }
+
+    // If no raw name, return generic label
+    if (!rawName) {
+        return "Animation";
+    }
+
+    // Try to match raw name to preset labels
+    // Common patterns: "NlaTrack", "mixamo.com", "Armature|mixamo.com"
+    const lowerName = rawName.toLowerCase();
+    
+    // Check if raw name contains any preset keywords
+    for (const [preset, label] of Object.entries(ANIMATION_PRESET_LABELS)) {
+        const presetKey = preset.replace('preset:', '');
+        if (lowerName.includes(presetKey)) {
+            return label;
+        }
+    }
+
+    // If it's a generic NlaTrack, return "Animation"
+    if (lowerName.includes('nlatrack')) {
+        return "Animation";
+    }
+
+    // Return the raw name as fallback
+    return rawName;
 }
 
 // =============================================================================
@@ -287,8 +328,10 @@ export function AnimatedModelViewer({
                     >
                         {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
                     </button>
-                    {/* Animation Name - show preset name if provided, otherwise raw animation name */}
-                    <span className="text-xs text-white/70">{presetName || animState.currentAnimation || "Animation"}</span>
+                    {/* Animation Name - show formatted name instead of raw NlaTrack */}
+                    <span className="text-xs text-white/70">
+                        {formatAnimationName(animState.currentAnimation, presetName)}
+                    </span>
                     {/* Progress Bar */}
                     <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-yellow-400 transition-all" style={{ width: `${animState.progress * 100}%` }} />
