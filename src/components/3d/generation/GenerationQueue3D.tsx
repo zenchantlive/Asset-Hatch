@@ -27,6 +27,13 @@ import { use3DPolling } from "./hooks/use3DPolling";
 import { AssetTree3D } from "./AssetTree3D";
 import { AssetDetailPanel3D } from "./AssetDetailPanel3D";
 import { AssetActions3D } from "./AssetActions3D";
+import { AddAssetForm } from "./AddAssetForm";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 // =============================================================================
 // Main Component
@@ -59,6 +66,8 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
     const [assetStates, setAssetStates] = useState<Map<string, Asset3DState>>(new Map());
     // Selected animations for the currently selected asset
     const [selectedAnimations, setSelectedAnimations] = useState<Set<AnimationPreset>>(new Set());
+    // Show add asset dialog
+    const [showAddAsset, setShowAddAsset] = useState(false);
 
     // -------------------------------------------------------------------------
     // Hooks
@@ -109,10 +118,23 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                     return;
                 }
 
+                // Add skybox as special first asset
+                const skyboxAsset: Parsed3DAsset = {
+                    id: `${projectId}-skybox`,
+                    name: "Environment Skybox",
+                    description: "360-degree skybox background",
+                    shouldRig: false,
+                    category: "Skybox",
+                    animationsRequested: [],
+                };
+
+                // Prepend skybox to assets
+                const assetsWithSkybox = [skyboxAsset, ...parsed];
+
                 // Set parsed assets
-                setParsedAssets(parsed);
-                if (parsed.length > 0) {
-                    setSelectedAssetId(parsed[0].id);
+                setParsedAssets(assetsWithSkybox);
+                if (assetsWithSkybox.length > 0) {
+                    setSelectedAssetId(assetsWithSkybox[0].id);
                 }
 
                 // Fetch existing asset states from database
@@ -316,6 +338,28 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             }
             return next;
         });
+    }, []);
+
+    // Handle adding a new asset manually
+    const handleAddAsset = useCallback((newAsset: Parsed3DAsset) => {
+        // Add to parsed assets
+        setParsedAssets((prev) => [...prev, newAsset]);
+
+        // Initialize asset state as ready
+        setAssetStates((prev) => {
+            const next = new Map(prev);
+            next.set(newAsset.id, {
+                status: "ready",
+                progress: 0,
+            });
+            return next;
+        });
+
+        // Select the newly added asset
+        setSelectedAssetId(newAsset.id);
+
+        // Close the dialog
+        setShowAddAsset(false);
     }, []);
 
     // Generate 3D model for selected asset
@@ -639,19 +683,47 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
 
     return (
         <div className="w-full h-full flex">
-            {/* Left Panel: Asset Tree */}
-            <AssetTree3D
-                assetsByCategory={assetsByCategory}
-                selectedAssetId={selectedAssetId}
-                onSelectAsset={setSelectedAssetId}
-                collapsedCategories={collapsedCategories}
-                onToggleCategory={toggleCategory}
-                assetStates={assetStates}
-            />
+            {/* Left Panel: Asset Tree with Add Button */}
+            <div className="flex flex-col">
+                {/* Add Asset Button */}
+                <div className="p-2 border-b border-white/10">
+                    <button
+                        onClick={() => setShowAddAsset(true)}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-sm font-medium transition-colors"
+                    >
+                        <span className="text-lg">+</span>
+                        Add Asset
+                    </button>
+                </div>
 
-            {/* Right Panel: Asset Detail and Actions */}
+                {/* Asset Tree */}
+                <AssetTree3D
+                    assetsByCategory={assetsByCategory}
+                    selectedAssetId={selectedAssetId}
+                    onSelectAsset={setSelectedAssetId}
+                    collapsedCategories={collapsedCategories}
+                    onToggleCategory={toggleCategory}
+                    assetStates={assetStates}
+                />
+            </div>
+
+            {/* Add Asset Dialog */}
+            <Dialog open={showAddAsset} onOpenChange={setShowAddAsset}>
+                <DialogContent className="bg-glass-panel border-glass-border max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add New Asset</DialogTitle>
+                    </DialogHeader>
+                    <AddAssetForm
+                        projectId={projectId}
+                        onSubmit={handleAddAsset}
+                        onCancel={() => setShowAddAsset(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+
+            {/* Right Panel: Asset Detail, Actions, and Skybox */}
             {selectedAsset ? (
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col overflow-y-auto">
                     {/* Asset Detail Panel */}
                     <AssetDetailPanel3D
                         key={selectedAsset.id}
@@ -675,8 +747,10 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 </div>
             ) : (
                 // No asset selected placeholder
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-white/40">Select an asset from the queue</p>
+                <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex items-center justify-center">
+                        <p className="text-white/40">Select an asset from the queue</p>
+                    </div>
                 </div>
             )}
         </div>
