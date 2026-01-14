@@ -33,6 +33,7 @@ export function SimpleSkyboxViewer({
 
         const canvas = canvasRef.current;
         let disposed = false;
+        let resizeHandler: (() => void) | null = null;
 
         // Dynamically import Babylon.js
         import('@babylonjs/core').then((BABYLON) => {
@@ -93,21 +94,15 @@ export function SimpleSkyboxViewer({
                 });
 
                 // Handle resize
-                const handleResize = () => {
+                resizeHandler = () => {
                     engine.resize();
                 };
-                window.addEventListener('resize', handleResize);
+                window.addEventListener('resize', resizeHandler);
 
                 // Fallback timeout for loading state
                 setTimeout(() => {
                     if (!disposed) setIsLoading(false);
                 }, 3000);
-
-                // Cleanup function
-                return () => {
-                    window.removeEventListener('resize', handleResize);
-                    engine.dispose();
-                };
 
             } catch (err) {
                 console.error('Babylon.js error:', err);
@@ -122,6 +117,9 @@ export function SimpleSkyboxViewer({
 
         return () => {
             disposed = true;
+            if (resizeHandler) {
+                window.removeEventListener('resize', resizeHandler);
+            }
             if (engineRef.current) {
                 try {
                     (engineRef.current as { dispose: () => void }).dispose();

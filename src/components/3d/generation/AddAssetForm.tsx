@@ -85,8 +85,8 @@ export function AddAssetForm({ projectId, onSubmit, onCancel }: AddAssetFormProp
             return;
         }
 
-        // Generate unique ID for the asset
-        const uniqueId = `${projectId}-3d-asset-${Date.now()}`;
+        // Generate a robust unique ID for the asset
+        const uniqueId = crypto.randomUUID();
 
         // Create new asset structure matching Parsed3DAsset
         const newAsset: Parsed3DAsset = {
