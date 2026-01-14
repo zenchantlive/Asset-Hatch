@@ -93,7 +93,7 @@ describe('cost-tracker', () => {
     test('handles zero estimated cost', () => {
       const result = compareCosts(0, 0.01);
       expect(result.difference).toBe(0.01);
-      expect(result.percentDiff).toBe(0);
+      expect(result.percentDiff).toBe(Infinity);
       expect(result.accuracy).toBe('off');
     });
 
