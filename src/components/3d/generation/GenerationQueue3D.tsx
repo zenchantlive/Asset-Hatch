@@ -119,13 +119,14 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 }
 
                 // Add skybox as special first asset
-                const skyboxAsset: Parsed3DAsset = {
+                const skyboxAsset: Parsed3DAsset & { projectId: string } = {
                     id: `${projectId}-skybox`,
                     name: "Environment Skybox",
                     description: "360-degree skybox background",
                     shouldRig: false,
                     category: "Skybox",
                     animationsRequested: [],
+                    projectId: projectId,
                 };
 
                 // Prepend skybox to assets
@@ -300,6 +301,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 description: asset.description,
                 shouldRig: asset.shouldRig,
                 animations: asset.animationsRequested,
+                projectId: (asset as any).projectId,
             });
         }
         return grouped;
@@ -316,6 +318,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             description: found.description,
             shouldRig: found.shouldRig,
             animations: found.animationsRequested,
+            projectId: (found as any).projectId,
         } as Asset3DItem;
     }, [parsedAssets, selectedAssetId]);
 

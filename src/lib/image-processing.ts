@@ -26,33 +26,50 @@ export async function blendSeams(imageUrl: string, blendPercentage: number = 0.0
                 // 1. Draw the original image
                 ctx.drawImage(img, 0, 0);
 
-                // 2. Draw the right edge on the left side (for wrapping)
-                ctx.drawImage(img, width - blendWidth, 0, blendWidth, height, 0, 0, blendWidth, height);
+                // Create a temporary canvas for the blended strips
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = blendWidth;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                if (!tempCtx) {
+                    return reject(new Error("Could not get temp canvas context"));
+                }
 
-                // 3. Create a gradient that fades from transparent to black
-                const leftGradient = ctx.createLinearGradient(0, 0, blendWidth, 0);
-                leftGradient.addColorStop(0, 'rgba(0,0,0,0)');
-                leftGradient.addColorStop(1, 'rgba(0,0,0,1)');
+                // 2. Blend Left Edge (using right edge of image)
+                // Draw right edge strip onto temp canvas
+                tempCtx.drawImage(img, width - blendWidth, 0, blendWidth, height, 0, 0, blendWidth, height);
+                
+                // Create gradient for left side (fades in)
+                const leftGradient = tempCtx.createLinearGradient(0, 0, blendWidth, 0);
+                leftGradient.addColorStop(0, 'rgba(0,0,0,1)');
+                leftGradient.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                // Apply mask to temp canvas
+                tempCtx.globalCompositeOperation = 'destination-out';
+                tempCtx.fillStyle = leftGradient;
+                tempCtx.fillRect(0, 0, blendWidth, height);
+                tempCtx.globalCompositeOperation = 'source-over';
 
-                // 4. Apply the gradient as a mask to blend the left edge
-                ctx.globalCompositeOperation = 'destination-in';
-                ctx.fillStyle = leftGradient;
-                ctx.fillRect(0, 0, blendWidth, height);
-                ctx.globalCompositeOperation = 'source-over';
+                // Draw blended strip onto main canvas
+                ctx.drawImage(tempCanvas, 0, 0);
 
-                // 5. Draw the left edge on the right side
-                ctx.drawImage(img, 0, 0, blendWidth, height, width - blendWidth, 0, blendWidth, height);
+                // 3. Blend Right Edge (using left edge of image)
+                tempCtx.clearRect(0, 0, blendWidth, height);
+                tempCtx.drawImage(img, 0, 0, blendWidth, height, 0, 0, blendWidth, height);
 
-                // 6. Create a gradient that fades from black to transparent
-                const rightGradient = ctx.createLinearGradient(width - blendWidth, 0, width, 0);
-                rightGradient.addColorStop(0, 'rgba(0,0,0,1)');
-                rightGradient.addColorStop(1, 'rgba(0,0,0,0)');
+                // Create gradient for right side (fades in from right)
+                const rightGradient = tempCtx.createLinearGradient(0, 0, blendWidth, 0);
+                rightGradient.addColorStop(0, 'rgba(0,0,0,0)');
+                rightGradient.addColorStop(1, 'rgba(0,0,0,1)');
 
-                // 7. Apply the gradient to blend the right edge
-                ctx.globalCompositeOperation = 'destination-in';
-                ctx.fillStyle = rightGradient;
-                ctx.fillRect(width - blendWidth, 0, blendWidth, height);
-                ctx.globalCompositeOperation = 'source-over';
+                // Apply mask to temp canvas
+                tempCtx.globalCompositeOperation = 'destination-out';
+                tempCtx.fillStyle = rightGradient;
+                tempCtx.fillRect(0, 0, blendWidth, height);
+                tempCtx.globalCompositeOperation = 'source-over';
+
+                // Draw blended strip onto main canvas
+                ctx.drawImage(tempCanvas, width - blendWidth, 0);
 
                 resolve(canvas.toDataURL('image/jpeg', 0.95));
 

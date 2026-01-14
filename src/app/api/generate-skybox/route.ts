@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
                     status: 'complete', // Skyboxes are complete immediately (no rigging)
                     draftModelUrl: result.imageUrl, // We reuse this field for the image
                     promptUsed: prompt,
+                    fullPrompt: fullPrompt,
                     updatedAt: new Date(),
                 },
                 create: {
@@ -178,6 +179,7 @@ export async function POST(request: NextRequest) {
                     status: 'complete',
                     draftModelUrl: result.imageUrl,
                     promptUsed: prompt,
+                    fullPrompt: fullPrompt,
                     isRiggable: false,
                 },
             });
