@@ -301,7 +301,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 description: asset.description,
                 shouldRig: asset.shouldRig,
                 animations: asset.animationsRequested,
-                projectId: (asset as any).projectId,
+                projectId: asset.projectId,
             });
         }
         return grouped;
@@ -318,7 +318,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             description: found.description,
             shouldRig: found.shouldRig,
             animations: found.animationsRequested,
-            projectId: (found as any).projectId,
+            projectId: found.projectId,
         } as Asset3DItem;
     }, [parsedAssets, selectedAssetId]);
 

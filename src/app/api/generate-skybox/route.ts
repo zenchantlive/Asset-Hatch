@@ -97,16 +97,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log("🌌 Starting skybox generation:", {
-            projectId,
-            prompt: prompt.substring(0, 50) + "...",
-            preset,
-            model: modelId,
-        });
-
-        // Verify the project exists
+        // Verify the project exists and user has access
         const project = await prisma.project.findUnique({
             where: { id: projectId },
+            select: { id: true, userId: true }
         });
 
         if (!project) {
@@ -115,6 +109,16 @@ export async function POST(request: NextRequest) {
                 { status: 404 }
             );
         }
+
+        // AuthZ Check: Ensure user owns the project
+        if (!session?.user?.id || project.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: "Unauthorized: You do not have access to this project" },
+                { status: 403 }
+            );
+        }
+
+        console.log("🌌 Starting skybox generation for project:", projectId);
 
         // Get model config from registry
         const model = getModelById(modelId) || getDefaultModel("multimodal");
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
             preset: preset || 'custom',
         });
 
-        console.log("📝 FLUX2-optimized skybox prompt:", fullPrompt.substring(0, 200) + "...");
+        console.log("📝 Generating skybox with FLUX2-optimized prompt");
 
         // Call OpenRouter using shared utility
         const result = await generateFluxImage({

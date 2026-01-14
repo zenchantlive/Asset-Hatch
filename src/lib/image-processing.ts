@@ -21,7 +21,17 @@ export async function blendSeams(imageUrl: string, blendPercentage: number = 0.0
                 canvas.height = img.height;
                 const width = canvas.width;
                 const height = canvas.height;
-                const blendWidth = Math.floor(width * blendPercentage);
+                
+                // Clamp blend percentage to safe range (0.0 - 0.25) and ensure minimum width
+                const clampedPercentage = Math.max(0.01, Math.min(0.25, blendPercentage));
+                const blendWidth = Math.max(1, Math.floor(width * clampedPercentage));
+
+                // Guard against invalid dimensions
+                if (width < 10 || height < 10 || blendWidth >= width / 2) {
+                    console.warn("Image too small or blend width too large for seam blending");
+                    ctx.drawImage(img, 0, 0);
+                    return resolve(canvas.toDataURL('image/jpeg', 0.95));
+                }
 
                 // 1. Draw the original image
                 ctx.drawImage(img, 0, 0);
