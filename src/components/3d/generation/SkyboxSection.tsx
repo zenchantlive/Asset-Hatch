@@ -129,11 +129,23 @@ export function SkyboxSection({
 
         try {
             setIsBlending(true);
+            setError(null);
             const blendedUrl = await blendSeams(generatedUrl);
             setGeneratedUrl(blendedUrl);
 
-            // Notify parent to update DB if possible (though we don't have a direct endpoint for update yet)
-            // For now, this is client-side only until next generation
+            // Persist the blended image to the database
+            const skyboxAssetId = `${projectId}-skybox`;
+            const response = await fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ draftModelUrl: blendedUrl }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save blended skybox to database.');
+            }
+
+            // Notify parent to update its state as well
             if (onGenerated) {
                 onGenerated(blendedUrl);
             }
