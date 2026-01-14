@@ -75,11 +75,13 @@ export interface TripoTextureOutput {
  */
 export interface TripoTaskOutput {
     // Draft model output (text_to_model, image_to_model)
-    model?: TripoModelOutput;
+    // NOTE: For animate_rig and animate_retarget, this is a direct URL string
+    model?: string | TripoModelOutput;
     // PBR-textured model (refine_model)
-    pbr_model?: TripoModelOutput;
+    // NOTE: Can be either a direct URL string OR a TripoModelOutput object depending on API response
+    pbr_model?: string | TripoModelOutput;
     // Rendered preview image
-    rendered_image?: { url: string };
+    rendered_image?: { url: string } | string;
     // PBR texture maps (refine_model)
     base_color_map?: TripoTextureOutput;
     metallic_map?: TripoTextureOutput;

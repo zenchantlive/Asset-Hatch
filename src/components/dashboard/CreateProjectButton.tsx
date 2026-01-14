@@ -18,6 +18,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ModeToggle } from "@/components/ui/ModeToggle";
 import { Plus, Loader2 } from "lucide-react";
 
 interface CreateProjectButtonProps {
@@ -36,6 +37,7 @@ export function CreateProjectButton({
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState("");
+    const [mode, setMode] = useState<"2d" | "3d">("2d");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCreate = async () => {
@@ -44,11 +46,11 @@ export function CreateProjectButton({
         try {
             setIsLoading(true);
 
-            // Create project via API
+            // Create project via API with mode
             const response = await fetch("/api/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: name.trim() }),
+                body: JSON.stringify({ name: name.trim(), mode }),
             });
 
             if (!response.ok) {
@@ -61,6 +63,7 @@ export function CreateProjectButton({
             // Sync will happen on redirect/dashboard load
             router.push(`/project/${newProjectId}/planning`);
             setName("");
+            setMode("2d");
             router.refresh();
 
         } catch (error) {
@@ -90,7 +93,7 @@ export function CreateProjectButton({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4">
+                <div className="py-4 space-y-4">
                     <Input
                         placeholder="My Game Project"
                         value={name}
@@ -101,6 +104,10 @@ export function CreateProjectButton({
                         autoFocus
                         disabled={isLoading}
                     />
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs text-white/60">Project Mode</label>
+                        <ModeToggle value={mode} onValueChange={setMode} disabled={isLoading} />
+                    </div>
                 </div>
 
                 <DialogFooter>

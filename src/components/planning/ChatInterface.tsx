@@ -17,6 +17,12 @@ import {
   generateStyleAnchorSchema,
   finalizeStyleSchema,
 } from "@/lib/schemas";
+// 3D-specific schemas for 3D mode tool validation
+import {
+  updateQuality3DSchema,
+  updatePlan3DSchema,
+  finalizePlan3DSchema,
+} from "@/lib/schemas-3d";
 import type { StyleDraft, GeneratedStyleAnchor } from "@/components/style/StylePreview";
 
 interface UIMessagePart {
@@ -37,6 +43,7 @@ interface ChatInterfaceProps {
   onStyleAnchorGenerated?: (anchor: GeneratedStyleAnchor) => void;
   onStyleFinalized?: () => void;
   mode?: 'planning' | 'style';
+  is3D?: boolean; // Whether the project is in 3D mode
 }
 
 export interface ChatInterfaceHandle {
@@ -53,6 +60,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   onStyleAnchorGenerated,
   onStyleFinalized,
   mode = 'planning',
+  is3D = false,
 }, ref) => {
   const [input, setInput] = useState("");
   const chatId = `chat-${projectId}`;
@@ -157,6 +165,55 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         if (result.success) {
           console.log('✅ Style finalized, proceeding to generation');
           onStyleFinalized?.();
+        }
+        // =========================================================================
+        // 3D Mode Tool Handlers
+        // These are the 3D equivalents of the 2D planning tools.
+        // They update the same state but use different schemas/validation.
+        // =========================================================================
+      } else if (toolCall.toolName === 'updateQuality3D') {
+        // 3D quality update tool - sets mesh style, texture quality, rig preferences
+        const result = updateQuality3DSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Updating 3D quality:', result.data);
+          // Map 3D quality fields to the onQualityUpdate callback
+          // The callback accepts string keys and string values
+          if (result.data.meshStyle) {
+            onQualityUpdate('mesh_style', result.data.meshStyle);
+          }
+          if (result.data.textureQuality) {
+            onQualityUpdate('texture_quality', result.data.textureQuality);
+          }
+          if (result.data.defaultShouldRig !== undefined) {
+            onQualityUpdate('default_should_rig', String(result.data.defaultShouldRig));
+          }
+          if (result.data.defaultAnimations) {
+            onQualityUpdate('default_animations', JSON.stringify(result.data.defaultAnimations));
+          }
+        } else {
+          console.warn('⚠️ 3D quality schema validation failed:', result.error);
+        }
+      } else if (toolCall.toolName === 'updatePlan3D') {
+        // 3D plan update tool - saves markdown with [RIG]/[STATIC] tags
+        const result = updatePlan3DSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Updating 3D plan, length:', result.data.planMarkdown.length, 'chars');
+          onPlanUpdate(result.data.planMarkdown);
+        } else {
+          // Fallback for 'markdown' key if model hallucinates
+          const input = toolCall.input as Record<string, unknown>;
+          const markdown = input?.planMarkdown || input?.markdown;
+          if (typeof markdown === 'string') {
+            console.log('✅ Updating 3D plan (fallback), length:', markdown.length, 'chars');
+            onPlanUpdate(markdown);
+          }
+        }
+      } else if (toolCall.toolName === 'finalizePlan3D') {
+        // 3D finalize tool - skips style phase, goes directly to generation
+        const result = finalizePlan3DSchema.safeParse(toolCall.input);
+        if (result.success) {
+          console.log('✅ Finalizing 3D plan (skipping style phase)');
+          onPlanComplete();
         }
       }
     },
@@ -381,7 +438,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         {/* Preset Prompts Row - Wrapped rows */}
         {!isLoading && (
           <div className="flex flex-wrap gap-2 mb-3 max-w-3xl mx-auto w-full">
-            {getPresetsForMode(mode).map((preset) => (
+            {getPresetsForMode(mode, is3D).map((preset) => (
               <button
                 key={preset.id}
                 onClick={() => setInput(preset.prompt)}
@@ -436,5 +493,3 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
 });
 
 ChatInterface.displayName = "ChatInterface";
-
-

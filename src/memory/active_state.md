@@ -1,42 +1,246 @@
 # Active State - Asset Hatch Development
 
-**Last Updated:** 2026-01-12  
-**Current Phase:** 3D Mode Implementation - Phase 1 Complete  
-**Status:** ✅ Phase 1 Foundation Complete
+**Last Updated:** 2026-01-14
+**Current Phase:** 3D Mode Implementation - Phase 4 UI Complete
+**Status:** ✅ Security Fixes Applied, Ready for Merge
 
 ---
 
-## 🎯 Latest Session Summary (2026-01-12)
+## 🎯 Latest Session Summary (2026-01-14)
 
-### 3D Mode Feature - Phase 1: Foundation
+### 3D Mode Feature - Phase 4: Security Fixes & Verification
 
-Implementing 3D asset generation mode using Tripo3D API, parallel to existing 2D workflow.
+Successfully addressed all HIGH PRIORITY security issues identified in PR #27 review.
 
-**Branch:** `3d-gen-phase-1-foundation`
+**Branch:** `3d-gen-phase-4-ui` (ready to merge)
+
+**Security Fixes Completed:**
+
+1. **Authentication Enabled** (HIGH PRIORITY - FIXED)
+   - `src/app/api/generate-3d/route.ts` - Enabled auth() and added project ownership verification
+   - `src/app/api/generate-3d/[taskId]/status/route.ts` - Enabled auth() and added ownership check
+   - `src/app/api/generate-3d/rig/route.ts` - Enabled auth() and added ownership check
+   - `src/app/api/generate-3d/animate/route.ts` - Enabled auth() and added ownership check
+   - `src/app/api/generate-3d/approve/route.ts` - Added auth() and ownership verification
+   - `src/app/api/export-3d/route.ts` - Added auth() and ownership verification
+   - `src/app/api/projects/[id]/3d-assets/route.ts` - Added auth() and ownership verification
+
+2. **Access Control on Status Polling** (HIGH PRIORITY - FIXED)
+   - Status endpoint now verifies user owns the project before returning task status
+   - Added projectId to AssetMatchResult interface for proper ownership checks
+   - Prevents users from polling other users' task statuses
+
+3. **Feature Verification** (CONFIRMED - ALL COMPLETE)
+   - ✅ **Rigging UI** - Fully implemented in `AssetActions3D.tsx` (lines 117-122)
+   - ✅ **Animation Preset Selection** - Fully implemented in `AssetActions3D.tsx` (lines 124-167)
+   - ✅ **Approval/Reject Workflow** - Fully implemented in `AssetActions3D.tsx` (lines 210-245)
+   - ✅ **Batch Export** - Fully implemented in `ExportPanel3D.tsx` and `/api/export-3d/route.ts`
+
+**Files Modified:** 7 API routes with auth/ownership checks added
+
+**Security Improvements:**
+- All 3D generation API routes now require authentication
+- Project ownership verified before any operation
+- Status polling endpoint prevents unauthorized access
+- Export endpoint protected with ownership checks
+
+---
+
+## 🎯 Previous Session Summary (2026-01-13)
+
+### 3D Mode Feature - Phase 4 & 5: UI Integration & Core Flow Complete
+
+Successfully completed end-to-end 3D generation workflow from planning through model preview.
+
+**Branch:** `3d-gen-phase-4-ui` (ready to merge)
 
 **Deliverables Completed:**
-- **Types:** `lib/types/3d-generation.ts` - Tripo API types, `Generated3DAsset`, animation presets
-- **Tripo Client:** `lib/tripo/` (5 files, ~700 lines total)
-  - `client.ts` - Base HTTP, auth, task creation
-  - `polling.ts` - Exponential backoff (5s → 30s max)
-  - `mesh.ts` - Text-to-3D generation
-  - `rig.ts` - Auto-rigging and animation
-  - `index.ts` - Clean re-exports
-- **Schema Updates:**
-  - Prisma: Added `mode` to Project, created `Generated3DAsset` model
-  - Dexie: Version 5 with `generated_3d_assets` table, `mode` index
-- **Tests:** `lib/tripo/client.test.ts` - 8 unit tests passing
-- **ADR:** `adr/023-3d-mode-foundation.md`
+- **API Fixes:**
+  - `lib/tripo-client.ts` - Fixed response unwrapping (responseData.data)
+  - `app/api/generate-3d/[taskId]/status/route.ts` - Fixed Next.js 15 async params, correct model URL extraction (pbr_model)
+  - `app/api/proxy-model/route.ts` - **NEW** CORS proxy for Tripo CDN
+- **UI Components:**
+  - `components/3d/generation/ModelViewer.tsx` - Three.js GLB viewer with proxy integration, fixed Suspense import
+  - `components/3d/generation/GenerationQueue3D.tsx` - Asset tree, polling, status badges, download dropdown
+  - `app/test-3d/page.tsx` - **NEW** Test page for debugging
+- **Test Infrastructure:**
+  - `scripts/test-tripo-basic.ts` - Standalone API test script with clear GLB URL output
+  - `scripts/test-viewer.html` - Browser-based 3D viewer (unused, replaced by Next.js proxy)
 
-**Key Decisions:**
-- Parallel mode (2D/3D), not replacement
-- Modular client files (~150-200 lines each)
-- Task chain pattern for async Tripo workflow
-- CDN streaming for MVP (no local 3D caching)
+**Total New Code:** 3 new files, 5 files modified (~800 lines)
+
+**Key Implementation Fixes:**
+- **CORS Issue:** Tripo CDN blocks direct browser access → proxy through `/api/proxy-model`
+- **Response Parsing:** Tripo wraps responses as `{ code: 0, data: {...} }` → unwrap data field
+- **Model URL Location:** Model URL at `output.pbr_model` (direct string), NOT `output.model.url`
+- **Next.js 15 Breaking Change:** Route params now async → must await before destructuring
+
+**Working Flow:**
+```
+1. User creates 3D project → Planning phase
+2. Chat with AI → Generate [RIG]/[STATIC] plan
+3. Generation tab → Select asset from tree
+4. Click "Generate" → Tripo task submits
+5. Poll every 2s → Progress updates (0-100%)
+6. Status: success → Model URL extracted → Saves to DB
+7. ModelViewer loads GLB through proxy → 3D preview renders
+8. Download dropdown → User exports GLB file
+```
+
+**Validation Results (Phase 4):**
+```
+✅ Test script generates cube successfully (~80s)
+✅ Model URL extraction working (pbr_model)
+✅ CORS proxy functioning (streams GLB from Tripo)
+✅ ModelViewer renders with orbit controls
+✅ Status polling updates UI in real-time
+✅ Download dropdown provides GLB export
+✅ TypeScript: Suspense import fixed, no new errors
+```
 
 ---
 
-## 🎯 Previous Session Summary (2026-01-03)
+## 🎯 Previous Session Summary (2026-01-13) - Continued
+
+### 3D Mode Feature - Phase 6: Animation Playback & UI Polish (Complete)
+
+Successfully implemented 3D animation playback and resolved critical bugs related to state persistence and rendering.
+
+**Deliverables & Fixes:**
+
+1.  **Animation Playback:**
+    *   **NEW Component:** `AnimatedModelViewer.tsx` implements GLB animation playback using `useAnimations` and `useFrame`.
+    *   **Playback Controls:** Added play/pause button, progress bar, and automatic play on view selection.
+    *   **Skeletal Cloning Fix:** Resolved "T-pose" bug where standard `scene.clone()` broke animation bindings. Now using `SkeletonUtils.clone()` for proper bone retargeting.
+    *   **Responsive Viewer:** Adjusted viewer height units (`max-h-[60vh]`) to ensure controls remain visible on shorter screens.
+
+2.  **Persistence & Hydration:**
+    *   **Self-Healing Hydration:** Added logic to `GenerationQueue3D.tsx` to automatically re-poll rig tasks if `riggedModelUrl` is missing but `rigTaskId` exists. This fixed "Apply Animation" button doing nothing after refresh.
+    *   **Debug Logging:** Added comprehensive console logging for hydration and action guards to simplify future troubleshooting.
+
+3.  **UI/UX Improvements:**
+    *   **Approval Feedback:** Updated `AssetActions3D.tsx` to show a green "Approved" badge and "Undo" button instead of repeating "Approve & Save".
+    *   **State Visibility:** Animation controls now remain visible for "Complete" assets, allowing users to add/manage multiple animations over time.
+
+**Validation:**
+```
+✅ Playback: animations play correctly on switch (Fixed T-pose bug).
+✅ UI: All controls visible on shorter screens (Fixed height bug).
+✅ Persistence: Rigged data restores automatically on refresh (Fixed hydration bug).
+✅ Gameplay: Immediate visual feedback for Approve/Reject actions.
+```
+
+**Next Steps (TODO):**
+- [x] **Batch Export** - ZIP download with multiple models + metadata ✅ COMPLETED
+- [ ] **Educational Tooltips** - Add tooltips to status badges and animation buttons
+- [ ] **Additional Asset Types:**
+  - Skybox generation (text-to-skybox via Tripo)
+  - Environment props (trees, rocks, buildings)
+  - Item models (weapons, tools, collectibles)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-13) - Continued
+
+### 3D Mode Feature - Phase 5: Rigging, Animation & Persistence (Debugging Complete)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-12)
+
+### 3D Mode Feature - Phase 3: Generation Backend (Implementation)
+
+Successfully implemented complete 3D asset generation backend using Tripo3D API. All 10 tasks from implementation plan completed.
+
+**Branch:** `3d-gen-phase-2-planning` (will merge Phase 3 changes here)
+
+**Deliverables Completed:**
+- **Client Utility:** `lib/tripo-client.ts` - Tripo3D API client (~177 lines)
+- **API Routes:** 4 complete endpoints with error handling
+  - `app/api/generate-3d/route.ts` - Main generation (~143 lines)
+  - `app/api/generate-3d/[taskId]/status/route.ts` - Status polling (~138 lines)
+  - `app/api/generate-3d/rig/route.ts` - Auto-rigging (~159 lines)
+  - `app/api/generate-3d/animate/route.ts` - Animation retargeting (~178 lines)
+- **Testing:** `app/api/generate-3d/__tests__/route.test.ts` - Unit tests (~234 lines)
+- **Configuration:** Updated `.env.example` with TRIPO_API_KEY
+- **Documentation:** JSDoc comments on all functions, updated system prompt
+
+**Total New Code:** 6 files created (~1,029 lines), 2 files modified
+
+**Key Implementation Details:**
+- Task-based async pattern: Submit → Poll → Complete
+- Database state machine: queued → generating → generated → rigging → rigged → animating → complete
+- Comprehensive error handling with emoji logging (🎨 📤 ✅ ❌)
+- BYOK support prepared (TODO: add tripoApiKey field to User model)
+- All files under 200 lines (modular design)
+
+**Validation Results:**
+```
+✅ TypeScript typecheck: 0 new errors
+✅ ESLint: 0 errors, 0 warnings on new files
+✅ Unit tests: 6 test cases covering validation + happy paths
+✅ Code style: Follows openrouter-image.ts pattern
+✅ Documentation: Complete JSDoc on all public APIs
+```
+
+**API Endpoint Flow:**
+```
+1. POST /api/generate-3d          → taskId
+2. GET /api/generate-3d/[taskId]/status → { status, progress, output }
+3. POST /api/generate-3d/rig      → taskId (if [RIG] asset)
+4. POST /api/generate-3d/animate  → taskId (for each animation)
+```
+
+**Next Steps (Phase 4 - UI):**
+- Build GenerationQueue UI component
+- Add 3D model viewer (.glb preview)
+- Implement status polling hooks
+- Add batch generation controls
+- Cost estimation displays
+
+---
+
+## 🎯 Previous Session Summary (2026-01-12)
+
+### 3D Mode Feature - Phase 3: Generation Backend (Planning)
+
+Created comprehensive implementation plan for 3D asset generation backend using Tripo3D API.
+
+**Plan Document:** `.agents/plans/3d-generation-backend-phase-3.md` (~450 lines)
+
+**Key Architectural Decisions:**
+- Task-based async architecture with status polling (no webhooks)
+- Database-first approach (Generated3DAsset model already exists in schema)
+- BYOK support (users can provide their own Tripo API keys)
+- Client-side task orchestration (UI controls generation → rig → animate chain)
+- URL storage only (no binary GLB files in database)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-12)
+
+### 3D Mode Feature - Phase 2: Planning Mode
+
+Implemented 3D-specific planning chat experience with [RIG]/[STATIC] tag parsing.
+
+**Branch:** `3d-gen-phase-2-planning`
+
+**Deliverables Completed:**
+- **Schemas:** `lib/schemas-3d.ts` - Zod schemas for 3D AI tools (~95 lines)
+- **Parser:** `lib/3d-plan-parser.ts` - [RIG]/[STATIC] tag extraction (~256 lines)
+- **Tests:** `lib/3d-plan-parser.test.ts` - 16 unit tests (all passing)
+- **Chat Tools:** `lib/chat-tools-3d.ts` - 3D-specific AI SDK tools (~234 lines)
+- **Route Update:** `app/api/chat/route.ts` - Conditional 3D mode detection
+
+**Key Decisions:**
+- Modular file structure (~200 lines per file)
+- Type inference for AI SDK tools (ReturnType pattern)
+- 'Uncategorized' fallback for orphan assets
+- Parallel tools (2D tools unchanged, 3D tools added)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-12)
 
 ### PR Merges Completed
 - **PR #17**: `feat(auth): Add demo user account system for resume showcase`

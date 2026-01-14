@@ -106,7 +106,8 @@ export async function rigMesh(options: RigOptions): Promise<RigResult> {
     );
 
     // Extract rigged model URL
-    const modelUrl = completedTask.output?.model?.url;
+    const modelOutput = completedTask.output?.model;
+    const modelUrl = typeof modelOutput === 'string' ? modelOutput : modelOutput?.url;
     if (!modelUrl) {
         throw new Error('No model URL in rigging task output');
     }
@@ -156,7 +157,8 @@ export async function applyAnimation(
     );
 
     // Extract animated model URL
-    const modelUrl = completedTask.output?.model?.url;
+    const modelOutput = completedTask.output?.model;
+    const modelUrl = typeof modelOutput === 'string' ? modelOutput : modelOutput?.url;
     if (!modelUrl) {
         throw new Error('No model URL in animation task output');
     }

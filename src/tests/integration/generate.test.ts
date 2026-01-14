@@ -47,7 +47,8 @@ describe('/api/generate', () => {
                 url: 'http://cdn/img.png',
                 seed: 123,
                 duration_ms: 5000,
-                generationId: 'gen-123'
+                generationId: 'gen-123',
+                revised_prompt: 'A knight in shining armor'
             }
         }));
 

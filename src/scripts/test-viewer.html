@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Model Viewer Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, sans-serif;
+      background: #1a1a1a;
+      color: white;
+    }
+    h1 { margin: 0 0 20px 0; }
+    #container {
+      width: 100%;
+      height: 600px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background: #3a3a3a;
+      border: 1px solid #4a4a4a;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4a9eff;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover { background: #3a8eef; }
+  </style>
+</head>
+<body>
+  <h1>🎨 3D Model Viewer Test</h1>
+  
+  <div class="info">
+    <p><strong>Test a GLB URL:</strong></p>
+    <input 
+      type="text" 
+      id="modelUrl" 
+      placeholder="Paste your Tripo GLB URL here..."
+      value=""
+    />
+    <button onclick="loadModel()">Load Model</button>
+  </div>
+  
+  <div id="container"></div>
+  
+  <div class="info">
+    <p><strong>Instructions:</strong></p>
+    <ul>
+      <li>Paste the GLB URL from the test script output above</li>
+      <li>Click "Load Model" to view it</li>
+      <li>Use mouse to orbit (left drag), pan (right drag), zoom (scroll)</li>
+    </ul>
+    <p id="status">Ready to load model...</p>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    let scene, camera, renderer, controls, currentModel;
+    
+    // Initialize Three.js scene
+    function init() {
+      const container = document.getElementById('container');
+      
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x2a2a2a);
+      
+      // Camera
+      camera = new THREE.PerspectiveCamera(
+        45, 
+        container.clientWidth / container.clientHeight, 
+        0.1, 
+        1000
+      );
+      camera.position.set(3, 2, 3);
+      
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+      
+      // Controls
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 10, 7);
+      scene.add(directionalLight);
+      
+      // Grid
+      const gridHelper = new THREE.GridHelper(10, 10);
+      scene.add(gridHelper);
+      
+      // Handle window resize
+      window.addEventListener('resize', onWindowResize);
+      
+      // Animation loop
+      animate();
+      
+      console.log('✅ Three.js initialized');
+    }
+    
+    function onWindowResize() {
+      const container = document.getElementById('container');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    
+    // Load GLB model
+    window.loadModel = function() {
+      const url = document.getElementById('modelUrl').value.trim();
+      const status = document.getElementById('status');
+      
+      if (!url) {
+        status.textContent = '❌ Please enter a GLB URL';
+        return;
+      }
+      
+      status.textContent = '⏳ Loading model...';
+      
+      // Remove previous model
+      if (currentModel) {
+        scene.remove(currentModel);
+      }
+      
+      // Load new model
+      const loader = new GLTFLoader();
+      
+      loader.load(
+        url,
+        (gltf) => {
+          currentModel = gltf.scene;
+          scene.add(currentModel);
+          
+          // Center and scale model
+          const box = new THREE.Box3().setFromObject(currentModel);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          
+          currentModel.position.sub(center);
+          
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = 2 / maxDim;
+          currentModel.scale.multiplyScalar(scale);
+          
+          status.textContent = '✅ Model loaded successfully!';
+          console.log('✅ Model loaded:', gltf);
+        },
+        (progress) => {
+          const percent = (progress.loaded / progress.total * 100).toFixed(0);
+          status.textContent = `⏳ Loading... ${percent}%`;
+        },
+        (error) => {
+          status.textContent = `❌ Error loading model: ${error.message}`;
+          console.error('❌ Load error:', error);
+        }
+      );
+    };
+    
+    // Initialize on page load
+    init();
+  </script>
+</body>
+</html>

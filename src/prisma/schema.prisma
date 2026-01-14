@@ -205,6 +205,10 @@ model Generated3DAsset {
   isRiggable        Boolean?
   errorMessage      String?
 
+  // Approval workflow fields
+  approvalStatus    String?   // 'pending' | 'approved' | 'rejected'
+  approvedAt        DateTime? // Timestamp when approved
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

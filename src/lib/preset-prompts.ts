@@ -73,6 +73,52 @@ export const PLAN_PRESETS: PresetPrompt[] = [
     },
 ]
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// 3D Mode Presets
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * 3D mode presets help users kickoff their 3D asset planning.
+ * These presets are tailored for 3D model generation with rigging and animation support.
+ */
+export const PLAN_3D_PRESETS: PresetPrompt[] = [
+    {
+        id: '3d-character',
+        label: '3D Character',
+        prompt:
+            'I need to create a 3D character model. Help me plan a complete rigged character including the base mesh with proper topology for animation, facial features and expressions, clothing/equipment that works with the rig, and specify which animations are needed (idle, walk, run, attack, etc.) using [RIG] tags for rigged elements and [STATIC] for accessories.',
+        mode: 'planning',
+    },
+    {
+        id: '3d-creature',
+        label: 'Fantasy Creature',
+        prompt:
+            'I want to create a fantasy creature for my game. Help me plan a detailed creature model including the main body with appropriate anatomy, wings/fins/appendages if applicable, texturing with appropriate material types, and animations like idle, movement, and attack patterns. Use [RIG] for the main body and [STATIC] for props it might carry.',
+        mode: 'planning',
+    },
+    {
+        id: '3d-environment',
+        label: '3D Environment',
+        prompt:
+            'Help me plan 3D environment assets for my game. I need structures like buildings and ruins, terrain elements like rocks and trees, props and interactive objects, and decorative elements. Specify which items should be rigged for animation (swaying trees, flowing water) vs static geometry.',
+        mode: 'planning',
+    },
+    {
+        id: '3d-vehicle',
+        label: 'Vehicle',
+        prompt:
+            'I need to create a vehicle model for my game. Help me plan the vehicle including the main chassis and body work, wheels or treads with rotation rigging, cockpit/interior elements, and appropriate animations like idle, movement, and turning. Mark drivable parts with [RIG] and static details with [STATIC].',
+        mode: 'planning',
+    },
+    {
+        id: '3d-fresh',
+        label: 'Describe My 3D Game',
+        prompt:
+            "I'm making a 3D game but I'm not sure what models I need. Ask me about my game concept, art style preferences (realistic, stylized, low-poly), and target platform. Help me plan a complete list of 3D assets organized by category, marking which should be rigged for animation and which can be static.",
+        mode: 'planning',
+    },
+]
+
 // -----------------------------------------------------------------------------
 // Style Mode Presets
 // -----------------------------------------------------------------------------
@@ -141,21 +187,35 @@ export const STYLE_PRESETS: PresetPrompt[] = [
 /**
  * Returns all presets for a given mode
  *
- * @param mode - The current interface mode ('plan' or 'style')
+ * @param mode - The current interface mode ('planning' or 'style')
+ * @param is3D - Whether the project is in 3D mode
  * @returns Array of PresetPrompt objects for that mode
  */
-export function getPresetsForMode(mode: 'planning' | 'style'): PresetPrompt[] {
-    // Return the appropriate preset array based on mode
+export function getPresetsForMode(mode: 'planning' | 'style', is3D: boolean = false): PresetPrompt[] {
+    // Return the appropriate preset array based on mode and 3D status
+    if (is3D && mode === 'planning') {
+        return PLAN_3D_PRESETS
+    }
     return mode === 'planning' ? PLAN_PRESETS : STYLE_PRESETS
 }
 
 /**
- * Finds a preset by its ID
+ * Finds a preset by its ID across all preset arrays
  *
  * @param id - The preset ID to find
  * @returns The matching PresetPrompt or undefined if not found
  */
 export function getPresetById(id: string): PresetPrompt | undefined {
-    // Search both arrays for the matching ID
-    return [...PLAN_PRESETS, ...STYLE_PRESETS].find((preset) => preset.id === id)
+    // Search all arrays for the matching ID
+    return [...PLAN_PRESETS, ...PLAN_3D_PRESETS, ...STYLE_PRESETS].find((preset) => preset.id === id)
+}
+
+/**
+ * Returns true if the preset ID is a 3D preset
+ *
+ * @param id - The preset ID to check
+ * @returns True if the preset is a 3D preset
+ */
+export function is3DPreset(id: string): boolean {
+    return PLAN_3D_PRESETS.some(preset => preset.id === id)
 }
