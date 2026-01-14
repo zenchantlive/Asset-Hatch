@@ -182,7 +182,7 @@ describe('model-registry', () => {
     });
 
     test('throws error for empty category', () => {
-      expect(() => getDefaultModel('image-gen')).toThrow('No model available for category: image-gen');
+      expect(() => getDefaultModel('image-gen', [])).toThrow('No model available for category: image-gen');
     });
 
     test('uses custom model list', () => {
