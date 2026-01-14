@@ -10,15 +10,39 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function POST(req: NextRequest) {
     try {
+        // Get authenticated session
+        const session = await auth();
+
         const { projectId, assetId, status } = await req.json();
 
         if (!projectId || !assetId || !status) {
             return NextResponse.json(
                 { error: "Missing required fields: projectId, assetId, status" },
                 { status: 400 }
+            );
+        }
+
+        // Verify project exists and user has access
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+        });
+
+        if (!project) {
+            return NextResponse.json(
+                { error: "Project not found" },
+                { status: 404 }
+            );
+        }
+
+        // Verify user owns project (if authenticated)
+        if (session?.user?.id && project.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: "You do not have permission to access this project" },
+                { status: 403 }
             );
         }
 

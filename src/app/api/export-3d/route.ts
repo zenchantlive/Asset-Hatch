@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import JSZip from "jszip";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 // =============================================================================
 // Types
@@ -114,6 +115,9 @@ function generateSafeFilename(name: string): string {
  */
 export async function POST(req: NextRequest) {
     try {
+        // Get authenticated session
+        const session = await auth();
+
         // Parse request body
         const { projectId } = await req.json();
 
@@ -135,6 +139,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 { error: "Project not found" },
                 { status: 404 }
+            );
+        }
+
+        // Verify user owns project (if authenticated)
+        if (session?.user?.id && project.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: "You do not have permission to access this project" },
+                { status: 403 }
             );
         }
 

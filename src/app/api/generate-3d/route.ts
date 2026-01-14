@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// import { auth } from '@/auth'; // TODO: Uncomment when tripoApiKey added to User model
+import { auth } from '@/auth';
 import { submitTripoTask } from '@/lib/tripo-client';
 import type { Generate3DRequest, Generate3DResponse } from '@/lib/types/3d-generation';
 
@@ -52,7 +52,7 @@ import type { Generate3DRequest, Generate3DResponse } from '@/lib/types/3d-gener
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated session to check for user's Tripo API key
-    // const session = await auth();
+    const session = await auth();
     const userTripoApiKey: string | null = null;
 
     // TODO: Add tripoApiKey field to User model in schema.prisma
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       shouldRig,
     });
 
-    // 1. Verify project exists
+    // 1. Verify project exists and user has access
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -93,6 +93,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Project not found' },
         { status: 404 }
+      );
+    }
+
+    // 2. Verify user owns the project (if authenticated)
+    if (session?.user?.id && project.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'You do not have permission to access this project' },
+        { status: 403 }
       );
     }
 

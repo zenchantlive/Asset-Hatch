@@ -9,26 +9,38 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // Get authenticated session
+        const session = await auth();
+
         const { id: projectId } = await params;
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
 
-        // Fetch project to get name
+        // Fetch project to verify ownership
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { name: true },
+            select: { name: true, userId: true },
         });
 
         if (!project) {
             return NextResponse.json(
                 { error: "Project not found" },
                 { status: 404 }
+            );
+        }
+
+        // Verify user owns project (if authenticated)
+        if (session?.user?.id && project.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: "You do not have permission to access this project" },
+                { status: 403 }
             );
         }
 

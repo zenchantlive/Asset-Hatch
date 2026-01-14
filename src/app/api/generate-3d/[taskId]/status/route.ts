@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// import { auth } from '@/auth'; // TODO: Uncomment when tripoApiKey added to User model
+import { auth } from '@/auth';
 import { pollTripoTaskStatus } from '@/lib/tripo-client';
 import type { TaskStatusResponse, TripoTaskOutput } from '@/lib/types/3d-generation';
 
@@ -33,6 +33,7 @@ interface AssetMatchResult {
   // The matched database record
   asset: {
     id: string;
+    projectId: string;
     assetId: string;
     status: string;
     draftTaskId: string | null;
@@ -102,6 +103,7 @@ async function findAssetByTaskId(taskId: string): Promise<AssetMatchResult | nul
     },
     select: {
       id: true,
+      projectId: true,
       assetId: true,
       status: true,
       draftTaskId: true,
@@ -125,6 +127,7 @@ async function findAssetByTaskId(taskId: string): Promise<AssetMatchResult | nul
     },
     select: {
       id: true,
+      projectId: true,
       assetId: true,
       status: true,
       draftTaskId: true,
@@ -190,7 +193,7 @@ export async function GET(
     }
 
     // Get authenticated session
-    // const session = await auth();
+    const session = await auth();
     const userTripoApiKey: string | null = null;
 
     // TODO: Add tripoApiKey field to User model
@@ -219,6 +222,21 @@ export async function GET(
 
     // 2. Find database record by taskId (draft, rig, OR animation)
     const matchResult = await findAssetByTaskId(taskId);
+
+    // 3. Verify user owns the project (if authenticated and asset found)
+    if (matchResult && session?.user?.id) {
+      const project = await prisma.project.findUnique({
+        where: { id: matchResult.asset.projectId },
+        select: { userId: true },
+      });
+
+      if (project && project.userId !== session.user.id) {
+        return NextResponse.json(
+          { error: 'You do not have permission to access this asset' },
+          { status: 403 }
+        );
+      }
+    }
 
     // 3. Update database if status changed to success or failed
     if (matchResult) {
