@@ -145,7 +145,9 @@ export function AssetDetailPanel3D({
     // Check if this is a skybox asset - show specialized UI
     if (asset.category === "Skybox") {
         // Extract projectId from asset.id (format: projectId-skybox)
-        const projectId = asset.id.replace("-skybox", "");
+        const projectId = asset.id.endsWith('-skybox')
+          ? asset.id.slice(0, -'-skybox'.length)
+          : asset.id;
 
         return (
             <div className="flex-1 flex flex-col overflow-hidden">
