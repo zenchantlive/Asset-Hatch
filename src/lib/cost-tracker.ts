@@ -264,14 +264,14 @@ export function compareCosts(
     accuracy: 'exact' | 'close' | 'off';
 } {
     const difference = actual - estimated;
-    const percentDiff = estimated > 0 ? (difference / estimated) * 100 : 0;
+    const percentDiff = estimated > 0 ? (difference / estimated) * 100 : Infinity;
     const isHigher = actual > estimated;
 
     // Determine accuracy category
     let accuracy: 'exact' | 'close' | 'off';
     if (Math.abs(percentDiff) < 5) {
         accuracy = 'exact';
-    } else if (Math.abs(percentDiff) < 20) {
+    } else if (Math.abs(percentDiff) <= 20) {
         accuracy = 'close';
     } else {
         accuracy = 'off';

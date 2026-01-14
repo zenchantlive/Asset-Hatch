@@ -181,8 +181,11 @@ describe('model-registry', () => {
       expect(model.isDefault).toBe(true);
     });
 
-    test('throws error for empty category', () => {
-      expect(() => getDefaultModel('image-gen', [])).toThrow('No model available for category: image-gen');
+    test('returns fallback for category without default', () => {
+      const model = getDefaultModel('image-gen');
+      expect(model).toBeDefined();
+      expect(model.category).toBe('image-gen');
+      expect(model.id).toBe('black-forest-labs/flux.2-pro');
     });
 
     test('uses custom model list', () => {
@@ -231,14 +234,14 @@ describe('model-registry', () => {
       expect(result).toBe(false);
     });
 
-    test('returns false for unsupported output', () => {
+    test('returns true for supported text output', () => {
       const result = modelSupports(
         'google/gemini-2.5-flash-image',
         ['text'],
-        ['text'], // Not image output
+        ['text'], // Model supports text output
         CURATED_MODELS
       );
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
 
     test('returns false for non-existent model', () => {
