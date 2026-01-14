@@ -21,6 +21,7 @@ describe('theme-utils', () => {
   beforeEach(async () => {
     // Clear mocks
     jest.clearAllMocks();
+    jest.resetModules();
 
     // Mock document before importing
     Object.defineProperty(global, 'document', {
