@@ -38,20 +38,21 @@ interface Export3DManifest {
 }
 
 /**
- * Metadata for a single exported 3D asset.
+ * Metadata for a single exported 3D asset or skybox.
  */
 interface Export3DAssetMetadata {
     // Semantic ID for the asset
     id: string;
     // Human-readable name
     name: string;
-    // Asset category (Characters, Environment, Props)
+    // Asset category (Characters, Environment, Props, Skybox)
     category: string;
     // File paths in the ZIP
     files: {
         draft?: string;
         rigged?: string;
         animated?: Record<string, string>;
+        skybox?: string; // NEW: for skybox images
     };
     // Generation details
     generationMetadata: {
@@ -93,6 +94,23 @@ async function fetchModelAsBuffer(url: string): Promise<Buffer> {
     } finally {
         clearTimeout(timeoutId);
     }
+}
+
+/**
+ * Converts a data URL to a Buffer for ZIP inclusion.
+ * Handles base64-encoded images (typically PNG).
+ *
+ * @param dataUrl - Data URL string (e.g., "data:image/png;base64,iVBORw0KGgoA...")
+ * @returns Buffer containing the decoded image data
+ * @throws Error if the data URL format is invalid
+ */
+function dataUrlToBuffer(dataUrl: string): Buffer {
+    // Extract base64 data from data:image/png;base64,xxx format
+    const matches = dataUrl.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!matches || matches.length < 2) {
+        throw new Error('Invalid data URL format');
+    }
+    return Buffer.from(matches[1], 'base64');
 }
 
 /**
@@ -205,18 +223,31 @@ export async function POST(req: NextRequest) {
             // Generate safe filename
             const safeId = generateSafeFilename(asset.assetId);
 
+            // Check if this is a skybox asset
+            const isSkybox = asset.assetId.endsWith('-skybox');
+
             // Track files added for this asset
             const files: Export3DAssetMetadata["files"] = {};
 
-            // Add draft model if available
+            // Add draft model or skybox image if available
             if (asset.draftModelUrl) {
                 try {
-                    const buffer = await fetchModelAsBuffer(asset.draftModelUrl);
-                    const path = `models/${safeId}_draft.glb`;
-                    zip.file(path, buffer);
-                    files.draft = path;
+                    if (isSkybox) {
+                        // Handle skybox as image (data URL → PNG)
+                        const imageBuffer = dataUrlToBuffer(asset.draftModelUrl);
+                        const path = `images/${safeId}_skybox.png`;
+                        zip.file(path, imageBuffer);
+                        files.skybox = path;
+                        console.log(`✅ Added skybox image: ${path}`);
+                    } else {
+                        // Handle 3D model (HTTP URL → GLB)
+                        const buffer = await fetchModelAsBuffer(asset.draftModelUrl);
+                        const path = `models/${safeId}_draft.glb`;
+                        zip.file(path, buffer);
+                        files.draft = path;
+                    }
                 } catch (err) {
-                    console.warn(`⚠️ Failed to fetch draft model for ${asset.assetId}:`, err);
+                    console.warn(`⚠️ Failed to fetch ${isSkybox ? 'skybox' : 'draft model'} for ${asset.assetId}:`, err);
                 }
             }
 
@@ -271,19 +302,21 @@ export async function POST(req: NextRequest) {
             const assetMetadata: Export3DAssetMetadata = {
                 id: asset.assetId,
                 name: asset.assetId.split("-").slice(1).join(" "),
-                category: "3D Asset",
+                category: isSkybox ? "Skybox" : "3D Asset",
                 files,
                 generationMetadata: {
                     prompt: asset.promptUsed,
-                    isRiggable: asset.isRiggable || false,
+                    isRiggable: isSkybox ? false : (asset.isRiggable || false),
                     animationsApplied,
                 },
-                tags: [
-                    "3d",
-                    "glb",
-                    asset.isRiggable ? "riggable" : "static",
-                    ...animationsApplied.map((a) => a.replace("preset:", "")),
-                ],
+                tags: isSkybox 
+                    ? ["skybox", "environment", "360"]
+                    : [
+                        "3d",
+                        "glb",
+                        asset.isRiggable ? "riggable" : "static",
+                        ...animationsApplied.map((a) => a.replace("preset:", "")),
+                    ],
             };
 
             // Add to manifest

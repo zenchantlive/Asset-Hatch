@@ -21,6 +21,7 @@ import { ProjectModeIndicator } from "@/components/dashboard/ProjectModeIndicato
 import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
 import { PlanPreview3D } from "@/components/3d/planning/PlanPreview3D"
 import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
+import { UnifiedAssetsPanel } from "@/components/ui/UnifiedAssetsPanel"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -34,6 +35,7 @@ export default function PlanningPage() {
   const [mode, setMode] = useState<PlanningMode>('planning')
   const [filesMenuOpen, setFilesMenuOpen] = useState(false)
   const [assetsMenuOpen, setAssetsMenuOpen] = useState(false)
+  const [unifiedAssetsMenuOpen, setUnifiedAssetsMenuOpen] = useState(false)
   const [modelsMenuOpen, setModelsMenuOpen] = useState(false)
   const [planPanelOpen, setPlanPanelOpen] = useState(false)
   const [stylePanelOpen, setStylePanelOpen] = useState(false)
@@ -380,6 +382,12 @@ export default function PlanningPage() {
           {/* RIGHT: Assets & Files only (Parameters moved to bar below) */}
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setUnifiedAssetsMenuOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600/20 hover:bg-purple-600/30 transition-all text-purple-300 hover:text-white border border-purple-400/30"
+            >
+              All Assets
+            </button>
+            <button
               onClick={() => setAssetsMenuOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
             >
@@ -445,6 +453,12 @@ export default function PlanningPage() {
               />
             )}
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setUnifiedAssetsMenuOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600/20 text-purple-300 border border-purple-400/30"
+              >
+                All
+              </button>
               <button
                 onClick={() => setAssetsMenuOpen(true)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white/70"
@@ -616,6 +630,13 @@ export default function PlanningPage() {
         projectId={typeof params.id === 'string' ? params.id : ''}
         isOpen={filesMenuOpen}
         onClose={() => setFilesMenuOpen(false)}
+      />
+
+      {/* Unified Assets panel - slide-out from right side */}
+      <UnifiedAssetsPanel
+        projectId={typeof params.id === 'string' ? params.id : ''}
+        isOpen={unifiedAssetsMenuOpen}
+        onClose={() => setUnifiedAssetsMenuOpen(false)}
       />
 
       {/* Plan panel - slide-out for mobile */}
