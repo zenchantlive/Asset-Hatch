@@ -116,6 +116,12 @@ export interface AssetDetailPanel3DProps {
     assetState: Asset3DState;
     // Whether an action is currently in progress
     isProcessing: boolean;
+    // Callback to approve the asset (for skybox)
+    onApprove?: () => void;
+    // Callback to reject the asset (for skybox)
+    onReject?: () => void;
+    // Callback to regenerate the asset (for skybox)
+    onRegenerate?: () => void;
 }
 
 /**

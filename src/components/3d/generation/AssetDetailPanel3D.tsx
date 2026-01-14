@@ -45,6 +45,12 @@ interface AssetDetailPanel3DProps {
     asset: Asset3DItem;
     // Current generation state of the asset
     assetState: Asset3DState;
+    // Callback to approve the asset (for skybox workflows)
+    onApprove?: () => void;
+    // Callback to reject the asset (for skybox workflows)
+    onReject?: () => void;
+    // Callback to regenerate the asset (for skybox workflows)
+    onRegenerate?: () => void;
 }
 
 // =============================================================================
@@ -126,6 +132,9 @@ function StatusBadge({ status, progress }: { status: Asset3DStatus; progress: nu
 export function AssetDetailPanel3D({
     asset,
     assetState,
+    onApprove,
+    onReject,
+    onRegenerate,
 }: AssetDetailPanel3DProps) {
     // Regular 3D asset UI state (hoisted)
     // State to track which version of the model to show
@@ -146,8 +155,8 @@ export function AssetDetailPanel3D({
     if (asset.category === "Skybox") {
         // Use projectId from asset if available, otherwise fallback to brittle slicing
         const projectId = asset.projectId || (asset.id.endsWith('-skybox')
-          ? asset.id.slice(0, -'-skybox'.length)
-          : asset.id);
+            ? asset.id.slice(0, -'-skybox'.length)
+            : asset.id);
 
         return (
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -155,6 +164,10 @@ export function AssetDetailPanel3D({
                 <SkyboxSection
                     projectId={projectId}
                     initialUrl={assetState.draftModelUrl}
+                    approvalStatus={assetState.approvalStatus || 'pending'}
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    onRegenerate={onRegenerate}
                 />
             </div>
         );

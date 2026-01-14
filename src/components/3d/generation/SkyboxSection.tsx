@@ -18,7 +18,7 @@
  * @see SkyboxViewer.tsx for 360 preview component
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     Cloud,
     ChevronDown,
@@ -27,6 +27,9 @@ import {
     Loader2,
     Download,
     Wand2,
+    Check,
+    X,
+    RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +59,14 @@ interface SkyboxSectionProps {
     onGenerated?: (url: string) => void;
     // Initial URL from persistence
     initialUrl?: string | null;
+    // Approval status from parent (for showing correct buttons)
+    approvalStatus?: 'pending' | 'approved' | 'rejected';
+    // Callback to approve the skybox
+    onApprove?: () => void;
+    // Callback to reject the skybox
+    onReject?: () => void;
+    // Callback to regenerate the skybox
+    onRegenerate?: () => void;
 }
 
 // =============================================================================
@@ -85,6 +96,10 @@ export function SkyboxSection({
     projectId,
     onGenerated,
     initialUrl,
+    approvalStatus = 'pending',
+    onApprove,
+    onReject,
+    onRegenerate,
 }: SkyboxSectionProps) {
     // Section collapse state
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -117,6 +132,18 @@ export function SkyboxSection({
 
     // Get available image generation models
     const imageModels = getImageGenerationModels(CURATED_MODELS);
+
+    // Sync generatedUrl with initialUrl when it changes (for hydration on refresh)
+    // This effect ensures that when the database state loads and passes initialUrl,
+    // the component updates to show the persisted skybox image.
+    // Update generatedUrl whenever initialUrl changes, unless user has generated a new skybox
+    useEffect(() => {
+        console.log("🌅 SkyboxSection: initialUrl changed:", initialUrl ? `${initialUrl.slice(0, 50)}...` : "null/undefined");
+        if (initialUrl) {
+            setGeneratedUrl(initialUrl);
+        }
+    }, [initialUrl]);
+
 
     // Toggle section collapse
     const toggleCollapse = useCallback(() => {
@@ -432,6 +459,53 @@ export function SkyboxSection({
                                 <Download className="h-3.5 w-3.5 mr-2" />
                                 Download
                             </Button>
+
+                            {/* Approval Action Buttons */}
+                            <div className="flex items-center gap-2 pt-2 border-t border-white/10 mt-2">
+                                {approvalStatus === 'approved' ? (
+                                    <>
+                                        {/* Already Approved State */}
+                                        <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-500/10 border border-green-500/30">
+                                            <Check className="w-3.5 h-3.5 text-green-400" />
+                                            <span className="text-xs text-green-400 font-medium">Approved</span>
+                                        </div>
+                                        {onReject && (
+                                            <Button onClick={onReject} variant="ghost" size="sm" className="text-xs">
+                                                Undo
+                                            </Button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Approve Button */}
+                                        {onApprove && (
+                                            <Button onClick={onApprove} size="sm" className="flex-1 aurora-gradient text-xs font-semibold h-8">
+                                                <Check className="w-3.5 h-3.5 mr-1.5" />
+                                                Approve
+                                            </Button>
+                                        )}
+                                        {/* Reject Button */}
+                                        {onReject && (
+                                            <Button onClick={onReject} variant="destructive" size="sm" className="flex-1 text-xs h-8">
+                                                <X className="w-3.5 h-3.5 mr-1.5" />
+                                                Reject
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
+                                {/* Regenerate Button */}
+                                {onRegenerate && (
+                                    <Button
+                                        onClick={onRegenerate}
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-white/20 hover:bg-white/10 h-8"
+                                        title="Regenerate with same prompt"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
