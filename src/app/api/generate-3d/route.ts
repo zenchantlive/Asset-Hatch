@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body: Generate3DRequest = await request.json();
-    const { projectId, assetId, prompt, shouldRig = false } = body;
+    const { projectId, assetId, name, prompt, shouldRig = false } = body;
 
     // Validate required fields
     if (!projectId || !assetId || !prompt) {
@@ -127,10 +127,12 @@ export async function POST(request: NextRequest) {
     console.log('✅ Task submitted:', tripoTask.task_id);
 
     // 4. Create Generated3DAsset database record
+    // Save asset to database with human-readable name for export
     const generated3DAsset = await prisma.generated3DAsset.create({
       data: {
         projectId,
         assetId,
+        name, // Human-readable name for file naming (e.g., "Knight Character")
         status: 'queued',
         draftTaskId: tripoTask.task_id,
         promptUsed: prompt,

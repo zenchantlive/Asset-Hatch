@@ -82,7 +82,7 @@ async function fetchModelAsBuffer(url: string): Promise<Buffer> {
     try {
         // Fetch directly from the URL server-side (no CORS issues)
         const response = await fetch(url, { signal: controller.signal });
-        
+
         if (!response.ok) {
             throw new Error(`Failed to fetch model: ${response.statusText}`);
         }
@@ -202,8 +202,9 @@ export async function POST(req: NextRequest) {
 
         // Process each approved 3D asset
         for (const asset of approved3DAssets) {
-            // Generate safe filename
-            const safeId = generateSafeFilename(asset.assetId);
+            // Use stored name if available, otherwise fallback to extracting from assetId
+            const displayName = asset.name || asset.assetId.split("-").slice(1).join(" ") || asset.assetId;
+            const safeId = generateSafeFilename(displayName);
 
             // Track files added for this asset
             const files: Export3DAssetMetadata["files"] = {};
@@ -267,10 +268,10 @@ export async function POST(req: NextRequest) {
                 }
             }
 
-            // Build asset metadata for manifest
             const assetMetadata: Export3DAssetMetadata = {
                 id: asset.assetId,
-                name: asset.assetId.split("-").slice(1).join(" "),
+                // Use stored name if available, otherwise parse from assetId
+                name: asset.name || asset.assetId.split("-").slice(1).join(" ") || asset.assetId,
                 category: "3D Asset",
                 files,
                 generationMetadata: {
