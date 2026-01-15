@@ -51,6 +51,8 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                 if (response.ok) {
                     const data = await response.json();
                     setApproved3DAssetCount(data.assets?.length || 0);
+                } else {
+                    console.error(`Failed to fetch 3D asset count: ${response.statusText}`);
                 }
             } catch (err) {
                 console.error('Failed to load project data:', err);
