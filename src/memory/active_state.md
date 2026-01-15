@@ -1,42 +1,30 @@
-# Active State - Asset Hatch Development
+## 🎯 Latest Session Summary (2026-01-14 Late Evening)
 
-**Last Updated:** 2026-01-14
-**Current Phase:** 3D Mode Implementation - Export Fix Required
-**Status:** ✅ Skybox Approval & Assets Panel Fixed, Ready for Export TDD
+### Assets Panel Consolidation & PR Review Refactoring (Complete)
 
----
+Consolidated `AssetsPanel3D.tsx` into `AssetsPanel.tsx` and refactored the resulting large component into smaller, modular sub-components based on PR review feedback.
 
-## 🎯 Latest Session Summary (2026-01-14 Evening)
-
-### Skybox Approval & Assets Panel 3D Fix (Complete)
-
-Fixed multiple issues with 3D asset approval flow and assets panel display.
-
-**Bugs Fixed:**
-1.  **`SKYBOX_ASSET_SUFFIX` ReferenceError** - Fixed self-referencing constant in `AssetsPanel.tsx` (line 28)
-2.  **Skybox Approval API 404** - Created new PATCH endpoint at `/api/projects/[id]/3d-assets/[assetId]/route.ts`
-3.  **Incorrect API paths in `SkyboxSection.tsx`** - Changed `/assets/` to `/3d-assets/`
-4.  **Approval status UI state** - Added `approvalStatus` state to show badge after approval/rejection
-
-**Assets Panel 3D Enhancements:**
-1.  **Server API fetch** - Changed from Dexie (client IndexedDB) to server API fetch for 3D assets
-2.  **3D Viewers Integrated:**
-    *   `SimpleSkyboxViewer` (Babylon.js PhotoDome) for skybox 360° preview
-    *   `ModelViewer` (Three.js R3F) for GLB model preview
-3.  **Tab switcher** - Toggle between "Spherical 360°" and "Flat 2:1" for skybox detail view
-4.  **Grid previews** - 3D models now show live `ModelViewer` in grid cards (not just placeholder icon)
-
-**Seam Fix Restored:**
-*   Reverted `image-processing.ts` to pre-commit `fa0cc13` working version
-*   The broken pixel manipulation was replaced with proper cross-fade blending
+**Changes Made:**
+1.  **Component Consolidation**: Deleted redundant `src/components/ui/AssetsPanel3D.tsx` and updated `planning/page.tsx` to use the unified `AssetsPanel` for both 2D and 3D modes.
+2.  **Refactoring (Splitting 820-line file)**: Broke down `AssetsPanel.tsx` into 6 focused sub-components in `src/components/ui/assets/`:
+    *   `AssetTypeTabs.tsx`: Filter UI for asset types (All, 2D, 3D, Skybox).
+    *   `AssetBadges.tsx`: Shared utilities for status, rig, and animation badges.
+    *   `AssetGrid2D.tsx`: Card grid for 2D assets.
+    *   `AssetGrid3D.tsx`: Card grid for 3D assets with interactive previews.
+    *   `AssetDetail2D.tsx`: Detailed view for 2D assets.
+    *   `AssetDetail3D.tsx`: Interactive detailed view for 3D models and skyboxes.
+3.  **PR Review Fixes (High/Critical)**:
+    *   **Data Consistency**: 3D assets are now fetched from the server API instead of the client-side Dexie cache.
+    *   **Persistence Fix**: Fixed `handleApproval` in `SkyboxSection.tsx` to accept 'pending' and propagate the change to the backend, ensuring "Change" button actions are persisted.
+    *   **Cleanup**: Removed console logs and addressed unused variable warnings.
 
 **Validation:**
 ```
-✅ Skybox approval API returns 200 OK
-✅ Assets Panel 3D loads approved assets from server
-✅ 3D viewers render correctly in detail view
-✅ Seam fix button works again
-✅ ESLint warnings fixed (unused variables removed)
+✅ Assets Panel unified and refactored (280 lines vs 820 lines)
+✅ 3D data fetched from server API
+✅ Skybox approval "Change" button correctly persists to backend
+✅ All 3D viewers (Babylon.js/Three.js) working in detail views
+✅ Typecheck and Lint passed for all modified files
 ```
 
 ---

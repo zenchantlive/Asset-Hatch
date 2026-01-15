@@ -2,36 +2,33 @@
  * AssetsPanel Component
  *
  * A slide-out panel that displays all approved generated assets for a project.
- * Similar to FilesPanel but shows approved assets in a card-style grid layout.
+ * This is the container component that handles state management and data fetching.
  *
- * Features:
- * - Grid display of approved assets with images
- * - Asset metadata (prompt, model, seed, cost)
- * - Regenerate option for each asset
- * - Edit prompt functionality
- * - Slide-in animation from right
+ * Sub-components:
+ * - AssetTypeTabs: Filter tabs for asset types (All, 2D, 3D, Skybox)
+ * - AssetGrid2D: Grid display of 2D assets
+ * - AssetGrid3D: Grid display of 3D assets with ModelViewer previews
+ * - AssetDetail2D: Detail view for selected 2D asset
+ * - AssetDetail3D: Detail view for selected 3D asset with interactive viewers
  */
 
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { X, Image as ImageIcon, RotateCcw, Edit2, Box, Grid, Layers } from 'lucide-react'
+import { X, Image as ImageIcon, Layers } from 'lucide-react'
 import { db, GeneratedAsset } from '@/lib/client-db'
 import type { Generated3DAsset } from '@/lib/types/3d-generation'
-import { Button } from '@/components/ui/button'
-import { ANIMATION_PRESET_LABELS, type AnimationPreset } from '@/lib/types/3d-generation'
-import { cn } from '@/lib/utils'
+import {
+  AssetTypeTabs,
+  AssetGrid2D,
+  AssetGrid3D,
+  AssetDetail2D,
+  AssetDetail3D,
+  type AssetType,
+} from '@/components/ui/assets'
 
-/**
- * Constants
- */
-// Suffix used to identify skybox assets (matches SkyboxSection.tsx pattern: `${projectId}-skybox`)
+/** Suffix used to identify skybox assets */
 const SKYBOX_ASSET_SUFFIX = '-skybox'
-
-/**
- * Asset type filter options
- */
-export type AssetType = 'all' | '2d' | '3d' | 'skybox'
 
 interface AssetsPanelProps {
   projectId: string
@@ -40,37 +37,29 @@ interface AssetsPanelProps {
 }
 
 /**
- * AssetsPanel - Displays approved generated assets in a slide-out panel
- *
- * @param projectId - The project ID to fetch assets for
- * @param isOpen - Whether the panel is visible
- * @param onClose - Callback to close the panel
+ * AssetsPanel - Container component for approved assets display
  */
 export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
-  // State for list of 2D assets
+  // 2D assets state
   const [assets, setAssets] = useState<GeneratedAsset[]>([])
 
-  // State for list of 3D assets
+  // 3D assets state
   const [assets3D, setAssets3D] = useState<Generated3DAsset[]>([])
 
-  // Currently selected 2D asset for detail view
+  // Selected assets for detail view
   const [selectedAsset, setSelectedAsset] = useState<GeneratedAsset | null>(null)
-
-  // Currently selected 3D asset for detail view
   const [selectedAsset3D, setSelectedAsset3D] = useState<Generated3DAsset | null>(null)
 
-  // Asset type filter
+  // Filter state
   const [assetType, setAssetType] = useState<AssetType>('all')
 
-  // Loading state during fetch
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(false)
-
-  // Error state if fetch fails
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Fetch all approved assets for the project from Dexie
-   * Wrapped in useCallback to satisfy React Hook dependency rules
+   * Fetch all approved assets for the project
+   * 2D assets from Dexie (client), 3D assets from server API (Prisma)
    */
   const loadAssets = useCallback(async () => {
     try {
@@ -84,29 +73,55 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
         .filter(asset => asset.status === 'approved')
         .sortBy('created_at')
 
-      // Fetch 3D assets from Dexie - filter for complete status (approved)
-      const approved3DAssets = await db.generated_3d_assets
-        .where('project_id')
-        .equals(projectId)
-        .filter(asset => asset.status === 'complete')
-        .sortBy('created_at')
+      // Fetch 3D assets from server API (Prisma) - filter for approved status
+      const response = await fetch(`/api/projects/${projectId}/3d-assets?status=approved`)
 
-      // Reverse to show newest first
+      let approved3DAssets: Generated3DAsset[] = []
+      if (response.ok) {
+        const data = await response.json()
+
+        // Map API response to component's expected format
+        interface ApiAsset {
+          id: string
+          assetId: string
+          status: string
+          approvalStatus: string | null
+          draftModelUrl: string | null
+          riggedModelUrl: string | null
+          animatedModelUrls: Record<string, string>
+          promptUsed: string
+          isRiggable: boolean | null
+          createdAt: string
+          errorMessage: string | null
+        }
+
+        approved3DAssets = (data.assets || []).map((asset: ApiAsset) => ({
+          id: asset.id,
+          project_id: projectId,
+          asset_id: asset.assetId,
+          status: asset.status as Generated3DAsset['status'],
+          draft_model_url: asset.draftModelUrl,
+          rigged_model_url: asset.riggedModelUrl,
+          animated_model_urls: asset.animatedModelUrls || {},
+          prompt_used: asset.promptUsed || '',
+          is_riggable: asset.isRiggable ?? false,
+          created_at: asset.createdAt || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }))
+      }
+
+      // Show newest first
       setAssets(approvedAssets.reverse())
-      setAssets3D(approved3DAssets.reverse())
+      setAssets3D(approved3DAssets)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
-      console.error('Failed to load assets:', err)
     } finally {
       setIsLoading(false)
     }
   }, [projectId])
 
-  /**
-   * Load assets when panel opens
-   * Re-fetch when projectId changes
-   */
+  // Load assets when panel opens
   useEffect(() => {
     if (isOpen) {
       loadAssets()
@@ -114,8 +129,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }, [isOpen, loadAssets])
 
   /**
-   * Format timestamp for display
-   * Converts ISO string to relative time
+   * Format timestamp for display (relative time)
    */
   const formatTimestamp = (isoString: string): string => {
     const date = new Date(isoString)
@@ -134,105 +148,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }
 
   /**
-   * Handle regenerate button click
-   * TODO: Implement regeneration logic
-   */
-  const handleRegenerate = (asset: GeneratedAsset) => {
-    console.log('Regenerate asset:', asset.id)
-    // TODO: Call generation API with existing prompt
-  }
-
-  /**
-   * Handle edit prompt button click
-   * TODO: Implement prompt editing
-   */
-  const handleEditPrompt = (asset: GeneratedAsset) => {
-    console.log('Edit prompt for asset:', asset.id)
-    // TODO: Open modal with editable prompt
-  }
-
-  /**
-   * Get status badge component based on 3D asset status
-   */
-  const getStatusBadge = (asset: Generated3DAsset) => {
-    if (asset.status === 'complete') {
-      return (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-600/20 text-green-300 text-xs">
-          <Box className="h-3 w-3" />
-          <span>Approved</span>
-        </div>
-      )
-    }
-    if (asset.status === 'failed') {
-      return (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-600/20 text-red-300 text-xs">
-          <Box className="h-3 w-3" />
-          <span>Failed</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-300 text-xs">
-        <Box className="h-3 w-3" />
-        <span>{asset.status}</span>
-      </div>
-    )
-  }
-
-  /**
-   * Get rig status badge for 3D assets
-   */
-  const getRigBadge = (asset: Generated3DAsset) => {
-    if (asset.rigged_model_url) {
-      return (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/20 text-purple-300 text-xs">
-          <Box className="h-3 w-3" />
-          <span>Rigged</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 text-white/60 text-xs">
-        <Box className="h-3 w-3" />
-        <span>Draft</span>
-      </div>
-    )
-  }
-
-  /**
-   * Get animation count badge for 3D assets
-   */
-  const getAnimationBadge = (asset: Generated3DAsset) => {
-    const count = asset.animated_model_urls ? Object.keys(asset.animated_model_urls).length : 0
-    if (count === 0) {
-      return null
-    }
-    return (
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-300 text-xs">
-        <Layers className="h-3 w-3" />
-        <span>{count}</span>
-      </div>
-    )
-  }
-
-  /**
-   * Get asset type label and icon
-   */
-  const getAssetTypeLabel = (type: AssetType): { label: string; icon: React.ReactNode } => {
-    switch (type) {
-      case '2d':
-        return { label: '2D Assets', icon: <ImageIcon className="h-4 w-4" /> }
-      case '3d':
-        return { label: '3D Models', icon: <Box className="h-4 w-4" /> }
-      case 'skybox':
-        return { label: 'Skyboxes', icon: <Grid className="h-4 w-4" /> }
-      default:
-        return { label: 'All Assets', icon: <Layers className="h-4 w-4" /> }
-    }
-  }
-
-  /**
-   * Check if asset should be shown based on current filter
+   * Filter 3D assets based on asset type tab
    */
   const shouldShowAsset = useCallback((asset: Generated3DAsset): boolean => {
     if (assetType === 'all') return true
@@ -243,7 +159,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }, [assetType])
 
   /**
-   * Pre-calculate asset counts for each tab
+   * Calculate asset counts for tabs
    */
   const counts = useMemo(() => {
     const count2D = assets.length
@@ -258,7 +174,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }, [assets, assets3D])
 
   /**
-   * Filtered assets to display based on current tab
+   * Filter assets based on current tab
    */
   const displayedAssets = useMemo(() => {
     const assets2D = (assetType === 'all' || assetType === '2d') ? assets : []
@@ -270,22 +186,20 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
 
   const hasNoAssets = displayedAssets.assets2D.length === 0 && displayedAssets.assets3D.length === 0
 
-  // If not open, render nothing
+  // Don't render if not open
   if (!isOpen) return null
 
   return (
     <>
-      {/* Backdrop overlay - click to close */}
+      {/* Backdrop overlay */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fadeIn"
       />
 
-      {/* Slide-out panel from right */}
-      <div
-        className="fixed right-0 top-0 h-full w-[48rem] bg-black/40 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col animate-slideInRight"
-      >
-        {/* Header with title and close button */}
+      {/* Slide-out panel */}
+      <div className="fixed right-0 top-0 h-full w-[48rem] bg-black/40 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col animate-slideInRight">
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-purple-400" />
@@ -303,34 +217,12 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           </button>
         </div>
 
-        {/* Asset type filter tabs */}
-        <div className="flex gap-1 px-4 border-b border-white/10">
-          {(['all', '2d', '3d', 'skybox'] as AssetType[]).map((type) => {
-            const { label, icon } = getAssetTypeLabel(type)
-            const isActive = assetType === type
-            const count = counts[type]
-            return (
-              <button
-                key={type}
-                onClick={() => setAssetType(type)}
-                className={`
-                  flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
-                  ${isActive
-                    ? 'text-purple-400 border-purple-400'
-                    : 'text-white/50 hover:text-white/80 border-transparent hover:border-white/20'}
-                `}
-              >
-                {icon}
-                <span>{label}</span>
-                {count > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${isActive ? 'bg-purple-500/20' : 'bg-white/10'}`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        {/* Asset type tabs */}
+        <AssetTypeTabs
+          activeType={assetType}
+          onTypeChange={setAssetType}
+          counts={counts}
+        />
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto">
@@ -363,322 +255,39 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           )}
 
           {/* 2D Asset grid */}
-          {!isLoading && !selectedAsset && !selectedAsset3D && displayedAssets.assets2D.length > 0 && (
-            <div className="p-4 grid grid-cols-2 gap-4">
-              {displayedAssets.assets2D.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                  onClick={() => setSelectedAsset(asset)}
-                >
-                  {/* Image */}
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset.image_base64 || ''}
-                      alt={asset.asset_id}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-
-                  {/* Asset info */}
-                  <div>
-                    <h3 className="font-semibold text-white/90 text-sm truncate">{asset.asset_id}</h3>
-                    <p className="text-xs text-white/60">{asset.status}</p>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>{formatTimestamp(asset.created_at)}</span>
-                    <span>${asset.generation_metadata.cost.toFixed(4)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {!isLoading && !selectedAsset && !selectedAsset3D && (
+            <AssetGrid2D
+              assets={displayedAssets.assets2D}
+              onAssetClick={setSelectedAsset}
+              formatTimestamp={formatTimestamp}
+            />
           )}
 
           {/* 3D Asset grid */}
-          {!isLoading && !selectedAsset && !selectedAsset3D && displayedAssets.assets3D.length > 0 && (
-            <div className="p-4 grid grid-cols-2 gap-4">
-              {displayedAssets.assets3D.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                  onClick={() => setSelectedAsset3D(asset)}
-                >
-                  {/* Use image for Skybox, otherwise placeholder */}
-                  {asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) && asset.draft_model_url ? (
-                    <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={asset.draft_model_url}
-                        alt="Skybox"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                      <Box className="w-12 h-12 text-cyan-400/50" />
-                    </div>
-                  )}
-
-                  {/* Asset info */}
-                  <div>
-                    <h3 className="font-semibold text-white/90 text-sm truncate">{asset.asset_id}</h3>
-                    <p className="text-xs text-white/60 truncate">{asset.prompt_used}</p>
-                  </div>
-
-                  {/* Status badges */}
-                  <div className="flex flex-wrap gap-2">
-                    {/* Skybox Badge */}
-                    {asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
-                        <Box className="h-3 w-3" />
-                        <span>Skybox</span>
-                      </div>
-                    ) : (
-                      <>
-                        {getStatusBadge(asset)}
-                        {getRigBadge(asset)}
-                        {getAnimationBadge(asset)}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>{formatTimestamp(asset.created_at)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {!isLoading && !selectedAsset && !selectedAsset3D && (
+            <AssetGrid3D
+              assets={displayedAssets.assets3D}
+              onAssetClick={setSelectedAsset3D}
+              formatTimestamp={formatTimestamp}
+            />
           )}
 
           {/* 2D Asset detail view */}
           {selectedAsset && (
-            <div className="flex flex-col h-full">
-              {/* Back button */}
-              <div className="p-4 border-b border-white/10">
-                <button
-                  onClick={() => setSelectedAsset(null)}
-                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
-                >
-                  ← Back to assets
-                </button>
-              </div>
-
-              {/* Asset details */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Header */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white/90">{selectedAsset.asset_id}</h3>
-                  <p className="text-sm text-white/60">{selectedAsset.status}</p>
-                </div>
-
-                {/* Image */}
-                <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedAsset.image_base64 || ''}
-                    alt={selectedAsset.asset_id}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-
-                {/* Prompt */}
-                <div className="bg-black/20 rounded-lg p-3 border border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-white/60 font-semibold">Prompt:</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditPrompt(selectedAsset)}
-                      className="text-xs h-6"
-                    >
-                      <Edit2 className="w-3 h-3 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                  <p className="text-sm text-white/80 font-mono">{selectedAsset.prompt_used}</p>
-                </div>
-
-                {/* Metadata grid */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Model:</span>
-                    <span className="ml-2 text-white/90 font-medium">{selectedAsset.generation_metadata.model}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Seed:</span>
-                    <span className="ml-2 text-white/90 font-mono">{selectedAsset.generation_metadata.seed}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Cost:</span>
-                    <span className="ml-2 text-white/90 font-medium">${selectedAsset.generation_metadata.cost.toFixed(4)}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Duration:</span>
-                    <span className="ml-2 text-white/90 font-medium">{(selectedAsset.generation_metadata.duration_ms / 1000).toFixed(1)}s</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-2">
-                  <Button
-                    onClick={() => handleRegenerate(selectedAsset)}
-                    className="w-full aurora-gradient font-semibold"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Regenerate Image
-                  </Button>
-                </div>
-
-                {/* Info box */}
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded p-2 text-xs text-white/70">
-                  <strong className="text-purple-300">Tip:</strong> Click &quot;Regenerate Image&quot; to create a new version with the same prompt, or edit the prompt first for variations.
-                </div>
-              </div>
-            </div>
+            <AssetDetail2D
+              asset={selectedAsset}
+              onBack={() => setSelectedAsset(null)}
+              formatTimestamp={formatTimestamp}
+            />
           )}
 
           {/* 3D Asset detail view */}
           {selectedAsset3D && (
-            <div className="flex flex-col h-full">
-              {/* Back button */}
-              <div className="p-4 border-b border-white/10">
-                <button
-                  onClick={() => setSelectedAsset3D(null)}
-                  className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ← Back to assets
-                </button>
-              </div>
-
-              {/* Asset details */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Header */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white/90">{selectedAsset3D.asset_id}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
-                        <Box className="h-3 w-3" />
-                        <span>Skybox</span>
-                      </div>
-                    ) : (
-                      <>
-                        {getStatusBadge(selectedAsset3D)}
-                        {getRigBadge(selectedAsset3D)}
-                        {getAnimationBadge(selectedAsset3D)}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Skybox Preview or 3D Model Viewer Placeholder */}
-                {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) && selectedAsset3D.draft_model_url ? (
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selectedAsset3D.draft_model_url}
-                      alt="Skybox Full"
-                      className="w-full h-full object-cover"
-                    />
-                    <p className="absolute bottom-4 left-4 text-xs text-white/80 bg-black/50 px-2 py-1 rounded">2D Preview</p>
-                  </div>
-                ) : (
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                    <Box className="w-16 h-16 text-cyan-400/50" />
-                    <p className="absolute bottom-4 text-xs text-white/40">3D Model Viewer</p>
-                  </div>
-                )}
-
-                {/* Prompt */}
-                <div className="bg-black/20 rounded-lg p-3 border border-white/10">
-                  <p className="text-xs text-white/60 font-semibold mb-1">Prompt:</p>
-                  <p className="text-sm text-white/80 font-mono">{selectedAsset3D.prompt_used}</p>
-                </div>
-
-                {/* Model URLs */}
-                <div className="space-y-2">
-                  <p className="text-xs text-white/60 font-semibold">Model Files:</p>
-                  {selectedAsset3D.draft_model_url && (
-                    <div className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
-                      <span className="text-sm text-white/80">
-                        {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? "Skybox Image" : "Draft Model"}
-                      </span>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        Download
-                      </Button>
-                    </div>
-                  )}
-                  {selectedAsset3D.rigged_model_url && (
-                    <div className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
-                      <span className="text-sm text-white/80">Rigged Model</span>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        Download
-                      </Button>
-                    </div>
-                  )}
-                  {selectedAsset3D.animated_model_urls && Object.entries(selectedAsset3D.animated_model_urls).length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-white/60 font-semibold">Animated Models:</p>
-                      {Object.keys(selectedAsset3D.animated_model_urls).map((preset) => (
-                        <div key={preset} className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
-                          <span className="text-sm text-white/80">
-                            {ANIMATION_PRESET_LABELS[preset as AnimationPreset] || preset}
-                          </span>
-                          <Button size="sm" variant="outline" className="h-7 text-xs">
-                            Download
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Metadata */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Created:</span>
-                    <span className="ml-2 text-white/90 font-medium">{formatTimestamp(selectedAsset3D.created_at)}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Status:</span>
-                    <span className="ml-2 text-white/90 font-medium capitalize">{selectedAsset3D.status}</span>
-                  </div>
-                </div>
-
-                {/* Animations section */}
-                {selectedAsset3D.animated_model_urls && Object.keys(selectedAsset3D.animated_model_urls).length > 0 && (
-                  <div className="bg-black/20 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs text-white/60 font-semibold mb-2">Animations:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.keys(selectedAsset3D.animated_model_urls).map((preset) => {
-                        const status = selectedAsset3D.animationApprovals?.[preset as AnimationPreset] || 'pending'
-                        return (
-                          <div key={preset} className="flex items-center gap-2 bg-black/20 rounded px-2 py-1">
-                            <span className="text-xs text-white/80">
-                              {ANIMATION_PRESET_LABELS[preset as AnimationPreset] || preset}
-                            </span>
-                            <span className={cn(
-                              'text-xs px-1.5 py-0.5 rounded',
-                              {
-                                'bg-green-600/20 text-green-300': status === 'approved',
-                                'bg-red-600/20 text-red-300': status === 'rejected',
-                                'bg-yellow-600/20 text-yellow-300': status === 'pending',
-                              }
-                            )}>
-                              {status}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <AssetDetail3D
+              asset={selectedAsset3D}
+              onBack={() => setSelectedAsset3D(null)}
+              formatTimestamp={formatTimestamp}
+            />
           )}
         </div>
       </div>

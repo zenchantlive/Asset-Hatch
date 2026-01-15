@@ -224,7 +224,7 @@ export function SkyboxSection({
 
     // Handle approval status updates
     const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
-    const handleApproval = async (status: 'approved' | 'rejected') => {
+    const handleApproval = async (status: 'approved' | 'rejected' | 'pending') => {
         try {
             setIsUpdatingApproval(true);
             setError(null);
@@ -240,9 +240,7 @@ export function SkyboxSection({
             }
             // Update local state to reflect new approval status
             setApprovalStatus(status);
-            console.log(`Status updated to ${status}`);
         } catch (err) {
-            console.error('Approval error:', err);
             setError("Failed to update status: " + (err instanceof Error ? err.message : "Unknown error"));
         } finally {
             setIsUpdatingApproval(false);
