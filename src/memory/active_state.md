@@ -1,4 +1,40 @@
-## 🎯 Latest Session Summary (2026-01-14 Late Evening)
+## 🎯 Latest Session Summary (2026-01-15)
+
+### Vercel Deploy Fix: Prisma Provider Mismatch (Complete)
+
+Fixed Vercel deployment failure caused by Prisma migration provider mismatch (`P3019` error).
+
+**Root Cause:**
+- `migration_lock.toml` was set to `sqlite` (from original Turso setup)
+- `schema.prisma` was updated to `postgresql` (Neon)
+- Migration SQL files contained SQLite-specific syntax (`DATETIME`, `BLOB`, `REAL`, etc.)
+- `prisma migrate deploy` fails when providers don't match
+
+**Fix Applied:**
+1. **Changed `vercel.json`**: Replaced `prisma migrate deploy` with `prisma db push`
+   - `db push` syncs schema directly without migration history
+   - Safe for existing Neon database with matching schema
+2. **Deleted SQLite migrations**: Removed `src/prisma/migrations/` directory
+   - SQLite SQL is incompatible with PostgreSQL
+   - Prevents future confusion
+
+**Files Modified:**
+- `vercel.json` - Updated build command
+- `src/prisma/migrations/` - Deleted (4 SQLite migration files + lock)
+
+**Why `db push` instead of `migrate deploy`:**
+- `db push` is ideal for prototyping and single-database deployments
+- No migration history needed when schema matches production
+- Simpler CI/CD without managing migration files across providers
+
+**Next Steps (if migration history needed later):**
+1. Run `bunx prisma migrate dev --name init` locally against Neon
+2. This creates fresh PostgreSQL-compatible migrations
+3. Update `vercel.json` back to `migrate deploy`
+
+---
+
+## 🎯 Previous Session Summary (2026-01-14 Late Evening)
 
 ### Assets Panel Consolidation & PR Review Refactoring (Complete)
 
