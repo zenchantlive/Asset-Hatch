@@ -14,34 +14,35 @@ describe("Rigged Model Hydration", () => {
     });
 
     it("should verify that riggedModelUrl is present in the API response", async () => {
-        const mockAssets = [
-            {
-                id: "asset-1",
-                assetId: "asset-1",
-                status: "complete",
-                approvalStatus: "approved",
-                draftModelUrl: "https://example.com/draft.glb",
-                riggedModelUrl: "https://example.com/rigged.glb",
-                animationTaskIds: {},
-                animatedModelUrls: {}
-            }
-        ];
+it("should fetch 3d assets and include riggedModelUrl", async () => {
+    const mockAssets = [
+        {
+            id: "asset-1",
+            assetId: "asset-1",
+            status: "complete",
+            approvalStatus: "approved",
+            draftModelUrl: "https://example.com/draft.glb",
+            riggedModelUrl: "https://example.com/rigged.glb",
+            animationTaskIds: {},
+            animatedModelUrls: {}
+        }
+    ];
 
-        (global.fetch as any).mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                success: true,
-                assets: mockAssets
-            })
-        });
-
-const response = await fetch("/api/projects/proj-1/3d-assets");
-expect(response.ok).toBe(true);
-const data = await response.json();
-
-        expect(data.success).toBe(true);
-        expect(data.assets[0].riggedModelUrl).toBe("https://example.com/rigged.glb");
+    (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+            success: true,
+            assets: mockAssets
+        })
     });
+
+    // Assuming a function `get3DAssets` exists that fetches and processes assets.
+    // This function should be imported from your application code.
+    const assets = await get3DAssets("proj-1");
+
+    expect(assets.length).toBe(1);
+    expect(assets[0].riggedModelUrl).toBe("https://example.com/rigged.glb");
+});
 
     it("should correctly parse a 3D plan with [RIG] tags", () => {
         const markdown = `
