@@ -9,7 +9,6 @@ import { StylePreview, emptyStyleDraft, type StyleDraft, type GeneratedStyleAnch
 import { GenerationQueue } from "@/components/generation/GenerationQueue"
 import { FilesPanel } from "@/components/ui/FilesPanel"
 import { AssetsPanel } from "@/components/ui/AssetsPanel"
-import { AssetsPanel3D } from "@/components/ui/AssetsPanel3D"
 import { saveMemoryFile, updateProjectQualities, loadMemoryFile } from "@/lib/db-utils"
 import { db } from "@/lib/client-db"
 import { fetchAndSyncProject, syncMemoryFileToServer } from "@/lib/sync"
@@ -596,20 +595,12 @@ export default function PlanningPage() {
       </div>
 
 
-      {/* Assets panel - slide-out from right side */}
-      {projectMode === '3d' ? (
-        <AssetsPanel3D
-          projectId={typeof params.id === 'string' ? params.id : ''}
-          isOpen={assetsMenuOpen}
-          onClose={() => setAssetsMenuOpen(false)}
-        />
-      ) : (
-        <AssetsPanel
-          projectId={typeof params.id === 'string' ? params.id : ''}
-          isOpen={assetsMenuOpen}
-          onClose={() => setAssetsMenuOpen(false)}
-        />
-      )}
+      {/* Assets panel - slide-out from right side (unified for 2D and 3D) */}
+      <AssetsPanel
+        projectId={typeof params.id === 'string' ? params.id : ''}
+        isOpen={assetsMenuOpen}
+        onClose={() => setAssetsMenuOpen(false)}
+      />
 
       {/* Files panel - slide-out from right side */}
       <FilesPanel

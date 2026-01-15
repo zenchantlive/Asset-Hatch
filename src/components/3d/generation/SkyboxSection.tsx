@@ -56,6 +56,8 @@ interface SkyboxSectionProps {
     onGenerated?: (url: string) => void;
     // Initial URL from persistence
     initialUrl?: string | null;
+    // Initial approval status from persistence
+    initialApprovalStatus?: 'pending' | 'approved' | 'rejected' | null;
 }
 
 // =============================================================================
@@ -85,6 +87,7 @@ export function SkyboxSection({
     projectId,
     onGenerated,
     initialUrl,
+    initialApprovalStatus,
 }: SkyboxSectionProps) {
     // Section collapse state
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -115,6 +118,9 @@ export function SkyboxSection({
     const [autoRotate, setAutoRotate] = useState(false);
     const [previewMode, setPreviewMode] = useState<'flat' | 'spherical'>('spherical');
 
+    // Approval status state
+    const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved' | 'rejected'>(initialApprovalStatus || 'pending');
+
     // Get available image generation models
     const imageModels = getImageGenerationModels(CURATED_MODELS);
 
@@ -135,7 +141,7 @@ export function SkyboxSection({
 
             // Persist the blended image to the database
             const skyboxAssetId = `${projectId}-skybox`;
-            const response = await fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
+            const response = await fetch(`/api/projects/${projectId}/3d-assets/${skyboxAssetId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ draftModelUrl: blendedUrl }),
@@ -215,6 +221,31 @@ export function SkyboxSection({
         link.click();
         document.body.removeChild(link);
     }, [generatedUrl]);
+
+    // Handle approval status updates
+    const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
+    const handleApproval = async (status: 'approved' | 'rejected' | 'pending') => {
+        try {
+            setIsUpdatingApproval(true);
+            setError(null);
+            const skyboxAssetId = `${projectId}-skybox`;
+            const res = await fetch(`/api/projects/${projectId}/3d-assets/${skyboxAssetId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ approvalStatus: status }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to update approval status');
+            }
+            // Update local state to reflect new approval status
+            setApprovalStatus(status);
+        } catch (err) {
+            setError("Failed to update status: " + (err instanceof Error ? err.message : "Unknown error"));
+        } finally {
+            setIsUpdatingApproval(false);
+        }
+    };
 
     return (
         <div className="border-t border-white/10">
@@ -432,6 +463,50 @@ export function SkyboxSection({
                                 <Download className="h-3.5 w-3.5 mr-2" />
                                 Download
                             </Button>
+
+                            {/* Approval section - show buttons or status badge */}
+                            {approvalStatus === 'pending' ? (
+                                <div className="flex gap-2 pt-2">
+                                    <Button
+                                        onClick={() => handleApproval('approved')}
+                                        disabled={isUpdatingApproval}
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 border-green-600/30 text-green-400 hover:bg-green-950/30"
+                                    >
+                                        {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                    </Button>
+                                    <Button
+                                        onClick={() => handleApproval('rejected')}
+                                        disabled={isUpdatingApproval}
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 border-red-600/30 text-red-400 hover:bg-red-950/30"
+                                    >
+                                        {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reject"}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between pt-2">
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium",
+                                        approvalStatus === 'approved'
+                                            ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                                            : "bg-red-600/20 text-red-400 border border-red-600/30"
+                                    )}>
+                                        {approvalStatus === 'approved' ? '✓ Approved' : '✗ Rejected'}
+                                    </div>
+                                    <Button
+                                        onClick={() => handleApproval('pending')}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-xs text-white/50 hover:text-white/80"
+                                        disabled={isUpdatingApproval}
+                                    >
+                                        Change
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

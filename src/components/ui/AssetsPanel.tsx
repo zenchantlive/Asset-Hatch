@@ -2,22 +2,33 @@
  * AssetsPanel Component
  *
  * A slide-out panel that displays all approved generated assets for a project.
- * Similar to FilesPanel but shows approved assets in a card-style grid layout.
+ * This is the container component that handles state management and data fetching.
  *
- * Features:
- * - Grid display of approved assets with images
- * - Asset metadata (prompt, model, seed, cost)
- * - Regenerate option for each asset
- * - Edit prompt functionality
- * - Slide-in animation from right
+ * Sub-components:
+ * - AssetTypeTabs: Filter tabs for asset types (All, 2D, 3D, Skybox)
+ * - AssetGrid2D: Grid display of 2D assets
+ * - AssetGrid3D: Grid display of 3D assets with ModelViewer previews
+ * - AssetDetail2D: Detail view for selected 2D asset
+ * - AssetDetail3D: Detail view for selected 3D asset with interactive viewers
  */
 
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { X, Image as ImageIcon, RotateCcw, Edit2 } from 'lucide-react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { X, Image as ImageIcon, Layers } from 'lucide-react'
 import { db, GeneratedAsset } from '@/lib/client-db'
-import { Button } from '@/components/ui/button'
+import type { Generated3DAsset } from '@/lib/types/3d-generation'
+import {
+  AssetTypeTabs,
+  AssetGrid2D,
+  AssetGrid3D,
+  AssetDetail2D,
+  AssetDetail3D,
+  type AssetType,
+} from '@/components/ui/assets'
+
+/** Suffix used to identify skybox assets */
+const SKYBOX_ASSET_SUFFIX = '-skybox'
 
 interface AssetsPanelProps {
   projectId: string
@@ -26,63 +37,91 @@ interface AssetsPanelProps {
 }
 
 /**
- * AssetsPanel - Displays approved generated assets in a slide-out panel
- *
- * @param projectId - The project ID to fetch assets for
- * @param isOpen - Whether the panel is visible
- * @param onClose - Callback to close the panel
+ * AssetsPanel - Container component for approved assets display
  */
 export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
-  // State for list of assets
+  // 2D assets state
   const [assets, setAssets] = useState<GeneratedAsset[]>([])
 
-  // Currently selected asset for detail view
+  // 3D assets state
+  const [assets3D, setAssets3D] = useState<Generated3DAsset[]>([])
+
+  // Selected assets for detail view
   const [selectedAsset, setSelectedAsset] = useState<GeneratedAsset | null>(null)
+  const [selectedAsset3D, setSelectedAsset3D] = useState<Generated3DAsset | null>(null)
 
-  // Loading state during fetch
+  // Filter state
+  const [assetType, setAssetType] = useState<AssetType>('all')
+
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(false)
-
-  // Error state if fetch fails
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Fetch all approved assets for the project from Dexie
-   * Wrapped in useCallback to satisfy React Hook dependency rules
+   * Fetch all approved assets for the project
+   * 2D assets from Dexie (client), 3D assets from server API (Prisma)
    */
   const loadAssets = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Fetch from Dexie
+      // Fetch 2D assets from Dexie
       const approvedAssets = await db.generated_assets
         .where('project_id')
         .equals(projectId)
+        .filter(asset => asset.status === 'approved')
         .sortBy('created_at')
 
-      // Debug logging
-      console.log('Loaded assets:', approvedAssets.length)
-      if (approvedAssets.length > 0) {
-        console.log('First asset:', approvedAssets[0])
-        console.log('Has image_base64:', !!approvedAssets[0].image_base64)
-        console.log('Has image_blob:', !!approvedAssets[0].image_blob)
+      // Fetch 3D assets from server API (Prisma) - filter for approved status
+      const response = await fetch(`/api/projects/${projectId}/3d-assets?status=approved`)
+
+      let approved3DAssets: Generated3DAsset[] = []
+      if (response.ok) {
+        const data = await response.json()
+
+        // Map API response to component's expected format
+        interface ApiAsset {
+          id: string
+          assetId: string
+          status: string
+          approvalStatus: string | null
+          draftModelUrl: string | null
+          riggedModelUrl: string | null
+          animatedModelUrls: Record<string, string>
+          promptUsed: string
+          isRiggable: boolean | null
+          createdAt: string
+          errorMessage: string | null
+        }
+
+        approved3DAssets = (data.assets || []).map((asset: ApiAsset) => ({
+          id: asset.id,
+          project_id: projectId,
+          asset_id: asset.assetId,
+          status: asset.status as Generated3DAsset['status'],
+          draft_model_url: asset.draftModelUrl,
+          rigged_model_url: asset.riggedModelUrl,
+          animated_model_urls: asset.animatedModelUrls || {},
+          prompt_used: asset.promptUsed || '',
+          is_riggable: asset.isRiggable ?? false,
+          created_at: asset.createdAt || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }))
       }
 
-      // Reverse to show newest first
+      // Show newest first
       setAssets(approvedAssets.reverse())
+      setAssets3D(approved3DAssets)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
-      console.error('Failed to load assets:', err)
     } finally {
       setIsLoading(false)
     }
   }, [projectId])
 
-  /**
-   * Load assets when panel opens
-   * Re-fetch when projectId changes
-   */
+  // Load assets when panel opens
   useEffect(() => {
     if (isOpen) {
       loadAssets()
@@ -90,8 +129,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }, [isOpen, loadAssets])
 
   /**
-   * Format timestamp for display
-   * Converts ISO string to relative time
+   * Format timestamp for display (relative time)
    */
   const formatTimestamp = (isoString: string): string => {
     const date = new Date(isoString)
@@ -110,45 +148,64 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   }
 
   /**
-   * Handle regenerate button click
-   * TODO: Implement regeneration logic
+   * Filter 3D assets based on asset type tab
    */
-  const handleRegenerate = (asset: GeneratedAsset) => {
-    console.log('Regenerate asset:', asset.id)
-    // TODO: Call generation API with existing prompt
-  }
+  const shouldShowAsset = useCallback((asset: Generated3DAsset): boolean => {
+    if (assetType === 'all') return true
+    if (assetType === '2d') return false
+    if (assetType === '3d') return !asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)
+    if (assetType === 'skybox') return asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)
+    return true
+  }, [assetType])
 
   /**
-   * Handle edit prompt button click
-   * TODO: Implement prompt editing
+   * Calculate asset counts for tabs
    */
-  const handleEditPrompt = (asset: GeneratedAsset) => {
-    console.log('Edit prompt for asset:', asset.id)
-    // TODO: Open modal with editable prompt
-  }
+  const counts = useMemo(() => {
+    const count2D = assets.length
+    const skyboxes = assets3D.filter(a => a.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)).length
+    const count3D = assets3D.length - skyboxes
+    return {
+      all: count2D + assets3D.length,
+      '2d': count2D,
+      '3d': count3D,
+      skybox: skyboxes,
+    }
+  }, [assets, assets3D])
 
-  // If not open, render nothing
+  /**
+   * Filter assets based on current tab
+   */
+  const displayedAssets = useMemo(() => {
+    const assets2D = (assetType === 'all' || assetType === '2d') ? assets : []
+    const assets3DToShow = (assetType === 'all' || assetType === '3d' || assetType === 'skybox')
+      ? assets3D.filter(shouldShowAsset)
+      : []
+    return { assets2D, assets3D: assets3DToShow }
+  }, [assetType, assets, assets3D, shouldShowAsset])
+
+  const hasNoAssets = displayedAssets.assets2D.length === 0 && displayedAssets.assets3D.length === 0
+
+  // Don't render if not open
   if (!isOpen) return null
 
   return (
     <>
-      {/* Backdrop overlay - click to close */}
+      {/* Backdrop overlay */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fadeIn"
       />
 
-      {/* Slide-out panel from right */}
-      <div
-        className="fixed right-0 top-0 h-full w-[48rem] bg-black/40 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col animate-slideInRight"
-      >
-        {/* Header with title and close button */}
+      {/* Slide-out panel */}
+      <div className="fixed right-0 top-0 h-full w-[48rem] bg-black/40 backdrop-blur-xl border-l border-white/10 z-50 flex flex-col animate-slideInRight">
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-purple-400" />
+            <Layers className="w-5 h-5 text-purple-400" />
             <h2 className="text-lg font-semibold font-heading text-white">Generated Assets</h2>
-            {!isLoading && assets.length > 0 && (
-              <span className="text-sm text-white/60">({assets.length})</span>
+            {!isLoading && counts.all > 0 && (
+              <span className="text-sm text-white/60">({counts.all})</span>
             )}
           </div>
           <button
@@ -159,6 +216,13 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Asset type tabs */}
+        <AssetTypeTabs
+          activeType={assetType}
+          onTypeChange={setAssetType}
+          counts={counts}
+        />
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto">
@@ -180,7 +244,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           )}
 
           {/* Empty state */}
-          {!isLoading && !error && assets.length === 0 && (
+          {!isLoading && !error && hasNoAssets && (
             <div className="flex items-center justify-center h-32">
               <div className="text-center text-white/60">
                 <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -190,126 +254,40 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
             </div>
           )}
 
-          {/* Asset grid */}
-          {!isLoading && assets.length > 0 && !selectedAsset && (
-            <div className="p-4 grid grid-cols-2 gap-4">
-              {assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
-                  onClick={() => setSelectedAsset(asset)}
-                >
-                  {/* Image */}
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset.image_base64 || ''}
-                      alt={asset.asset_id}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-
-                  {/* Asset info */}
-                  <div>
-                    <h3 className="font-semibold text-white/90 text-sm truncate">{asset.asset_id}</h3>
-                    <p className="text-xs text-white/60">{asset.status}</p>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between text-xs text-white/60">
-                    <span>{formatTimestamp(asset.created_at)}</span>
-                    <span>${asset.generation_metadata.cost.toFixed(4)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* 2D Asset grid */}
+          {!isLoading && !selectedAsset && !selectedAsset3D && (
+            <AssetGrid2D
+              assets={displayedAssets.assets2D}
+              onAssetClick={setSelectedAsset}
+              formatTimestamp={formatTimestamp}
+            />
           )}
 
-          {/* Asset detail view */}
+          {/* 3D Asset grid */}
+          {!isLoading && !selectedAsset && !selectedAsset3D && (
+            <AssetGrid3D
+              assets={displayedAssets.assets3D}
+              onAssetClick={setSelectedAsset3D}
+              formatTimestamp={formatTimestamp}
+            />
+          )}
+
+          {/* 2D Asset detail view */}
           {selectedAsset && (
-            <div className="flex flex-col h-full">
-              {/* Back button */}
-              <div className="p-4 border-b border-white/10">
-                <button
-                  onClick={() => setSelectedAsset(null)}
-                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
-                >
-                  ← Back to assets
-                </button>
-              </div>
+            <AssetDetail2D
+              asset={selectedAsset}
+              onBack={() => setSelectedAsset(null)}
+              formatTimestamp={formatTimestamp}
+            />
+          )}
 
-              {/* Asset details */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Header */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white/90">{selectedAsset.asset_id}</h3>
-                  <p className="text-sm text-white/60">{selectedAsset.status}</p>
-                </div>
-
-                {/* Image */}
-                <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selectedAsset.image_base64 || ''}
-                    alt={selectedAsset.asset_id}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-
-                {/* Prompt */}
-                <div className="bg-black/20 rounded-lg p-3 border border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-white/60 font-semibold">Prompt:</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditPrompt(selectedAsset)}
-                      className="text-xs h-6"
-                    >
-                      <Edit2 className="w-3 h-3 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                  <p className="text-sm text-white/80 font-mono">{selectedAsset.prompt_used}</p>
-                </div>
-
-                {/* Metadata grid */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Model:</span>
-                    <span className="ml-2 text-white/90 font-medium">{selectedAsset.generation_metadata.model}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Seed:</span>
-                    <span className="ml-2 text-white/90 font-mono">{selectedAsset.generation_metadata.seed}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Cost:</span>
-                    <span className="ml-2 text-white/90 font-medium">${selectedAsset.generation_metadata.cost.toFixed(4)}</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-2 border border-white/10">
-                    <span className="text-white/60">Duration:</span>
-                    <span className="ml-2 text-white/90 font-medium">{(selectedAsset.generation_metadata.duration_ms / 1000).toFixed(1)}s</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-2">
-                  <Button
-                    onClick={() => handleRegenerate(selectedAsset)}
-                    className="w-full aurora-gradient font-semibold"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Regenerate Image
-                  </Button>
-                </div>
-
-                {/* Info box */}
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded p-2 text-xs text-white/70">
-                  <strong className="text-purple-300">Tip:</strong> Click &quot;Regenerate Image&quot; to create a new version with the same prompt, or edit the prompt first for variations.
-                </div>
-              </div>
-            </div>
+          {/* 3D Asset detail view */}
+          {selectedAsset3D && (
+            <AssetDetail3D
+              asset={selectedAsset3D}
+              onBack={() => setSelectedAsset3D(null)}
+              formatTimestamp={formatTimestamp}
+            />
           )}
         </div>
       </div>

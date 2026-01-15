@@ -60,6 +60,7 @@ export interface CharacterRegistry {
 }
 
 export interface GeneratedAsset {
+    prompt: ReactNode;
     id: string;
     project_id: string;
     asset_id: string; // Links to plan asset

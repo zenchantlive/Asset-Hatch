@@ -1,48 +1,48 @@
-# Active State - Asset Hatch Development
+## 🎯 Latest Session Summary (2026-01-14 Late Evening)
 
-**Last Updated:** 2026-01-14
-**Current Phase:** 3D Mode Implementation - Phase 4 UI Complete
-**Status:** ✅ Security Fixes Applied, Ready for Merge
+### Assets Panel Consolidation & PR Review Refactoring (Complete)
 
----
+Consolidated `AssetsPanel3D.tsx` into `AssetsPanel.tsx` and refactored the resulting large component into smaller, modular sub-components based on PR review feedback.
 
-## 🎯 Latest Session Summary (2026-01-14)
-
-### 3D Mode Feature - Phase 5 & 6: Skybox Generation & Seam Blending (Complete)
-
-Successfully implemented 360° Skybox generation, preview, and correction workflow.
-
-**Deliverables Completed:**
-1.  **Backend Integration:**
-    *   Enhanced `skybox-prompts.ts` with FLUX2 specific keywords for seamless texturing.
-    *   Integrated Skybox asset type into `AssetDetailPanel3D` and queue system.
-
-2.  **360° Viewer Implementation:**
-    *   **Challenge:** Standard `OrbitControls` in Three.js proved difficult for "inside-the-sphere" viewing (inverted controls).
-    *   **Attempt 1 (Pannellum):** Failed due to legacy window-binding issues and Next.js SSR conflicts.
-    *   **Solution (Babylon.js):** Integrated `@babylonjs/core` using `PhotoDome`. provided instant, perfect spherical projection and "Street View" style controls.
-    *   **ADR:** [ADR-023: Skybox Viewer Technology Selection](adr/023-skybox-viewer-selection.md).
-
-3.  **Seam Correction System:**
-    *   **Problem:** AI-generated skyboxes often have a visible hard line where the left/right edges meet (equirectangular seam).
-    *   **Solution:** Created client-side utility `blendSeams(imageUrl)` in `src/lib/image-processing.ts`.
-    *   **Technique:** Uses HTML5 Canvas to:
-        1. Draw the image.
-        2. Extract a 60px vertical strip from the Left and Right edges.
-        3. Create a horizontal gradient mask.
-        4. Blend the strips together and overlay them on the seam.
-        5. Return a new Blob URL.
-    *   **UI:** Added "Fix Seam" (Wand icon) button that processes the image in-browser without a server roundtrip.
+**Changes Made:**
+1.  **Component Consolidation**: Deleted redundant `src/components/ui/AssetsPanel3D.tsx` and updated `planning/page.tsx` to use the unified `AssetsPanel` for both 2D and 3D modes.
+2.  **Refactoring (Splitting 820-line file)**: Broke down `AssetsPanel.tsx` into 6 focused sub-components in `src/components/ui/assets/`:
+    *   `AssetTypeTabs.tsx`: Filter UI for asset types (All, 2D, 3D, Skybox).
+    *   `AssetBadges.tsx`: Shared utilities for status, rig, and animation badges.
+    *   `AssetGrid2D.tsx`: Card grid for 2D assets.
+    *   `AssetGrid3D.tsx`: Card grid for 3D assets with interactive previews.
+    *   `AssetDetail2D.tsx`: Detailed view for 2D assets.
+    *   `AssetDetail3D.tsx`: Interactive detailed view for 3D models and skyboxes.
+3.  **PR Review Fixes (High/Critical)**:
+    *   **Data Consistency**: 3D assets are now fetched from the server API instead of the client-side Dexie cache.
+    *   **Persistence Fix**: Fixed `handleApproval` in `SkyboxSection.tsx` to accept 'pending' and propagate the change to the backend, ensuring "Change" button actions are persisted.
+    *   **Cleanup**: Removed console logs and addressed unused variable warnings.
 
 **Validation:**
 ```
-✅ Generation: FLUX2 model generates high-quality 2:1 panoramas.
-✅ Preview: Babylon.js viewer handles drag-to-rotate perfectly.
-✅ Seam Fix: 'Fix Seam' button successfully removes the visible hard line ~95% of the time.
-✅ UI: Tabbed interface (Spherical 360° vs Flat) works seamlessly.
+✅ Assets Panel unified and refactored (280 lines vs 820 lines)
+✅ 3D data fetched from server API
+✅ Skybox approval "Change" button correctly persists to backend
+✅ All 3D viewers (Babylon.js/Three.js) working in detail views
+✅ Typecheck and Lint passed for all modified files
 ```
 
 ---
+
+## 🎯 Next Priority: Export Fix (TDD Approach)
+
+**Problem:** Approved 3D assets (skyboxes, 3D models) are NOT being added to export. Only 2D assets work.
+
+**Approach:** Test-Driven Development (TDD)
+1.  Write failing tests for export of all asset types
+2.  Make tests pass by fixing export logic
+3.  Verify with manual testing
+
+**GitHub Issue:** Created with detailed instructions (see issue tracker)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-14)
 
 ### 3D Mode Feature - Phase 4: Security Fixes & Verification
 
