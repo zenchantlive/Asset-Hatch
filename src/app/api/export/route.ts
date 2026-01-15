@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { prisma } from '@/lib/prisma';
 import { generateSemanticId, getCategoryFolder } from '@/lib/prompt-builder';
-import type { ExportManifest, ExportAssetMetadata } from '@/lib/types';
+import type { ExportManifest, ExportAssetMetadata, Export3DAssetMetadata } from '@/lib/types';
 
 /**
  * Helper to fetch a URL as a Buffer
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Build export manifest
-        const manifest: any = {
+        const manifest: ExportManifest = {
             project: {
                 id: project.id,
                 name: project.name,
@@ -188,19 +188,21 @@ export async function POST(req: NextRequest) {
             if (clientAsset && clientAsset.imageBlob) {
                 const imageBuffer = Buffer.from(clientAsset.imageBlob, 'base64');
                 zip.file(filePath, imageBuffer);
+            } else {
+                console.warn(`⚠️ Missing image for asset ${generatedAsset.id}`);
             }
         }
 
         // Process each generated 3D asset
         for (const asset of generated3DAssets) {
             const isSkybox = asset.assetId.endsWith('-skybox');
-            
+
             if (isSkybox && asset.draftModelUrl) {
                 try {
                     const buffer = await fetchAsBuffer(asset.draftModelUrl);
                     const filePath = `skybox/${asset.assetId}.jpg`;
                     zip.file(filePath, buffer);
-                    
+
                     manifest.assets3d.push({
                         id: asset.assetId,
                         type: 'skybox',
@@ -208,11 +210,11 @@ export async function POST(req: NextRequest) {
                         prompt: asset.promptUsed,
                     });
                 } catch (err) {
-                    console.error(`Failed to fetch skybox: ${err}`);
+                    console.error(`Failed to fetch skybox for ${asset.assetId}: ${err}`);
                 }
             } else {
                 const modelFolder = `models/${asset.assetId}`;
-                const assetMetadata: any = {
+                const assetMetadata: Export3DAssetMetadata = {
                     id: asset.assetId,
                     type: 'model',
                     folder: modelFolder,
@@ -225,8 +227,10 @@ export async function POST(req: NextRequest) {
                         const buffer = await fetchAsBuffer(asset.draftModelUrl);
                         const path = `${modelFolder}/draft.glb`;
                         zip.file(path, buffer);
-                        assetMetadata.files.draft = path;
-                    } catch (err) {}
+                        if (assetMetadata.files) assetMetadata.files.draft = path;
+                    } catch (err) {
+                        console.error(`Failed to fetch draft model for ${asset.assetId}: ${err}`);
+                    }
                 }
 
                 if (asset.riggedModelUrl) {
@@ -234,24 +238,30 @@ export async function POST(req: NextRequest) {
                         const buffer = await fetchAsBuffer(asset.riggedModelUrl);
                         const path = `${modelFolder}/rigged.glb`;
                         zip.file(path, buffer);
-                        assetMetadata.files.rigged = path;
-                    } catch (err) {}
+                        if (assetMetadata.files) assetMetadata.files.rigged = path;
+                    } catch (err) {
+                        console.error(`Failed to fetch rigged model for ${asset.assetId}: ${err}`);
+                    }
                 }
 
                 if (asset.animatedModelUrls) {
                     try {
                         const animUrls = JSON.parse(asset.animatedModelUrls);
-                        assetMetadata.files.animations = {};
+                        if (assetMetadata.files) assetMetadata.files.animations = {};
                         for (const [preset, url] of Object.entries(animUrls)) {
                             try {
                                 const buffer = await fetchAsBuffer(url as string);
                                 const animName = preset.replace('preset:', '');
                                 const path = `${modelFolder}/animations/${animName}.glb`;
                                 zip.file(path, buffer);
-                                assetMetadata.files.animations[animName] = path;
-                            } catch (err) {}
+                                if (assetMetadata.files?.animations) assetMetadata.files.animations[animName] = path;
+                            } catch (err) {
+                                console.error(`Failed to fetch animation ${preset} for ${asset.assetId}: ${err}`);
+                            }
                         }
-                    } catch (err) {}
+                    } catch (err) {
+                        console.error(`Failed to parse animated URLs for ${asset.assetId}: ${err}`);
+                    }
                 }
 
                 manifest.assets3d.push(assetMetadata);
