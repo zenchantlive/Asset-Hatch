@@ -35,8 +35,9 @@ describe("Rigged Model Hydration", () => {
             })
         });
 
-        const response = await fetch("/api/projects/proj-1/3d-assets");
-        const data = await response.json();
+const response = await fetch("/api/projects/proj-1/3d-assets");
+expect(response.ok).toBe(true);
+const data = await response.json();
 
         expect(data.success).toBe(true);
         expect(data.assets[0].riggedModelUrl).toBe("https://example.com/rigged.glb");
