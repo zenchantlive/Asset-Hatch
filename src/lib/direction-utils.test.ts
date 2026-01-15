@@ -12,7 +12,6 @@ import {
   getDirectionalAssetFilename,
   DIRECTION_LABELS,
   DIRECTION_EXPORT_NAMES,
-  type Direction,
 } from './direction-utils';
 import type { ParsedAsset } from './prompt-builder';
 

@@ -10,7 +10,7 @@ import {
   estimateBatchCost,
   type GenerationCost,
 } from './cost-tracker';
-import { CURATED_MODELS } from './model-registry';
+import { CURATED_MODELS, type RegisteredModel } from './model-registry';
 
 describe('cost-tracker', () => {
   describe('formatCostDisplay', () => {
@@ -248,13 +248,13 @@ describe('cost-tracker', () => {
 
     test('handles model with perRequest pricing', () => {
       // This would test if a model has perRequest set
-      const testModels = [...CURATED_MODELS, {
+      const testModels: RegisteredModel[] = [...CURATED_MODELS, {
         id: 'test/per-request-model',
         displayName: 'Test Model',
         provider: 'openrouter' as const,
         capabilities: {
-          inputModalities: ['text'],
-          outputModalities: ['image'],
+          inputModalities: ['text'] as ('text' | 'image' | 'file' | 'audio')[],
+          outputModalities: ['image'] as ('text' | 'image')[],
         },
         pricing: {
           promptPerToken: 0.0001,
@@ -281,29 +281,29 @@ describe('cost-tracker', () => {
 
   describe('estimateBatchCost', () => {
     test('calculates batch cost correctly', () => {
-      const result = estimateBatchCost('google/gemini-2.5-flash-image', 10, 500, CURATED_MODELS);
+      const result = estimateBatchCost('google/gemini-2.5-flash-image', 10, 500);
       // 0.07 * 10 = 0.7
       expect(result).toBeCloseTo(0.7, 4);
     });
 
     test('uses default avgPromptTokens', () => {
-      const result = estimateBatchCost('google/gemini-2.5-flash-image', 10, undefined, CURATED_MODELS);
+      const result = estimateBatchCost('google/gemini-2.5-flash-image', 10);
       // 0.07 * 10 = 0.7 (uses default 500 tokens)
       expect(result).toBeCloseTo(0.7, 4);
     });
 
     test('calculates for single asset', () => {
-      const result = estimateBatchCost('google/gemini-2.5-flash-image', 1, 500, CURATED_MODELS);
+      const result = estimateBatchCost('google/gemini-2.5-flash-image', 1, 500);
       expect(result).toBeCloseTo(0.07, 4);
     });
 
     test('calculates for large batch', () => {
-      const result = estimateBatchCost('google/gemini-2.5-flash-image', 100, 500, CURATED_MODELS);
+      const result = estimateBatchCost('google/gemini-2.5-flash-image', 100, 500);
       expect(result).toBeCloseTo(7, 2);
     });
 
     test('returns 0 for unknown model', () => {
-      const result = estimateBatchCost('unknown-model', 10, 500, CURATED_MODELS);
+      const result = estimateBatchCost('unknown-model', 10, 500);
       expect(result).toBe(0);
     });
   });
