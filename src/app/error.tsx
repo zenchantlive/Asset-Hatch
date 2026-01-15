@@ -19,7 +19,7 @@ export default function Error({
         <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-4">
             <h2 className="text-xl font-bold">Something went wrong!</h2>
             <p className="text-muted-foreground text-sm">
-                We've logged this error and will look into it.
+                We&apos;ve logged this error and will look into it.
             </p>
             <button
                 className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
