@@ -173,8 +173,14 @@ async function findAssetByTaskId(taskId: string): Promise<AssetMatchResult | nul
  * Polls Tripo3D API for task status and updates database accordingly.
  * Supports draft generation, rigging, AND animation tasks.
  *
+ * Query params (optional fallback for rig/animation tasks):
+ * - projectId: string - Project ID for fallback lookup
+ * - assetId: string - Asset ID for fallback lookup
+ * - taskType: 'draft' | 'rig' | 'animation' - Task type hint for fallback
+ *
  * @example
  * GET /api/generate-3d/tripo-task-123/status
+ * GET /api/generate-3d/tripo-task-123/status?projectId=xxx&assetId=yyy&taskType=rig
  * // Returns: { taskId: "...", status: "running", progress: 45 }
  */
 export async function GET(
@@ -191,6 +197,12 @@ export async function GET(
         { status: 400 }
       );
     }
+
+    // Extract optional fallback query params for when taskId lookup fails
+    const { searchParams } = new URL(request.url);
+    const fallbackProjectId = searchParams.get('projectId');
+    const fallbackAssetId = searchParams.get('assetId');
+    const taskTypeHint = searchParams.get('taskType') as 'draft' | 'rig' | 'animation' | null;
 
     // Get authenticated session
     const session = await auth();
@@ -221,7 +233,53 @@ export async function GET(
     const tripoTask = await pollTripoTaskStatus(tripoApiKey, taskId);
 
     // 2. Find database record by taskId (draft, rig, OR animation)
-    const matchResult = await findAssetByTaskId(taskId);
+    let matchResult = await findAssetByTaskId(taskId);
+
+    // 2b. FALLBACK: If taskId lookup failed but we have projectId+assetId, use that
+    // This handles the case where rigTaskId wasn't persisted correctly
+    if (!matchResult && fallbackProjectId && fallbackAssetId) {
+      console.log('⚠️ TaskId lookup failed, using fallback projectId+assetId:', {
+        taskId,
+        projectId: fallbackProjectId,
+        assetId: fallbackAssetId,
+        taskType: taskTypeHint,
+      });
+
+      const fallbackAsset = await prisma.generated3DAsset.findFirst({
+        where: {
+          projectId: fallbackProjectId,
+          assetId: fallbackAssetId,
+        },
+        select: {
+          id: true,
+          projectId: true,
+          assetId: true,
+          status: true,
+          draftTaskId: true,
+          rigTaskId: true,
+          animationTaskIds: true,
+          animatedModelUrls: true,
+        },
+      });
+
+      if (fallbackAsset) {
+        // Determine match type from hint or infer from status
+        let inferredMatchType: 'draft' | 'rig' | 'animation' = 'draft';
+        if (taskTypeHint) {
+          inferredMatchType = taskTypeHint;
+        } else if (fallbackAsset.status === 'rigging' || fallbackAsset.status === 'rigged') {
+          inferredMatchType = 'rig';
+        } else if (fallbackAsset.status === 'animating') {
+          inferredMatchType = 'animation';
+        }
+
+        matchResult = {
+          asset: fallbackAsset,
+          matchType: inferredMatchType,
+        };
+        console.log('✅ Fallback lookup succeeded, matchType:', inferredMatchType);
+      }
+    }
 
     // 3. Verify user owns the project (authentication required)
     if (!session?.user?.id) {
@@ -271,15 +329,18 @@ export async function GET(
 
           } else if (matchType === 'rig') {
             // Update RIGGED model URL
+            // IMPORTANT: Also persist rigTaskId here as belt-and-suspenders
+            // In case the rig/route.ts update didn't persist correctly
             await prisma.generated3DAsset.update({
               where: { id: asset.id },
               data: {
                 status: 'rigged',
                 riggedModelUrl: modelUrl,
+                rigTaskId: taskId, // Redundant save - ensures taskId is persisted
                 updatedAt: new Date(),
               },
             });
-            console.log('✅ Rigged Model URL saved:', modelUrl);
+            console.log('✅ Rigged Model URL saved:', modelUrl, 'rigTaskId:', taskId);
 
           } else if (matchType === 'animation' && animationPreset) {
             // Update ANIMATED model URL for specific preset

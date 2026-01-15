@@ -126,9 +126,17 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Task submitted:', tripoTask.task_id);
 
-    // 4. Create Generated3DAsset database record
-    const generated3DAsset = await prisma.generated3DAsset.create({
-      data: {
+    // 4. Create or update Generated3DAsset database record
+    // Use upsert to handle regeneration (when asset already exists)
+    const generated3DAsset = await prisma.generated3DAsset.upsert({
+      where: {
+        // Use the unique constraint for lookup
+        projectId_assetId: {
+          projectId,
+          assetId,
+        },
+      },
+      create: {
         projectId,
         assetId,
         status: 'queued',
@@ -136,9 +144,26 @@ export async function POST(request: NextRequest) {
         promptUsed: prompt,
         isRiggable: shouldRig,
       },
+      update: {
+        // Reset all generation state for regeneration
+        status: 'queued',
+        draftTaskId: tripoTask.task_id,
+        promptUsed: prompt,
+        isRiggable: shouldRig,
+        // Clear previous generation data
+        draftModelUrl: null,
+        rigTaskId: null,
+        riggedModelUrl: null,
+        animationTaskIds: null,
+        animatedModelUrls: null,
+        errorMessage: null,
+        approvalStatus: null,
+        approvedAt: null,
+        updatedAt: new Date(),
+      },
     });
 
-    console.log('💾 Database record created:', generated3DAsset.id);
+    console.log('💾 Database record created/updated:', generated3DAsset.id);
 
     // 5. Return task ID for polling
     const response: Generate3DResponse = {

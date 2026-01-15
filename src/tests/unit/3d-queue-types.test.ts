@@ -217,6 +217,9 @@ describe("3D Queue Types", () => {
                 onApprove: () => { },
                 onReject: () => { },
                 onRegenerate: () => { },
+                onApproveAnimation: () => { },
+                onRejectAnimation: () => { },
+                onRegenerateAnimation: () => { },
                 onToggleAnimation: () => { },
             };
 
