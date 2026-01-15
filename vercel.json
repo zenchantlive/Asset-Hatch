@@ -1,7 +1,7 @@
 {
-    "buildCommand": "cd src && bun install && bunx prisma generate && bunx prisma migrate deploy && bun run build",
+    "buildCommand": "bun install && bunx prisma generate && bunx prisma migrate deploy && bun run build",
     "outputDirectory": "src/.next",
-    "installCommand": "cd src && bun install",
+    "installCommand": "bun install",
     "framework": "nextjs",
     "regions": [
         "iad1"
