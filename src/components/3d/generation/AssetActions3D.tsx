@@ -251,9 +251,9 @@ export function AssetActions3D({
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <button
-                                                                onClick={() => onRejectAnimation(preset)}
-                                                                className="p-0.5 hover:bg-white/10 rounded"
-                                                            >
+    onClick={() => onRejectAnimation(preset)}
+    className="p-0.5 hover:bg-red-500/20 rounded"
+>
                                                                 <X className="w-3.5 h-3.5 text-white/50 hover:text-red-400" />
                                                             </button>
                                                         </TooltipTrigger>
