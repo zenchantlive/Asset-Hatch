@@ -1,9 +1,9 @@
 /**
  * Export API Route
- * 
+ *
  * Generates a ZIP file containing all approved assets organized by category
  * with a manifest.json file for AI-consumable metadata.
- * 
+ *
  * Per ADR-014: Single-Asset Strategy
  */
 
@@ -11,7 +11,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { prisma } from '@/lib/prisma';
 import { generateSemanticId, getCategoryFolder } from '@/lib/prompt-builder';
-import type { ExportManifest, ExportAssetMetadata } from '@/lib/types';
+import type { ExportManifest, ExportAssetMetadata, Export3DAssetMetadata } from '@/lib/types';
+
+/**
+ * Helper to fetch a URL as a Buffer
+ */
+async function fetchAsBuffer(url: string): Promise<Buffer> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
 
 /**
  * POST /api/export
@@ -36,13 +48,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!clientAssets || !Array.isArray(clientAssets) || clientAssets.length === 0) {
-            return NextResponse.json(
-                { error: 'No assets provided. Images must be sent from client IndexedDB.' },
-                { status: 400 }
-            );
-        }
-
         // Fetch project from database
         const project = await prisma.project.findUnique({
             where: { id: projectId },
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Fetch all approved assets
+        // Fetch all approved 2D assets
         const generatedAssets = await prisma.generatedAsset.findMany({
             where: {
                 projectId: projectId,
@@ -66,7 +71,18 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        if (generatedAssets.length === 0) {
+        // Fetch all approved 3D assets
+        const generated3DAssets = await prisma.generated3DAsset.findMany({
+            where: {
+                projectId: projectId,
+                approvalStatus: 'approved',
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+
+        if (generatedAssets.length === 0 && generated3DAssets.length === 0) {
             return NextResponse.json(
                 { error: 'No approved assets to export' },
                 { status: 400 }
@@ -83,19 +99,15 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        if (!entitiesFile) {
-            return NextResponse.json(
-                { error: 'Asset plan not found' },
-                { status: 404 }
-            );
+        // Parse markdown plan if it exists
+        let parsedAssets: any[] = [];
+        if (entitiesFile) {
+            const { parsePlan } = await import('@/lib/plan-parser');
+            parsedAssets = parsePlan(entitiesFile.content, {
+                mode: 'granular',
+                projectId: projectId,
+            });
         }
-
-        // Parse markdown plan using plan parser (entities.json is markdown, not JSON!)
-        const { parsePlan } = await import('@/lib/plan-parser');
-        const parsedAssets = parsePlan(entitiesFile.content, {
-            mode: 'granular', // Generate individual assets
-            projectId: projectId,
-        });
 
         // Fetch style anchor (optional)
         const styleAnchor = await prisma.styleAnchor.findFirst({
@@ -108,6 +120,7 @@ export async function POST(req: NextRequest) {
             project: {
                 id: project.id,
                 name: project.name,
+                mode: project.mode,
                 created: project.createdAt.toISOString(),
             },
             style: {
@@ -118,6 +131,7 @@ export async function POST(req: NextRequest) {
                 anchorImagePath: styleAnchor ? 'style_anchor.png' : undefined,
             },
             assets: [],
+            assets3d: [],
         };
 
         // Create ZIP archive
@@ -128,49 +142,31 @@ export async function POST(req: NextRequest) {
             zip.file('style_anchor.png', styleAnchor.referenceImageBlob);
         }
 
-        // Process each generated asset
+        // Process each generated 2D asset
         for (const generatedAsset of generatedAssets) {
-            // Find corresponding asset in parsed plan
             const parsedAsset = parsedAssets.find(a => a.id === generatedAsset.assetId);
+            if (!parsedAsset) continue;
 
-            if (!parsedAsset) {
-                console.warn(`Parsed asset not found for: ${generatedAsset.assetId}`);
-                continue;
-            }
-
-            // Generate semantic ID
             const semanticId = generateSemanticId(parsedAsset);
-
-            // Determine category folder
             const categoryFolder = getCategoryFolder(parsedAsset.category);
-
-            // Construct file path
             const filePath = `${categoryFolder}/${semanticId}.png`;
 
-            // Use project-wide resolution (individual asset resolution not yet supported in type)
             const resolution = project.baseResolution || '32x32';
             const [width, height] = resolution.split('x').map((n: string) => parseInt(n, 10));
-
-            // Determine frame count (1 for single sprite, >1 for sprite sheet)
             const frameCount = parsedAsset.variant?.frameCount || 1;
 
-            // Parse metadata (stored as JSON string in Prisma)
-            let metadata: { model: string; seed: number };
+            let metadata: any;
             try {
-                metadata = generatedAsset.metadata
-                    ? JSON.parse(generatedAsset.metadata)
-                    : { model: 'flux.2-pro', seed: 0 };
+                metadata = generatedAsset.metadata ? JSON.parse(generatedAsset.metadata) : { model: 'flux.2-pro', seed: 0 };
             } catch (e) {
-                console.warn(`Failed to parse metadata for asset ${generatedAsset.id}:`, e);
-                metadata = { model: 'flux.2-pro', seed: 0 }; // Fallback
+                metadata = { model: 'flux.2-pro', seed: 0 };
             }
 
-            // Build asset metadata
             const assetMetadata: ExportAssetMetadata = {
                 id: semanticId,
                 semanticName: `${parsedAsset.category} - ${parsedAsset.name}${parsedAsset.variant?.name ? ` (${parsedAsset.variant.name})` : ''}`,
                 path: filePath,
-                category: parsedAsset.category.toLowerCase().replace(/s$/, ''), // Singular
+                category: parsedAsset.category.toLowerCase().replace(/s$/, ''),
                 tags: [
                     parsedAsset.category.toLowerCase(),
                     parsedAsset.name.toLowerCase(),
@@ -186,17 +182,97 @@ export async function POST(req: NextRequest) {
                 },
             };
 
-            // Add to manifest
             manifest.assets.push(assetMetadata);
 
-            // Get image from client-provided assets (images are in IndexedDB, not database)
-            const clientAsset = clientAssets.find((a: { id: string }) => a.id === generatedAsset.id);
+            const clientAsset = clientAssets?.find((a: any) => a.id === generatedAsset.id);
             if (clientAsset && clientAsset.imageBlob) {
-                // Convert base64 to Buffer for ZIP
                 const imageBuffer = Buffer.from(clientAsset.imageBlob, 'base64');
                 zip.file(filePath, imageBuffer);
             } else {
                 console.warn(`⚠️ Missing image for asset ${generatedAsset.id}`);
+            }
+        }
+
+        // Process each generated 3D asset
+        for (const asset of generated3DAssets) {
+            const isSkybox = asset.assetId.endsWith('-skybox');
+
+            if (isSkybox && asset.draftModelUrl) {
+                try {
+                    const buffer = await fetchAsBuffer(asset.draftModelUrl);
+                    const filePath = `skybox/${asset.assetId}.jpg`;
+                    zip.file(filePath, buffer);
+
+                    manifest.assets3d.push({
+                        id: asset.assetId,
+                        type: 'skybox',
+                        path: filePath,
+                        prompt: asset.promptUsed,
+                    });
+                } catch (err) {
+                    console.error(
+                      `Failed to fetch skybox for ${asset.assetId}: ${(err as Error).message}`
+                    );
+                }
+            } else {
+                const modelFolder = `models/${asset.assetId}`;
+                const assetMetadata: Export3DAssetMetadata = {
+                    id: asset.assetId,
+                    type: 'model',
+                    folder: modelFolder,
+                    prompt: asset.promptUsed,
+                    files: {},
+                };
+
+                if (asset.draftModelUrl) {
+                    try {
+                        const buffer = await fetchAsBuffer(asset.draftModelUrl);
+                        const path = `${modelFolder}/draft.glb`;
+                        zip.file(path, buffer);
+                        assetMetadata.files.draft = path;
+                    } catch (err) {
+                        console.error(`Failed to fetch draft model for ${asset.assetId}: ${err}`);
+                    }
+                }
+
+                if (asset.riggedModelUrl) {
+                    try {
+                        const buffer = await fetchAsBuffer(asset.riggedModelUrl);
+                        const path = `${modelFolder}/rigged.glb`;
+                        zip.file(path, buffer);
+                        if (assetMetadata.files) assetMetadata.files.rigged = path;
+                    } catch (err) {
+                        console.error(`Failed to fetch rigged model for ${asset.assetId}: ${err}`);
+                    }
+                }
+
+                if (asset.animatedModelUrls) {
+                    try {
+                        const animUrls = JSON.parse(asset.animatedModelUrls);
+                        if (assetMetadata.files) assetMetadata.files.animations = {};
+
+                        const animationPromises = Object.entries(animUrls).map(async ([preset, url]) => {
+                            try {
+                                const buffer = await fetchAsBuffer(url as string);
+                                const animName = preset.replace('preset:', '');
+                                const path = `${modelFolder}/animations/${animName}.glb`;
+                                zip.file(path, buffer);
+                                if (assetMetadata.files?.animations) {
+                                    assetMetadata.files.animations[animName] = path;
+                                }
+                            } catch (err) {
+                                console.error(`Failed to fetch animation ${preset} for ${asset.assetId}: ${err}`);
+                            }
+                        });
+
+                        await Promise.all(animationPromises);
+
+                    } catch (err) {
+                        console.error(`Failed to parse animated URLs for ${asset.assetId}: ${err}`);
+                    }
+                }
+
+                manifest.assets3d.push(assetMetadata);
             }
         }
 

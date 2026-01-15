@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+
 export interface Project {
     id: string;
     name: string;
@@ -84,6 +86,22 @@ export interface GeneratedAsset {
 // =============================================================================
 
 /**
+ * Metadata for a single exported 3D asset.
+ */
+export interface Export3DAssetMetadata {
+    id: string;
+    type: 'skybox' | 'model';
+    path?: string; // for skybox
+    folder?: string; // for model
+    prompt: string | null;
+    files?: {
+        draft?: string;
+        rigged?: string;
+        animations?: Record<string, string>;
+    };
+}
+
+/**
  * Manifest for exported asset pack
  * Enables AI-consumable, programmatic asset usage
  */
@@ -91,6 +109,7 @@ export interface ExportManifest {
     project: {
         id: string;
         name: string;
+        mode?: string;
         created: string; // ISO 8601 timestamp
     };
     style: {
@@ -101,6 +120,7 @@ export interface ExportManifest {
         anchorImagePath?: string; // Relative path to style anchor image
     };
     assets: ExportAssetMetadata[];
+    assets3d: Export3DAssetMetadata[];
 }
 
 /**

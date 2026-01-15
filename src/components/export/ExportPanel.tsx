@@ -2,14 +2,14 @@
 
 /**
  * Export Panel Component
- * 
+ *
  * Displays export options and triggers ZIP download of approved assets
  * Per ADR-014: Single-Asset Strategy
  */
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Package, FileArchive, CheckCircle2 } from 'lucide-react';
+import { Download, Package, FileArchive, CheckCircle2, Loader2 } from 'lucide-react';
 import { db } from '@/lib/client-db';
 
 interface ExportPanelProps {
@@ -21,10 +21,11 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [approvedAssetCount, setApprovedAssetCount] = useState(0);
+    const [approved3DAssetCount, setApproved3DAssetCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [projectName, setProjectName] = useState('Asset Pack');
 
-    // Fetch project name and approved asset count from Dexie
+    // Fetch project name and approved asset count from Dexie and Prisma
     useEffect(() => {
         const loadProjectData = async () => {
             try {
@@ -36,7 +37,7 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                     setProjectName(project.name);
                 }
 
-                // Fetch approved asset count
+                // Fetch approved 2D asset count from Dexie
                 const approvedAssets = await db.generated_assets
                     .where('project_id')
                     .equals(projectId)
@@ -44,6 +45,15 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                     .count();
 
                 setApprovedAssetCount(approvedAssets);
+
+                // Fetch approved 3D asset count from server API
+                const response = await fetch(`/api/projects/${projectId}/3d-assets?status=approved`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setApproved3DAssetCount(data.assets?.length || 0);
+                } else {
+                    console.error(`Failed to fetch 3D asset count: ${response.statusText}`);
+                }
             } catch (err) {
                 console.error('Failed to load project data:', err);
                 setError('Failed to load project data');
@@ -58,37 +68,28 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
     /**
      * Trigger export by calling /api/export endpoint
      * Downloads ZIP file to user's browser
-     * 
-     * Note: We don't validate asset count client-side because Dexie and Prisma
-     * may be out of sync. Let the server API handle the validation.
      */
     const handleExport = async () => {
         setIsExporting(true);
         setError(null);
 
         try {
-            // Fetch all approved assets from IndexedDB (images are client-side)
+            // Fetch all approved 2D assets from IndexedDB (images are client-side)
             const approvedAssets = await db.generated_assets
                 .where('project_id')
                 .equals(projectId)
                 .and(asset => asset.status === 'approved')
                 .toArray();
 
-            if (approvedAssets.length === 0) {
-                throw new Error('No approved assets found');
-            }
-
             // Convert images to base64 for API transfer
             const assetsWithBase64 = await Promise.all(
                 approvedAssets.map(async (asset) => {
                     let imageBlob = '';
                     if (asset.image_blob) {
-                        // Convert Blob to base64 using FileReader (avoids stack overflow)
                         imageBlob = await new Promise<string>((resolve, reject) => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
                                 if (typeof reader.result === 'string') {
-                                    // Remove data URL prefix (data:image/png;base64,)
                                     const base64 = reader.result.split(',')[1];
                                     resolve(base64);
                                 } else {
@@ -146,6 +147,8 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
         }
     };
 
+    const totalApproved = approvedAssetCount + approved3DAssetCount;
+
     return (
         <div className="flex flex-col gap-4 p-6 border border-border/40 rounded-lg bg-card/50 backdrop-blur-sm">
             {/* Header */}
@@ -164,15 +167,21 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
             {/* Asset Count */}
             {isLoading ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm text-muted-foreground">Loading assets...</span>
                 </div>
             ) : (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">
-                        <span className="font-semibold">{approvedAssetCount}</span> approved asset{approvedAssetCount !== 1 ? 's' : ''} ready
-                    </span>
+                <div className="flex flex-col gap-2 px-3 py-2 rounded-md bg-muted/50">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        <span className="text-sm">
+                            <span className="font-semibold">{totalApproved}</span> approved asset{totalApproved !== 1 ? 's' : ''} ready
+                        </span>
+                    </div>
+                    <div className="flex gap-4 text-xs text-muted-foreground ml-6">
+                        <span>2D: {approvedAssetCount}</span>
+                        <span>3D: {approved3DAssetCount}</span>
+                    </div>
                 </div>
             )}
             {/* Export Details */}
@@ -186,7 +195,7 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                 <div className="flex items-start gap-2">
                     <FileArchive className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <span>
-                        Assets organized by category: <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">characters/</code>, <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">furniture/</code>, etc.
+                        Assets organized by category: <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">characters/</code>, <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">skybox/</code>, <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">models/</code>, etc.
                     </span>
                 </div>
             </div>
@@ -203,13 +212,13 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
             {/* Export Button */}
             <Button
                 onClick={handleExport}
-                disabled={isExporting || approvedAssetCount === 0}
+                disabled={isExporting || totalApproved === 0}
                 className="w-full"
                 size="lg"
             >
                 {isExporting ? (
                     <>
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         Generating ZIP...
                     </>
                 ) : (
@@ -220,7 +229,7 @@ export function ExportPanel({ projectId }: ExportPanelProps) {
                 )}
             </Button>
 
-            {approvedAssetCount === 0 && (
+            {totalApproved === 0 && (
                 <p className="text-xs text-center text-muted-foreground">
                     Approve some assets in the Generation tab first
                 </p>
