@@ -497,10 +497,11 @@ export function SkyboxSection({
                                         {approvalStatus === 'approved' ? '✓ Approved' : '✗ Rejected'}
                                     </div>
                                     <Button
-                                        onClick={() => setApprovalStatus('pending')}
+                                        onClick={() => handleApproval('pending')}
                                         variant="ghost"
                                         size="sm"
                                         className="text-xs text-white/50 hover:text-white/80"
+                                        disabled={isUpdatingApproval}
                                     >
                                         Change
                                     </Button>
