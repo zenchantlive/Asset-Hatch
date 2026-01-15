@@ -216,6 +216,31 @@ export function SkyboxSection({
         document.body.removeChild(link);
     }, [generatedUrl]);
 
+    // Handle approval status updates
+    const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
+    const handleApproval = async (status: 'approved' | 'rejected') => {
+        try {
+            setIsUpdatingApproval(true);
+            setError(null);
+            const skyboxAssetId = `${projectId}-skybox`;
+            const res = await fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ approvalStatus: status }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to update approval status');
+            }
+            console.log(`Status updated to ${status}`);
+        } catch (err) {
+            console.error('Approval error:', err);
+            setError("Failed to update status: " + (err instanceof Error ? err.message : "Unknown error"));
+        } finally {
+            setIsUpdatingApproval(false);
+        }
+    };
+
     return (
         <div className="border-t border-white/10">
             {/* Section Header */}
@@ -436,34 +461,22 @@ export function SkyboxSection({
                             {/* Approval buttons */}
                             <div className="flex gap-2 pt-2">
                                 <Button
-                                    onClick={() => {
-                                        const skyboxAssetId = `${projectId}-skybox`
-                                        fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ approvalStatus: 'approved' }),
-                                        })
-                                    }}
+                                    onClick={() => handleApproval('approved')}
+                                    disabled={isUpdatingApproval}
                                     variant="outline"
                                     size="sm"
                                     className="flex-1 border-green-600/30 text-green-400 hover:bg-green-950/30"
                                 >
-                                    Approve
+                                    {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
                                 </Button>
                                 <Button
-                                    onClick={() => {
-                                        const skyboxAssetId = `${projectId}-skybox`
-                                        fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ approvalStatus: 'rejected' }),
-                                        })
-                                    }}
+                                    onClick={() => handleApproval('rejected')}
+                                    disabled={isUpdatingApproval}
                                     variant="outline"
                                     size="sm"
                                     className="flex-1 border-red-600/30 text-red-400 hover:bg-red-950/30"
                                 >
-                                    Reject
+                                    {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reject"}
                                 </Button>
                             </div>
                         </div>

@@ -14,12 +14,18 @@
 
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { X, Image as ImageIcon, RotateCcw, Edit2, Box, Grid, Layers } from 'lucide-react'
 import { db, GeneratedAsset } from '@/lib/client-db'
 import type { Generated3DAsset } from '@/lib/types/3d-generation'
 import { Button } from '@/components/ui/button'
 import { ANIMATION_PRESET_LABELS, type AnimationPreset } from '@/lib/types/3d-generation'
+import { cn } from '@/lib/utils'
+
+/**
+ * Constants
+ */
+const SKYBOX_ASSET_SUFFIX = SKYBOX_ASSET_SUFFIX
 
 /**
  * Asset type filter options
@@ -77,17 +83,12 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
         .filter(asset => asset.status === 'approved')
         .sortBy('created_at')
 
-      // Debug logging
-      console.log('Loaded 2D assets:', approvedAssets.length)
-
       // Fetch 3D assets from Dexie - filter for complete status (approved)
       const approved3DAssets = await db.generated_3d_assets
         .where('project_id')
         .equals(projectId)
         .filter(asset => asset.status === 'complete')
         .sortBy('created_at')
-
-      console.log('Loaded 3D assets:', approved3DAssets.length)
 
       // Reverse to show newest first
       setAssets(approvedAssets.reverse())
@@ -232,13 +233,41 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   /**
    * Check if asset should be shown based on current filter
    */
-  const shouldShowAsset = (asset: Generated3DAsset): boolean => {
+  const shouldShowAsset = useCallback((asset: Generated3DAsset): boolean => {
     if (assetType === 'all') return true
     if (assetType === '2d') return false
-    if (assetType === '3d') return !asset.asset_id.endsWith('-skybox')
-    if (assetType === 'skybox') return asset.asset_id.endsWith('-skybox')
+    if (assetType === '3d') return !asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)
+    if (assetType === 'skybox') return asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)
     return true
-  }
+  }, [assetType])
+
+  /**
+   * Pre-calculate asset counts for each tab
+   */
+  const counts = useMemo(() => {
+    const count2D = assets.length
+    const skyboxes = assets3D.filter(a => a.asset_id.endsWith(SKYBOX_ASSET_SUFFIX)).length
+    const count3D = assets3D.length - skyboxes
+    return {
+      all: count2D + assets3D.length,
+      '2d': count2D,
+      '3d': count3D,
+      skybox: skyboxes,
+    }
+  }, [assets, assets3D])
+
+  /**
+   * Filtered assets to display based on current tab
+   */
+  const displayedAssets = useMemo(() => {
+    const assets2D = (assetType === 'all' || assetType === '2d') ? assets : []
+    const assets3DToShow = (assetType === 'all' || assetType === '3d' || assetType === 'skybox')
+      ? assets3D.filter(shouldShowAsset)
+      : []
+    return { assets2D, assets3D: assets3DToShow }
+  }, [assetType, assets, assets3D, shouldShowAsset])
+
+  const hasNoAssets = displayedAssets.assets2D.length === 0 && displayedAssets.assets3D.length === 0
 
   // If not open, render nothing
   if (!isOpen) return null
@@ -260,8 +289,8 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-purple-400" />
             <h2 className="text-lg font-semibold font-heading text-white">Generated Assets</h2>
-            {!isLoading && (assets.length + assets3D.length) > 0 && (
-              <span className="text-sm text-white/60">({assets.length + assets3D.length})</span>
+            {!isLoading && counts.all > 0 && (
+              <span className="text-sm text-white/60">({counts.all})</span>
             )}
           </div>
           <button
@@ -278,10 +307,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           {(['all', '2d', '3d', 'skybox'] as AssetType[]).map((type) => {
             const { label, icon } = getAssetTypeLabel(type)
             const isActive = assetType === type
-            const count = type === 'all' ? assets.length + assets3D.length :
-                         type === '2d' ? assets.length :
-                         type === '3d' ? assets3D.filter(a => !a.asset_id.endsWith('-skybox')).length :
-                         assets3D.filter(a => a.asset_id.endsWith('-skybox')).length
+            const count = counts[type]
             return (
               <button
                 key={type}
@@ -325,23 +351,20 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           )}
 
           {/* Empty state */}
-          {!isLoading && !error && (
-            (assetType === 'all' || assetType === '2d') && assets.length === 0 &&
-            (assetType === 'all' || assetType === '3d' || assetType === 'skybox') && assets3D.filter(a => shouldShowAsset(a)).length === 0 ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="text-center text-white/60">
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No assets generated yet</p>
-                  <p className="text-xs mt-1">Approved assets will appear here</p>
-                </div>
+          {!isLoading && !error && hasNoAssets && (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center text-white/60">
+                <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No assets generated yet</p>
+                <p className="text-xs mt-1">Approved assets will appear here</p>
               </div>
-            ) : null
+            </div>
           )}
 
           {/* 2D Asset grid */}
-          {!isLoading && !selectedAsset && !selectedAsset3D && (assetType === 'all' || assetType === '2d') && assets.length > 0 && (
+          {!isLoading && !selectedAsset && !selectedAsset3D && displayedAssets.assets2D.length > 0 && (
             <div className="p-4 grid grid-cols-2 gap-4">
-              {assets.map((asset) => (
+              {displayedAssets.assets2D.map((asset) => (
                 <div
                   key={asset.id}
                   className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
@@ -374,16 +397,16 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
           )}
 
           {/* 3D Asset grid */}
-          {!isLoading && !selectedAsset && !selectedAsset3D && (assetType === 'all' || assetType === '3d' || assetType === 'skybox') && assets3D.filter(a => shouldShowAsset(a)).length > 0 && (
+          {!isLoading && !selectedAsset && !selectedAsset3D && displayedAssets.assets3D.length > 0 && (
             <div className="p-4 grid grid-cols-2 gap-4">
-              {assets3D.filter(a => shouldShowAsset(a)).map((asset) => (
+              {displayedAssets.assets3D.map((asset) => (
                 <div
                   key={asset.id}
                   className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
                   onClick={() => setSelectedAsset3D(asset)}
                 >
                   {/* Use image for Skybox, otherwise placeholder */}
-                  {asset.asset_id.endsWith('-skybox') && asset.draft_model_url ? (
+                  {asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) && asset.draft_model_url ? (
                     <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -407,7 +430,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                   {/* Status badges */}
                   <div className="flex flex-wrap gap-2">
                     {/* Skybox Badge */}
-                    {asset.asset_id.endsWith('-skybox') ? (
+                    {asset.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
                         <Box className="h-3 w-3" />
                         <span>Skybox</span>
@@ -536,7 +559,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                 <div>
                   <h3 className="text-lg font-semibold text-white/90">{selectedAsset3D.asset_id}</h3>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedAsset3D.asset_id.endsWith('-skybox') ? (
+                    {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-600/20 text-blue-300 text-xs">
                         <Box className="h-3 w-3" />
                         <span>Skybox</span>
@@ -552,7 +575,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                 </div>
 
                 {/* Skybox Preview or 3D Model Viewer Placeholder */}
-                {selectedAsset3D.asset_id.endsWith('-skybox') && selectedAsset3D.draft_model_url ? (
+                {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) && selectedAsset3D.draft_model_url ? (
                   <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -581,7 +604,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                   {selectedAsset3D.draft_model_url && (
                     <div className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
                       <span className="text-sm text-white/80">
-                        {selectedAsset3D.asset_id.endsWith('-skybox') ? "Skybox Image" : "Draft Model"}
+                        {selectedAsset3D.asset_id.endsWith(SKYBOX_ASSET_SUFFIX) ? "Skybox Image" : "Draft Model"}
                       </span>
                       <Button size="sm" variant="outline" className="h-7 text-xs">
                         Download
@@ -631,17 +654,20 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                     <p className="text-xs text-white/60 font-semibold mb-2">Animations:</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(selectedAsset3D.animated_model_urls).map(([preset, url]) => {
-                        const status = selectedAsset3D.animation_approvals?.[preset as AnimationPreset] || 'pending'
+                        const status = selectedAsset3D.animationApprovals?.[preset as AnimationPreset] || 'pending'
                         return (
                           <div key={preset} className="flex items-center gap-2 bg-black/20 rounded px-2 py-1">
                             <span className="text-xs text-white/80">
                               {ANIMATION_PRESET_LABELS[preset as AnimationPreset] || preset}
                             </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${
-                              status === 'approved' ? 'bg-green-600/20 text-green-300' :
-                              status === 'rejected' ? 'bg-red-600/20 text-red-300' :
-                              'bg-yellow-600/20 text-yellow-300'
-                            }`}>
+                            <span className={cn(
+                              'text-xs px-1.5 py-0.5 rounded',
+                              {
+                                'bg-green-600/20 text-green-300': status === 'approved',
+                                'bg-red-600/20 text-red-300': status === 'rejected',
+                                'bg-yellow-600/20 text-yellow-300': status === 'pending',
+                              }
+                            )}>
                               {status}
                             </span>
                           </div>
