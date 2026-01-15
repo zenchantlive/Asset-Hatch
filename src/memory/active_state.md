@@ -1,48 +1,60 @@
 # Active State - Asset Hatch Development
 
 **Last Updated:** 2026-01-14
-**Current Phase:** 3D Mode Implementation - Phase 4 UI Complete
-**Status:** ✅ Security Fixes Applied, Ready for Merge
+**Current Phase:** 3D Mode Implementation - Export Fix Required
+**Status:** ✅ Skybox Approval & Assets Panel Fixed, Ready for Export TDD
 
 ---
 
-## 🎯 Latest Session Summary (2026-01-14)
+## 🎯 Latest Session Summary (2026-01-14 Evening)
 
-### 3D Mode Feature - Phase 5 & 6: Skybox Generation & Seam Blending (Complete)
+### Skybox Approval & Assets Panel 3D Fix (Complete)
 
-Successfully implemented 360° Skybox generation, preview, and correction workflow.
+Fixed multiple issues with 3D asset approval flow and assets panel display.
 
-**Deliverables Completed:**
-1.  **Backend Integration:**
-    *   Enhanced `skybox-prompts.ts` with FLUX2 specific keywords for seamless texturing.
-    *   Integrated Skybox asset type into `AssetDetailPanel3D` and queue system.
+**Bugs Fixed:**
+1.  **`SKYBOX_ASSET_SUFFIX` ReferenceError** - Fixed self-referencing constant in `AssetsPanel.tsx` (line 28)
+2.  **Skybox Approval API 404** - Created new PATCH endpoint at `/api/projects/[id]/3d-assets/[assetId]/route.ts`
+3.  **Incorrect API paths in `SkyboxSection.tsx`** - Changed `/assets/` to `/3d-assets/`
+4.  **Approval status UI state** - Added `approvalStatus` state to show badge after approval/rejection
 
-2.  **360° Viewer Implementation:**
-    *   **Challenge:** Standard `OrbitControls` in Three.js proved difficult for "inside-the-sphere" viewing (inverted controls).
-    *   **Attempt 1 (Pannellum):** Failed due to legacy window-binding issues and Next.js SSR conflicts.
-    *   **Solution (Babylon.js):** Integrated `@babylonjs/core` using `PhotoDome`. provided instant, perfect spherical projection and "Street View" style controls.
-    *   **ADR:** [ADR-023: Skybox Viewer Technology Selection](adr/023-skybox-viewer-selection.md).
+**Assets Panel 3D Enhancements:**
+1.  **Server API fetch** - Changed from Dexie (client IndexedDB) to server API fetch for 3D assets
+2.  **3D Viewers Integrated:**
+    *   `SimpleSkyboxViewer` (Babylon.js PhotoDome) for skybox 360° preview
+    *   `ModelViewer` (Three.js R3F) for GLB model preview
+3.  **Tab switcher** - Toggle between "Spherical 360°" and "Flat 2:1" for skybox detail view
+4.  **Grid previews** - 3D models now show live `ModelViewer` in grid cards (not just placeholder icon)
 
-3.  **Seam Correction System:**
-    *   **Problem:** AI-generated skyboxes often have a visible hard line where the left/right edges meet (equirectangular seam).
-    *   **Solution:** Created client-side utility `blendSeams(imageUrl)` in `src/lib/image-processing.ts`.
-    *   **Technique:** Uses HTML5 Canvas to:
-        1. Draw the image.
-        2. Extract a 60px vertical strip from the Left and Right edges.
-        3. Create a horizontal gradient mask.
-        4. Blend the strips together and overlay them on the seam.
-        5. Return a new Blob URL.
-    *   **UI:** Added "Fix Seam" (Wand icon) button that processes the image in-browser without a server roundtrip.
+**Seam Fix Restored:**
+*   Reverted `image-processing.ts` to pre-commit `fa0cc13` working version
+*   The broken pixel manipulation was replaced with proper cross-fade blending
 
 **Validation:**
 ```
-✅ Generation: FLUX2 model generates high-quality 2:1 panoramas.
-✅ Preview: Babylon.js viewer handles drag-to-rotate perfectly.
-✅ Seam Fix: 'Fix Seam' button successfully removes the visible hard line ~95% of the time.
-✅ UI: Tabbed interface (Spherical 360° vs Flat) works seamlessly.
+✅ Skybox approval API returns 200 OK
+✅ Assets Panel 3D loads approved assets from server
+✅ 3D viewers render correctly in detail view
+✅ Seam fix button works again
+✅ ESLint warnings fixed (unused variables removed)
 ```
 
 ---
+
+## 🎯 Next Priority: Export Fix (TDD Approach)
+
+**Problem:** Approved 3D assets (skyboxes, 3D models) are NOT being added to export. Only 2D assets work.
+
+**Approach:** Test-Driven Development (TDD)
+1.  Write failing tests for export of all asset types
+2.  Make tests pass by fixing export logic
+3.  Verify with manual testing
+
+**GitHub Issue:** Created with detailed instructions (see issue tracker)
+
+---
+
+## 🎯 Previous Session Summary (2026-01-14)
 
 ### 3D Mode Feature - Phase 4: Security Fixes & Verification
 

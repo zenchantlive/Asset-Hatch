@@ -25,7 +25,8 @@ import { cn } from '@/lib/utils'
 /**
  * Constants
  */
-const SKYBOX_ASSET_SUFFIX = SKYBOX_ASSET_SUFFIX
+// Suffix used to identify skybox assets (matches SkyboxSection.tsx pattern: `${projectId}-skybox`)
+const SKYBOX_ASSET_SUFFIX = '-skybox'
 
 /**
  * Asset type filter options
@@ -48,7 +49,7 @@ interface AssetsPanelProps {
 export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
   // State for list of 2D assets
   const [assets, setAssets] = useState<GeneratedAsset[]>([])
-  
+
   // State for list of 3D assets
   const [assets3D, setAssets3D] = useState<Generated3DAsset[]>([])
 
@@ -314,8 +315,8 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                 onClick={() => setAssetType(type)}
                 className={`
                   flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
-                  ${isActive 
-                    ? 'text-purple-400 border-purple-400' 
+                  ${isActive
+                    ? 'text-purple-400 border-purple-400'
                     : 'text-white/50 hover:text-white/80 border-transparent hover:border-white/20'}
                 `}
               >
@@ -622,7 +623,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                   {selectedAsset3D.animated_model_urls && Object.entries(selectedAsset3D.animated_model_urls).length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-white/60 font-semibold">Animated Models:</p>
-                      {Object.entries(selectedAsset3D.animated_model_urls).map(([preset, url]) => (
+                      {Object.keys(selectedAsset3D.animated_model_urls).map((preset) => (
                         <div key={preset} className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
                           <span className="text-sm text-white/80">
                             {ANIMATION_PRESET_LABELS[preset as AnimationPreset] || preset}
@@ -653,7 +654,7 @@ export function AssetsPanel({ projectId, isOpen, onClose }: AssetsPanelProps) {
                   <div className="bg-black/20 rounded-lg p-3 border border-white/10">
                     <p className="text-xs text-white/60 font-semibold mb-2">Animations:</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(selectedAsset3D.animated_model_urls).map(([preset, url]) => {
+                      {Object.keys(selectedAsset3D.animated_model_urls).map((preset) => {
                         const status = selectedAsset3D.animationApprovals?.[preset as AnimationPreset] || 'pending'
                         return (
                           <div key={preset} className="flex items-center gap-2 bg-black/20 rounded px-2 py-1">

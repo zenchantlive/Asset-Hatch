@@ -108,6 +108,11 @@ export async function GET(
                 riggedModelUrl: asset.riggedModelUrl,
                 animatedModelUrls: parseJson(asset.animatedModelUrls),
 
+                // Additional fields for UI display
+                promptUsed: asset.promptUsed,
+                isRiggable: asset.isRiggable,
+                createdAt: asset.createdAt,
+
                 errorMessage: asset.errorMessage,
             };
         });

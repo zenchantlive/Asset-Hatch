@@ -16,10 +16,13 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { X, Box, Bone, Film, CheckCircle, Clock, AlertCircle } from 'lucide-react'
-import { db } from '@/lib/client-db'
+// Server API used instead of Dexie for 3D assets
 import type { Generated3DAsset } from '@/lib/types/3d-generation'
 import { Button } from '@/components/ui/button'
 import { ANIMATION_PRESET_LABELS, type AnimationPreset } from '@/lib/types/3d-generation'
+// 3D Viewer components for interactive previews
+import { SimpleSkyboxViewer } from '@/components/3d/generation/SimpleSkyboxViewer'
+import { ModelViewer } from '@/components/3d/generation/ModelViewer'
 
 interface AssetsPanel3DProps {
   projectId: string
@@ -47,30 +50,60 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
   // Error state if fetch fails
   const [error, setError] = useState<string | null>(null)
 
+  // Skybox preview mode: spherical 360° or flat 2:1
+  const [skyboxPreviewMode, setSkyboxPreviewMode] = useState<'spherical' | 'flat'>('spherical')
+
   /**
-   * Fetch all approved 3D assets for the project from Dexie
-   * Wrapped in useCallback to satisfy React Hook dependency rules
+   * Fetch all approved 3D assets for the project from server API
+   * Uses the /api/projects/[id]/3d-assets endpoint which reads from Prisma
    */
   const loadAssets = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Fetch from Dexie - filter for complete status (approved)
-      const approvedAssets = await db.generated_3d_assets
-        .where('project_id')
-        .equals(projectId)
-        .filter(asset => asset.status === 'complete')
-        .sortBy('created_at')
+      // Fetch from server API - filter for approved status
+      const response = await fetch(`/api/projects/${projectId}/3d-assets?status=approved`)
 
-      // Debug logging
-      console.log('Loaded 3D assets:', approvedAssets.length)
-      if (approvedAssets.length > 0) {
-        console.log('First 3D asset:', approvedAssets[0])
+      if (!response.ok) {
+        throw new Error(`Failed to fetch 3D assets: ${response.status}`)
       }
 
-      // Reverse to show newest first
-      setAssets(approvedAssets.reverse())
+      const data = await response.json()
+
+      // Debug logging
+      console.log('Loaded 3D assets from API:', data.assets?.length || 0)
+
+      // Map API response to component's expected format
+      interface ApiAsset {
+        id: string
+        assetId: string
+        status: string
+        approvalStatus: string | null
+        draftModelUrl: string | null
+        riggedModelUrl: string | null
+        animatedModelUrls: Record<string, string>
+        promptUsed: string
+        isRiggable: boolean | null
+        createdAt: string
+        errorMessage: string | null
+      }
+
+      const mappedAssets: Generated3DAsset[] = (data.assets || []).map((asset: ApiAsset) => ({
+        id: asset.id,
+        project_id: projectId,
+        asset_id: asset.assetId,
+        status: asset.status as Generated3DAsset['status'],
+        draft_model_url: asset.draftModelUrl,
+        rigged_model_url: asset.riggedModelUrl,
+        animated_model_urls: asset.animatedModelUrls || {},
+        prompt_used: asset.promptUsed || '',
+        is_riggable: asset.isRiggable ?? false,
+        created_at: asset.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }))
+
+      setAssets(mappedAssets)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
@@ -246,7 +279,7 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                   className="glass-panel p-3 space-y-3 hover:bg-white/10 transition-all duration-200 cursor-pointer"
                   onClick={() => setSelectedAsset(asset)}
                 >
-                  {/* Use image for Skybox, otherwise placeholder */}
+                  {/* Use image for Skybox, ModelViewer for 3D models, placeholder otherwise */}
                   {asset.asset_id.endsWith('-skybox') && asset.draft_model_url ? (
                     <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -254,6 +287,14 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                         src={asset.draft_model_url}
                         alt="Skybox"
                         className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : asset.draft_model_url ? (
+                    <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
+                      <ModelViewer
+                        modelUrl={asset.draft_model_url}
+                        autoRotate={true}
+                        className="w-full h-full"
                       />
                     </div>
                   ) : (
@@ -328,21 +369,69 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                   </div>
                 </div>
 
-                {/* Skybox Preview or 3D Model Viewer Placeholder */}
-                {selectedAsset.asset_id.endsWith('-skybox') && selectedAsset.draft_model_url ? (
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selectedAsset.draft_model_url}
-                      alt="Skybox Full"
-                      className="w-full h-full object-cover"
-                    />
-                    <p className="absolute bottom-4 left-4 text-xs text-white/80 bg-black/50 px-2 py-1 rounded">2D Preview</p>
+                {/* Skybox 360° Interactive Preview with Tab Switcher */}
+                {selectedAsset.asset_id.endsWith('-skybox') && selectedAsset.draft_model_url && (
+                  <div className="space-y-2">
+                    {/* Preview Mode Tabs */}
+                    <div className="flex gap-2 border-b border-white/10">
+                      <button
+                        onClick={() => setSkyboxPreviewMode('spherical')}
+                        className={`px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px ${skyboxPreviewMode === 'spherical'
+                          ? 'text-cyan-400 border-cyan-400'
+                          : 'text-white/50 hover:text-white/70 border-transparent hover:border-white/20'
+                          }`}
+                      >
+                        Spherical 360°
+                      </button>
+                      <button
+                        onClick={() => setSkyboxPreviewMode('flat')}
+                        className={`px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px ${skyboxPreviewMode === 'flat'
+                          ? 'text-cyan-400 border-cyan-400'
+                          : 'text-white/50 hover:text-white/70 border-transparent hover:border-white/20'
+                          }`}
+                      >
+                        Flat 2:1
+                      </button>
+                    </div>
+
+                    {/* Preview Content */}
+                    {skyboxPreviewMode === 'spherical' ? (
+                      <div className="h-[300px] rounded-lg border border-white/10 overflow-hidden">
+                        <SimpleSkyboxViewer
+                          imageUrl={selectedAsset.draft_model_url}
+                          autoRotate={false}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative rounded-lg border border-white/10 overflow-hidden bg-black/20">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedAsset.draft_model_url}
+                          alt="Skybox flat preview"
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="relative aspect-square w-full bg-black/20 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                    <Box className="w-16 h-16 text-cyan-400/50" />
-                    <p className="absolute bottom-4 text-xs text-white/40">3D Model Viewer</p>
+                )}
+
+                {/* 3D Model Interactive Preview */}
+                {!selectedAsset.asset_id.endsWith('-skybox') && selectedAsset.draft_model_url && (
+                  <div className="h-[300px] rounded-lg border border-white/10 overflow-hidden">
+                    <ModelViewer
+                      modelUrl={selectedAsset.draft_model_url}
+                      autoRotate={true}
+                    />
+                  </div>
+                )}
+
+                {/* No model URL available placeholder */}
+                {!selectedAsset.draft_model_url && (
+                  <div className="h-[200px] rounded-lg border border-white/10 bg-black/20 flex items-center justify-center">
+                    <div className="text-center text-white/40">
+                      <Box className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-sm">No model available</p>
+                    </div>
                   </div>
                 )}
 
@@ -376,7 +465,7 @@ export function AssetsPanel3D({ projectId, isOpen, onClose }: AssetsPanel3DProps
                   {selectedAsset.animated_model_urls && Object.entries(selectedAsset.animated_model_urls).length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-white/60 font-semibold">Animated Models:</p>
-                      {Object.entries(selectedAsset.animated_model_urls).map(([preset, url]) => (
+                      {Object.keys(selectedAsset.animated_model_urls).map((preset) => (
                         <div key={preset} className="flex items-center justify-between bg-black/20 rounded p-2 border border-white/10">
                           <span className="text-sm text-white/80">
                             {ANIMATION_PRESET_LABELS[preset as AnimationPreset] || preset}
