@@ -195,15 +195,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 6b. DIAGNOSTIC: Verify the update persisted correctly
-    // This helps debug if we see NULL rigTaskId after the fact
-    if (updatedAsset.rigTaskId !== tripoTask.task_id) {
-      console.error('❌ CRITICAL: rigTaskId did not persist!', {
-        expected: tripoTask.task_id,
-        actual: updatedAsset.rigTaskId,
-        assetId: asset.id,
-      });
-    } else {
+// 6b. DIAGNOSTIC: Verify the update persisted correctly and fail fast
+// This helps debug if we see NULL rigTaskId after the fact
+if (updatedAsset.rigTaskId !== tripoTask.task_id) {
+  const errorMsg = 'CRITICAL: rigTaskId did not persist!';
+  console.error(`❌ ${errorMsg}`, {
+    expected: tripoTask.task_id,
+    actual: updatedAsset.rigTaskId,
+    assetId: asset.id,
+  });
+  // Fail fast to prevent silent failures downstream
+  throw new Error(errorMsg);
+} else {
       console.log('✅ rigTaskId persisted successfully:', {
         assetId: asset.assetId,
         rigTaskId: updatedAsset.rigTaskId,
