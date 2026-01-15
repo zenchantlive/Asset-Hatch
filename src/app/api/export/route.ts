@@ -248,17 +248,23 @@ export async function POST(req: NextRequest) {
                     try {
                         const animUrls = JSON.parse(asset.animatedModelUrls);
                         if (assetMetadata.files) assetMetadata.files.animations = {};
-                        for (const [preset, url] of Object.entries(animUrls)) {
+
+                        const animationPromises = Object.entries(animUrls).map(async ([preset, url]) => {
                             try {
                                 const buffer = await fetchAsBuffer(url as string);
                                 const animName = preset.replace('preset:', '');
                                 const path = `${modelFolder}/animations/${animName}.glb`;
                                 zip.file(path, buffer);
-                                if (assetMetadata.files?.animations) assetMetadata.files.animations[animName] = path;
+                                if (assetMetadata.files?.animations) {
+                                    assetMetadata.files.animations[animName] = path;
+                                }
                             } catch (err) {
                                 console.error(`Failed to fetch animation ${preset} for ${asset.assetId}: ${err}`);
                             }
-                        }
+                        });
+
+                        await Promise.all(animationPromises);
+
                     } catch (err) {
                         console.error(`Failed to parse animated URLs for ${asset.assetId}: ${err}`);
                     }
