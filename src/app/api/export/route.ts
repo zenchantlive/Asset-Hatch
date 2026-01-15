@@ -210,7 +210,9 @@ export async function POST(req: NextRequest) {
                         prompt: asset.promptUsed,
                     });
                 } catch (err) {
-                    console.error(`Failed to fetch skybox for ${asset.assetId}: ${err}`);
+                    console.error(
+                      `Failed to fetch skybox for ${asset.assetId}: ${(err as Error).message}`
+                    );
                 }
             } else {
                 const modelFolder = `models/${asset.assetId}`;
