@@ -15,7 +15,7 @@ bunx prisma studio   # DB GUI
 ```
 
 ## Tech Stack (One-liner)
-Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI SDK v6 + OpenRouter (Gemini) | Prisma (SQLite) + Dexie (IndexedDB cache)
+Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI SDK v6 + OpenRouter (Gemini) | Prisma (Neon PostgreSQL) + Dexie (IndexedDB cache)
 
 ## Architecture Summary
 - **4 Phases**: Planning → Style Anchor → Generation → Export
@@ -27,6 +27,7 @@ Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI 
 2. **AI SDK v6 Tool Detection**: Use `useRef` for `processedIds` Set to prevent infinite loops
 3. **Token Limits**: Never return base64 in tool results - return ID, fetch image separately
 4. **Prisma ↔ Client**: Map `art_style` → `artStyle` between layers
+5. **CI/CD Build Config**: Vercel uses BOTH `vercel.json` AND `package.json` scripts. Always grep for failing commands across ALL config files before fixing. Use `/debug-ci` command.
 
 ## Code Rules
 - `"use client"` only when hooks are needed

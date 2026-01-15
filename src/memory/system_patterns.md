@@ -155,13 +155,45 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     ```
 
 * **Environment Variables in Seed**
-  - Seed scripts don't automatically load `.env.local` 
+  - Seed scripts don't automatically load `.env.local`
   - **Solution:** Use `dotenv` at the top of the seed file:
     ```typescript
     import { config } from 'dotenv';
     config({ path: '.env.local' });
     config();
     ```
+
+### CI/CD & Vercel Deployment
+
+* **Build Config Lives in Multiple Places**
+  - **Issue:** Vercel builds use BOTH `vercel.json` AND `package.json` scripts
+  - `vercel.json` `buildCommand` often just calls `bun run build`
+  - `package.json` `"build"` script defines what actually runs
+  - **Gotcha:** Changing `vercel.json` alone may not fix build issues if the command is in `package.json`
+  - **Solution:** Always grep for the failing command across ALL config files:
+    ```bash
+    grep -r "migrate deploy" --include="*.json" --include="*.ts"
+    ```
+
+* **Prisma Provider Migration (SQLite → PostgreSQL)**
+  - **Issue:** `P3019` error when `migration_lock.toml` provider doesn't match `schema.prisma`
+  - **Symptom:** `The datasource provider 'postgresql' does not match 'sqlite'`
+  - **Solution:** For `db push` workflow, remove migration history entirely:
+    1. Delete `prisma/migrations/` folder
+    2. Remove `migrations` config from `prisma.config.ts`
+    3. Use `prisma generate && next build` (no `migrate deploy`)
+  - **Why:** SQLite migration SQL (`DATETIME`, `BLOB`) is incompatible with PostgreSQL
+
+* **Vercel Output Directory**
+  - **Issue:** Double path like `src/src/.next` in error messages
+  - **Cause:** Vercel root directory is `src`, so `outputDirectory: "src/.next"` becomes `src/src/.next`
+  - **Solution:** Use relative path from Vercel's root: `"outputDirectory": ".next"`
+
+* **CI/CD Debugging Pattern**
+  1. **Read the actual command** in build logs (e.g., `$ prisma generate && migrate deploy`)
+  2. **Grep for that command** across all config files
+  3. **Trace the chain:** `vercel.json` → `package.json` scripts → pre/post hooks
+  4. **Then fix** at the actual source
 
 ---
 
