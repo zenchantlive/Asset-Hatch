@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
                         const buffer = await fetchAsBuffer(asset.draftModelUrl);
                         const path = `${modelFolder}/draft.glb`;
                         zip.file(path, buffer);
-                        if (assetMetadata.files) assetMetadata.files.draft = path;
+                        assetMetadata.files.draft = path;
                     } catch (err) {
                         console.error(`Failed to fetch draft model for ${asset.assetId}: ${err}`);
                     }
