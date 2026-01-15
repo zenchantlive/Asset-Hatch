@@ -91,6 +91,7 @@ export function AddAssetForm({ projectId, onSubmit, onCancel }: AddAssetFormProp
         // Create new asset structure matching Parsed3DAsset
         const newAsset: Parsed3DAsset = {
             id: uniqueId,
+            projectId, // Required field from props
             name: name.trim(),
             description: description.trim() || `A ${category.toLowerCase()} asset`,
             shouldRig,

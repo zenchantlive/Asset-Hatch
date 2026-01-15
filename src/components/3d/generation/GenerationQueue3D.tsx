@@ -382,13 +382,14 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             // Build prompt from asset description
             const prompt = selectedAsset.description || `A 3D model of ${selectedAsset.name}`;
 
-            // Submit generation task
+            // Submit generation task with asset name for file export naming
             const response = await fetch("/api/generate-3d", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     projectId,
                     assetId: selectedAssetId,
+                    name: selectedAsset.name, // Human-readable name for file naming
                     prompt,
                     shouldRig: selectedAsset.shouldRig,
                 }),

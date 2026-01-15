@@ -411,11 +411,14 @@ export function SkyboxSection({
                                 </div>
                             </div>
                         ) : (
-                            <img
-                                src={generatedUrl}
-                                alt="Skybox preview"
-                                className="w-full rounded-lg border border-white/10"
-                            />
+                            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-white/10">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={generatedUrl}
+                                    alt="Skybox preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
                         )}
 
                         {/* Download Button */}
