@@ -61,6 +61,7 @@ export async function GET(
             id: string;
             projectId: string;
             assetId: string;
+            name: string | null; // Human-readable name for file naming
             status: string;
             draftTaskId: string | null;
             rigTaskId: string | null;
@@ -93,7 +94,8 @@ export async function GET(
         const mappedAssets = (assets as unknown as DbGenerated3DAsset[]).map((asset) => {
             return {
                 id: asset.id,
-                name: asset.assetId.split("-").slice(1).join(" "), // Extract name from semantic ID
+                // Use stored name if available, fallback to parsing from assetId for legacy assets
+                name: asset.name || asset.assetId.split("-").slice(1).join(" ") || asset.assetId,
                 assetId: asset.assetId,
                 status: asset.status,
                 approvalStatus: asset.approvalStatus,
