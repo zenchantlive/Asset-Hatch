@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Rigging task submitted:', tripoTask.task_id);
 
     // 6. Update database with rig task ID
-    await prisma.generated3DAsset.update({
+    const updatedAsset = await prisma.generated3DAsset.update({
       where: { id: asset.id },
       data: {
         rigTaskId: tripoTask.task_id,
@@ -194,6 +194,25 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
     });
+
+// 6b. DIAGNOSTIC: Verify the update persisted correctly and fail fast
+// This helps debug if we see NULL rigTaskId after the fact
+if (updatedAsset.rigTaskId !== tripoTask.task_id) {
+  const errorMsg = 'CRITICAL: rigTaskId did not persist!';
+  console.error(`❌ ${errorMsg}`, {
+    expected: tripoTask.task_id,
+    actual: updatedAsset.rigTaskId,
+    assetId: asset.id,
+  });
+  // Fail fast to prevent silent failures downstream
+  throw new Error(errorMsg);
+} else {
+      console.log('✅ rigTaskId persisted successfully:', {
+        assetId: asset.assetId,
+        rigTaskId: updatedAsset.rigTaskId,
+        status: updatedAsset.status,
+      });
+    }
 
     // 7. Return task ID for polling
     return NextResponse.json({

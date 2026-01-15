@@ -55,7 +55,7 @@ interface Use3DPollingReturn {
  *
  * Example usage:
  * ```tsx
- * const { pollTaskStatus, pollRigTask } = use3DPolling(setAssetStates);
+ * const { pollTaskStatus, pollRigTask } = use3DPolling(setAssetStates, projectId);
  * // After submitting generation task:
  * pollTaskStatus(assetId, taskId);
  * // After submitting rig task:
@@ -63,9 +63,10 @@ interface Use3DPollingReturn {
  * ```
  *
  * @param setAssetStates - State setter for updating asset states
+ * @param projectId - Project ID for fallback lookups (prevents lost updates)
  * @returns Object containing polling functions
  */
-export function use3DPolling(setAssetStates: StateUpdater): Use3DPollingReturn {
+export function use3DPolling(setAssetStates: StateUpdater, projectId?: string): Use3DPollingReturn {
     // Track active intervals for cleanup
     const activeIntervalsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
@@ -221,14 +222,24 @@ export function use3DPolling(setAssetStates: StateUpdater): Use3DPollingReturn {
     /**
      * Poll rigging task until complete.
      * Updates status from "rigging" to "rigged" or "failed".
+     * Includes fallback projectId+assetId in case rigTaskId wasn't persisted.
      */
     const pollRigTask = useCallback(
         (assetId: string, taskId: string) => {
             // Create polling interval
             const pollInterval = setInterval(async () => {
                 try {
+                    // Build URL with fallback params for robust lookup
+                    // This ensures we can find the asset even if rigTaskId wasn't saved
+                    const url = new URL(`/api/generate-3d/${taskId}/status`, window.location.origin);
+                    if (projectId) {
+                        url.searchParams.set('projectId', projectId);
+                        url.searchParams.set('assetId', assetId);
+                        url.searchParams.set('taskType', 'rig');
+                    }
+
                     // Fetch current task status
-                    const response = await fetch(`/api/generate-3d/${taskId}/status`);
+                    const response = await fetch(url.toString());
                     if (!response.ok) {
                         throw new Error(`Rig status check failed: ${response.statusText}`);
                     }
@@ -319,20 +330,29 @@ export function use3DPolling(setAssetStates: StateUpdater): Use3DPollingReturn {
                 }
             }, POLL_TIMEOUT_MS);
         },
-        [extractModelUrl, setAssetStates]
+        [extractModelUrl, setAssetStates, projectId]
     );
 
     /**
      * Poll animation task until complete.
      * Updates status and adds animated URL to animatedModelUrls map.
+     * Includes fallback projectId+assetId for robust lookup.
      */
     const pollAnimationTask = useCallback(
         (assetId: string, preset: AnimationPreset, taskId: string) => {
             // Create polling interval
             const pollInterval = setInterval(async () => {
                 try {
+                    // Build URL with fallback params
+                    const url = new URL(`/api/generate-3d/${taskId}/status`, window.location.origin);
+                    if (projectId) {
+                        url.searchParams.set('projectId', projectId);
+                        url.searchParams.set('assetId', assetId);
+                        url.searchParams.set('taskType', 'animation');
+                    }
+
                     // Fetch current task status
-                    const response = await fetch(`/api/generate-3d/${taskId}/status`);
+                    const response = await fetch(url.toString());
                     if (!response.ok) {
                         throw new Error(`Animation status check failed: ${response.statusText}`);
                     }
@@ -414,7 +434,7 @@ export function use3DPolling(setAssetStates: StateUpdater): Use3DPollingReturn {
                 }
             }, POLL_TIMEOUT_MS);
         },
-        [extractModelUrl, setAssetStates]
+        [extractModelUrl, setAssetStates, projectId]
     );
 
     /**
