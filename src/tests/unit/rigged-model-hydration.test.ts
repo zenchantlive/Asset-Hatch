@@ -45,7 +45,7 @@ describe("Rigged Model Hydration", () => {
   - Description: Armored knight in T-pose
   - Animations: idle, walk, run
 `;
-        const assets = parse3DPlan(markdown, { projectId: 'proj-1' });
+const assets = parse3DPlan(markdown.trim(), { projectId: 'proj-1' });
         
         expect(assets.length).toBe(1);
         expect(assets[0].name).toBe("Knight Character");
