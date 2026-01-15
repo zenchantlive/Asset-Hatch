@@ -432,6 +432,40 @@ export function SkyboxSection({
                                 <Download className="h-3.5 w-3.5 mr-2" />
                                 Download
                             </Button>
+
+                            {/* Approval buttons */}
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    onClick={() => {
+                                        const skyboxAssetId = `${projectId}-skybox`
+                                        fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ approvalStatus: 'approved' }),
+                                        })
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border-green-600/30 text-green-400 hover:bg-green-950/30"
+                                >
+                                    Approve
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        const skyboxAssetId = `${projectId}-skybox`
+                                        fetch(`/api/projects/${projectId}/assets/${skyboxAssetId}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ approvalStatus: 'rejected' }),
+                                        })
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border-red-600/30 text-red-400 hover:bg-red-950/30"
+                                >
+                                    Reject
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </div>

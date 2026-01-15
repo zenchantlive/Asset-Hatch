@@ -210,6 +210,12 @@ export interface Generated3DAsset {
     animations_applied?: AnimationPreset[];
     error_message?: string;
 
+    // Approval workflow
+    // Skybox approval status
+    approvalStatus?: 'approved' | 'rejected' | 'pending';
+    // Per-animation approval status (preset -> status)
+    animation_approvals?: Record<AnimationPreset, 'approved' | 'rejected' | 'pending'>;
+
     // Timestamps
     created_at: string;
     updated_at: string;
