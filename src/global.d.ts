@@ -23,20 +23,12 @@ declare module "*.css" {
 // Add support for R3F JSX elements like <primitive>, <suspense>, etc.
 // =============================================================================
 
-import { Object3DNode, MaterialNode, BufferGeometryNode } from "@react-three/fiber";
+import { Object3DNode, BufferGeometryNode } from "@react-three/fiber";
 import * as THREE from "three";
 
-declare module "react" {
-    interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
-        // R3F event types
-        onPointerOver?: (event: import("@react-three/fiber").ThreeEvent<PointerEvent>) => void;
-        onPointerOut?: (event: import("@react-three/fiber").ThreeEvent<PointerEvent>) => void;
-        onPointerDown?: (event: import("@react-three/fiber").ThreeEvent<PointerEvent>) => void;
-        onPointerUp?: (event: import("@react-three/fiber").ThreeEvent<PointerEvent>) => void;
-        onPointerMove?: (event: import("@react-three/fiber").ThreeEvent<PointerEvent>) => void;
-        onClick?: (event: import("@react-three/fiber").ThreeEvent<MouseEvent>) => void;
-    }
-}
+// Note: R3F event handlers (onClick using ThreeEvent) are already properly typed
+// within the Canvas context. We do NOT override React.HTMLAttributes here as
+// that would break normal React button/div onClick handlers throughout the app.
 
 declare global {
     namespace JSX {

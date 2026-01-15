@@ -129,8 +129,8 @@ export const scenarios: EndpointScenario[] = [
         expectedStatus: 200,
         setupMock: (prisma, auth) => {
             auth.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
-            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1', openRouterApiKey: null } as any));
-            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', baseResolution: '32x32' } as any));
+            prisma.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1', openRouterApiKey: null } as { id: string; openRouterApiKey: string | null }));
+            prisma.project.findUnique.mockImplementation(() => Promise.resolve({ id: 'p1', baseResolution: '32x32' } as { id: string; baseResolution: string }));
             prisma.styleAnchor.findFirst.mockImplementation(() => Promise.resolve({
                 id: 's1',
                 referenceImageBlob: Buffer.from([]),

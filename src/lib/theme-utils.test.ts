@@ -30,12 +30,12 @@ describe('theme-utils', () => {
     });
 
     // Re-import to get fresh functions
-    const module = await import('./theme-utils');
-    applyModeTheme = module.applyModeTheme;
-    resetModeTheme = module.resetModeTheme;
-    is3DMode = module.is3DMode;
-    getCurrentMode = module.getCurrentMode;
-    toggleMode = module.toggleMode;
+    const themeModule = await import('./theme-utils');
+    applyModeTheme = themeModule.applyModeTheme;
+    resetModeTheme = themeModule.resetModeTheme;
+    is3DMode = themeModule.is3DMode;
+    getCurrentMode = themeModule.getCurrentMode;
+    toggleMode = themeModule.toggleMode;
   });
 
   describe('applyModeTheme', () => {

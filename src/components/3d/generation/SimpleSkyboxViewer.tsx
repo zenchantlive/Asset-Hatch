@@ -3,28 +3,52 @@
 /**
  * Babylon.js PhotoDome 360 Skybox Viewer
  * Uses Babylon.js PhotoDome for proper equirectangular projection
+ *
+ * Features:
+ * - Delta-time-based auto-rotation for consistent speed across frame rates
  */
 
 import { useRef, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
+// =============================================================================
+// Types
+// =============================================================================
+
 interface SimpleSkyboxViewerProps {
+    /** URL of the equirectangular skybox image */
     imageUrl: string;
-    showSeamLine?: boolean;
+    /** Enable auto-rotation of the camera */
     autoRotate?: boolean;
-    rotationSpeed?: number;
+    /** Rotation speed in degrees per second (default: 15°/s) */
+    rotationSpeedDegPerSec?: number;
+    /** Additional CSS classes */
     className?: string;
 }
 
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** Default rotation speed: 15 degrees per second (comfortable viewing pace) */
+const DEFAULT_ROTATION_SPEED_DEG_PER_SEC = 15;
+
+// =============================================================================
+// Main Component
+// =============================================================================
+
 export function SimpleSkyboxViewer({
     imageUrl,
-    showSeamLine = false,
     autoRotate = false,
-    rotationSpeed = 0.001,
+    rotationSpeedDegPerSec = DEFAULT_ROTATION_SPEED_DEG_PER_SEC,
     className = "",
 }: SimpleSkyboxViewerProps) {
+    // Canvas ref for Babylon.js engine
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    // Engine ref for cleanup
     const engineRef = useRef<unknown>(null);
+
+    // UI state
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,36 +58,42 @@ export function SimpleSkyboxViewer({
         const canvas = canvasRef.current;
         let disposed = false;
         let resizeHandler: (() => void) | null = null;
+        let observer: any = null;
+        let currentScene: any = null;
 
-        // Dynamically import Babylon.js
+        // Dynamically import Babylon.js to avoid SSR issues
         import('@babylonjs/core').then((BABYLON) => {
             if (disposed) return;
 
             try {
-                // Create engine
+                // Create engine with antialiasing
                 const engine = new BABYLON.Engine(canvas, true);
                 engineRef.current = engine;
 
-                // Create scene
+                // Create scene with black background
                 const scene = new BABYLON.Scene(engine);
+                currentScene = scene;
                 scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-                // Create camera at origin looking forward
+                // Create ArcRotateCamera at origin, looking forward
+                // alpha = horizontal rotation, beta = vertical (π/2 = horizon level)
                 const camera = new BABYLON.ArcRotateCamera(
                     "camera",
-                    -Math.PI / 2, // alpha (horizontal rotation)
-                    Math.PI / 2,  // beta (vertical rotation, looking at horizon)
-                    0.1,          // radius (very close to center)
+                    -Math.PI / 2, // alpha: start looking forward
+                    Math.PI / 2,  // beta: looking at horizon level
+                    0.1,          // radius: very close to center for inside-sphere view
                     BABYLON.Vector3.Zero(),
                     scene
                 );
                 camera.attachControl(canvas, true);
+
+                // Lock zoom to keep camera at center
                 camera.lowerRadiusLimit = 0.1;
                 camera.upperRadiusLimit = 0.1;
-                camera.wheelPrecision = 1000; // Disable zoom
+                camera.wheelPrecision = 1000; // Effectively disable zoom
                 camera.panningSensibility = 0; // Disable panning
 
-                // Create PhotoDome for 360 panorama
+                // Create PhotoDome for 360 panorama viewing
                 const photoDome = new BABYLON.PhotoDome(
                     "skybox",
                     imageUrl,
@@ -75,37 +105,42 @@ export function SimpleSkyboxViewer({
                     scene
                 );
 
-                // Wait for texture to load
+                // Mark loading complete when texture is ready
                 photoDome.onReady = () => {
                     setIsLoading(false);
                     setError(null);
                 };
 
-                // Auto-rotate if enabled
-                if (autoRotate) {
-                    scene.registerBeforeRender(() => {
-                        camera.alpha += rotationSpeed;
-                    });
-                }
+                // Convert rotation speed from degrees/sec to radians/ms
+                const rotationSpeedRadPerMs = (rotationSpeedDegPerSec * Math.PI) / (180 * 1000);
 
-                // Render loop
+                // Register before-render callback for auto-rotation
+                observer = scene.registerBeforeRender(() => {
+                    // Delta-time-based rotation for consistent speed across frame rates
+                    if (autoRotate) {
+                        const deltaMs = engine.getDeltaTime();
+                        camera.alpha += rotationSpeedRadPerMs * deltaMs;
+                    }
+                });
+
+                // Main render loop
                 engine.runRenderLoop(() => {
                     scene.render();
                 });
 
-                // Handle resize
+                // Handle window resize
                 resizeHandler = () => {
                     engine.resize();
                 };
                 window.addEventListener('resize', resizeHandler);
 
-                // Fallback timeout for loading state
+                // Fallback timeout in case onReady doesn't fire
                 setTimeout(() => {
                     if (!disposed) setIsLoading(false);
                 }, 3000);
 
             } catch (err) {
-                console.error('Babylon.js error:', err);
+                console.error('Babylon.js initialization error:', err);
                 setIsLoading(false);
                 setError(err instanceof Error ? err.message : 'Failed to load viewer');
             }
@@ -115,8 +150,13 @@ export function SimpleSkyboxViewer({
             setError('Failed to load 360 viewer');
         });
 
+        // Cleanup on unmount or dependency change
         return () => {
             disposed = true;
+            // Unregister the render loop observer
+            if (observer && currentScene) {
+                currentScene.onBeforeRenderObservable.remove(observer);
+            }
             if (resizeHandler) {
                 window.removeEventListener('resize', resizeHandler);
             }
@@ -124,12 +164,12 @@ export function SimpleSkyboxViewer({
                 try {
                     (engineRef.current as { dispose: () => void }).dispose();
                 } catch {
-                    // Ignore cleanup errors
+                    // Ignore cleanup errors during disposal
                 }
                 engineRef.current = null;
             }
         };
-    }, [imageUrl, autoRotate, rotationSpeed]);
+    }, [imageUrl, autoRotate, rotationSpeedDegPerSec]);
 
     return (
         <div className={`relative w-full h-full bg-black rounded-lg overflow-hidden ${className}`}>
@@ -139,13 +179,6 @@ export function SimpleSkyboxViewer({
                 className="w-full h-full"
                 style={{ display: 'block', touchAction: 'none' }}
             />
-
-            {/* Seam line indicator */}
-            {showSeamLine && !isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                    <div className="h-full w-0.5 bg-red-500/80" />
-                </div>
-            )}
 
             {/* Loading overlay */}
             {isLoading && (

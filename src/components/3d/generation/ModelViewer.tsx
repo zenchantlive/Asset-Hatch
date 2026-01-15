@@ -53,10 +53,10 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
         onLoad?.();
     }
 
-    return (
-        // @ts-expect-error - R3F intrinsic elements
-        <primitive object={scene} />
-    );
+    // Clone the scene to avoid mutating cached GLTF
+    const clonedScene = scene.clone(true);
+
+    return <primitive object={clonedScene} />;
 }
 
 /**

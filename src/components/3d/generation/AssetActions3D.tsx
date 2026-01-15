@@ -37,12 +37,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ANIMATION_PRESET_LABELS, type AnimationPreset } from "@/lib/types/3d-generation";
 import type { AssetActions3DProps } from "./types/3d-queue-types";
 
@@ -78,15 +72,9 @@ export function AssetActions3D({
     onApprove,
     onReject,
     onRegenerate,
-    onApproveAnimation,
-    onRejectAnimation,
-    onRegenerateAnimation,
 }: AssetActions3DProps) {
     // Extract commonly used values
-    const { status, progress, draftModelUrl, riggedModelUrl, animatedModelUrls, animationApprovalStatus, error } = assetState;
-
-    // Get completed animations (those with URLs)
-    const completedAnimations = animatedModelUrls ? Object.keys(animatedModelUrls) as AnimationPreset[] : [];
+    const { status, progress, draftModelUrl, riggedModelUrl, animatedModelUrls, error } = assetState;
 
     return (
         // Sticky container ensures buttons are always accessible on shorter screens
@@ -218,104 +206,6 @@ export function AssetActions3D({
                     </DropdownMenu>
                 )}
             </div>
-
-            {/* Completed Animations Approval Row - shown when animations have completed */}
-            {completedAnimations.length > 0 && (
-                <div className="px-4 pb-2 space-y-2">
-                    <div className="text-xs text-white/50 uppercase tracking-wide">Animations</div>
-                    <div className="flex flex-wrap gap-2">
-                        {completedAnimations.map((preset) => {
-                            const approvalState = animationApprovalStatus?.[preset] || 'pending';
-                            const isApproved = approvalState === 'approved';
-                            const isRejected = approvalState === 'rejected';
-
-                            return (
-                                <div
-                                    key={preset}
-                                    className={cn(
-                                        "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all",
-                                        isApproved && "bg-green-500/10 border-green-500/30 text-green-300",
-                                        isRejected && "bg-red-500/10 border-red-500/30 text-red-300",
-                                        !isApproved && !isRejected && "bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
-                                    )}
-                                >
-                                    {/* Animation name */}
-                                    <span className="font-medium">{ANIMATION_PRESET_LABELS[preset]}</span>
-
-                                    {/* Approval/Reject/Regenerate icons */}
-                                    <div className="flex items-center gap-1 ml-2 pl-2 border-l border-white/10">
-                                        {isApproved ? (
-                                            <>
-                                                <Check className="w-3.5 h-3.5 text-green-400" />
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-    onClick={() => onRejectAnimation(preset)}
-    className="p-0.5 hover:bg-red-500/20 rounded"
->
-                                                                <X className="w-3.5 h-3.5 text-white/50 hover:text-red-400" />
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Undo approval</TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {/* Approve button */}
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                onClick={() => onApproveAnimation(preset)}
-                                                                className="p-0.5 hover:bg-green-500/20 rounded"
-                                                            >
-                                                                <Check className="w-3.5 h-3.5 text-white/50 hover:text-green-400" />
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Approve animation</TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-
-                                                {/* Reject button */}
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                onClick={() => onRejectAnimation(preset)}
-                                                                className="p-0.5 hover:bg-red-500/20 rounded"
-                                                            >
-                                                                <X className="w-3.5 h-3.5 text-white/50 hover:text-red-400" />
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Reject animation</TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-
-                                                {/* Regenerate button */}
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <button
-                                                                onClick={() => onRegenerateAnimation(preset)}
-                                                                className="p-0.5 hover:bg-yellow-500/20 rounded"
-                                                            >
-                                                                <RotateCcw className="w-3.5 h-3.5 text-white/50 hover:text-yellow-400" />
-                                                            </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Regenerate animation</TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
 
             {/* Approval Row - shown when asset generation is complete */}
             {(status === "generated" || status === "rigged" || status === "complete") && (

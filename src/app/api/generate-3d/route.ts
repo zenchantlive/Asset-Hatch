@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body: Generate3DRequest = await request.json();
-    const { projectId, assetId, prompt, shouldRig = false } = body;
+    const { projectId, assetId, name, prompt, shouldRig = false } = body;
 
     // Validate required fields
     if (!projectId || !assetId || !prompt) {
@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
       create: {
         projectId,
         assetId,
+        name, // Human-readable name for file naming (e.g., "Knight Character")
         status: 'queued',
         draftTaskId: tripoTask.task_id,
         promptUsed: prompt,
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest) {
       },
       update: {
         // Reset all generation state for regeneration
+        name,
         status: 'queued',
         draftTaskId: tripoTask.task_id,
         promptUsed: prompt,

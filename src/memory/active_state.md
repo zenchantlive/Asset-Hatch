@@ -1,31 +1,4 @@
-## 🎯 Latest Session Summary (2026-01-14 Night)
-
-### 3D Rig Persistence Bug Fix (Complete)
-
-Fixed critical bug where `rigTaskId` and `riggedModelUrl` were not persisting to the database, causing animation to fail after page refresh.
-
-**Root Cause Analysis:**
-1. **Primary Issue**: When `status/route.ts` polled for rig task completion, it searched by `rigTaskId`. If that was NULL (for any reason), the search failed silently.
-2. **Silent Failure**: The API still returned Tripo's success status, so frontend showed "rigged" but DB was never updated.
-3. **Regeneration Bug**: `generate-3d/route.ts` used `create()` which failed on regeneration due to unique constraint, leaving stale data.
-
-**Fix Applied (Belt-and-Suspenders):**
-1. **Fallback lookup** in `status/route.ts`: If taskId lookup fails, use `projectId+assetId` query params as backup.
-2. **Redundant persistence**: When saving `riggedModelUrl`, also save `rigTaskId` in case initial save failed.
-3. **Frontend passes fallback params**: `use3DPolling.ts` now includes `projectId`, `assetId`, `taskType` in poll URLs.
-4. **Upsert for regeneration**: Changed `generate-3d/route.ts` from `create()` to `upsert()` to handle regeneration properly.
-5. **Diagnostic logging**: Added verification logging in `rig/route.ts` to detect persistence failures.
-
-**Files Modified:**
-- `src/app/api/generate-3d/[taskId]/status/route.ts` - Fallback lookup + redundant save
-- `src/app/api/generate-3d/route.ts` - Changed to upsert
-- `src/app/api/generate-3d/rig/route.ts` - Diagnostic logging
-- `src/components/3d/generation/hooks/use3DPolling.ts` - Pass fallback params
-- `src/components/3d/generation/GenerationQueue3D.tsx` - Pass projectId to hook
-
----
-
-## 🎯 Previous Session Summary (2026-01-14 Late Evening)
+## 🎯 Latest Session Summary (2026-01-14 Late Evening)
 
 ### Assets Panel Consolidation & PR Review Refactoring (Complete)
 

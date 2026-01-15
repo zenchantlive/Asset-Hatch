@@ -271,6 +271,8 @@ export interface Generate3DRequest {
     projectId: string;
     // Asset ID from the plan
     assetId: string;
+    // Human-readable name for file export (e.g., "Knight Character")
+    name?: string;
     // Text prompt for model generation
     prompt: string;
     // Whether to automatically rig after generation

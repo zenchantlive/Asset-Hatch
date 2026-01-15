@@ -35,13 +35,13 @@ jest.mock('@/lib/plan-parser', () => ({
 describe('Export All Asset Types (3D Support)', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default fetch mock
+        // Default fetch mock - cast to satisfy typeof fetch with preconnect
         global.fetch = jest.fn().mockImplementation(() =>
             Promise.resolve({
                 ok: true,
                 arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
             })
-        );
+        ) as unknown as typeof fetch;
     });
 
     it('should include approved skybox images in ZIP', async () => {
@@ -71,9 +71,9 @@ describe('Export All Asset Types (3D Support)', () => {
 
         const req = new NextRequest('http://localhost/api/export', {
             method: 'POST',
-            body: JSON.stringify({ 
-                projectId, 
-                assets: [{ id: 'dummy', imageBlob: 'dummy' }] 
+            body: JSON.stringify({
+                projectId,
+                assets: [{ id: 'dummy', imageBlob: 'dummy' }]
             }),
         });
 
@@ -113,9 +113,9 @@ describe('Export All Asset Types (3D Support)', () => {
 
         const req = new NextRequest('http://localhost/api/export', {
             method: 'POST',
-            body: JSON.stringify({ 
-                projectId, 
-                assets: [{ id: 'dummy', imageBlob: 'dummy' }] 
+            body: JSON.stringify({
+                projectId,
+                assets: [{ id: 'dummy', imageBlob: 'dummy' }]
             }),
         });
 
@@ -159,9 +159,9 @@ describe('Export All Asset Types (3D Support)', () => {
 
         const req = new NextRequest('http://localhost/api/export', {
             method: 'POST',
-            body: JSON.stringify({ 
-                projectId, 
-                assets: [{ id: 'dummy', imageBlob: 'dummy' }] 
+            body: JSON.stringify({
+                projectId,
+                assets: [{ id: 'dummy', imageBlob: 'dummy' }]
             }),
         });
 
@@ -201,9 +201,9 @@ describe('Export All Asset Types (3D Support)', () => {
 
         const req = new NextRequest('http://localhost/api/export', {
             method: 'POST',
-            body: JSON.stringify({ 
-                projectId, 
-                assets: [{ id: 'dummy', imageBlob: 'dummy' }] 
+            body: JSON.stringify({
+                projectId,
+                assets: [{ id: 'dummy', imageBlob: 'dummy' }]
             }),
         });
 
@@ -212,7 +212,7 @@ describe('Export All Asset Types (3D Support)', () => {
         const zip = await JSZip.loadAsync(await blob.arrayBuffer());
         const manifestFile = zip.file('manifest.json');
         expect(manifestFile).toBeTruthy();
-        
+
         const manifest = JSON.parse(await manifestFile!.async('string'));
         expect(manifest.project.name).toBe('Test Mixed Project');
         expect(manifest.assets3d.length).toBe(1);

@@ -1,10 +1,13 @@
-import { prismaMock, generateFluxImageMock, openrouterMock, resetAllMocks, streamTextMock } from './harness-mocks';
+import { prismaMock, generateFluxImageMock, openrouterMock, resetAllMocks } from './harness-mocks';
 import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('Model Registry Integration Flow', () => {
-    let generatePOST: any;
-    let chatPOST: any;
+    // Route handler type - these routes don't use params, so simple signature
+    type RouteHandler = (req: NextRequest) => Promise<Response>;
+
+    let generatePOST: RouteHandler;
+    let chatPOST: RouteHandler;
 
     beforeEach(async () => {
         resetAllMocks();

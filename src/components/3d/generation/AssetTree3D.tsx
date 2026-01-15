@@ -32,7 +32,6 @@ import { cn } from "@/lib/utils";
 import type {
     AssetTree3DProps,
     Asset3DStatus,
-    CategoryIconMap,
 } from "./types/3d-queue-types";
 
 // =============================================================================
@@ -43,12 +42,21 @@ import type {
  * Icon mapping for asset categories.
  * Maps category names to Lucide icon components.
  */
-const CATEGORY_ICONS: CategoryIconMap = {
+const CATEGORY_ICONS = {
     Characters: PersonStanding,
     Environment: TreePine,
     Props: Package,
     default: Boxes,
-};
+} as const;
+
+/**
+ * Gets the icon component for a category with proper type inference.
+ * Falls back to 'default' (Boxes) for unknown categories.
+ */
+function getCategoryIcon(category: string): typeof Boxes {
+    const icons = CATEGORY_ICONS as Record<string, typeof Boxes>;
+    return icons[category] ?? CATEGORY_ICONS.default;
+}
 
 // =============================================================================
 // Helper Components
@@ -136,8 +144,8 @@ export function AssetTree3D({
                 {Object.entries(assetsByCategory).map(([category, assets]) => {
                     // Check if this category is collapsed
                     const isCollapsed = collapsedCategories.has(category);
-                    // Get icon component for this category
-                    const CategoryIcon = CATEGORY_ICONS[category] || CATEGORY_ICONS.default;
+                    // Get icon component for this category (default to Boxes if unknown)
+                    const CategoryIcon = getCategoryIcon(category);
 
                     return (
                         <div key={category} className="mb-2">

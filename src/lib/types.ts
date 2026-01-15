@@ -62,7 +62,7 @@ export interface CharacterRegistry {
 }
 
 export interface GeneratedAsset {
-    prompt: ReactNode;
+    prompt?: ReactNode; // Optional display field for UI
     id: string;
     project_id: string;
     asset_id: string; // Links to plan asset
@@ -90,6 +90,7 @@ export interface GeneratedAsset {
  */
 export interface Export3DAssetMetadata {
     id: string;
+    name?: string; // Human-readable name for file naming (e.g., "Knight Character")
     type: 'skybox' | 'model';
     path?: string; // for skybox
     folder?: string; // for model

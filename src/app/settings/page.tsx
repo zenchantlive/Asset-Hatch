@@ -48,7 +48,7 @@ export default async function SettingsPage({
                                 🚀 Quick Start
                             </h3>
                             <p className="text-white/80 text-sm mb-4">
-                                To generate your own game assets, you'll need an OpenRouter API key.
+                                To generate your own game assets, you&apos;ll need an OpenRouter API key.
                                 Add your key below to get started, or you can skip this step and add it later.
                             </p>
                             <Link

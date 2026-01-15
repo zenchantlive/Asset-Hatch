@@ -21,8 +21,6 @@
 import { useState, useCallback } from "react";
 import {
     Cloud,
-    ChevronDown,
-    ChevronRight,
     Play,
     Loader2,
     Download,
@@ -89,9 +87,6 @@ export function SkyboxSection({
     initialUrl,
     initialApprovalStatus,
 }: SkyboxSectionProps) {
-    // Section collapse state
-    const [isCollapsed, setIsCollapsed] = useState(true);
-
     // Prompt input state
     const [prompt, setPrompt] = useState("");
 
@@ -114,7 +109,6 @@ export function SkyboxSection({
     const [error, setError] = useState<string | null>(null);
 
     // Preview controls
-    const [showSeamLine, setShowSeamLine] = useState(false);
     const [autoRotate, setAutoRotate] = useState(false);
     const [previewMode, setPreviewMode] = useState<'flat' | 'spherical'>('spherical');
 
@@ -123,11 +117,6 @@ export function SkyboxSection({
 
     // Get available image generation models
     const imageModels = getImageGenerationModels(CURATED_MODELS);
-
-    // Toggle section collapse
-    const toggleCollapse = useCallback(() => {
-        setIsCollapsed((prev) => !prev);
-    }, []);
 
     // Handle Clean Seams
     const handleCleanSeams = async () => {
@@ -250,17 +239,7 @@ export function SkyboxSection({
     return (
         <div className="border-t border-white/10">
             {/* Section Header */}
-            <button
-                onClick={toggleCollapse}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors"
-            >
-                {/* Collapse indicator */}
-                {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4 text-white/50" />
-                ) : (
-                    <ChevronDown className="h-4 w-4 text-white/50" />
-                )}
-
+            <div className="w-full px-4 py-3 flex items-center gap-3">
                 {/* Section icon */}
                 <Cloud className="h-4 w-4 text-cyan-400" />
 
@@ -279,238 +258,226 @@ export function SkyboxSection({
                         Generating...
                     </span>
                 )}
-            </button>
+            </div>
 
             {/* Section Content */}
-            {!isCollapsed && (
-                <div className="px-4 pb-4 space-y-4">
-                    {/* Preset Selector */}
-                    <div>
-                        <label className="text-xs text-white/50 mb-1 block">
-                            Preset
-                        </label>
-                        <Select value={selectedPreset} onValueChange={(val) => setSelectedPreset(val as SkyboxPreset)}>
-                            <SelectTrigger className="bg-black/20 border-white/10">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-glass-panel border-glass-border">
-                                <SelectItem value="custom">Custom</SelectItem>
-                                {Object.keys(SKYBOX_PRESETS).filter(k => k !== 'custom').map((preset) => (
-                                    <SelectItem key={preset} value={preset}>
-                                        {preset.charAt(0).toUpperCase() + preset.slice(1)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+            <div className="px-4 pb-4 space-y-4">
+                {/* Preset Selector */}
+                <div>
+                    <label className="text-xs text-white/50 mb-1 block">
+                        Preset
+                    </label>
+                    <Select value={selectedPreset} onValueChange={(val) => setSelectedPreset(val as SkyboxPreset)}>
+                        <SelectTrigger className="bg-black/20 border-white/10">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-glass-panel border-glass-border">
+                            <SelectItem value="custom">Custom</SelectItem>
+                            {Object.keys(SKYBOX_PRESETS).filter(k => k !== 'custom').map((preset) => (
+                                <SelectItem key={preset} value={preset}>
+                                    {preset.charAt(0).toUpperCase() + preset.slice(1)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Prompt Input */}
+                <div>
+                    <label className="text-xs text-white/50 mb-1 block">
+                        Skybox Description
+                    </label>
+                    <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder={DEFAULT_PROMPT}
+                        className="w-full bg-black/20 rounded-lg p-3 text-sm text-white/80 border border-white/10 resize-none focus:border-cyan-500/50 focus:outline-none"
+                        rows={2}
+                    />
+                </div>
+
+                {/* Model Selector and Generate Button Row */}
+                <div className="flex items-center gap-3">
+                    {/* Model Selector */}
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger className="w-[200px] bg-black/20 border-white/10">
+                            <SelectValue placeholder="Select model" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-glass-panel border-glass-border">
+                            {imageModels.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                    {model.displayName}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Generate Button */}
+                    <Button
+                        onClick={handleGenerate}
+                        disabled={isGenerating}
+                        className={cn(
+                            "bg-cyan-600 hover:bg-cyan-500",
+                            isGenerating && "opacity-50 cursor-not-allowed"
+                        )}
+                    >
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Generate Skybox
+                            </>
+                        )}
+                    </Button>
+                </div>
+
+                {/* Error Display */}
+                {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">
+                        {error}
                     </div>
+                )}
 
-                    {/* Prompt Input */}
-                    <div>
-                        <label className="text-xs text-white/50 mb-1 block">
-                            Skybox Description
-                        </label>
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={DEFAULT_PROMPT}
-                            className="w-full bg-black/20 rounded-lg p-3 text-sm text-white/80 border border-white/10 resize-none focus:border-cyan-500/50 focus:outline-none"
-                            rows={2}
-                        />
-                    </div>
-
-                    {/* Model Selector and Generate Button Row */}
-                    <div className="flex items-center gap-3">
-                        {/* Model Selector */}
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
-                            <SelectTrigger className="w-[200px] bg-black/20 border-white/10">
-                                <SelectValue placeholder="Select model" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-glass-panel border-glass-border">
-                                {imageModels.map((model) => (
-                                    <SelectItem key={model.id} value={model.id}>
-                                        {model.displayName}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {/* Generate Button */}
-                        <Button
-                            onClick={handleGenerate}
-                            disabled={isGenerating}
-                            className={cn(
-                                "bg-cyan-600 hover:bg-cyan-500",
-                                isGenerating && "opacity-50 cursor-not-allowed"
-                            )}
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                <>
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Generate Skybox
-                                </>
-                            )}
-                        </Button>
-                    </div>
-
-                    {/* Error Display */}
-                    {error && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">
-                            {error}
+                {/* Preview Area with Tabs */}
+                {generatedUrl && (
+                    <div className="space-y-2">
+                        {/* Preview Mode Tabs */}
+                        <div className="flex gap-2 border-b border-white/10">
+                            <button
+                                onClick={() => setPreviewMode('spherical')}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-medium transition-colors",
+                                    previewMode === 'spherical'
+                                        ? "text-cyan-400 border-b-2 border-cyan-400"
+                                        : "text-white/50 hover:text-white/70"
+                                )}
+                            >
+                                Spherical 360°
+                            </button>
+                            <button
+                                onClick={() => setPreviewMode('flat')}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-medium transition-colors",
+                                    previewMode === 'flat'
+                                        ? "text-cyan-400 border-b-2 border-cyan-400"
+                                        : "text-white/50 hover:text-white/70"
+                                )}
+                            >
+                                Flat 2:1
+                            </button>
                         </div>
-                    )}
 
-                    {/* Preview Area with Tabs */}
-                    {generatedUrl && (
-                        <div className="space-y-2">
-                            {/* Preview Mode Tabs */}
-                            <div className="flex gap-2 border-b border-white/10">
-                                <button
-                                    onClick={() => setPreviewMode('spherical')}
-                                    className={cn(
-                                        "px-3 py-1.5 text-xs font-medium transition-colors",
-                                        previewMode === 'spherical'
-                                            ? "text-cyan-400 border-b-2 border-cyan-400"
-                                            : "text-white/50 hover:text-white/70"
-                                    )}
-                                >
-                                    Spherical 360°
-                                </button>
-                                <button
-                                    onClick={() => setPreviewMode('flat')}
-                                    className={cn(
-                                        "px-3 py-1.5 text-xs font-medium transition-colors",
-                                        previewMode === 'flat'
-                                            ? "text-cyan-400 border-b-2 border-cyan-400"
-                                            : "text-white/50 hover:text-white/70"
-                                    )}
-                                >
-                                    Flat 2:1
-                                </button>
-                            </div>
-
-                            {/* Preview Content */}
-                            {previewMode === 'spherical' ? (
-                                <div className="space-y-2">
-                                    <div className="h-[250px] rounded-lg border border-white/10">
-                                        <SimpleSkyboxViewer
-                                            imageUrl={generatedUrl}
-                                            showSeamLine={showSeamLine}
-                                            autoRotate={autoRotate}
-                                            rotationSpeed={0.5}
-                                        />
-                                    </div>
-                                    {/* Controls */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 text-xs">
-                                            <label className="flex items-center gap-1.5 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={showSeamLine}
-                                                    onChange={(e) => setShowSeamLine(e.target.checked)}
-                                                    className="w-3.5 h-3.5 rounded"
-                                                />
-                                                <span className="text-white/60">Seam Line</span>
-                                            </label>
-                                            <label className="flex items-center gap-1.5 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={autoRotate}
-                                                    onChange={(e) => setAutoRotate(e.target.checked)}
-                                                    className="w-3.5 h-3.5 rounded"
-                                                />
-                                                <span className="text-white/60">Auto-Rotate</span>
-                                            </label>
-                                        </div>
-
-                                        {/* Clean Seam Button */}
-                                        <Button
-                                            onClick={handleCleanSeams}
-                                            disabled={isBlending}
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 px-2 text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
-                                            title="Auto-blend image edges to remove seams"
-                                        >
-                                            {isBlending ? (
-                                                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                                            ) : (
-                                                <Wand2 className="h-3 w-3 mr-1.5" />
-                                            )}
-                                            {isBlending ? "Fixing..." : "Fix Seam"}
-                                        </Button>
-                                    </div>
+                        {/* Preview Content */}
+                        {previewMode === 'spherical' ? (
+                            <div className="space-y-2">
+                                <div className="h-[250px] rounded-lg border border-white/10">
+                                    <SimpleSkyboxViewer
+                                        imageUrl={generatedUrl}
+                                        autoRotate={autoRotate}
+                                    />
                                 </div>
-                            ) : (
+                                {/* Controls */}
+                                <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={autoRotate}
+                                            onChange={(e) => setAutoRotate(e.target.checked)}
+                                            className="w-3.5 h-3.5 rounded"
+                                        />
+                                        <span className="text-white/60">Auto-Rotate</span>
+                                    </label>
+
+                                    {/* Clean Seam Button */}
+                                    <Button
+                                        onClick={handleCleanSeams}
+                                        disabled={isBlending}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
+                                        title="Auto-blend image edges to remove seams"
+                                    >
+                                        {isBlending ? (
+                                            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                                        ) : (
+                                            <Wand2 className="h-3 w-3 mr-1.5" />
+                                        )}
+                                        {isBlending ? "Fixing..." : "Fix Seam"}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-white/10">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={generatedUrl}
                                     alt="Skybox preview"
-                                    className="w-full rounded-lg border border-white/10"
+                                    className="w-full h-full object-cover"
                                 />
-                            )}
+                            </div>
+                        )}
 
-                            {/* Download Button */}
-                            <Button
-                                onClick={handleDownload}
-                                variant="outline"
-                                size="sm"
-                                className="w-full border-white/20"
-                            >
-                                <Download className="h-3.5 w-3.5 mr-2" />
-                                Download
-                            </Button>
+                        {/* Download Button */}
+                        <Button
+                            onClick={handleDownload}
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-white/20"
+                        >
+                            <Download className="h-3.5 w-3.5 mr-2" />
+                            Download
+                        </Button>
 
-                            {/* Approval section - show buttons or status badge */}
-                            {approvalStatus === 'pending' ? (
-                                <div className="flex gap-2 pt-2">
-                                    <Button
-                                        onClick={() => handleApproval('approved')}
-                                        disabled={isUpdatingApproval}
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 border-green-600/30 text-green-400 hover:bg-green-950/30"
-                                    >
-                                        {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
-                                    </Button>
-                                    <Button
-                                        onClick={() => handleApproval('rejected')}
-                                        disabled={isUpdatingApproval}
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 border-red-600/30 text-red-400 hover:bg-red-950/30"
-                                    >
-                                        {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reject"}
-                                    </Button>
+                        {/* Approval section - show buttons or status badge */}
+                        {approvalStatus === 'pending' ? (
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    onClick={() => handleApproval('approved')}
+                                    disabled={isUpdatingApproval}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border-green-600/30 text-green-400 hover:bg-green-950/30"
+                                >
+                                    {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                </Button>
+                                <Button
+                                    onClick={() => handleApproval('rejected')}
+                                    disabled={isUpdatingApproval}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border-red-600/30 text-red-400 hover:bg-red-950/30"
+                                >
+                                    {isUpdatingApproval ? <Loader2 className="h-3 w-3 animate-spin" /> : "Reject"}
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-between pt-2">
+                                <div className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium",
+                                    approvalStatus === 'approved'
+                                        ? "bg-green-600/20 text-green-400 border border-green-600/30"
+                                        : "bg-red-600/20 text-red-400 border border-red-600/30"
+                                )}>
+                                    {approvalStatus === 'approved' ? '✓ Approved' : '✗ Rejected'}
                                 </div>
-                            ) : (
-                                <div className="flex items-center justify-between pt-2">
-                                    <div className={cn(
-                                        "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium",
-                                        approvalStatus === 'approved'
-                                            ? "bg-green-600/20 text-green-400 border border-green-600/30"
-                                            : "bg-red-600/20 text-red-400 border border-red-600/30"
-                                    )}>
-                                        {approvalStatus === 'approved' ? '✓ Approved' : '✗ Rejected'}
-                                    </div>
-                                    <Button
-                                        onClick={() => handleApproval('pending')}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-xs text-white/50 hover:text-white/80"
-                                        disabled={isUpdatingApproval}
-                                    >
-                                        Change
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
+                                <Button
+                                    onClick={() => handleApproval('pending')}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-white/50 hover:text-white/80"
+                                    disabled={isUpdatingApproval}
+                                >
+                                    Change
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -100,7 +100,8 @@ export async function POST(req: NextRequest) {
         });
 
         // Parse markdown plan if it exists
-        let parsedAssets: any[] = [];
+        // Using ParsedAsset type from plan-parser for proper typing
+        let parsedAssets: import('@/lib/prompt-builder').ParsedAsset[] = [];
         if (entitiesFile) {
             const { parsePlan } = await import('@/lib/plan-parser');
             parsedAssets = parsePlan(entitiesFile.content, {
@@ -155,10 +156,11 @@ export async function POST(req: NextRequest) {
             const [width, height] = resolution.split('x').map((n: string) => parseInt(n, 10));
             const frameCount = parsedAsset.variant?.frameCount || 1;
 
-            let metadata: any;
+            // Metadata for generation info - has model/seed structure
+            let metadata: { model: string; seed: number };
             try {
                 metadata = generatedAsset.metadata ? JSON.parse(generatedAsset.metadata) : { model: 'flux.2-pro', seed: 0 };
-            } catch (e) {
+            } catch {
                 metadata = { model: 'flux.2-pro', seed: 0 };
             }
 
@@ -184,7 +186,7 @@ export async function POST(req: NextRequest) {
 
             manifest.assets.push(assetMetadata);
 
-            const clientAsset = clientAssets?.find((a: any) => a.id === generatedAsset.id);
+            const clientAsset = clientAssets?.find((a: { id: string; imageBlob?: string }) => a.id === generatedAsset.id);
             if (clientAsset && clientAsset.imageBlob) {
                 const imageBuffer = Buffer.from(clientAsset.imageBlob, 'base64');
                 zip.file(filePath, imageBuffer);
@@ -197,10 +199,15 @@ export async function POST(req: NextRequest) {
         for (const asset of generated3DAssets) {
             const isSkybox = asset.assetId.endsWith('-skybox');
 
+            // Use stored name if available, otherwise fallback to extracting from assetId
+            const displayName = asset.name || asset.assetId.split("-").slice(1).join(" ") || asset.assetId;
+            // Generate safe filename: lowercase, remove special chars, replace spaces with underscores
+            const safeId = displayName.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_");
+
             if (isSkybox && asset.draftModelUrl) {
                 try {
                     const buffer = await fetchAsBuffer(asset.draftModelUrl);
-                    const filePath = `skybox/${asset.assetId}.jpg`;
+                    const filePath = `skybox/${safeId}.jpg`;
                     zip.file(filePath, buffer);
 
                     manifest.assets3d.push({
@@ -211,13 +218,14 @@ export async function POST(req: NextRequest) {
                     });
                 } catch (err) {
                     console.error(
-                      `Failed to fetch skybox for ${asset.assetId}: ${(err as Error).message}`
+                        `Failed to fetch skybox for ${asset.assetId}: ${(err as Error).message}`
                     );
                 }
             } else {
-                const modelFolder = `models/${asset.assetId}`;
+                const modelFolder = `models/${safeId}`;
                 const assetMetadata: Export3DAssetMetadata = {
                     id: asset.assetId,
+                    name: displayName, // Add human-readable name to manifest
                     type: 'model',
                     folder: modelFolder,
                     prompt: asset.promptUsed,
@@ -229,7 +237,7 @@ export async function POST(req: NextRequest) {
                         const buffer = await fetchAsBuffer(asset.draftModelUrl);
                         const path = `${modelFolder}/draft.glb`;
                         zip.file(path, buffer);
-                        assetMetadata.files.draft = path;
+                        if (assetMetadata.files) assetMetadata.files.draft = path;
                     } catch (err) {
                         console.error(`Failed to fetch draft model for ${asset.assetId}: ${err}`);
                     }

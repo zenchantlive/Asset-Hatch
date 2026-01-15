@@ -67,11 +67,8 @@ export interface Asset3DState {
     // Map of animation preset to animated model URL
     animatedModelUrls?: Record<string, string>;
 
-    // Approval status for user workflow (base asset)
+    // Approval status for user workflow
     approvalStatus?: ApprovalStatus;
-
-    // Per-animation approval status: { "preset:walk": "approved", "preset:idle": "pending" }
-    animationApprovalStatus?: Record<string, ApprovalStatus>;
 
     // Error message if status is "failed"
     error?: string;
@@ -140,10 +137,6 @@ export interface AssetActions3DProps {
     onApprove: () => void;
     onReject: () => void;
     onRegenerate: () => void;
-    // Per-animation approval callbacks
-    onApproveAnimation: (preset: AnimationPreset) => void;
-    onRejectAnimation: (preset: AnimationPreset) => void;
-    onRegenerateAnimation: (preset: AnimationPreset) => void;
 }
 
 /**

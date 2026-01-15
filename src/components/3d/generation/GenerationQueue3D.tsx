@@ -74,8 +74,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
     // -------------------------------------------------------------------------
 
     // Polling functions for generation tasks
-    // Pass projectId for fallback lookup in case rigTaskId doesn't persist
-    const { pollTaskStatus, pollRigTask, pollAnimationTask } = use3DPolling(setAssetStates, projectId);
+    const { pollTaskStatus, pollRigTask, pollAnimationTask } = use3DPolling(setAssetStates);
 
     // -------------------------------------------------------------------------
     // Load Plan
@@ -243,13 +242,11 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                             setAssetStates(states);
 
                             // Debug: Log hydrated states to verify rigTaskId is loaded
-                            console.log("📦 raw DB Response for asset:", data.assets);
                             console.log("📦 Hydrated asset states from DB:", Array.from(states.entries()).map(([id, state]) => ({
                                 assetId: id,
                                 status: state.status,
-                                approvalStatus: state.approvalStatus,
                                 rigTaskId: state.rigTaskId || "MISSING",
-                                riggedModelUrl: state.riggedModelUrl ? "✅ FOUND" : "❌ MISSING",
+                                riggedModelUrl: state.riggedModelUrl ? "✅" : "❌",
                                 animatedModelUrls: Object.keys(state.animatedModelUrls || {}).length,
                             })));
 
@@ -385,13 +382,14 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             // Build prompt from asset description
             const prompt = selectedAsset.description || `A 3D model of ${selectedAsset.name}`;
 
-            // Submit generation task
+            // Submit generation task with asset name for file export naming
             const response = await fetch("/api/generate-3d", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     projectId,
                     assetId: selectedAssetId,
+                    name: selectedAsset.name, // Human-readable name for file naming
                     prompt,
                     shouldRig: selectedAsset.shouldRig,
                 }),
@@ -497,7 +495,6 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
         // Log debug info to help diagnose issues
         console.log("🎬 handleAnimate called:", {
             selectedAssetId,
-            selectedAssetState, // Log full state
             riggedModelUrl: selectedAssetState.riggedModelUrl,
             rigTaskId: selectedAssetState.rigTaskId,
             selectedAnimations: Array.from(selectedAnimations),
@@ -567,7 +564,7 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                 console.error(`Animation ${preset} error:`, err);
             }
         }
-    }, [selectedAssetId, selectedAssetState, selectedAnimations, projectId, pollAnimationTask]);
+    }, [selectedAssetId, selectedAssetState.riggedModelUrl, selectedAssetState.rigTaskId, selectedAnimations, projectId, pollAnimationTask]);
 
     // Toggle animation selection
     const toggleAnimation = useCallback((preset: AnimationPreset) => {
@@ -655,115 +652,6 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
             return next;
         });
     }, [selectedAssetId]);
-
-    // Handle approve animation action
-    const handleApproveAnimation = useCallback(async (preset: AnimationPreset) => {
-        if (!selectedAssetId) return;
-
-        // Update local state with animation approval
-        setAssetStates((prev) => {
-            const next = new Map(prev);
-            const current = prev.get(selectedAssetId);
-            const existingApprovals = current?.animationApprovalStatus || {};
-            next.set(selectedAssetId, {
-                ...current,
-                animationApprovalStatus: {
-                    ...existingApprovals,
-                    [preset]: "approved",
-                },
-            } as Asset3DState);
-            return next;
-        });
-
-        // TODO: Persist to backend when API is ready
-        console.log(`✅ Animation ${preset} approved for asset ${selectedAssetId}`);
-    }, [selectedAssetId]);
-
-    // Handle reject animation action (undo approval)
-    const handleRejectAnimation = useCallback(async (preset: AnimationPreset) => {
-        if (!selectedAssetId) return;
-
-        // Update local state
-        setAssetStates((prev) => {
-            const next = new Map(prev);
-            const current = prev.get(selectedAssetId);
-            const existingApprovals = current?.animationApprovalStatus || {};
-            next.set(selectedAssetId, {
-                ...current,
-                animationApprovalStatus: {
-                    ...existingApprovals,
-                    [preset]: "pending",
-                },
-            } as Asset3DState);
-            return next;
-        });
-
-        console.log(`❌ Animation ${preset} rejected for asset ${selectedAssetId}`);
-    }, [selectedAssetId]);
-
-    // Handle regenerate animation action
-    const handleRegenerateAnimation = useCallback(async (preset: AnimationPreset) => {
-        if (!selectedAssetId || !selectedAssetState.riggedModelUrl || !selectedAssetState.rigTaskId) {
-            console.error("Cannot regenerate animation: missing rig data");
-            return;
-        }
-
-        // Remove the animation URL and set to animating
-        setAssetStates((prev) => {
-            const next = new Map(prev);
-            const current = prev.get(selectedAssetId);
-            const existingUrls = { ...(current?.animatedModelUrls || {}) };
-            const existingApprovals = { ...(current?.animationApprovalStatus || {}) };
-
-            // Remove the old animation URL
-            delete existingUrls[preset];
-            delete existingApprovals[preset];
-
-            next.set(selectedAssetId, {
-                ...current,
-                status: "animating",
-                animatedModelUrls: existingUrls,
-                animationApprovalStatus: existingApprovals,
-            } as Asset3DState);
-            return next;
-        });
-
-        // Re-submit animation task
-        try {
-            const response = await fetch("/api/generate-3d/animate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    projectId,
-                    assetId: selectedAssetId,
-                    riggedModelUrl: selectedAssetState.riggedModelUrl,
-                    rigTaskId: selectedAssetState.rigTaskId,
-                    animationPreset: preset,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Animation regeneration failed: ${response.statusText}`);
-            }
-
-            const data = await response.json() as { taskId: string };
-            pollAnimationTask(selectedAssetId, preset, data.taskId);
-            console.log(`🔄 Regenerating animation ${preset} for asset ${selectedAssetId}`);
-        } catch (err) {
-            console.error(`Animation ${preset} regeneration error:`, err);
-            // Revert state on error
-            setAssetStates((prev) => {
-                const next = new Map(prev);
-                const current = prev.get(selectedAssetId);
-                next.set(selectedAssetId, {
-                    ...current,
-                    status: current?.animatedModelUrls && Object.keys(current.animatedModelUrls).length > 0 ? "complete" : "rigged",
-                    error: `Failed to regenerate ${preset} animation`,
-                } as Asset3DState);
-                return next;
-            });
-        }
-    }, [selectedAssetId, selectedAssetState.riggedModelUrl, selectedAssetState.rigTaskId, projectId, pollAnimationTask]);
 
     // -------------------------------------------------------------------------
     // Loading State
@@ -861,9 +749,6 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
                         onApprove={handleApprove}
                         onReject={handleReject}
                         onRegenerate={handleRegenerate}
-                        onApproveAnimation={handleApproveAnimation}
-                        onRejectAnimation={handleRejectAnimation}
-                        onRegenerateAnimation={handleRegenerateAnimation}
                     />
                 </div>
             ) : (

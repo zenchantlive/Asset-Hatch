@@ -188,6 +188,7 @@ model Generated3DAsset {
   projectId         String
   project           Project  @relation(fields: [projectId], references: [id])
   assetId           String   // Original asset ID from plan
+  name              String?  // Human-readable asset name for file naming (e.g., "Knight Character")
   status            String   // queued | generating | rigged | complete | failed
 
   // Tripo task chain IDs

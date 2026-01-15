@@ -16,9 +16,7 @@ import { ExportPanel } from "@/components/export/ExportPanel"
 import { PlanPanel } from "@/components/ui/PlanPanel"
 import { StylePanel } from "@/components/ui/StylePanel"
 import { applyModeTheme, resetModeTheme } from "@/lib/theme-utils"
-import { ProjectModeIndicator } from "@/components/dashboard/ProjectModeIndicator"
 import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
-import { PlanPreview3D } from "@/components/3d/planning/PlanPreview3D"
 import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'

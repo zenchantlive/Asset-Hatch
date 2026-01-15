@@ -4,12 +4,13 @@ import { GenerateStyleResponse } from './types';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('/api/style-anchors', () => {
-    let POST: (req: Request, context: { params: Promise<any> }) => Promise<Response>;
+    // Type matches NextRequest handler signature using type assertion
+    let POST: (req: NextRequest) => Promise<Response>;
 
     beforeEach(async () => {
         resetAllMocks();
         const route = await import('@/app/api/style-anchors/route');
-        POST = route.POST;
+        POST = route.POST as (req: NextRequest) => Promise<Response>;
     });
 
     it('returns 400 if projectId is missing', async () => {
@@ -17,7 +18,7 @@ describe('/api/style-anchors', () => {
             method: 'POST',
             body: JSON.stringify({ referenceImageBase64DataUrl: 'data:...' })
         });
-        const res = await POST(req, { params: Promise.resolve({}) });
+        const res = await POST(req);
         expect(res.status).toBe(400);
     });
 
@@ -26,7 +27,7 @@ describe('/api/style-anchors', () => {
             method: 'POST',
             body: JSON.stringify({ projectId: 'p1' })
         });
-        const res = await POST(req, { params: Promise.resolve({}) });
+        const res = await POST(req);
         expect(res.status).toBe(400);
     });
 
@@ -46,7 +47,7 @@ describe('/api/style-anchors', () => {
             })
         });
 
-        const res = await POST(req, { params: Promise.resolve({}) });
+        const res = await POST(req);
         const body = await res.json() as GenerateStyleResponse & { success: boolean };
 
         expect(res.status).toBe(200);

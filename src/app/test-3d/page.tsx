@@ -74,7 +74,7 @@ export default function Test3DPage() {
           <ol className="list-decimal list-inside space-y-2">
             <li>Run the test script: <code className="px-2 py-1 bg-black/30 rounded">bun run scripts/test-tripo-basic.ts</code></li>
             <li>Copy the GLB URL from the output</li>
-            <li>Paste it in the input above and click "Load Model"</li>
+            <li>Paste it in the input above and click &quot;Load Model&quot;</li>
             <li>The model will load through the CORS proxy at <code className="px-2 py-1 bg-black/30 rounded">/api/proxy-model</code></li>
           </ol>
 
