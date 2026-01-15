@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import "./globals-3d.css";
 import { Header } from "@/components/layout/Header";
+import { PostHogProvider } from "./providers";
 
 // =============================================================================
 // FONT CONFIGURATION
@@ -55,13 +56,16 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${spaceGrotesk.variable} font-sans antialiased flex flex-col min-h-screen bg-background`}
       >
-        {/* SessionProvider enables useSession hook in client components */}
-        <SessionProvider>
-          <Header />
-          <main className="flex-1 relative">
-            {children}
-          </main>
-        </SessionProvider>
+        {/* PostHogProvider enables analytics tracking in client components */}
+        <PostHogProvider>
+          {/* SessionProvider enables useSession hook in client components */}
+          <SessionProvider>
+            <Header />
+            <main className="flex-1 relative">
+              {children}
+            </main>
+          </SessionProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

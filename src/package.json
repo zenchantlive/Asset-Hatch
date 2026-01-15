@@ -20,6 +20,7 @@
     "@langchain/openai": "^1.2.0",
     "@openrouter/ai-sdk-provider": "^1.5.4",
     "@photo-sphere-viewer/core": "^5.14.1",
+    "@posthog/nextjs-config": "^1.7.5",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -48,6 +49,8 @@
     "pannellum-react": "^1.2.4",
     "pg": "^8.16.3",
     "pluralize": "^8.0.0",
+    "posthog-js": "^1.321.2",
+    "posthog-node": "^5.21.0",
     "prisma": "^7.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -58,6 +61,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@posthog/cli": "^0.5.24",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
