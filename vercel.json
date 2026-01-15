@@ -1,5 +1,5 @@
 {
-    "buildCommand": "bun install && bunx prisma generate && bunx prisma db push && bun run build",
+    "buildCommand": "bun install && bunx prisma generate && bun run build",
     "outputDirectory": "src/.next",
     "installCommand": "bun install",
     "framework": "nextjs",
