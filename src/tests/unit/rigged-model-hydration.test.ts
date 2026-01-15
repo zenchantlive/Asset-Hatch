@@ -2,7 +2,11 @@ import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { parse3DPlan } from "@/lib/3d-plan-parser";
 
 // Mock the fetch function
+const originalFetch = global.fetch;
 global.fetch = mock();
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 describe("Rigged Model Hydration", () => {
     beforeEach(() => {
