@@ -202,7 +202,8 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const fallbackProjectId = searchParams.get('projectId');
     const fallbackAssetId = searchParams.get('assetId');
-    const taskTypeHint = searchParams.get('taskType') as 'draft' | 'rig' | 'animation' | null;
+    const taskTypeHintParam = searchParams.get('taskType');
+    const taskTypeHint = (taskTypeHintParam === 'draft' || taskTypeHintParam === 'rig' || taskTypeHintParam === 'animation') ? taskTypeHintParam : null;
 
     // Get authenticated session
     const session = await auth();
