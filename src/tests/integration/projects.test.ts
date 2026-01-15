@@ -67,7 +67,7 @@ describe('/api/projects', () => {
 
         it('creates a new project', async () => {
             authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1', email: 'test@example.com' } }));
-            prismaMock.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' } as any));
+            prismaMock.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' } as { id: string }));
             prismaMock.project.create.mockImplementation(() => Promise.resolve({
                 id: 'new-id',
                 name: 'New Project',

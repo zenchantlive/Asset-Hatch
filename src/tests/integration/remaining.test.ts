@@ -4,12 +4,16 @@ import { AnalyzeStyleResponse, GenerateStyleResponse, MemoryFileResponse, AssetR
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('Remaining API Endpoints', () => {
-    let analyzePOST: any;
-    let generateStylePOST: any;
-    let generatedAssetsPOST: any;
-    let memoryFilesGET: any;
-    let memoryFilesPOST: any;
-    let assetsGET: any;
+    // Route handler type - Next.js 14 uses Promise<{ id: string }> for async params
+    // Using a flexible type for test compatibility
+    type RouteHandler = (req: NextRequest, ctx?: { params?: Promise<{ id: string }> }) => Promise<Response>;
+
+    let analyzePOST: (req: NextRequest) => Promise<Response>;
+    let generateStylePOST: (req: NextRequest) => Promise<Response>;
+    let generatedAssetsPOST: (req: NextRequest) => Promise<Response>;
+    let memoryFilesGET: RouteHandler;
+    let memoryFilesPOST: RouteHandler;
+    let assetsGET: RouteHandler;
 
     beforeEach(async () => {
         resetAllMocks();
@@ -24,11 +28,11 @@ describe('Remaining API Endpoints', () => {
         generatedAssetsPOST = generatedAssetsRoute.POST;
 
         const memoryFilesRoute = await import('@/app/api/projects/[id]/memory-files/route');
-        memoryFilesGET = memoryFilesRoute.GET;
-        memoryFilesPOST = memoryFilesRoute.POST;
+        memoryFilesGET = memoryFilesRoute.GET as RouteHandler;
+        memoryFilesPOST = memoryFilesRoute.POST as RouteHandler;
 
         const assetsRoute = await import('@/app/api/assets/[id]/route');
-        assetsGET = assetsRoute.GET;
+        assetsGET = assetsRoute.GET as RouteHandler;
     });
 
     describe('/api/analyze-style', () => {
