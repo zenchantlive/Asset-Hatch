@@ -265,19 +265,36 @@ export async function GET(
 
       if (fallbackAsset) {
         // Determine match type from hint or infer from status
-        let inferredMatchType: 'draft' | 'rig' | 'animation' = 'draft';
-        if (taskTypeHint) {
-          inferredMatchType = taskTypeHint;
-        } else if (fallbackAsset.status === 'rigging' || fallbackAsset.status === 'rigged') {
-          inferredMatchType = 'rig';
-        } else if (fallbackAsset.status === 'animating') {
-          inferredMatchType = 'animation';
-        }
+          let inferredMatchType: 'draft' | 'rig' | 'animation' = 'draft';
+          let animationPreset: string | undefined;
 
-        matchResult = {
-          asset: fallbackAsset,
-          matchType: inferredMatchType,
-        };
+          if (taskTypeHint) {
+            inferredMatchType = taskTypeHint;
+          } else if (fallbackAsset.status === 'rigging' || fallbackAsset.status === 'rigged') {
+            inferredMatchType = 'rig';
+          } else if (fallbackAsset.status === 'animating' || (fallbackAsset.animationTaskIds && fallbackAsset.animationTaskIds.includes(taskId))) {
+            inferredMatchType = 'animation';
+          }
+
+          if (inferredMatchType === 'animation' && fallbackAsset.animationTaskIds) {
+            try {
+              const taskIds = JSON.parse(fallbackAsset.animationTaskIds) as Record<string, string>;
+              for (const [preset, storedTaskId] of Object.entries(taskIds)) {
+                if (storedTaskId === taskId) {
+                  animationPreset = preset;
+                  break;
+                }
+              }
+            } catch (e) {
+              console.warn(`⚠️ Failed to parse animationTaskIds during fallback for asset ${fallbackAsset.id}`);
+            }
+          }
+
+          matchResult = {
+            asset: fallbackAsset,
+            matchType: inferredMatchType,
+            animationPreset,
+          };
         console.log('✅ Fallback lookup succeeded, matchType:', inferredMatchType);
       }
     }
