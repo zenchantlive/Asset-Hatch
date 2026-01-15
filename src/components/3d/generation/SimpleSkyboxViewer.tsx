@@ -58,6 +58,8 @@ export function SimpleSkyboxViewer({
         const canvas = canvasRef.current;
         let disposed = false;
         let resizeHandler: (() => void) | null = null;
+        let observer: any = null;
+        let currentScene: any = null;
 
         // Dynamically import Babylon.js to avoid SSR issues
         import('@babylonjs/core').then((BABYLON) => {
@@ -70,6 +72,7 @@ export function SimpleSkyboxViewer({
 
                 // Create scene with black background
                 const scene = new BABYLON.Scene(engine);
+                currentScene = scene;
                 scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
                 // Create ArcRotateCamera at origin, looking forward
@@ -112,7 +115,7 @@ export function SimpleSkyboxViewer({
                 const rotationSpeedRadPerMs = (rotationSpeedDegPerSec * Math.PI) / (180 * 1000);
 
                 // Register before-render callback for auto-rotation
-                scene.registerBeforeRender(() => {
+                observer = scene.registerBeforeRender(() => {
                     // Delta-time-based rotation for consistent speed across frame rates
                     if (autoRotate) {
                         const deltaMs = engine.getDeltaTime();
@@ -150,6 +153,10 @@ export function SimpleSkyboxViewer({
         // Cleanup on unmount or dependency change
         return () => {
             disposed = true;
+            // Unregister the render loop observer
+            if (observer && currentScene) {
+                currentScene.onBeforeRenderObservable.remove(observer);
+            }
             if (resizeHandler) {
                 window.removeEventListener('resize', resizeHandler);
             }
