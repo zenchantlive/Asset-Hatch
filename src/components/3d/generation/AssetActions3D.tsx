@@ -167,7 +167,8 @@ export function AssetActions3D({
                 )}
 
                 {/* Download Dropdown - shown when any model URL is available */}
-                {draftModelUrl && (
+                {/* Skip for skybox assets - SkyboxSection has its own download */}
+                {!asset.id.endsWith('-skybox') && draftModelUrl && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="ml-auto">
@@ -208,7 +209,8 @@ export function AssetActions3D({
             </div>
 
             {/* Approval Row - shown when asset generation is complete */}
-            {(status === "generated" || status === "rigged" || status === "complete") && (
+            {/* Skip for skybox assets - SkyboxSection has its own approval UI */}
+            {!asset.id.endsWith('-skybox') && (status === "generated" || status === "rigged" || status === "complete") && (
                 <div className="px-4 pb-4 flex items-center gap-3">
                     {/* Already Approved State */}
                     {assetState.approvalStatus === "approved" ? (

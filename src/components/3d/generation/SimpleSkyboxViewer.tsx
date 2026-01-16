@@ -58,7 +58,9 @@ export function SimpleSkyboxViewer({
         const canvas = canvasRef.current;
         let disposed = false;
         let resizeHandler: (() => void) | null = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let observer: any = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let currentScene: any = null;
 
         // Dynamically import Babylon.js to avoid SSR issues

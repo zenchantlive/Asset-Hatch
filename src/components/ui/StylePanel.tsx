@@ -7,8 +7,6 @@
 
 'use client'
 
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { StylePreview, type StyleDraft, type GeneratedStyleAnchor } from '@/components/style/StylePreview'
 import { CompactChatInput } from '@/components/ui/CompactChatInput'
 
@@ -45,15 +43,16 @@ export function StylePanel({
 
             {/* Panel - Full screen overlay */}
             <div className={`fixed inset-0 z-50 flex flex-col bg-zinc-950 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                {/* Close button - floating top right */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 border border-white/10"
-                >
-                    <X className="w-5 h-5 text-white" />
-                </Button>
+                {/* Header with Back button */}
+                <div className="flex items-center p-4">
+                    <button
+                        onClick={onClose}
+                        className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+                    >
+                        <span className="text-lg">←</span>
+                        <span className="text-sm font-medium">Back to Chat</span>
+                    </button>
+                </div>
 
                 {/* Reuse existing StylePreview component - takes remaining space */}
                 <div className="flex-1 overflow-hidden">

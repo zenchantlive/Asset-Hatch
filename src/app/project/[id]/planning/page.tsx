@@ -34,6 +34,7 @@ export default function PlanningPage() {
   const [modelsMenuOpen, setModelsMenuOpen] = useState(false)
   const [planPanelOpen, setPlanPanelOpen] = useState(false)
   const [stylePanelOpen, setStylePanelOpen] = useState(false)
+  const [userDismissedStylePanel, setUserDismissedStylePanel] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [projectName, setProjectName] = useState<string>("")
   const [projectMode, setProjectMode] = useState<"2d" | "3d">("2d")
@@ -251,7 +252,8 @@ export default function PlanningPage() {
     setIsGeneratingStyle(false);
 
     // Auto-open style panel on mobile when style anchor is generated
-    if (isMobile) {
+    // But only if user hasn't explicitly dismissed it
+    if (isMobile && !userDismissedStylePanel) {
       setStylePanelOpen(true);
     }
   };
@@ -296,9 +298,10 @@ export default function PlanningPage() {
 
   // Wrapper for when AI finalizes the plan - auto-opens panel on mobile
   const handlePlanComplete = () => {
-    // Auto-open plan panel on mobile so user can review the finalized plan
-    if (isMobile) {
-      setPlanPanelOpen(true);
+    // Auto-open style panel on mobile when style anchor is generated
+    // But only if user hasn't explicitly dismissed it
+    if (isMobile && !userDismissedStylePanel) {
+      setStylePanelOpen(true);
     }
     // Continue with normal approval flow
     void handleApprovePlan();
@@ -508,7 +511,7 @@ export default function PlanningPage() {
         )}
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative z-10">
+      <div className={`flex-1 flex relative z-10 ${mode === 'generation' ? 'overflow-auto' : 'overflow-hidden'}`}>
         {mode === 'generation' ? (
           // Generation mode: Full-width GenerationQueue (or 3D version)
           projectMode === '3d' ? (
@@ -621,7 +624,7 @@ export default function PlanningPage() {
       {/* Style panel - slide-out for mobile */}
       <StylePanel
         isOpen={stylePanelOpen}
-        onClose={() => setStylePanelOpen(false)}
+        onClose={() => { setStylePanelOpen(false); setUserDismissedStylePanel(true); }}
         styleDraft={styleDraft}
         generatedAnchor={generatedAnchor}
         isGenerating={isGeneratingStyle}
