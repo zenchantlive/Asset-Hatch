@@ -116,6 +116,9 @@ export function ErrorBadge3D({
             <button
                 type="button"
                 onClick={handleToggle}
+                className={`
+                    w-full flex items-center justify-between px-3 py-2 rounded-full border text-sm font-medium transition-colors
+                    ${colorClasses.badge}
                 `}
             >
                 <span className="flex items-center gap-2">
