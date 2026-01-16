@@ -4,6 +4,9 @@ import { parse3DPlan } from "@/lib/3d-plan-parser";
 // Mock get3DAssets function for testing
 async function get3DAssets(projectId: string) {
     const response = await fetch(`/api/projects/${projectId}/3d-assets`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch assets: ${response.status}`);
+    }
     const data = await response.json();
     return data.assets;
 }
@@ -37,6 +40,7 @@ describe("Rigged Model Hydration", () => {
 
         ((global.fetch as unknown) as ReturnType<typeof mock>).mockResolvedValue({
             ok: true,
+            status: 200,
             json: async () => ({
                 success: true,
                 assets: mockAssets
@@ -45,6 +49,7 @@ describe("Rigged Model Hydration", () => {
 
         const assets = await get3DAssets("proj-1");
 
+        expect(global.fetch).toHaveBeenCalledWith("/api/projects/proj-1/3d-assets");
         expect(assets.length).toBe(1);
         expect(assets[0].riggedModelUrl).toBe("https://example.com/rigged.glb");
     });

@@ -7,7 +7,7 @@
  * including 403 Forbidden from expired Tripo3D signed URLs.
  */
 
-import { useState, useCallback, Suspense, useEffect } from "react";
+import { useState, useCallback, Suspense, useEffect, useRef, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, useGLTF, Stage, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -49,7 +49,10 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
         }
     }, [scene, onLoad]);
 
-    if (scene) {
+    // Memoize the processed scene to avoid repeated Box3 calculations/cloning
+    const processedScene = useMemo(() => {
+        if (!scene) return null;
+
         // Clone scene to avoid mutating cached version
         const cloned = scene.clone(true);
 
@@ -59,21 +62,22 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
         const size = box.getSize(new THREE.Vector3());
 
         cloned.position.set(
-            cloned.position.x - center.x,
-            cloned.position.y - center.y,
-            cloned.position.z - center.z
+            -center.x,
+            -center.y,
+            -center.z
         );
 
         const maxDim = Math.max(size.x, size.y, size.z);
         if (maxDim > 2) {
             cloned.scale.setScalar(2 / maxDim);
         }
-    }
 
-    // Clone the scene to avoid mutating cached GLTF
-    const clonedScene = scene.clone(true);
+        return cloned;
+    }, [scene]);
 
-    return <primitive object={clonedScene} />;
+    if (!processedScene) return null;
+
+    return <primitive object={processedScene} />;
 }
 
 /**
@@ -244,8 +248,6 @@ export function ModelViewer({
 /**
  * Simple Error Boundary Component for catching render errors in 3D scene
  */
-import { Component, type ReactNode, type ErrorInfo } from "react";
-
 interface ErrorBoundaryProps {
     children: ReactNode;
     onError: (error: unknown) => void;
