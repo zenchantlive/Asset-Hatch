@@ -28,12 +28,14 @@ import { AssetTree3D } from "./AssetTree3D";
 import { AssetDetailPanel3D } from "./AssetDetailPanel3D";
 import { AssetActions3D } from "./AssetActions3D";
 import { AddAssetForm } from "./AddAssetForm";
+import { ExpirationBanner } from "./ExpirationBanner";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Mobile3DGenerationLayout } from "./Mobile3DGenerationLayout";
 
 // =============================================================================
 // Main Component
@@ -68,6 +70,23 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
     const [selectedAnimations, setSelectedAnimations] = useState<Set<AnimationPreset>>(new Set());
     // Show add asset dialog
     const [showAddAsset, setShowAddAsset] = useState(false);
+
+    // Mobile detection state
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+
+        // Check initially
+        checkMobile();
+
+        // Listen for resize
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // -------------------------------------------------------------------------
     // Hooks
@@ -684,6 +703,34 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
     }
 
     // -------------------------------------------------------------------------
+    // Mobile Layout Render
+    // -------------------------------------------------------------------------
+
+    if (isMobile) {
+        return (
+            <Mobile3DGenerationLayout
+                projectId={projectId}
+                assetsByCategory={assetsByCategory}
+                selectedAsset={selectedAsset}
+                selectedAssetState={selectedAssetState}
+                assetStates={assetStates}
+                selectedAnimations={selectedAnimations}
+                collapsedCategories={collapsedCategories}
+                onSelectAsset={setSelectedAssetId}
+                onToggleCategory={toggleCategory}
+                onGenerate={handleGenerate}
+                onRig={handleRig}
+                onAnimate={handleAnimate}
+                onToggleAnimation={toggleAnimation}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onRegenerate={handleRegenerate}
+                onAddAsset={handleAddAsset}
+            />
+        );
+    }
+
+    // -------------------------------------------------------------------------
     // Main Render
     // -------------------------------------------------------------------------
 
@@ -691,6 +738,9 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
         <div className="w-full h-full flex">
             {/* Left Panel: Asset Tree with Add Button */}
             <div className="flex flex-col">
+                {/* One-time education banner about URL expiration */}
+                <ExpirationBanner />
+
                 {/* Add Asset Button */}
                 <div className="p-2 border-b border-white/10">
                     <button

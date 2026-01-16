@@ -42,8 +42,9 @@ function getAssetTypeLabel(type: AssetType): { label: string; icon: React.ReactN
 export function AssetTypeTabs({ activeType, onTypeChange, counts }: AssetTypeTabsProps) {
     const types: AssetType[] = ['all', '2d', '3d', 'skybox']
 
+    // Horizontally scrollable on mobile
     return (
-        <div className="flex gap-1 px-4 border-b border-white/10">
+        <div className="flex gap-1 px-4 border-b border-white/10 overflow-x-auto flex-nowrap">
             {types.map((type) => {
                 const { label, icon } = getAssetTypeLabel(type)
                 const isActive = activeType === type
@@ -54,7 +55,7 @@ export function AssetTypeTabs({ activeType, onTypeChange, counts }: AssetTypeTab
                         key={type}
                         onClick={() => onTypeChange(type)}
                         className={`
-              flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
+              flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex-shrink-0
               ${isActive
                                 ? 'text-purple-400 border-purple-400'
                                 : 'text-white/50 hover:text-white/80 border-transparent hover:border-white/20'}
