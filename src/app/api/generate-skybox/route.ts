@@ -2,12 +2,14 @@
  * Skybox Generation API Route
  *
  * Generates equirectangular 360 panorama skybox images for 3D environments.
+ * Applies project's style anchor (if exists) for visual consistency with other assets.
  *
  * Workflow:
  * 1. Receive skybox prompt from client
- * 2. Prepend equirectangular formatting instructions to prompt
- * 3. Call OpenRouter image generation API via generateFluxImage
- * 4. Return generated skybox image to client
+ * 2. Fetch project's style anchor for color/lighting consistency
+ * 3. Build FLUX2-optimized prompt via buildSkyboxPrompt (includes style anchor integration)
+ * 4. Call OpenRouter image generation API via generateFluxImage
+ * 5. Return generated skybox image to client
  *
  * Uses shared utility: lib/openrouter-image.ts for API handling
  */
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify the project exists and user has access
+        // Verify the project exists, user has access, and fetch style anchor
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             select: { id: true, userId: true }
@@ -118,7 +120,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Fetch the project's style anchor for visual consistency
+        const styleAnchor = await prisma.styleAnchor.findFirst({
+            where: { projectId },
+            select: {
+                styleKeywords: true,
+                lightingKeywords: true,
+                colorPalette: true,
+            },
+        });
+
         console.log("🌌 Starting skybox generation for project:", projectId);
+        if (styleAnchor) {
+            console.log("🎨 Applying style anchor to skybox generation");
+        }
 
         // Get model config from registry
         const model = getModelById(modelId) || getDefaultModel("multimodal");
@@ -130,9 +145,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Build FLUX2-optimized prompt using new builder
+        // Pass style anchor for color/lighting consistency with other project assets
         const fullPrompt = buildSkyboxPrompt({
             userPrompt: prompt,
             preset: preset || 'custom',
+            styleAnchor: styleAnchor ? {
+                styleKeywords: styleAnchor.styleKeywords || undefined,
+                lightingKeywords: styleAnchor.lightingKeywords || undefined,
+                // Parse colorPalette from JSON string to array
+                colorPalette: styleAnchor.colorPalette
+                    ? JSON.parse(styleAnchor.colorPalette)
+                    : undefined,
+            } : undefined,
         });
 
         console.log("📝 Generating skybox with FLUX2-optimized prompt");
