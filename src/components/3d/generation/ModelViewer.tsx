@@ -7,7 +7,7 @@
  * including 403 Forbidden from expired Tripo3D signed URLs.
  */
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, Suspense, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, useGLTF, Stage, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -42,6 +42,13 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
     const { scene } = useGLTF(loadUrl);
 
     // Process scene when loaded
+    useEffect(() => {
+        if (scene) {
+            // Trigger onLoad callback
+            onLoad?.();
+        }
+    }, [scene, onLoad]);
+
     if (scene) {
         // Clone scene to avoid mutating cached version
         const cloned = scene.clone(true);
@@ -61,9 +68,6 @@ function GLBModel({ url, onLoad }: { url: string; onLoad?: () => void }) {
         if (maxDim > 2) {
             cloned.scale.setScalar(2 / maxDim);
         }
-
-        // Trigger onLoad callback
-        onLoad?.();
     }
 
     // Clone the scene to avoid mutating cached GLTF

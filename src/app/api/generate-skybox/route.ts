@@ -153,9 +153,17 @@ export async function POST(request: NextRequest) {
                 styleKeywords: styleAnchor.styleKeywords || undefined,
                 lightingKeywords: styleAnchor.lightingKeywords || undefined,
                 // Parse colorPalette from JSON string to array
-                colorPalette: styleAnchor.colorPalette
-                    ? JSON.parse(styleAnchor.colorPalette)
-                    : undefined,
+                colorPalette: (() => {
+                    if (!styleAnchor.colorPalette) {
+                        return undefined;
+                    }
+                    try {
+                        return JSON.parse(styleAnchor.colorPalette);
+                    } catch (e) {
+                        console.error(`Failed to parse colorPalette JSON for project ${projectId}:`, styleAnchor.colorPalette, e);
+                        return undefined;
+                    }
+                })(),
             } : undefined,
         });
 
