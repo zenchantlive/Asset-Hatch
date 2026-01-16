@@ -114,12 +114,8 @@ export function ErrorBadge3D({
         <div className="w-full">
             {/* Tappable Badge - Always visible */}
             <button
+                type="button"
                 onClick={handleToggle}
-                className={`
-                    w-full flex items-center justify-between gap-2 px-3 py-2 
-                    rounded-lg border text-sm font-medium
-                    transition-all duration-200 cursor-pointer
-                    ${colorClasses.badge}
                 `}
             >
                 <span className="flex items-center gap-2">
