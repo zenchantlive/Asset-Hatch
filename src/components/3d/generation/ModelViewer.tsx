@@ -133,14 +133,20 @@ export function ModelViewer({
         onLoad?.();
     }, [onLoad]);
 
+    // Use a ref to hold the latest onError callback to avoid stale closures in ErrorBoundary
+    const onErrorRef = useRef(onError);
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
+
     // Handle model load error - called from error boundary
     const handleError = useCallback((error: unknown) => {
         console.error("❌ ModelViewer error:", error);
         const type = getErrorType(error);
         setErrorType(type);
         setLoading(false);
-        onError?.(type);
-    }, [onError]);
+        onErrorRef.current?.(type);
+    }, []);
 
     // Handle regenerate click
     const handleRegenerate = useCallback(() => {
