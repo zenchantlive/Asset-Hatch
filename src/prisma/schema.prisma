@@ -30,6 +30,7 @@ model User {
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
+  games            Game[]    // Hatch Studios games relation
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -215,4 +216,137 @@ model Generated3DAsset {
   updatedAt         DateTime @updatedAt
 
   @@unique([projectId, assetId])
+}
+
+// =============================================================================
+// HATCH STUDIOS MODELS
+// Game creation platform with AI-assisted code generation
+// =============================================================================
+
+// Game model - main entity for a Hatch Studios game project
+model Game {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  name            String
+  description     String?
+  // Note: activeSceneId is NOT a FK to avoid circular dependency issues
+  // Validation that it belongs to this game is done in API layer
+  activeSceneId   String?
+  phase           String            @default("planning") // 'planning' | 'building' | 'testing'
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?         // Soft delete support
+  scenes          GameScene[]
+  codeVersions    CodeVersion[]
+  assetRefs       GameAssetRef[]
+  chatMessages    GameChatMessage[]
+  files           GameFile[]
+  plan            GamePlan?
+}
+
+// GamePlan model - stores the AI-generated game plan (markdown)
+// Created during planning phase, referenced during building phase
+model GamePlan {
+  id          String   @id @default(uuid())
+  gameId      String   @unique
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  content     String   @db.Text  // Markdown plan content
+  status      String   @default("draft") // 'draft' | 'accepted' | 'rejected'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// GameFile model - individual code files within a game (multi-file support)
+// Files are executed in orderIndex order when rendering the game
+model GameFile {
+  id          String   @id @default(uuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name        String   // Filename: "main.js", "player.js", "enemies.js"
+  content     String   @db.Text
+  orderIndex  Int      @default(0) // Execution order (0 = first)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([gameId, name]) // No duplicate filenames in a game
+  @@index([gameId, orderIndex])
+}
+
+// GameScene model - individual scene within a game
+// Note: With multi-file support, scene.code is deprecated in favor of GameFile
+model GameScene {
+  id         String           @id @default(uuid())
+  gameId     String
+  game       Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name       String
+  orderIndex Int              @default(0)
+  code       String           @db.Text // Deprecated: use GameFile instead
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  placements AssetPlacement[]
+}
+
+// CodeVersion model - version history for game code (per-file snapshots)
+model CodeVersion {
+  id          String   @id @default(uuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  fileName    String?  // Which file this version is for (null = legacy single-file)
+  code        String   @db.Text
+  description String?
+  trigger     String   // 'user_save' | 'ai_generation' | 'auto_save' | 'createFile' | 'updateFile'
+  createdAt   DateTime @default(now())
+
+  @@index([gameId, createdAt])
+}
+
+// GameAssetRef model - links external assets to a game
+model GameAssetRef {
+  id             String           @id @default(uuid())
+  gameId         String
+  game           Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  assetProjectId String           // Original project the asset came from
+  assetId        String           // Asset ID within that project
+  assetType      String           // 'model' | 'texture' | 'skybox' | etc.
+  name           String
+  thumbnailUrl   String?
+  glbUrl         String?
+  createdAt      DateTime         @default(now())
+  placements     AssetPlacement[] // Relation: all placements of this asset
+
+  @@unique([gameId, assetId])
+}
+
+// AssetPlacement model - positions an asset within a scene
+model AssetPlacement {
+  id         String       @id @default(uuid())
+  sceneId    String
+  scene      GameScene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  assetRefId String
+  assetRef   GameAssetRef @relation(fields: [assetRefId], references: [id], onDelete: Cascade)
+  positionX  Float        @default(0)
+  positionY  Float        @default(0)
+  positionZ  Float        @default(0)
+  rotationX  Float        @default(0)
+  rotationY  Float        @default(0)
+  rotationZ  Float        @default(0)
+  scaleX     Float        @default(1)
+  scaleY     Float        @default(1)
+  scaleZ     Float        @default(1)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+// GameChatMessage model - AI chat history for game context
+model GameChatMessage {
+  id        String   @id @default(uuid())
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  role      String   // 'user' | 'assistant' | 'system'
+  content   String   @db.Text
+  toolCalls String?  @db.Text  // JSON of tool calls if assistant message
+  createdAt DateTime @default(now())
+
+  @@index([gameId, createdAt])
 }

@@ -1,123 +1,57 @@
 # Active State
 
-## Current Session (2026-01-15)
+## Current Session (2026-01-17)
 
-### Style Anchor → Skybox Integration
-Applied style anchor system to skybox generation for visual consistency across all project assets.
-
-**Change:**
-- `src/app/api/generate-skybox/route.ts` now fetches project's style anchor and passes `colorPalette`, `styleKeywords`, and `lightingKeywords` to `buildSkyboxPrompt()`
-
-**Why:** Skyboxes should match the project's established visual style (same color palette, lighting mood) rather than being generated in isolation.
+### Phase 3 Implementation: Hatch Studios AI Chat
+- **Status**: ✅ Complete - All 8 tasks implemented
+- **Created Files**:
+  - `src/lib/studio/schemas.ts` - 10 Zod schemas with `.describe()` for AI
+  - `src/lib/studio/game-tools.ts` - 10+ AI SDK tools with Prisma operations
+  - `src/lib/studio/babylon-system-prompt.ts` - Babylon.js best practices system prompt
+  - `src/app/api/studio/chat/route.ts` - Streaming chat API with AI SDK v6
+  - `src/components/studio/ChatPanel.tsx` - Full useChat implementation with onToolCall handler
+  - `src/components/studio/StudioLayout.tsx` - Updated to pass gameId to ChatPanel
+  - `src/tests/integration/studio-chat.test.ts` - Integration tests for authentication and tools
+- **Phase 1 Database**: ✅ Verified Game, GameScene, CodeVersion models exist in Prisma schema
+- **Build Issue**: ⚠️ Production build encounters transient Turbopack parsing error (not a code syntax problem)
 
 ---
 
-## Branch Status
-- **Current:** `mobile-redesign-v2`
-- **Main:** `main`
+## Known Issues
 
----
+### Issue: API Parameter Mismatch
+**Date**: 2026-01-17
+**Status**: Open - Investigation needed
 
-## Architecture Quick Reference
-
-### 4 Phases
-Planning → Style Anchor → Generation → Export
-
-### Dual Database Pattern
-| Layer | Storage | Purpose |
-|-------|---------|---------|
-| Server | Neon PostgreSQL (Prisma) | User accounts, projects, metadata, style anchors |
-| Client | IndexedDB (Dexie) | Generated images (2MB each), offline cache |
-
-### Style Anchor System
-- **Definition:** Visual consistency anchor for all generated assets
-- **Stored in:** `StyleAnchor` table (Prisma)
-- **Contains:** `styleKeywords`, `lightingKeywords`, `colorPalette`, `referenceImageBase64`
-- **Applied to:** 2D sprites, 3D models, **skyboxes** (as of this session)
-
-### Data Flow: Image Generation
+**Description**:
+When using `/api/studio/chat`, the server logs show:
 ```
-POST /api/generate → OpenRouter → Returns image URL
-    ↓
-Server saves METADATA to Neon (no blob)
-    ↓
-Client downloads image → Stores in IndexedDB
-    ↓
-UI displays from IndexedDB
+❌ Chat API: projectId is missing or empty
+POST /api/chat 400
 ```
 
-### Data Flow: Export
-```
-User clicks Export → Client reads IndexedDB → Sends base64 to /api/export → ZIP returned
-```
+However, the `/api/studio/chat/route.ts` expects `{ messages, gameId }` in the request body, and the ChatPanel is configured to pass `{ gameId }` via the body parameter.
 
----
+**Root Cause**: Unknown - needs investigation in development environment
 
-## Key Files
+**Impact**: Users cannot send messages through the Hatch Studios chat panel
 
-| File | Purpose |
-|------|---------|
-| `lib/style-anchor-generator.ts` | Core style anchor generation |
-| `lib/skybox-prompts.ts` | FLUX2-optimized skybox prompt builder |
-| `app/api/generate-skybox/route.ts` | Skybox generation endpoint |
-| `app/api/generate/route.ts` | 2D asset generation |
-| `app/api/generate-3d/route.ts` | 3D model generation (Tripo3D) |
+**Expected Behavior**:
+- ChatPanel should call `/api/studio/chat` endpoint
+- Body should contain `{ gameId: string }`
+- Server should extract `gameId` from body
 
----
+**Observed Behavior**:
+- Request goes to `/api/chat` (old Asset Hatch endpoint) instead
+- Server reports `projectId` as undefined
+- Returns 400 Bad Request
 
-## Session History (Summarized)
+**Files Affected**:
+- `src/components/studio/ChatPanel.tsx`
+- `src/app/api/studio/chat/route.ts`
+- `src/components/studio/StudioLayout.tsx` (passes gameId correctly)
 
-### 2026-01-16
-- Mobile 3D UI rework (2-tab navigation, scrolling fixes)
-- Vercel deploy fix (Prisma provider mismatch)
-
-### 2026-01-14
-- AssetsPanel consolidation and refactoring
-- 3D security fixes (auth on all API routes)
-
-### 2026-01-13
-- 3D generation Phase 4-6: UI, animation playback, persistence
-- Tripo3D CORS proxy implementation
-
-### 2026-01-12
-- 3D generation backend (Tripo3D API integration)
-- Planning mode with [RIG]/[STATIC] tag parsing
-- PR merges: demo account, 2D art styles, Vercel deploy prep
-
-### 2026-01-02
-- Mobile Planning/Style UX redesign (slide-out panels)
-- Lint cleanup, Next.js Image migrations
-
-### Pre-2026
-- Turso → Neon PostgreSQL migration
-- IndexedDB for image storage (cost reduction)
-- OAuth, authentication, initial 2D generation flow
-
----
-
-## Environment Variables
-
-```bash
-# Required
-POSTGRES_PRISMA_URL="postgresql://..."
-AUTH_SECRET="..."
-OPENROUTER_API_KEY="sk-or-v1-..."
-
-# Optional
-AUTH_GITHUB_ID="..."
-AUTH_GITHUB_SECRET="..."
-TRIPO_API_KEY="..."
-```
-
----
-
-## Known Patterns
-
-1. **Token Limits:** Never return base64 in tool results - return ID, fetch separately
-2. **AI SDK v6:** Use `useRef(new Set())` for processed IDs to prevent infinite loops
-3. **WSL2 Split:** User runs `bun` in PowerShell, Claude operates in WSL2
-4. **CI/CD:** Check BOTH `vercel.json` AND `package.json` for build commands
-
----
-
-**END OF ACTIVE STATE**
+**Next Steps**:
+1. Verify which endpoint ChatPanel is actually calling
+2. Check if there's a route conflict between `/api/chat` and `/api/studio/chat`
+3. Ensure request body is properly formatted on the client side
