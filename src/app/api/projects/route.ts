@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // Projects API Route
-// Handles project creation with user ownership
+// Handles project creation with user ownership and unified project support
 // -----------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
@@ -8,14 +8,16 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import type { CreateProjectData } from "@/lib/types/unified-project";
 
 // =============================================================================
 // VALIDATION SCHEMA
 // =============================================================================
 
 const createProjectSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    mode: z.enum(["2d", "3d"]).default("2d"),
+  name: z.string().min(1, "Name is required"),
+  mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
+  startWith: z.enum(["assets", "game", "both"]).default("assets"),
 });
 
 // =============================================================================
@@ -23,14 +25,21 @@ const createProjectSchema = z.object({
 // =============================================================================
 
 interface ProjectResponse {
-    success: boolean;
-    project?: {
-        id: string;
-        name: string;
-        phase: string;
-        userId: string | null;
-    };
-    error?: string;
+  success: boolean;
+  project?: {
+    id: string;
+    name: string;
+    phase: string;
+    userId: string | null;
+  };
+  error?: string;
+}
+
+interface UnifiedProjectResponse {
+  success: boolean;
+  projectId: string;
+  gameId?: string;
+  error?: string;
 }
 
 // =============================================================================
@@ -38,134 +47,172 @@ interface ProjectResponse {
 // =============================================================================
 
 export async function GET(): Promise<NextResponse<ProjectResponse | { projects: Array<{ id: string; name: string; phase: string }> }>> {
-    try {
-        // Get current session
-        const session = await auth();
+  try {
+    // Get current session
+    const session = await auth();
 
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { success: false, error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        // Fetch user's projects
-        const projects = await prisma.project.findMany({
-            where: { userId: session.user.id },
-            orderBy: { updatedAt: "desc" },
-            select: {
-                id: true,
-                name: true,
-                phase: true,
-            },
-        });
-
-        return NextResponse.json({ success: true, projects });
-    } catch (error) {
-        console.error("Failed to fetch projects:", error);
-        return NextResponse.json(
-            { success: false, error: "Failed to fetch projects" },
-            { status: 500 }
-        );
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
+
+    // Fetch user's projects
+    const projects = await prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        phase: true,
+      },
+    });
+
+    return NextResponse.json({ success: true, projects });
+  } catch (error) {
+    console.error("Failed to fetch projects:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch projects" },
+      { status: 500 }
+    );
+  }
 }
 
 // =============================================================================
-// POST - Create a new project
+// POST - Create a new project (unified with optional game creation)
 // =============================================================================
 
 export async function POST(
-    request: Request
-): Promise<NextResponse<ProjectResponse>> {
-    try {
-        // Get current session
-        const session = await auth();
+  request: Request
+): Promise<NextResponse<UnifiedProjectResponse | { success: false; error: string }>> {
+  try {
+    // Get current session
+    const session = await auth();
 
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { success: false, error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        // Parse request body
-        const body: unknown = await request.json();
-
-        // Validate input
-        const parsed = createProjectSchema.safeParse(body);
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid input";
-            return NextResponse.json(
-                { success: false, error: firstError },
-                { status: 400 }
-            );
-        }
-
-        const { name, mode } = parsed.data;
-        const userId = session.user.id;
-        const userEmail = session.user.email;
-
-        // Verify user exists in DB to prevent Foreign Key errors (P2003)
-        // This handles cases where the DB was reset but the user has a valid session cookie
-        const existingUser = await prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!existingUser) {
-            console.log(`User not found in DB (stale session?). Re-creating user.`);
-            if (userEmail) {
-                // Use upsert to prevent race condition if multiple requests try to create same user
-                await prisma.user.upsert({
-                    where: { id: userId },
-                    update: {}, // If exists, no-op
-                    create: {
-                        id: userId,
-                        email: userEmail,
-                        name: session.user.name,
-                        image: session.user.image,
-                    },
-                });
-            } else {
-                return NextResponse.json(
-                    { success: false, error: "User record missing and no email in session to re-create" },
-                    { status: 500 }
-                );
-            }
-        }
-
-        // Create project with user ownership and mode
-        const project = await prisma.project.create({
-            data: {
-                name,
-                userId: userId,
-                phase: "planning",
-                mode: mode,
-            },
-        });
-
-        return NextResponse.json({
-            success: true,
-            project: {
-                id: project.id,
-                name: project.name,
-                phase: project.phase,
-                userId: project.userId,
-            },
-        });
-    } catch (error) {
-        console.error("Failed to create project:", error);
-        // Log specifics if it's a Prisma error using type guards
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            console.error("Prisma Error Code:", error.code);
-            console.error("Prisma Error Message:", error.message);
-        }
-        // Return generic error - do NOT expose internal details to client
-        return NextResponse.json(
-            {
-                success: false,
-                error: "Failed to create project",
-            },
-            { status: 500 }
-        );
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
+
+    // Parse request body
+    const body: unknown = await request.json();
+
+    // Validate input
+    const parsed = createProjectSchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Invalid input";
+      return NextResponse.json(
+        { success: false, error: firstError },
+        { status: 400 }
+      );
+    }
+
+    const { name, mode, startWith } = parsed.data as CreateProjectData;
+    const userId = session.user.id;
+    const userEmail = session.user.email;
+
+    // Verify user exists in DB to prevent Foreign Key errors (P2003)
+    // This handles cases where the DB was reset but the user has a valid session cookie
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      console.log(`User not found in DB (stale session?). Re-creating user.`);
+      if (userEmail) {
+        // Use upsert to prevent race condition if multiple requests try to create same user
+        await prisma.user.upsert({
+          where: { id: userId },
+          update: {}, // If exists, no-op
+          create: {
+            id: userId,
+            email: userEmail,
+            name: session.user.name,
+            image: session.user.image,
+          },
+        });
+      } else {
+        return NextResponse.json(
+          { success: false, error: "User record missing and no email in session to re-create" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Set initial phase based on startWith
+    const initialPhase = startWith === "game" ? "building" : "assets";
+
+    // Create initial asset manifest
+    const initialManifest = {
+      version: "1.0",
+      lastUpdated: new Date().toISOString(),
+      assets: {},
+      syncState: {
+        status: "clean",
+        pendingAssets: [],
+        lastSync: null,
+      },
+    };
+
+    // Create project with user ownership and mode
+    const project = await prisma.project.create({
+      data: {
+        name,
+        userId: userId,
+        phase: initialPhase,
+        mode: mode,
+        assetManifest: initialManifest,
+        syncStatus: "clean",
+      },
+    });
+
+    // Optionally create a linked game
+    let gameId: string | undefined;
+    if (startWith === "game" || startWith === "both") {
+      const game = await prisma.game.create({
+        data: {
+          userId: userId,
+          name: `${name} Game`,
+          phase: "planning",
+          projectId: project.id,
+        },
+      });
+      gameId = game.id;
+
+      // Update project with game reference
+      await prisma.project.update({
+        where: { id: project.id },
+        data: {
+          gameId: game.id,
+          phase: "building", // Both = building phase for assets
+        },
+      });
+    }
+
+    console.log(`✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`);
+
+    return NextResponse.json({
+      success: true,
+      projectId: project.id,
+      gameId,
+    });
+  } catch (error) {
+    console.error("Failed to create project:", error);
+    // Log specifics if it's a Prisma error using type guards
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("Prisma Error Code:", error.code);
+      console.error("Prisma Error Message:", error.message);
+    }
+    // Return generic error - do NOT expose internal details to client
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to create project",
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -514,3 +514,66 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Pattern:** New games auto-create `main.js` with default scene
 * **Implementation:** `POST /api/studio/games` creates both Game and GameFile in transaction
 * **Default Content:** Basic Babylon.js scene with camera, light, rotating box
+
+---
+
+## 🎯 Phase 6: Unified Project Architecture Patterns
+
+### 1:1 Bidirectional Relations in Prisma
+* **Pattern:** For 1:1 relations, only ONE side defines `fields` and `references`
+* **Example:**
+  ```prisma
+  // Project side - owns the relation, defines fields
+  model Project {
+    gameId String? @unique
+    game   Game?   // Prisma infers from unique gameId
+  }
+  
+  // Game side - just references, no fields defined
+  model Game {
+    projectId String? @unique
+    project   Project? @relation(fields: [projectId], references: [id])
+  }
+  ```
+* **Why:** Prisma validates that both sides don't define the relation metadata - only the FK owner should
+* **Gotcha:** If both sides define fields/references → P1012 validation error
+
+### JSON Asset Manifest Pattern
+* **Pattern:** Store asset metadata in Prisma JSON field instead of separate table
+* **Structure:**
+  ```typescript
+  interface AssetManifest {
+    version: "1.0";
+    lastUpdated: string;
+    assets: Record<string, AssetManifestEntry>;
+    syncState: {
+      status: "clean" | "pending";
+      pendingAssets: string[];
+      lastSync: string | null;
+    };
+  }
+  ```
+* **Why:** Simpler queries, atomic updates, no migration needed for new fields
+* **Trade-off:** No Prisma-level foreign key constraints
+
+### Start Path Selection Pattern
+* **Pattern:** Unified project creation with 3 options
+* **Options:**
+  - `assets` → Project only, phase: "assets"
+  - `game` → Project + Game, phase: "building"
+  - `both` → Project + Game, phase: "building"
+* **Implementation:** Single POST creates both entities in transaction
+
+### Asset Sync Workflow
+* **Pattern:** Manual sync trigger for user control
+* **Flow:**
+  1. Assets generated in Project → added to manifest with `pending` status
+  2. Sync banner appears on dashboard
+  3. User clicks "Sync Now" → POST /api/projects/[id]/assets/sync
+  4. Manifest updated, pendingAssets cleared, syncState marked "clean"
+* **Why:** Prevents breaking changes during active development
+
+### Version Locking for Asset References
+* **Pattern:** Snapshot asset URLs at time of linking
+* **Fields:** `lockedVersionId`, `lockedAt` on GameAssetRef
+* **Why:** Prevents "moving target" problem where regenerated assets break existing games
