@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
                 artStyle: project.artStyle || 'Pixel Art',
                 baseResolution: project.baseResolution || '32x32',
                 perspective: project.perspective || 'Top-down',
-                colorPalette: project.colorPalette || 'Vibrant',
+                colorPalette: 'default',
                 anchorImagePath: styleAnchor ? 'style_anchor.png' : undefined,
             },
             assets: [],
