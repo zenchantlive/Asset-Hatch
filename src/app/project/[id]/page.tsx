@@ -84,10 +84,15 @@ export default async function ProjectPage({ params, searchParams }: PageProps) {
       }
     : undefined;
 
+  // Determine initial tab from URL or default to 'assets'
+  type UnifiedTab = 'assets' | 'game';
+  const initialTab: UnifiedTab = tab === 'game' ? 'game' : 'assets';
+
   return (
     <UnifiedProjectView
       projectId={projectId}
       initialContext={initialContext}
+      initialTab={initialTab}
     />
   );
 }

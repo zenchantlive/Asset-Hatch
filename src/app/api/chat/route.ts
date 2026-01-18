@@ -20,6 +20,9 @@ import {
 } from '@/lib/schemas';
 // 3D mode tools and system prompt (conditional based on project.mode)
 import { create3DChatTools, get3DSystemPrompt } from '@/lib/chat-tools-3d';
+// Phase 7b: Shared documents for context bridge
+import { fetchSharedDocuments, formatSharedDocsForPrompt } from '@/lib/studio/shared-doc-formatter';
+import { createSharedDocToolsByProject } from '@/lib/studio/shared-doc-tools';
 
 export const maxDuration = 30;
 
@@ -83,61 +86,87 @@ export async function POST(req: NextRequest) {
     // Convert UIMessages to ModelMessages for streamText
     const modelMessages = await convertToModelMessages(messages);
 
+    // Fetch shared documents for context (game-design.md, asset-inventory.md, etc.)
+    let sharedDocsFormatted = '';
+    try {
+      const sharedDocs = await fetchSharedDocuments(projectId);
+      sharedDocsFormatted = formatSharedDocsForPrompt(sharedDocs);
+      console.log('📚 Asset chat: Loaded shared docs');
+    } catch (error) {
+      console.warn('Failed to fetch shared docs:', error);
+    }
+
     // Use 3D system prompt for 3D mode, 2D system prompt otherwise
-    const systemPrompt = is3DMode
+    const baseSystemPrompt = is3DMode
       ? get3DSystemPrompt(projectId, qualities)
       : `You are a proactive Game Design Agent. Your goal is to actively help the user build a complete asset plan for their game.
 
  CURRENT PROJECT CONTEXT:
- - Project ID: ${projectId}
- - Phase: Planning
- - Current Qualities: ${JSON.stringify(qualities, null, 2)}
+  - Project ID: ${projectId}
+  - Phase: Planning
+  - Current Qualities: ${JSON.stringify(qualities, null, 2)}
 
  YOUR BEHAVIORAL PROTOCOLS:
- 1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools.
- 2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down.
- 3. **BE TRANSPARENT:** When you perform an action, briefly mention it.
+   1. **BE AGENTIC:** Do not wait for permission. If the user implies a preference, set it immediately using tools.
+   2. **BE ITERATIVE:** Update the plan continuously. Don't wait for the "perfect" plan to write it down.
+   3. **BE TRANSPARENT:** When you perform an action, briefly mention it.
+   4. **AUTO-DOCUMENT:** Whenever the user shares game concept, assets, scenes, or patterns - IMMEDIATELY update the shared documents. Do NOT ask permission - just do it.
+
+ AUTO-DOCUMENTATION RULES (DO THIS PROACTIVELY):
+   - User describes game genre/story → updateSharedDoc(game-design.md)
+   - User adds characters/NPCs to plan → updateSharedDoc(asset-inventory.md)
+   - User mentions level/scene ideas → updateSharedDoc(scene-notes.md)
+   - User discusses technical patterns/gotchas → updateSharedDoc(development-log.md)
+   - After EVERY meaningful conversation update, call updateSharedDoc with append=true
 
  WORKFLOW:
- 1. Understand the game concept (Genre, Style, Mood).
- 2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
- 3. Suggest a list of assets (Characters, Environment, UI).
- 4. **IMMEDIATELY** use \`updatePlan\` to draft the list.
- 5. Refine based on feedback until the user approves.
+   1. Understand the game concept (Genre, Style, Mood).
+   2. **IMMEDIATELY** use \`updateQuality\` to lock in these decisions.
+   3. **IMMEDIATELY** use \`updateSharedDoc\` to document the concept in game-design.md.
+   4. Suggest a list of assets (Characters, Environment, UI).
+   5. **IMMEDIATELY** use \`updatePlan\` to draft the list.
+   6. **IMMEDIATELY** use \`updateSharedDoc\` (append=true) to add assets to asset-inventory.md.
+   7. Refine based on feedback until the user approves.
+   8. Keep all shared docs synchronized with the conversation.
 
  CRITICAL ASSET PLAN FORMAT REQUIREMENTS:
- - Each bullet point MUST represent exactly ONE individual asset
- - NEVER group multiple items in one line (e.g., NOT "robots, cats, dogs")
- - Include specific details for EACH individual asset
- - Each asset will generate a single isolated image
- 
- MOBILITY TAGS (REQUIRED FOR EACH ASSET):
- Each asset MUST start with a mobility tag in brackets:
- - [STATIC] - Non-moving assets: furniture, buildings, items, UI elements, backgrounds
- - [MOVEABLE:4] - Characters/NPCs needing 4 directions (N/S/E/W)
- - [MOVEABLE:8] - Characters needing 8 directions (includes diagonals)
- - [ANIM:N] - Animated elements with N frames (fire, water, flags)
- 
- CORRECT FORMAT EXAMPLE:
- ## Characters
- - [MOVEABLE:4] Farmer Character
-   - Idle (4 frames)
-   - Walking (8 frames)
- - [MOVEABLE:4] Village Guard
-   - Idle (4 frames)
-   - Patrol (6 frames)
- 
- ## Environment
- - [STATIC] Oak Tree
-   - Description: Large oak tree with autumn leaves
- - [ANIM:4] Campfire
-   - Description: Flickering campfire with smoke
- 
- ## Items
- - [STATIC] Health Potion
-   - Description: Red potion in glass bottle
- 
- BE SPECIFIC: Each asset needs a clear, individual description for image generation.`;
+   - Each bullet point MUST represent exactly ONE individual asset
+   - NEVER group multiple items in one line (e.g., NOT "robots, cats, dogs")
+   - Include specific details for EACH individual asset
+   - Each asset will generate a single isolated image
+   
+   MOBILITY TAGS (REQUIRED FOR EACH ASSET):
+   Each asset MUST start with a mobility tag in brackets:
+   - [STATIC] - Non-moving assets: furniture, buildings, items, UI elements, backgrounds
+   - [MOVEABLE:4] - Characters/NPCs needing 4 directions (N/S/E/W)
+   - [MOVEABLE:8] - Characters needing 8 directions (includes diagonals)
+   - [ANIM:N] - Animated elements with N frames (fire, water, flags)
+   
+   CORRECT FORMAT EXAMPLE:
+   ## Characters
+   - [MOVEABLE:4] Farmer Character
+     - Idle (4 frames)
+     - Walking (8 frames)
+   - [MOVEABLE:4] Village Guard
+     - Idle (4 frames)
+     - Patrol (6 frames)
+   
+   ## Environment
+   - [STATIC] Oak Tree
+     - Description: Large oak tree with autumn leaves
+   - [ANIM:4] Campfire
+     - Description: Flickering campfire with smoke
+   
+    ## Items
+    - [STATIC] Health Potion
+      - Description: Red potion in glass bottle
+    
+    BE SPECIFIC: Each asset needs a clear, individual description for image generation.`;
+
+    // Append shared docs to system prompt
+    const systemPrompt = sharedDocsFormatted
+      ? `${baseSystemPrompt}\n\n# SHARED PROJECT DOCUMENTS\n\nThe following documents have been created for this project. Update them as you work:\n\n${sharedDocsFormatted}`
+      : baseSystemPrompt;
 
     // Create 3D tools if in 3D mode (these will be merged with base tools)
     const tools3D = is3DMode ? create3DChatTools(projectId) : {};
@@ -345,9 +374,11 @@ export async function POST(req: NextRequest) {
               return { success: false, error: 'Database update failed' };
             }
           },
-        }),
-        // Spread 3D tools if in 3D mode (these override 2D equivalents)
-        ...tools3D,
+          }),
+          // Shared document tools (game-design.md, asset-inventory.md, etc.)
+          ...createSharedDocToolsByProject(projectId),
+          // Spread 3D tools if in 3D mode (these override 2D equivalents)
+          ...tools3D,
       },
     });
 

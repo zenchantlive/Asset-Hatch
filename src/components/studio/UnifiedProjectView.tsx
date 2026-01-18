@@ -10,6 +10,7 @@ type UnifiedTab = 'assets' | 'game';
 interface UnifiedProjectViewProps {
   projectId: string;
   initialContext?: UnifiedProjectContext;
+  initialTab?: 'assets' | 'game';
 }
 
 /**
@@ -18,9 +19,9 @@ interface UnifiedProjectViewProps {
  * Phase 6B: Shared Context & Unified UI
  * Replaces separate /project/[id]/planning and /studio/[id] routes
  */
-export function UnifiedProjectView({ projectId, initialContext }: UnifiedProjectViewProps) {
+export function UnifiedProjectView({ projectId, initialContext, initialTab = 'assets' }: UnifiedProjectViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<UnifiedTab>('assets');
+  const [activeTab, setActiveTab] = useState<UnifiedTab>(initialTab);
   const [projectContext, setProjectContext] = useState<UnifiedProjectContext | undefined>(initialContext);
   const [isLoading, setIsLoading] = useState(false);
 
