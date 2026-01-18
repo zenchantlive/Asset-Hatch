@@ -2,7 +2,7 @@
 
 **Version:** 2.1  
 **Date:** 2026-01-18  
-**Status:** Phase 6 Complete, Phase 6b In Progress
+**Status:** Phase 6 Complete, Phase 6b Complete
 
 ---
 
@@ -34,12 +34,7 @@
 | 4B | Connect multi-file backend to UI | Files load in CodeTab ✓ |
 | 5 | Activity Log & UI | `ActivityLog.tsx`, `FileTabs.tsx`, `FileVersionHistory.tsx` |
 | 6 | Unified Project Schema | `assetManifest`, `gameId`, `projectId`, sync fields |
-
-### 🔄 In Progress
-
-| Phase | What | Description |
-|-------|------|-------------|
-| 6b | Shared Context & Unified UI | Tab-based view, context document, context-aware AI |
+| 6b | Shared Context & Unified UI | ✅ Complete - Tab navigation, shared context API, context-aware chat |
 
 ### 📋 Planned
 
