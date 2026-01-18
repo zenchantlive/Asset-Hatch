@@ -462,39 +462,96 @@ export const listUserAssetsTool = (gameId: string) => {
       try {
         console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit);
 
-        // Get game to verify ownership
+        // Get game to verify ownership and get projectId
         const game = await prisma.game.findUnique({
           where: { id: gameId },
+          include: {
+            project: {
+              select: { id: true, userId: true },
+            },
+          },
         });
 
         if (!game) {
           return { success: false, error: 'Game not found' };
         }
 
-        // Query user's Asset Hatch assets
-        // Use Generated3DAsset for 3D, GeneratedAsset for 2D
+        // Phase 6: Use projectId from unified project
+        const projectId = game.projectId;
+        if (!projectId) {
+          return { 
+            success: false, 
+            error: 'Game is not linked to a project. Create a project first to access assets.' 
+          };
+        }
+
+        console.log('🔗 Querying assets for projectId:', projectId);
+
+        // Query assets from the linked project
         const assets3D = type === '3d' || type === 'all'
           ? await prisma.generated3DAsset.findMany({
-            where: {
-              projectId: game.userId,
-              approvalStatus: 'approved',
-            },
-            take: limit,
-          })
+              where: {
+                projectId,
+                approvalStatus: 'approved',
+                // Optional search filter
+                ...(search && {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { assetId: { contains: search, mode: 'insensitive' } },
+                  ],
+                }),
+              },
+              take: limit,
+              orderBy: { updatedAt: 'desc' },
+            })
           : [];
 
-        const simplifiedAssets3D = assets3D.map(asset => ({
-          id: asset.id,
-          name: asset.name || asset.assetId,
-          type: '3d',
-          glbUrl: asset.riggedModelUrl || asset.draftModelUrl,
-          thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
-        }));
+        // Also check for 2D assets
+        const assets2D = type === '2d' || type === 'all'
+          ? await prisma.generatedAsset.findMany({
+              where: {
+                projectId,
+                approvalStatus: 'approved',
+                // Optional search filter
+                ...(search && {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { assetId: { contains: search, mode: 'insensitive' } },
+                  ],
+                }),
+              },
+              take: limit,
+              orderBy: { updatedAt: 'desc' },
+            })
+          : [];
+
+        // Combine and format assets
+        const combinedAssets = [
+          ...assets3D.map(asset => ({
+            id: asset.id,
+            name: asset.name || asset.assetId,
+            type: '3d',
+            glbUrl: asset.riggedModelUrl || asset.draftModelUrl,
+            thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
+            projectId: asset.projectId,
+          })),
+          ...assets2D.map(asset => ({
+            id: asset.id,
+            name: asset.name || asset.assetId,
+            type: '2d',
+            imageUrl: asset.imageUrl,
+            thumbnailUrl: asset.thumbnailUrl,
+            projectId: asset.projectId,
+          })),
+        ];
+
+        // Apply limit after combining
+        const limitedAssets = combinedAssets.slice(0, limit);
 
         return {
           success: true,
-          message: `Found ${simplifiedAssets3D.length} 3D assets`,
-          assets: simplifiedAssets3D,
+          message: `Found ${limitedAssets.length} assets (${assets3D.length} 3D, ${assets2D.length} 2D)`,
+          assets: limitedAssets,
         };
       } catch (error) {
         console.error('❌ Failed to list assets:', error);

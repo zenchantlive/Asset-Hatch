@@ -81,20 +81,38 @@ export function StudioHeader() {
                 )}
             </div>
 
-            {/* Center: Tab navigation */}
+{/* Center: Tab navigation */}
             <nav className="flex items-center gap-1">
-                {(['preview', 'code', 'assets'] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                {(['preview', 'code'] as const).map((tab) => {
+                    const isActive = activeTab === tab;
+
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                isActive
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                             }`}
+                        >
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                    );
+                })}
+                {/* Assets tab - link to project planning */}
+                {game?.projectId ? (
+                    <a
+                        href={`/project/${game.projectId}/planning`}
+                        className="px-4 py-2 text-sm font-medium rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-white/5"
                     >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
-                ))}
+                        Assets
+                    </a>
+                ) : (
+                    <span className="px-4 py-2 text-sm font-medium rounded-md transition-all text-muted-foreground/50 cursor-not-allowed">
+                        Assets
+                    </span>
+                )}
             </nav>
 
             {/* Right: Export button */}
