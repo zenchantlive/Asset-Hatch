@@ -58,7 +58,11 @@
       "Bash(npx tsc:*)",
       "Bash(gh pr create --title \"fix\\(3d\\): resolve rigTaskId persistence bug and add animation approval UI\" --body \"$\\(cat <<''EOF''\n## Summary\n- **Fixed critical persistence bug** where `rigTaskId` and `riggedModelUrl` were not persisting to the database, causing \"No rigged model URL\" errors after page refresh\n- **Added animation approval UI** with per-animation approve/reject/regenerate controls\n- **Fixed regeneration bug** by changing `create\\(\\)` to `upsert\\(\\)` in generate-3d route\n\n## Root Cause Analysis\nThe `status/route.ts` endpoint searched for assets using:\n```sql\nWHERE draftTaskId = taskId OR rigTaskId = taskId\n```\n\nWhen `rigTaskId` was NULL \\(which happened intermittently\\), the lookup failed. However, the endpoint still returned Tripo''s success status. The frontend saw \"success\" and updated local state, but the database was never updated because the asset wasn''t found.\n\n## Fix Approach \\(Belt-and-Suspenders\\)\n1. **Fallback lookup**: If taskId lookup fails, try `projectId + assetId` as fallback\n2. **Redundant persistence**: Save `rigTaskId` again when saving `riggedModelUrl` \n3. **Pass context**: Poll requests now include `projectId` and `assetId` for fallback\n4. **Upsert for regeneration**: Handle re-generation by using upsert instead of create\n\n## Test plan\n- [x] Generate a 3D model → Rig it → Refresh page → Verify `riggedModelUrl` persists\n- [x] Animate after refresh → Verify no \"No rigged model URL\" error\n- [x] Regenerate an existing asset → Verify no unique constraint error\n- [ ] Test animation approval UI → approve/reject/regenerate individual animations\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\nEOF\n\\)\")",
       "Bash(git submodule:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(git status:*)",
+      "mcp__plugin_serena_serena__think_about_collected_information",
+      "Bash(kill:*)",
+      "WebFetch(domain:opencode.ai)"
     ]
   }
 }
