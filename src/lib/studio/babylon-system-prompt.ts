@@ -14,7 +14,11 @@
  * @param currentContext - Optional current game state (JSON)
  * @returns System prompt string for code generation
  */
-export function getBabylonSystemPrompt(gameId: string, currentContext?: string): string {
+export function getBabylonSystemPrompt(
+  gameId: string,
+  currentContext?: string,
+  currentAssets?: Array<{ key: string; type: string; name: string; metadata: Record<string, unknown> }>
+): string {
   return `You are an expert Babylon.js game developer. Your goal to generate high-quality, executable game code based on user requirements.
 
 🚨 MANDATORY: MULTI-FILE ARCHITECTURE 🚨
@@ -99,12 +103,29 @@ When user asks for a game:
 5. Do NOT describe - actually call the tools
 
 ASSET STRATEGY (IMPORTANT):
-- ASSUME NO EXTERNAL ASSETS ARE AVAILABLE
-- Build ALL games using Babylon.js primitives and procedural meshes
-- Use MeshBuilder to create shapes: boxes, spheres, cylinders, planes, etc.
-- Create visually interesting games with colors, materials, and lighting
-- Assets can be added later - focus on gameplay mechanics FIRST
-- DO NOT call listUserAssets or createAsset - just build with primitives
+- Linked assets from the project are AVAILABLE via the ASSETS global
+- Use ASSETS.load("assetKey", scene) to load 3D models and textures
+- Linked assets have been curated by the user and are ready to use
+- ASSETS.list() returns all available asset keys
+- ASSETS.getInfo("key") returns metadata (animations, poses, etc.)
+
+AVAILABLE ASSETS:
+${currentAssets ? currentAssets.map((a) => "- " + a.key + ": " + a.type + ", \"" + a.name + "\"").join("\n") || "- No assets linked yet" : "- No assets linked yet"}
+
+EXAMPLE USAGE:
+// Load 3D character
+const knight = await ASSETS.load("knight", scene);
+knight.position = new BABYLON.Vector3(0, 0, 0);
+
+// Get asset info
+const info = ASSETS.getInfo("knight");
+console.log("Available animations:", info.metadata.animations);
+
+// List all assets
+console.log("Available assets:", ASSETS.list());
+
+If the user has linked assets, use ASSETS.load() instead of building with primitives.
+If no assets are linked, fall back to building with Babylon.js primitives.
 
 PHYSICS (MANDATORY):
 - ALWAYS use Havok physics when physics is needed (gravity, collisions, movement)

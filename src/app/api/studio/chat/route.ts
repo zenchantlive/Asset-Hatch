@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { createGameTools } from '@/lib/studio/game-tools';
 import { getBabylonSystemPrompt } from '@/lib/studio/babylon-system-prompt';
 import { getDefaultModel } from '@/lib/model-registry';
+import type { UnifiedProjectContext } from '@/lib/types/shared-context';
 
 export const maxDuration = 30;
 
@@ -15,10 +16,10 @@ const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, gameId } = await req.json();
+    const { messages, gameId, projectContext: projectContextJson } = await req.json();
 
     // Validate gameId is present
-    console.log('🎮 Studio Chat API received gameId:', gameId);
+    console.log('🎮 Studio Chat API received gameId:', gameId, 'hasProjectContext:', !!projectContextJson);
     if (!gameId || typeof gameId !== 'string') {
       console.error('❌ Studio Chat API: gameId is missing or invalid');
       return new Response(
@@ -52,16 +53,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Parse project context if provided (Phase 6B)
+    let projectContext: UnifiedProjectContext | undefined;
+    if (projectContextJson) {
+      try {
+        projectContext =
+          typeof projectContextJson === 'string'
+            ? JSON.parse(projectContextJson)
+            : projectContextJson;
+      } catch (error) {
+        console.warn('Failed to parse projectContext:', error);
+      }
+    }
+
+    // Fetch linked assets for system prompt
+    let linkedAssets: Array<{ key: string; type: string; name: string; metadata: Record<string, unknown> }> = [];
+
+    if (game.projectId) {
+      // Fetch asset refs for this game
+      const assetRefs = await prisma.gameAssetRef.findMany({
+        where: { gameId: game.id },
+        select: {
+          manifestKey: true,
+          assetType: true,
+          assetName: true,
+        },
+      });
+      
+      linkedAssets = assetRefs.map(ref => ({
+        key: ref.manifestKey || ref.assetName.toLowerCase().replace(/\s+/g, '_'),
+        type: ref.assetType,
+        name: ref.assetName,
+        metadata: {},
+      }));
+    }
+
     // Build system prompt with current context
     const gameContext = {
       id: gameId,
       name: game.name,
       activeSceneId: game.activeSceneId,
     };
-    const systemPrompt = getBabylonSystemPrompt(
-      gameId,
-      JSON.stringify(gameContext, null, 2)
-    );
+
+    // Build extended context with project context (Phase 6B)
+    let systemPromptContext = JSON.stringify(gameContext, null, 2);
+    if (projectContext?.gameConcept) {
+      systemPromptContext += `\n\nPROJECT CONTEXT:\n${projectContext.gameConcept}`;
+      if (projectContext.characters?.length) {
+        systemPromptContext += `\nCharacters: ${projectContext.characters.map((c) => c.name).join(', ')}`;
+      }
+      if (projectContext.keyFeatures?.length) {
+        systemPromptContext += `\nKey Features: ${projectContext.keyFeatures.join(', ')}`;
+      }
+    }
+
+    const systemPrompt = getBabylonSystemPrompt(gameId, systemPromptContext, linkedAssets);
 
     // Convert UIMessages to ModelMessages (CRITICAL - MUST BE AWAITED)
     const modelMessages = await convertToModelMessages(messages);

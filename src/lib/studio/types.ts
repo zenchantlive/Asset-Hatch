@@ -40,6 +40,8 @@ export interface GameData {
     updatedAt: string;
     /** ISO timestamp of soft deletion (null if not deleted) */
     deletedAt?: string | null;
+    /** Related project ID (Phase 6: unified project) */
+    projectId?: string | null;
     /** Related scenes (when included) */
     scenes?: SceneData[];
 }
@@ -267,4 +269,49 @@ export interface FileResponse {
     file?: GameFileData;
     /** Error message when success is false */
     error?: string;
+}
+
+// =============================================================================
+// PHASE 7: ASSET LOADING TYPES
+// =============================================================================
+
+/**
+ * Runtime asset info - extracted from AssetManifest for iframe use
+ */
+export interface AssetInfo {
+  /** Manifest key (e.g., "knight", "forest_sky") */
+  key: string;
+  /** Asset type */
+  type: "2d" | "3d";
+  /** Human-readable name */
+  name: string;
+  /** Asset URLs */
+  urls: {
+    thumbnail?: string;
+    model?: string;
+    glb?: string;
+  };
+  /** Generation metadata */
+  metadata: {
+    prompt?: string;
+    style?: string;
+    animations?: string[];
+    poses?: string[];
+  };
+}
+
+/**
+ * Map AssetManifestEntry to AssetInfo for runtime use
+ */
+export function manifestEntryToAssetInfo(
+  key: string,
+  entry: import("@/lib/types/unified-project").AssetManifestEntry
+): AssetInfo {
+  return {
+    key,
+    type: entry.type,
+    name: entry.name,
+    urls: entry.urls,
+    metadata: entry.metadata,
+  };
 }
