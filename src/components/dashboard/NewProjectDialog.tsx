@@ -66,7 +66,7 @@ export function NewProjectDialog({
         throw new Error(data.error || "Failed to create project");
       }
 
-      const { projectId, gameId } = await response.json();
+      const { projectId } = await response.json();
 
       // Reset form
       setName("");
@@ -74,13 +74,9 @@ export function NewProjectDialog({
       setStartWith("assets");
       setIsOpen(false);
 
-      // Redirect based on startWith
-      if (gameId) {
-        router.push(`/studio/${gameId}`);
-      } else {
-        router.push(`/project/${projectId}/planning`);
-      }
-
+      // Navigate to unified project view with selected tab
+      const tabParam = startWith === "game" ? "game" : "assets";
+      router.push(`/project/${projectId}?tab=${tabParam}`);
       router.refresh();
     } catch (error) {
       console.error("Failed to create project:", error);

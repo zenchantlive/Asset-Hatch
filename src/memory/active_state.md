@@ -2,6 +2,95 @@
 
 ## Current Session (2026-01-18)
 
+### Issue: Asset Incorporation - From AI Plan to Game Code
+**Status**: 🔴 In Progress - NEXT UP
+
+**Problem Description**:
+When user creates assets in Asset Gen Chat (plans, generates, approves assets), those assets need to be incorporated into the Game mode. Currently:
+1. Assets exist as Generated3DAsset/Generated2DAsset records
+2. Game mode has no way to browse and load these assets
+3. No UI to view, filter, or add assets from the asset inventory
+4. The bridge from "asset planning" to "asset usage in game" is missing
+
+**Expected Behavior**:
+1. User creates assets in Asset Gen Chat (planning → generation → approval)
+2. Approved assets appear in Game mode automatically
+3. Game mode has an "Asset Browser" panel showing all approved assets
+4. AI can suggest assets from inventory for game scenes
+5. User can drag/drop or click to add assets to scenes
+
+**Next Phase**: Phase 9 - Asset Incorporation UI & Workflow
+
+---
+
+### Issue: Unified Project Creation - Auto-create and Link Both Modes
+**Status**: ✅ Complete - RESOLVED
+
+**Problem Description**:
+When user creates a NEW project, BOTH game AND asset gen modes should be created and linked immediately.
+
+**What Was Implemented**:
+1. ✅ `src/app/api/projects/route.ts` - Always creates project + game + shared docs atomically
+2. ✅ `src/lib/types/unified-project.ts` - Made startWith optional (backward compat)
+3. ✅ `src/components/dashboard/NewProjectDialog.tsx` - Simplified UI, preserves tab selection
+4. ✅ `src/components/studio/UnifiedProjectView.tsx` - Accepts initialTab prop from URL
+5. ✅ `src/app/project/[id]/page.tsx` - Passes tab from searchParams to UnifiedProjectView
+6. ✅ `src/lib/studio/shared-doc-tools.ts` - Created project-scoped tools (no gameId dependency)
+7. ✅ `src/app/api/chat/route.ts` - Added shared docs import, fetch, and project-scoped tools
+
+**Auto-Documentation Feature**:
+- ✅ Updated system prompt to instruct AI to proactively update shared documents
+- ✅ AI automatically updates game-design.md, asset-inventory.md, scene-notes.md, development-log.md
+- ✅ No need for user to ask - AI docs as it plans
+
+**Result**:
+- User creates project → Both tabs appear immediately
+- User selects "Assets First" → Redirects to Assets tab
+- User selects "Game First" → Redirects to Game tab
+- Shared documents auto-initialize and AI auto-updates them
+
+---
+
+### Phase 8b: Unified Project Architecture Fix
+**Status**: ✅ Complete - RESOLVED
+
+**Changes Made**:
+- Project creation always creates unified project (project + game + shared docs)
+- Removed conditional game creation flow
+- Frontend simplified to single "start with" choice (UI only)
+- Both modes accessible from unified /project/[id] page
+- Initial tab determined by user selection in NewProjectDialog
+
+**Key Files Changed**:
+- `src/app/api/projects/route.ts`
+- `src/components/dashboard/NewProjectDialog.tsx`
+- `src/app/project/[id]/page.tsx`
+- `src/components/studio/UnifiedProjectView.tsx`
+- `src/lib/studio/shared-doc-tools.ts`
+- `src/app/api/chat/route.ts`
+
+---
+
+### Phase 8: AI Integration & Asset Tools
+- **Created Files**:
+  - `src/lib/types/asset-version.ts` - Type definitions for version updates
+  - `src/lib/studio/version-comparison.ts` - Version comparison logic (timestamp-based)
+  - `src/app/api/studio/games/[id]/assets/updates/route.ts` - Update detection endpoint
+  - `src/app/api/studio/games/[id]/assets/[refId]/sync/route.ts` - Sync action endpoint
+  - `src/components/studio/AssetVersionBadge.tsx` - Version status badge (current/outdated/locked)
+  - `src/components/studio/VersionConflictBanner.tsx` - Update notification banner with actions
+  - `src/hooks/useAssetUpdates.ts` - Frontend hook for update management
+- **Updated Files**:
+  - `src/lib/studio/schemas.ts` - Added getLinkedAssetsSchema, getAssetUpdatesSchema, syncAssetVersionSchema
+  - `src/lib/studio/game-tools.ts` - Added getLinkedAssetsTool, getAssetUpdatesTool, syncAssetVersionTool
+  - `src/lib/studio/babylon-system-prompt.ts` - Added asset management section with tool descriptions
+- **Key Achievements**:
+  - AI can now query linked assets with `getLinkedAssets` tool
+  - AI can check for updates with `getAssetUpdates` tool
+  - AI can sync assets with `syncAssetVersion` tool
+  - Frontend has UI components for version conflict display
+  - Version comparison uses `lockedAt` vs `updatedAt` timestamps (correct strategy)
+
 ### Phase 7: Asset Loading in Preview
 - **Status**: ✅ Complete - Committed `b830bd7`
 - **Created Files**:
@@ -17,16 +106,9 @@
 - **Key Achievement**: AI generates `await ASSETS.load("knight", scene)` with real metadata
 
 ### Phase 6b: Shared Context & Unified UI
-- **Status**: 🔄 In Progress - Planning complete, implementation pending
+- **Status**: ✅ Complete - Merged into Phase 7b
 - **Spec**: Added Phase 6b to implementation-prd.md
-- **Removed**: "Both Together" start path (no screen real estate)
-- **Added**: Shared context document architecture for tab-aware AI
-
-
-- **Status**: 🔄 In Progress - Planning complete, implementation pending
-- **Spec**: Added Phase 6b to implementation-prd.md
-- **Removed**: "Both Together" start path (no screen real estate)
-- **Added**: Shared context document architecture for tab-aware AI
+- **Note**: Core context API implemented, enhanced in Phase 7b with rich metadata
 
 ### Phase 6 Implementation: Unified Project Architecture
 - **Status**: ✅ Complete - All 15 tasks implemented
@@ -63,41 +145,26 @@
 
 ---
 
-## Known Issues
+## Next Actions
 
-### Issue: API Parameter Mismatch
-**Date**: 2026-01-17
-**Status**: Open - Investigation needed
+### Phase 9: Asset Incorporation UI & Workflow
 
-**Description**:
-When using `/api/studio/chat`, the server logs show:
-```
-❌ Chat API: projectId is missing or empty
-POST /api/chat 400
-```
+**Goal**: Bridge assets from Asset Gen Chat to Game Mode
 
-However, the `/api/studio/chat/route.ts` expects `{ messages, gameId }` in the request body, and the ChatPanel is configured to pass `{ gameId }` via the body parameter.
+**Tasks**:
+1. Create Asset Browser panel in Game mode
+2. Fetch approved assets from API
+3. Display assets in browsable grid/list
+4. Allow AI to reference assets when generating code
+5. Enable drag-drop or click-to-add asset to scene
+6. Auto-link asset metadata (name, type, metadata) to game usage
 
-**Root Cause**: Unknown - needs investigation in development environment
+**Files to Create**:
+- `src/components/studio/AssetBrowser.tsx` - Asset browsing UI
+- `src/app/api/projects/[id]/assets/route.ts` - List approved assets for project
+- `src/lib/studio/asset-integration.ts` - Helper to link assets to scenes
 
-**Impact**: Users cannot send messages through the Hatch Studios chat panel
-
-**Expected Behavior**:
-- ChatPanel should call `/api/studio/chat` endpoint
-- Body should contain `{ gameId: string }`
-- Server should extract `gameId` from body
-
-**Observed Behavior**:
-- Request goes to `/api/chat` (old Asset Hatch endpoint) instead
-- Server reports `projectId` as undefined
-- Returns 400 Bad Request
-
-**Files Affected**:
-- `src/components/studio/ChatPanel.tsx`
-- `src/app/api/studio/chat/route.ts`
-- `src/components/studio/StudioLayout.tsx` (passes gameId correctly)
-
-**Next Steps**:
-1. Verify which endpoint ChatPanel is actually calling
-2. Check if there's a route conflict between `/api/chat` and `/api/studio/chat`
-3. Ensure request body is properly formatted on the client side
+**Files to Update**:
+- `src/components/studio/WorkspacePanel.tsx` - Add AssetBrowser tab
+- `src/lib/studio/game-tools.ts` - Add browseAssets tool for AI
+- `src/components/studio/PreviewFrame.tsx` - Support loading assets from inventory

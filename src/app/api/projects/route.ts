@@ -110,7 +110,7 @@ export async function POST(
       );
     }
 
-    const { name, mode, startWith } = parsed.data as CreateProjectData;
+    const { name, mode } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -142,8 +142,8 @@ export async function POST(
       }
     }
 
-    // Set initial phase based on startWith
-    const initialPhase = startWith === "game" ? "building" : "assets";
+    // Set initial phase - always start in building since both modes exist
+    const initialPhase = "building";
 
     // Create initial asset manifest
     const initialManifest = {
@@ -169,35 +169,33 @@ export async function POST(
       },
     });
 
-    // Optionally create a linked game (Game First flow)
-    let gameId: string | undefined;
-    if (startWith === "game") {
-      const game = await prisma.game.create({
-        data: {
-          userId: userId,
-          name: `${name} Game`,
-          phase: "planning",
-          projectId: project.id,
-        },
-      });
-      gameId = game.id;
+    // Always create a linked game (unified project - both modes available)
+    const game = await prisma.game.create({
+      data: {
+        userId: userId,
+        name: `${name} Game`,
+        phase: "planning",
+        projectId: project.id,
+      },
+    });
 
-      // Update project with game reference
-      await prisma.project.update({
-        where: { id: project.id },
-        data: {
-          gameId: game.id,
-          phase: "building",
-        },
-      });
-    }
+    // Initialize shared documents for the project (game-design.md, asset-inventory.md, etc.)
+    await initializeSharedDocuments(project.id);
 
-    console.log(`✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`);
+    // Update project with game reference
+    await prisma.project.update({
+      where: { id: project.id },
+      data: {
+        gameId: game.id,
+      },
+    });
+
+    console.log(`✅ Created unified project: ${project.id} with game: ${game.id}`);
 
     return NextResponse.json({
       success: true,
       projectId: project.id,
-      gameId,
+      gameId: game.id,
     });
   } catch (error) {
     console.error("Failed to create project:", error);
