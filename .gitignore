@@ -67,3 +67,14 @@ blog/asset-hatch-pics
 blog/public/
 mcp_agent_mail/
 
+storage.sqlite3
+storage.sqlite3-shm
+storage.sqlite3-wal
+.beads/.local_version
+.beads/bd.sock
+.beads/daemon.lock
+.beads/daemon.log
+.beads/daemon.pid
+.beads/metadata.json
+integrations/beads-mcp-repo
+integrations/beads-mcp-repo
