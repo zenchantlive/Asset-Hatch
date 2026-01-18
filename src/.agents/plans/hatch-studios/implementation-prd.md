@@ -1,8 +1,8 @@
 # Hatch Studios Implementation PRD
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Date:** 2026-01-18  
-**Status:** Phase 6 Complete, Phase 6b Complete
+**Status:** Phase 7 Complete, Phase 6b Complete
 
 ---
 
@@ -41,7 +41,9 @@
 | Phase | What | Key Output |
 |-------|------|------------|
 | 7 | Asset Loading in Preview | `ASSETS.load()` global helper |
-| 8 | AI Asset Workflow | System prompt updates, version sync UI |
+| 7b | Rich Metadata & Shared Context | Real metadata in API, shared document architecture |
+| 8 | AI Integration & Asset Tools | System prompt with rich metadata, asset-aware tools evaluation |
+| 9 | Export & Polish | Bundle assets + code |
 | 9 | Export & Polish | Bundle assets + code |
 
 ### ❌ Removed / Deferred
