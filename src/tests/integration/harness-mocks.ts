@@ -18,6 +18,7 @@ interface MockModel {
     update: Mock<(data: MockRecord) => Promise<MockRecord>>;
     upsert: Mock<(data: MockRecord) => Promise<MockRecord>>;
     delete: Mock<() => Promise<MockRecord>>;
+    count: Mock<() => Promise<number>>;
     mockReset: () => void;
 }
 
@@ -29,6 +30,7 @@ const createMockModel = (): MockModel => ({
     update: mock((data: MockRecord) => Promise.resolve({ id: 'mock-id', ...data })),
     delete: mock(() => Promise.resolve({ id: 'mock-id' })),
     upsert: mock((data: MockRecord) => Promise.resolve({ id: 'mock-id', ...data })),
+    count: mock(() => Promise.resolve(0)),
     mockReset: function () {
         this.findUnique.mockReset();
         this.findMany.mockReset();
@@ -37,6 +39,7 @@ const createMockModel = (): MockModel => ({
         this.update.mockReset();
         this.delete.mockReset();
         this.upsert.mockReset();
+        this.count.mockReset();
     }
 });
 
@@ -49,6 +52,13 @@ export const prismaMock = {
     generatedAsset: createMockModel(),
     generationCost: createMockModel(),
     characterRegistry: createMockModel(),
+    // Hatch Studios models
+    game: createMockModel(),
+    gameScene: createMockModel(),
+    codeVersion: createMockModel(),
+    gameAssetRef: createMockModel(),
+    assetPlacement: createMockModel(),
+    gameChatMessage: createMockModel(),
 };
 
 // Auth Mock - returns session with user object
