@@ -1,8 +1,28 @@
 # Active State
 
-## Current Session (2026-01-17)
+## Current Session (2026-01-18)
+
+### Phase 7: Asset Loading in Preview
+- **Status**: ✅ Complete - Committed `b830bd7`
+- **Created Files**:
+  - `src/lib/studio/asset-loader.ts` - ASSETS global helper generation
+  - `src/app/api/studio/games/[id]/assets/route.ts` - Asset manifest API with REAL metadata
+  - `src/lib/studio/asset-loader.test.ts` - Unit tests (Jest has pre-existing config issues)
+- **Updated Files**:
+  - `src/lib/studio/types.ts` - Added AssetInfo interface
+  - `src/components/studio/PreviewFrame.tsx` - assetManifest prop, ASSETS injection
+  - `src/components/studio/tabs/PreviewTab.tsx` - Fetches assets, passes to PreviewFrame
+  - `src/lib/studio/babylon-system-prompt.ts` - ASSETS usage examples
+  - `src/app/api/studio/chat/route.ts` - Fetches linked assets for AI
+- **Key Achievement**: AI generates `await ASSETS.load("knight", scene)` with real metadata
 
 ### Phase 6b: Shared Context & Unified UI
+- **Status**: 🔄 In Progress - Planning complete, implementation pending
+- **Spec**: Added Phase 6b to implementation-prd.md
+- **Removed**: "Both Together" start path (no screen real estate)
+- **Added**: Shared context document architecture for tab-aware AI
+
+
 - **Status**: 🔄 In Progress - Planning complete, implementation pending
 - **Spec**: Added Phase 6b to implementation-prd.md
 - **Removed**: "Both Together" start path (no screen real estate)
