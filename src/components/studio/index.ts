@@ -9,6 +9,8 @@ export { StudioHeader } from './StudioHeader';
 export { ChatPanel } from './ChatPanel';
 export { WorkspacePanel } from './WorkspacePanel';
 export { PreviewFrame } from './PreviewFrame';
+export { ActivityLog } from './ActivityLog';
+export { FileTabs } from './FileTabs';
 // PlayControls removed - not needed for MVP
 export { AssetBrowser } from './AssetBrowser';
 
