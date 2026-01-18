@@ -9,7 +9,6 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import type { CreateProjectData } from "@/lib/types/unified-project";
-import { initializeSharedDocuments } from "@/lib/studio/shared-doc-initialization";
 
 // =============================================================================
 // VALIDATION SCHEMA
@@ -18,7 +17,7 @@ import { initializeSharedDocuments } from "@/lib/studio/shared-doc-initializatio
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
-  startWith: z.enum(["assets", "game"]).default("assets"),
+  startWith: z.enum(["assets", "game", "both"]).default("assets"),
 });
 
 // =============================================================================
@@ -84,68 +83,6 @@ export async function GET(): Promise<NextResponse<ProjectResponse | { projects: 
 // POST - Create a new project (unified with optional game creation)
 // =============================================================================
 
-// Auto-link approved assets function (Phase 9)
-async function autoLinkApprovedAssetsToGame(gameId: string, projectId: string): Promise<void> {
-  console.log('🔗 Auto-linking approved 3D assets from project:', projectId, 'to game:', gameId);
-
-  // Fetch approved 3D assets (2D assets use different workflow without approval)
-  const approved3D = await prisma.generated3DAsset.findMany({
-    where: { projectId, approvalStatus: 'approved' },
-  });
-
-  // Fetch skybox assets (stored as Generated3DAsset with -skybox suffix)
-  const skyboxes = await prisma.generated3DAsset.findMany({
-    where: {
-      projectId,
-      assetId: { endsWith: "-skybox" },
-    },
-  });
-
-  // Build asset ref data for 3D assets only
-  const assetRefs = approved3D.map(asset => ({
-    gameId,
-    projectId,
-    assetType: '3d' as const,
-    assetId: asset.id,
-    assetName: asset.name || asset.assetId,
-    thumbnailUrl: asset.draftModelUrl || null,
-    modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
-    glbUrl: asset.riggedModelUrl || null,
-    manifestKey: (asset.name || asset.assetId).toLowerCase().replace(/\s+/g, '_'),
-    createdAt: new Date(),
-  }));
-
-  const skyboxRefs = skyboxes.map(asset => ({
-    gameId,
-    projectId,
-    assetType: 'skybox' as const,
-    assetId: asset.id,
-    assetName: asset.name || 'Environment Skybox',
-    thumbnailUrl: asset.draftModelUrl || null,
-    modelUrl: asset.draftModelUrl || null,
-    glbUrl: null,
-    manifestKey: 'environment_skybox',
-    createdAt: new Date(),
-  }));
-
-  // Bulk upsert in transaction (skip duplicates, update nothing if exists)
-  const refsToCreate = [...assetRefs, ...skyboxRefs];
-
-  if (refsToCreate.length > 0) {
-    await prisma.$transaction(
-      refsToCreate.map(ref =>
-        prisma.gameAssetRef.upsert({
-          where: { gameId_assetId: { gameId, assetId: ref.assetId } },
-          update: {},
-          create: ref,
-        })
-      )
-    );
-  }
-
-  console.log('✅ Auto-linked', refsToCreate.length, 'approved assets to game');
-}
-
 export async function POST(
   request: Request
 ): Promise<NextResponse<UnifiedProjectResponse | { success: false; error: string }>> {
@@ -173,7 +110,7 @@ export async function POST(
       );
     }
 
-    const { name, mode } = parsed.data as CreateProjectData;
+    const { name, mode, startWith } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -205,8 +142,8 @@ export async function POST(
       }
     }
 
-    // Set initial phase - always start in building since both modes exist
-    const initialPhase = "building";
+    // Set initial phase based on startWith
+    const initialPhase = startWith === "game" ? "building" : "assets";
 
     // Create initial asset manifest
     const initialManifest = {
@@ -232,36 +169,35 @@ export async function POST(
       },
     });
 
-    // Always create a linked game (unified project - both modes available)
-    const game = await prisma.game.create({
-      data: {
-        userId: userId,
-        name: `${name} Game`,
-        phase: "planning",
-        projectId: project.id,
-      },
-    });
+    // Optionally create a linked game
+    let gameId: string | undefined;
+    if (startWith === "game" || startWith === "both") {
+      const game = await prisma.game.create({
+        data: {
+          userId: userId,
+          name: `${name} Game`,
+          phase: "planning",
+          projectId: project.id,
+        },
+      });
+      gameId = game.id;
 
-    // Auto-link all approved assets from project to game (Phase 9)
-    await autoLinkApprovedAssetsToGame(game.id, project.id);
+      // Update project with game reference
+      await prisma.project.update({
+        where: { id: project.id },
+        data: {
+          gameId: game.id,
+          phase: "building", // Both = building phase for assets
+        },
+      });
+    }
 
-    // Initialize shared documents for the project (game-design.md, asset-inventory.md, etc.)
-    await initializeSharedDocuments(project.id);
-
-    // Update project with game reference
-    await prisma.project.update({
-      where: { id: project.id },
-      data: {
-        gameId: game.id,
-      },
-    });
-
-    console.log(`✅ Created unified project: ${project.id} with game: ${game.id}`);
+    console.log(`✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`);
 
     return NextResponse.json({
       success: true,
       projectId: project.id,
-      gameId: game.id,
+      gameId,
     });
   } catch (error) {
     console.error("Failed to create project:", error);

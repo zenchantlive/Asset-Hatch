@@ -146,7 +146,7 @@ export async function POST(
     };
 
     // Update project with new manifest and sync state
-     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await prisma.project.update({
       where: { id: projectId },
       data: {

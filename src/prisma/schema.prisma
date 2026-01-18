@@ -30,7 +30,6 @@ model User {
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
-  games            Game[]    // Hatch Studios games relation
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -243,7 +242,6 @@ model Generated3DAsset {
 
   @@unique([projectId, assetId])
 }
-
 // =============================================================================
 // HATCH STUDIOS MODELS
 // Game creation platform with AI-assisted code generation

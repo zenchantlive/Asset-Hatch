@@ -14,8 +14,8 @@ export interface CreateProjectData {
   name: string;
   /** Project mode: 2D, 3D, or hybrid */
   mode: "2d" | "3d" | "hybrid";
-  /** Start path option (deprecated - projects now always create both modes) */
-  startWith?: "assets" | "game" | "both";
+  /** Start path: assets first, game first, or both together */
+  startWith: "assets" | "game" | "both";
 }
 
 /**
@@ -26,7 +26,7 @@ export interface AssetManifestEntry {
   /** Unique identifier for the asset */
   id: string;
   /** Asset type */
-  type: "2d" | "3d" | "skybox";
+  type: "2d" | "3d";
   /** Human-readable name */
   name: string;
   /** Version number for change tracking */
@@ -39,8 +39,6 @@ export interface AssetManifestEntry {
     model?: string;
     /** GLB/GLTF model URL */
     glb?: string;
-    /** Phase 10: Base64-encoded GLB data for permanent storage */
-    glbData?: string;
   };
   /** Generation metadata */
   metadata: {
@@ -52,8 +50,6 @@ export interface AssetManifestEntry {
     animations?: string[];
     /** Available poses */
     poses?: string[];
-    /** Skybox flag for panorama images */
-    skybox?: boolean;
   };
   /** When the asset was linked */
   linkedAt: string;
