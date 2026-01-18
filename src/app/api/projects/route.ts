@@ -17,7 +17,7 @@ import type { CreateProjectData } from "@/lib/types/unified-project";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
-  startWith: z.enum(["assets", "game", "both"]).default("assets"),
+  startWith: z.enum(["assets", "game"]).default("assets"),
 });
 
 // =============================================================================
@@ -169,9 +169,9 @@ export async function POST(
       },
     });
 
-    // Optionally create a linked game
+    // Optionally create a linked game (Game First flow)
     let gameId: string | undefined;
-    if (startWith === "game" || startWith === "both") {
+    if (startWith === "game") {
       const game = await prisma.game.create({
         data: {
           userId: userId,
@@ -187,7 +187,7 @@ export async function POST(
         where: { id: project.id },
         data: {
           gameId: game.id,
-          phase: "building", // Both = building phase for assets
+          phase: "building",
         },
       });
     }

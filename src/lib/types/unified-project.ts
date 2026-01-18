@@ -14,8 +14,8 @@ export interface CreateProjectData {
   name: string;
   /** Project mode: 2D, 3D, or hybrid */
   mode: "2d" | "3d" | "hybrid";
-  /** Start path: assets first, game first, or both together */
-  startWith: "assets" | "game" | "both";
+  /** Start path: assets first, or game first (game can add assets later) */
+  startWith: "assets" | "game";
 }
 
 /**
