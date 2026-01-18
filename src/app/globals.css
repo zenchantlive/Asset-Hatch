@@ -133,6 +133,14 @@
   --glass-border: oklch(1 0 0 / 0.08);
   /* slightly crisper border */
   --glass-highlight: oklch(1 0 0 / 0.03);
+  
+  /* Hatch Studios Variables */
+  --studio-panel-bg: hsl(var(--card));
+  --studio-panel-border: hsl(var(--border));
+  --studio-preview-bg: #1a1a1a;
+  --studio-code-bg: #1e1e1e;
+  --studio-chat-width: 35%;
+  --studio-min-chat-width: 20rem;
 }
 
 /* Force Dark Mode defaults since we want a "Space" theme primarily */
