@@ -2,6 +2,12 @@
 
 ## Current Session (2026-01-17)
 
+### Phase 6b: Shared Context & Unified UI
+- **Status**: 🔄 In Progress - Planning complete, implementation pending
+- **Spec**: Added Phase 6b to implementation-prd.md
+- **Removed**: "Both Together" start path (no screen real estate)
+- **Added**: Shared context document architecture for tab-aware AI
+
 ### Phase 6 Implementation: Unified Project Architecture
 - **Status**: ✅ Complete - All 15 tasks implemented
 - **Created Files**:
@@ -21,19 +27,19 @@
   - `src/components/ui/ModeToggle.tsx` - Added hybrid mode
   - `src/app/api/export/route.ts` - Fixed colorPalette reference
 - **Database**: ✅ Pushed with `db push --accept-data-loss`
+- **Commit**: `49f478c`
+
+### Phase 4B: Multi-File UI Connection
+- **Status**: ✅ Fixed - Files now load in CodeTab
+- **Changed Files**:
+  - `src/components/studio/ChatPanel.tsx` - Tool call handling
+  - `src/components/studio/StudioProvider.tsx` - Files state management
+  - `src/components/studio/WorkspacePanel.tsx` - Layout integration
+  - `src/components/studio/tabs/CodeTab.tsx` - File display
+  - `src/lib/studio/context.ts` - Context updates
 
 ### Phase 3 Implementation: Hatch Studios AI Chat
 - **Status**: ✅ Complete - All 8 tasks implemented
-- **Created Files**:
-  - `src/lib/studio/schemas.ts` - 10 Zod schemas with `.describe()` for AI
-  - `src/lib/studio/game-tools.ts` - 10+ AI SDK tools with Prisma operations
-  - `src/lib/studio/babylon-system-prompt.ts` - Babylon.js best practices system prompt
-  - `src/app/api/studio/chat/route.ts` - Streaming chat API with AI SDK v6
-  - `src/components/studio/ChatPanel.tsx` - Full useChat implementation with onToolCall handler
-  - `src/components/studio/StudioLayout.tsx` - Updated to pass gameId to ChatPanel
-  - `src/tests/integration/studio-chat.test.ts` - Integration tests for authentication and tools
-- **Phase 1 Database**: ✅ Verified Game, GameScene, CodeVersion models exist in Prisma schema
-- **Build Issue**: ⚠️ Production build encounters transient Turbopack parsing error (not a code syntax problem)
 
 ---
 

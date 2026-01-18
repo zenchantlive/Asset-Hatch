@@ -1,12 +1,13 @@
 // -----------------------------------------------------------------------------
 // Workspace Panel Component
-// Right panel with tab content switching
+// Right panel with tab content switching and activity log
 // -----------------------------------------------------------------------------
 
 'use client';
 
 import dynamic from 'next/dynamic';
 import { useStudio } from '@/lib/studio/context';
+import { ActivityLog } from './ActivityLog';
 import { PreviewTab } from './tabs/PreviewTab';
 
 // Lazy load Monaco editor to avoid SSR issues and reduce bundle size
@@ -36,15 +37,22 @@ const AssetsTab = dynamic(
 
 /**
  * WorkspacePanel - switches between Preview, Code, and Assets tabs
+ * Includes ActivityLog at the bottom for real-time feedback
  */
 export function WorkspacePanel() {
     const { activeTab } = useStudio();
 
     return (
-        <div className="h-full w-full bg-studio-panel-bg">
-            {activeTab === 'preview' && <PreviewTab />}
-            {activeTab === 'code' && <CodeTab />}
-            {activeTab === 'assets' && <AssetsTab />}
+        <div className="h-full w-full flex flex-col bg-studio-panel-bg">
+            {/* Main content area */}
+            <div className="flex-1 overflow-hidden">
+                {activeTab === 'preview' && <PreviewTab />}
+                {activeTab === 'code' && <CodeTab />}
+                {activeTab === 'assets' && <AssetsTab />}
+            </div>
+
+            {/* Activity log at bottom - collapsible */}
+            <ActivityLog className="shrink-0" />
         </div>
     );
 }

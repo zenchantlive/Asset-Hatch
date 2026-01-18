@@ -8,6 +8,7 @@
 import { createContext, useContext } from 'react';
 import type { GameData } from './types';
 import type { GameFileData } from './types';
+import type { ActivityEntry, ActivityFilter } from './activity-types';
 
 /**
  * Studio context value - state and actions for studio UI
@@ -24,6 +25,7 @@ export interface StudioContextValue {
     // Multi-file state - replaces single code string
     files: GameFileData[];
     activeFileId: string | null; // ID of currently selected file for editing
+    openFileIds: string[]; // IDs of files currently open in tabs
 
     // Actions
     setActiveTab: (tab: 'preview' | 'code' | 'assets') => void;
@@ -35,6 +37,10 @@ export interface StudioContextValue {
     setActiveFileId: (fileId: string | null) => void;
     updateFileContent: (fileId: string, content: string) => void;
     loadFiles: () => Promise<void>;
+    openFile: (fileId: string) => void; // Open a file in tabs
+    closeFile: (fileId: string) => void; // Close a file in tabs
+    closeOtherFiles: (fileId: string) => void; // Close all except this
+    closeAllFiles: () => void; // Close all tabs
 
     // Game metadata actions
     updateGameName: (name: string) => void;
@@ -47,6 +53,13 @@ export interface StudioContextValue {
     pendingFixRequest: { message: string; line?: number } | null;
     requestErrorFix: (error: { message: string; line?: number }) => void;
     clearFixRequest: () => void;
+
+    // Activity log state
+    activityLog: ActivityEntry[];
+    addActivity: (entry: Omit<ActivityEntry, 'id' | 'timestamp'>) => void;
+    clearActivityLog: () => void;
+    setActivityFilter: (filter: ActivityFilter) => void;
+    activityFilter: ActivityFilter;
 }
 
 /**

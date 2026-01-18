@@ -7,11 +7,12 @@
 
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { StudioContext } from '@/lib/studio/context';
 import type { StudioContextValue } from '@/lib/studio/context';
 import type { GameData } from '@/lib/studio/types';
 import type { GameFileData } from '@/lib/studio/types';
+import type { ActivityEntry, ActivityFilter } from '@/lib/studio/activity-types';
 
 /**
  * Props for StudioProvider
@@ -95,6 +96,19 @@ export function StudioProvider({
         initialFiles.length > 0 ? initialFiles[0].id : null
     );
 
+    // Open files tab state (for Monaco tab bar)
+    const [openFileIds, setOpenFileIds] = useState<string[]>(() => {
+        if (initialFiles.length > 0) {
+            return [initialFiles[0].id];
+        }
+        return [];
+    });
+
+    // Activity log state
+    const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+    const [activityFilter, setActivityFilter] = useState<ActivityFilter>({});
+    const activityIdRef = useRef(0);
+
     // Refresh preview by incrementing key (forces iframe reload)
     const refreshPreview = useCallback(() => {
         setPreviewKey((prev) => prev + 1);
@@ -147,6 +161,52 @@ export function StudioProvider({
         );
     }, []);
 
+    // Open a file in the tab bar
+    const openFile = useCallback((fileId: string) => {
+        setOpenFileIds((prev) => {
+            if (prev.includes(fileId)) {
+                return prev;
+            }
+            return [...prev, fileId];
+        });
+        setActiveFileId(fileId);
+    }, []);
+
+    // Close a file in the tab bar
+    const closeFile = useCallback((fileId: string) => {
+        setOpenFileIds((prev) => {
+            const index = prev.indexOf(fileId);
+            if (index === -1) return prev;
+            const newOpenFiles = prev.filter((id) => id !== fileId);
+            
+            // If we just closed the active file, switch to another open file
+            if (activeFileId === fileId && newOpenFiles.length > 0) {
+                // If there are files before the closed one, use the previous one
+                // Otherwise use the first one
+                const newIndex = Math.max(0, index - 1);
+                // Schedule active file change after state update
+                setTimeout(() => setActiveFileId(newOpenFiles[newIndex]), 0);
+            } else if (activeFileId === fileId && newOpenFiles.length === 0) {
+                // No files left, clear active file
+                setTimeout(() => setActiveFileId(null), 0);
+            }
+            
+            return newOpenFiles;
+        });
+    }, [activeFileId]);
+
+    // Close all files except the specified one
+    const closeOtherFiles = useCallback((fileId: string) => {
+        setOpenFileIds([fileId]);
+        setActiveFileId(fileId);
+    }, []);
+
+    // Close all files
+    const closeAllFiles = useCallback(() => {
+        setOpenFileIds([]);
+        setActiveFileId(null);
+    }, []);
+
     // Request error fix - sets pending request for ChatPanel to pick up
     const requestErrorFix = useCallback((error: { message: string; line?: number }) => {
         console.log('🔧 Error fix requested:', error.message);
@@ -158,6 +218,21 @@ export function StudioProvider({
         setPendingFixRequest(null);
     }, []);
 
+    // Activity log functions
+    const addActivity = useCallback((entry: Omit<ActivityEntry, 'id' | 'timestamp'>) => {
+        const newEntry: ActivityEntry = {
+            ...entry,
+            id: `activity-${++activityIdRef.current}`,
+            timestamp: new Date(),
+        };
+        setActivityLog((prev) => [newEntry, ...prev].slice(0, 100)); // Keep last 100 entries
+    }, []);
+
+    const clearActivityLog = useCallback(() => {
+        setActivityLog([]);
+        activityIdRef.current = 0;
+    }, []);
+
     // Build context value with multi-file support
     const contextValue: StudioContextValue = useMemo(
         () => ({
@@ -167,6 +242,7 @@ export function StudioProvider({
             previewKey,
             files,
             activeFileId,
+            openFileIds,
             setActiveTab,
             setIsPlaying,
             refreshPreview,
@@ -180,6 +256,15 @@ export function StudioProvider({
             pendingFixRequest,
             requestErrorFix,
             clearFixRequest,
+            activityLog,
+            addActivity,
+            clearActivityLog,
+            setActivityFilter,
+            activityFilter,
+            openFile,
+            closeFile,
+            closeOtherFiles,
+            closeAllFiles,
         }),
         [
             game,
@@ -188,6 +273,7 @@ export function StudioProvider({
             previewKey,
             files,
             activeFileId,
+            openFileIds,
             refreshPreview,
             updateFileContent,
             loadFiles,
@@ -197,6 +283,12 @@ export function StudioProvider({
             pendingFixRequest,
             requestErrorFix,
             clearFixRequest,
+            activityLog,
+            activityFilter,
+            openFile,
+            closeFile,
+            closeOtherFiles,
+            closeAllFiles,
         ]
     );
 

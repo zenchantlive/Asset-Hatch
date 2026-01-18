@@ -517,6 +517,49 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 
 ---
 
+## 🎯 Phase 4B: Multi-File UI Connection Patterns
+
+### StudioProvider State Management
+* **Pattern:** Track files in context, load from API on mount
+* **Implementation:**
+  ```typescript
+  // StudioProvider.tsx
+  const [files, setFiles] = useState<GameFile[]>([]);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    loadFiles();
+  }, [gameId]);
+  
+  const loadFiles = useCallback(async () => {
+    const response = await fetch(`/api/studio/games/${gameId}/files`);
+    const data = await response.json();
+    setFiles(data.files);
+    if (data.files.length > 0 && !activeFileId) {
+      setActiveFileId(data.files[0].id);
+    }
+  }, [gameId]);
+  ```
+
+### ChatTool Call Integration
+* **Pattern:** ChatPanel's onToolCall must reload files after modifications
+* **Critical:** Call `loadFiles()` after create/update/delete file operations
+* **Example:**
+  ```typescript
+  case 'createFile':
+    console.log('📄 File created:', toolCall.args?.name);
+    loadFiles();  // CRITICAL: Refresh file list
+    refreshPreview();
+    break;
+  ```
+
+### CodeTab File Display
+* **Pattern:** Show files in explorer sidebar + Monaco tabs
+* **Files sorted by orderIndex** for proper execution order
+* **Active file tracked** by `activeFileId` state
+
+---
+
 ## 🎯 Phase 6: Unified Project Architecture Patterns
 
 ### 1:1 Bidirectional Relations in Prisma

@@ -28,7 +28,7 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
 
   // Get studio context to update code/preview when tools execute
   // Multi-file: Use loadFiles/setFiles instead of setCode/loadSceneCode
-  const { refreshPreview, refreshGame, loadFiles, setFiles } = useStudio();
+  const { refreshPreview, refreshGame, loadFiles, setFiles, addActivity } = useStudio();
 
   // Unique chat ID per game to maintain separate histories
   const chatId = `studio-chat-${gameId}`;
@@ -59,6 +59,12 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
         case 'createScene':
           console.log('✅ Scene created:', toolCall.args);
           // Scene created - refresh game data to include new scene in list
+          addActivity({
+            toolName: 'createScene',
+            status: 'success',
+            details: `Created scene: ${toolCall.args?.name || 'unnamed'}`,
+            fileName: toolCall.args?.name,
+          });
           refreshGame();
           break;
 
@@ -77,12 +83,22 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
         case 'setCamera':
           console.log('📷 Camera set:', toolCall.args);
           // Multi-file: Camera code should be in files
+          addActivity({
+            toolName: 'setCamera',
+            status: 'success',
+            details: 'Camera settings updated',
+          });
           refreshPreview();
           break;
 
         case 'enablePhysics':
           console.log('⚡ Physics enabled:', toolCall.args);
           // Multi-file: Physics code should be in files
+          addActivity({
+            toolName: 'enablePhysics',
+            status: 'success',
+            details: `Physics enabled: ${toolCall.args?.physicsEngine || 'default'}`,
+          });
           refreshPreview();
           break;
 
@@ -109,6 +125,12 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
         // File management tools - multi-file support
         case 'createFile':
           console.log('📄 File created:', toolCall.args?.name);
+          addActivity({
+            toolName: 'createFile',
+            status: 'success',
+            details: `Created file: ${toolCall.args?.name}`,
+            fileName: toolCall.args?.name,
+          });
           // Refresh files to get the new file in the list
           loadFiles();
           refreshPreview();
@@ -116,6 +138,12 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
 
         case 'updateFile':
           console.log('💾 File updated:', toolCall.args?.name);
+          addActivity({
+            toolName: 'updateFile',
+            status: 'success',
+            details: `Updated file: ${toolCall.args?.name}`,
+            fileName: toolCall.args?.name,
+          });
           // Refresh files to get updated content
           loadFiles();
           refreshPreview();
@@ -123,6 +151,12 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
 
         case 'deleteFile':
           console.log('🗑️ File deleted:', toolCall.args?.name);
+          addActivity({
+            toolName: 'deleteFile',
+            status: 'success',
+            details: `Deleted file: ${toolCall.args?.name}`,
+            fileName: toolCall.args?.name,
+          });
           // Refresh files to get updated list
           loadFiles();
           refreshPreview();
@@ -130,12 +164,22 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
 
         case 'listFiles':
           console.log('📋 Files listed');
+          addActivity({
+            toolName: 'listFiles',
+            status: 'success',
+            details: 'File list refreshed',
+          });
           // Just refresh the file list (in case it changed)
           loadFiles();
           break;
 
         case 'reorderFiles':
           console.log('🔄 Files reordered:', toolCall.args?.fileOrder);
+          addActivity({
+            toolName: 'reorderFiles',
+            status: 'success',
+            details: `Reordered ${toolCall.args?.fileOrder?.length || 0} files`,
+          });
           // Refresh files since execution order changed
           loadFiles();
           refreshPreview();
@@ -144,12 +188,22 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
         // Planning tools
         case 'updatePlan':
           console.log('📝 Plan updated, status:', toolCall.args?.status);
+          addActivity({
+            toolName: 'updatePlan',
+            status: 'success',
+            details: `Plan updated: ${toolCall.args?.status || 'modified'}`,
+          });
           // Refresh game to get updated plan
           refreshGame();
           break;
 
         case 'getPlan':
           console.log('📖 Plan retrieved');
+          addActivity({
+            toolName: 'getPlan',
+            status: 'success',
+            details: 'Plan retrieved',
+          });
           break;
 
         default:
