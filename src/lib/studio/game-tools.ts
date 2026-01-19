@@ -387,6 +387,25 @@ export const addBehaviorTool = (gameId: string) => {
 
         const behaviorCode = generateBehaviorCode(behaviorType, parameters || {});
 
+        // Persist behavior in the active scene
+        const gameRecord = await prisma.game.findUnique({
+          where: { id: gameId },
+          select: { activeSceneId: true },
+        });
+        if (gameRecord?.activeSceneId) {
+          const scene = await prisma.gameScene.findUnique({
+            where: { id: gameRecord.activeSceneId },
+            select: { code: true },
+          });
+          await prisma.gameScene.update({
+            where: { id: gameRecord.activeSceneId },
+            data: {
+              code: (scene?.code || '') + '\n' + behaviorCode,
+              updatedAt: new Date(),
+            },
+          });
+        }
+
         console.log('✅ Behavior added:', behaviorType);
 
         return {
