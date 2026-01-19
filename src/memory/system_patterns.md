@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-18
 
 ---
 
@@ -446,3 +446,71 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     - Keeps sensitive/large image data local until final save.
 *   **Example:** `src/lib/image-processing.ts` (`blendSeams` function).
 *   **Gotcha:** Canvas becomes "tainted" if drawing cross-origin images without `crossOrigin="anonymous"`. Always handle CORS requirements for source images.
+
+---
+
+## 🎮 Hatch Studios Patterns (Multi-File Game Architecture)
+
+### Multi-File Game Code Structure
+* **Pattern:** Games use multiple JavaScript files executed in order via concatenation
+* **Structure:**
+  ```typescript
+  // Files sorted by orderIndex, then content joined with '\n\n'
+  const combinedCode = files
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map(f => f.content)
+    .join('\n\n');
+  ```
+* **Execution Order:** Files execute sequentially (orderIndex 0 = first)
+* **Shared State:** Use global scope and TransformNode parenting (no ES modules)
+* **Example:**
+  - `main.js` (orderIndex: 0) → Engine/scene setup
+  - `player.js` (orderIndex: 1) → Creates player mesh (available globally)
+  - `level.js` (orderIndex: 2) → Creates level geometry
+  - `game.js` (orderIndex: 3) → Game loop, controls, UI
+
+### Studio Context State Management
+* **Pattern:** Replace single `code: string` with `files: GameFile[]` state
+* **Context Interface:**
+  ```typescript
+  interface StudioContextValue {
+    game: GameData | null;
+    files: GameFileData[];           // Multi-file state
+    activeFileId: string | null;     // Currently editing
+    loadFiles: () => Promise<void>;  // Refresh from API
+    updateFileContent: (id, content) => void;
+  }
+  ```
+* **Why:** Supports multi-file editing without reloading entire scene
+
+### AI Tool Integration for Multi-File
+* **Pattern:** ChatPanel's `onToolCall` handler must call `loadFiles()` after file operations
+* **Tools:** `createFile`, `updateFile`, `deleteFile`, `listFiles`, `reorderFiles`
+* **Example:**
+  ```typescript
+  case 'createFile':
+    console.log('📄 File created:', toolCall.args?.name);
+    loadFiles();  // CRITICAL: Refresh file list
+    refreshPreview();
+    break;
+  ```
+
+### Preview Iframe with Pre-loaded Libraries
+* **Pattern:** Define available libraries in manifest, generate script tags dynamically
+* **Libraries:** babylon.js, babylon.gui, loaders, proceduralTextures, materials
+* **Manifest:** `src/lib/studio/preview-libraries.ts`
+* **Usage:** AI can use `BABYLON.GUI` without loading script tags (pre-loaded)
+
+### System Prompt for Multi-File Games
+* **Pattern:** Strong multi-file enforcement in system prompt
+* **Key Rules:**
+  - 🚨 MANDATORY multi-file architecture (not optional)
+  - Execute files in orderIndex order
+  - No function calls between files (use global scope)
+  - Example WRONG/RIGHT patterns provided
+* **File:** `src/lib/studio/babylon-system-prompt.ts`
+
+### Game Creation with Initial File
+* **Pattern:** New games auto-create `main.js` with default scene
+* **Implementation:** `POST /api/studio/games` creates both Game and GameFile in transaction
+* **Default Content:** Basic Babylon.js scene with camera, light, rotating box
