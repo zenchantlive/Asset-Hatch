@@ -2,7 +2,7 @@
   <img src="docs/branding/header-logo-dark.svg#gh-dark-mode-only" alt="Asset Hatch" width="600">
 </div>
 
-> **AI-powered game asset planning and generation tool** — Transform natural conversation into complete, production-ready game asset packs.
+> **AI-powered asset + game creation platform** — Plan and generate 2D/3D assets, then build a playable Babylon.js game in Hatch Studios.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
@@ -15,23 +15,45 @@
 
 ## ✨ What is Asset Hatch?
 
-Asset Hatch transforms the way indie developers create game assets. Instead of manually writing specification documents or wrestling with complex AI prompts, you simply **have a conversation** with an AI that understands game development.
+Asset Hatch transforms how indie developers create production-ready assets and playable game prototypes. Instead of manual spec docs or brittle prompts, you **have a conversation** with an AI that understands game development.
+
+### Hatch Studios (Game Creation)
+Hatch Studios is the game creation extension inside Asset Hatch. It turns natural language into **multi-file Babylon.js projects**, with a live preview and asset-aware tools.
 
 ### The Workflow
 
 ```
+ASSET HATCH (2D)
 🗣️ PLANNING     →  📐 STYLE      →  🎨 GENERATION  →  📦 EXPORT
-Chat with AI       Define visual      Batch generate    Download ZIP
-Build asset plan   style anchor       all assets        with metadata
+Chat with AI       Style anchor       Batch generate    Download ZIP
+Build asset plan   + references       sprites + sheets  with metadata
+
+ASSET HATCH (3D)
+🗣️ PLANNING     →  🧱 GENERATION  →  🧭 PREVIEW    →  📦 EXPORT
+Chat with AI       Tripo3D pipeline    Three.js viewer  Download GLB
+
+HATCH STUDIOS (GAME)
+📋 PLAN         →  💻 CODE       →  ▶️ PREVIEW    →  📦 EXPORT
+Game concept       Multi-file JS       Babylon.js iframe (in progress)
+and mechanics      editor + tools      Live playtest
 ```
 
 ### Key Features
 
-- **Natural Conversation** — Describe your game, AI builds the asset specification
-- **Style Consistency** — Upload reference images, AI ensures visual coherence
-- **Batch Generation** — Generate entire asset packs with one click
-- **Version Control** — Compare multiple generations before accepting
-- **Export Ready** — Download organized ZIP with sprite sheets and metadata
+- **2D + 3D Asset Creation** — Sprites, tiles, props, and GLB models in one workspace
+
+- **Style Consistency** — Style anchors keep assets visually cohesive
+- **Image Model Skybox Generation** - Generate equirectangular panoramas for your games with Nano Banana!
+- **Asset Inventory** — Approve, catalog, and reuse assets across projects
+- **Hatch Studios Game Builder** — Multi-file Babylon.js projects with live preview
+- **Shared Context** — A multi-file spec sheet, asset inventory, & project brief shared between Assets and Game tabs
+- **Export Ready** — ZIPs for 2D packs and GLB downloads for 3D models
+
+### Current Status
+
+- **Asset Hatch 2D**: Planning + style + generation flows are functional; export phase functional.
+- **Asset Hatch 3D**: Text-to-3D generation, preview, and export are live; rigging/animation completed.
+- **Hatch Studios**: Unified Assets/Game UI and shared context are live; asset loading in preview is C.
 
 ---
 
@@ -187,6 +209,7 @@ bunx prisma migrate dev  # Create migration (production)
 | **Styling** | Tailwind CSS v4, shadcn/ui |
 | **AI SDK** | Vercel AI SDK v6 |
 | **AI Provider** | OpenRouter (Gemini, Flux) |
+| **3D Stack** | Tripo3D + Three.js (asset preview) + Babylon.js (Hatch Studios) |
 | **Database** | SQLite (Prisma) + IndexedDB (Dexie) |
 | **Auth** | Auth.js (NextAuth v5) |
 | **Package Manager** | Bun |
@@ -195,30 +218,37 @@ bunx prisma migrate dev  # Create migration (production)
 
 ## 📖 How It Works
 
-### 1. Planning Phase
+### 1. Planning (2D + 3D)
 Chat with the AI to describe your game. The AI automatically:
 - Extracts quality parameters (art style, resolution, perspective)
 - Builds an asset list organized by category
 - Generates detailed prompts for each asset
 
-### 2. Style Anchor Phase
+### 2. Style Anchor (2D)
 Upload reference images or describe your desired style. The AI:
 - Analyzes visual elements (color palette, texture, lighting)
 - Generates a "style anchor" image for consistency
 - Uses this anchor to guide all subsequent generations
 
-### 3. Generation Phase
+### 3. Generation (2D + 3D)
 Select assets and generate in batches:
 - Preview before approving
 - Regenerate with different variations
 - Compare multiple versions side-by-side
 - Accept/reject individual assets
 
-### 4. Export Phase
+### 4. Export (2D + 3D)
 Package your approved assets:
 - Organized folder structure by category
-- Sprite sheet generation (optional)
+- Sprite sheet generation (2D)
 - JSON metadata for game engines
+- GLB download (3D)
+
+### 5. Hatch Studios (Game Creation)
+Build a playable game on top of your assets:
+- AI generates multi-file Babylon.js code
+- Tabs for Plan, Code, and Preview
+- Shared context so the AI remembers your game across tabs
 
 ---
 

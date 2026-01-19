@@ -193,14 +193,10 @@ export function AssetBrowser({ type = 'all' }: AssetBrowserProps) {
                             )}
                         </div>
 
-                        {/* Actions */}
-                        <Button
-                            size="sm"
-                            className="w-full"
-                            disabled
-                        >
-                            Use in Game (Phase 3)
-                        </Button>
+                        {/* Info note - assets auto-appear in game */}
+                        <div className="p-2 rounded bg-muted/50 text-xs text-muted-foreground">
+                            ✓ Asset is available in Game mode
+                        </div>
                     </div>
                 </div>
             )}

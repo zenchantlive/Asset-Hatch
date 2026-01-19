@@ -255,20 +255,32 @@ BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
   });
 `;
 
-    case "texture":
+    case "skybox":
     case "2d":
+      // Check if this is a skybox asset (has skybox metadata or 'skybox' in name)
+      const isSkybox = assetRef.assetType === "skybox" || 
+                       assetRef.assetName.toLowerCase().includes("skybox") ||
+                       assetRef.assetName.toLowerCase().includes("sky_box");
+      
+      if (isSkybox) {
+        // Use PhotoDome for 2D images as skyboxes
+        // PhotoDome supports equirectangular 360° single images
+        return `
+// Load skybox for ${assetRef.assetName}
+const skyboxDome = new BABYLON.PhotoDome("${assetRef.assetName}", "${assetRef.thumbnailUrl || assetRef.modelUrl}", {
+  size: 1000,
+  autoFit: false,
+}, scene);
+skyboxDome.imageMode = BABYLON.PhotoDome.MODE_MONOSCOPIC;
+        `;
+      }
+      
+      // Regular 2D texture
       return `
 // Load texture for ${assetRef.assetName}
-const texture = new BABYLON.Texture("${modelUrl}", scene);
+const texture = new BABYLON.Texture("${assetRef.thumbnailUrl || assetRef.modelUrl}", scene);
 texture.hasAlpha = true;
-`;
-
-    case "skybox":
-      return `
-// Load skybox for ${assetRef.assetName}
-const skybox = BABYLON.CubeTexture.CreateFromPrefixedURL("${modelUrl}/", scene);
-scene.createDefaultSkybox(skybox);
-`;
+      `;
 
     default:
       return `// Unknown asset type: ${assetRef.assetType} - ${assetRef.assetName}`;

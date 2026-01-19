@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { createGameTools } from '@/lib/studio/game-tools';
+import { createSharedDocTools } from '@/lib/studio/shared-doc-tools';
 import { getBabylonSystemPrompt } from '@/lib/studio/babylon-system-prompt';
 import { getDefaultModel } from '@/lib/model-registry';
 import type { UnifiedProjectContext } from '@/lib/types/shared-context';
@@ -77,14 +78,44 @@ export async function POST(req: NextRequest) {
           manifestKey: true,
           assetType: true,
           assetName: true,
+          assetId: true,
         },
       });
-      
+
+      // Fetch metadata from Generated3DAsset for all referenced assets
+      const assetIds = assetRefs.map(ref => ref.assetId);
+      const generatedAssets = await prisma.generated3DAsset.findMany({
+        where: { id: { in: assetIds } },
+        select: {
+          id: true,
+          promptUsed: true,
+          animatedModelUrls: true,
+          isRiggable: true,
+        },
+      });
+
+      // Build metadata map
+      const metadataMap = new Map<string, Record<string, unknown>>();
+      for (const asset of generatedAssets) {
+        const metadata: Record<string, unknown> = {};
+        if (asset.promptUsed) metadata.prompt = asset.promptUsed;
+        if (asset.isRiggable) metadata.rigged = asset.isRiggable;
+        if (asset.animatedModelUrls) {
+          try {
+            const anims = JSON.parse(asset.animatedModelUrls);
+            metadata.animations = Object.keys(anims);
+          } catch {
+            // Not valid JSON
+          }
+        }
+        metadataMap.set(asset.id, metadata);
+      }
+
       linkedAssets = assetRefs.map(ref => ({
         key: ref.manifestKey || ref.assetName.toLowerCase().replace(/\s+/g, '_'),
         type: ref.assetType,
         name: ref.assetName,
-        metadata: {},
+        metadata: metadataMap.get(ref.assetId) || {},
       }));
     }
 
@@ -115,13 +146,22 @@ export async function POST(req: NextRequest) {
     // Get game tools
     const gameTools = createGameTools(gameId);
 
+    // Get shared document tools (Phase 7b - these let AI read/write game-design.md, asset-inventory.md, etc.)
+    const sharedDocTools = createSharedDocTools(gameId);
+
+    // Combine all tools
+    const allTools = {
+      ...gameTools,
+      ...sharedDocTools,
+    };
+
     // Stream response with tools
     const result = streamText({
       model: openrouter(chatModel.id),
       messages: modelMessages,
       system: systemPrompt,
       stopWhen: stepCountIs(15), // Allow up to 15 tool calls per request
-      tools: gameTools,
+      tools: allTools,
     });
 
     // CRITICAL: Use toUIMessageStreamResponse()

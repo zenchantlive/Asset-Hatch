@@ -16,6 +16,8 @@
   "dependencies": {
     "@ai-sdk/react": "^3.0.3",
     "@auth/prisma-adapter": "^2.11.1",
+    "@aws-sdk/client-s3": "^3.775.0",
+    "@aws-sdk/s3-request-presigner": "^3.775.0",
     "@babylonjs/core": "^8.45.5",
     "@langchain/openai": "^1.2.0",
     "@monaco-editor/react": "^4.7.0",

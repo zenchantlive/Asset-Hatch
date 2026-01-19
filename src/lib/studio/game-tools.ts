@@ -44,6 +44,7 @@ import {
   type ReorderFilesInput,
   type UpdatePlanInput,
 } from '@/lib/studio/schemas';
+import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
 // =============================================================================
 // CREATE SCENE TOOL
@@ -456,11 +457,11 @@ export const addInteractionTool = (gameId: string) => {
  */
 export const listUserAssetsTool = (gameId: string) => {
   return tool({
-    description: 'Query the user\'s Asset Hatch library for available assets to use in the game.',
+    description: 'Query the user\'s Asset Hatch library for available 3D and 2D assets. Returns assets with their names, types, and URLs. Use this to discover what assets are available for use in the game.',
     inputSchema: listUserAssetsSchema,
-    execute: async ({ type, search, limit }: ListUserAssetsInput) => {
+    execute: async ({ type, search, limit, includeGlbData }: ListUserAssetsInput) => {
       try {
-        console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit);
+        console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit, 'includeGlbData:', includeGlbData);
 
         // Get game to verify ownership and get projectId
         const game = await prisma.game.findUnique({
@@ -479,9 +480,9 @@ export const listUserAssetsTool = (gameId: string) => {
         // Phase 6: Use projectId from unified project
         const projectId = game.projectId;
         if (!projectId) {
-          return { 
-            success: false, 
-            error: 'Game is not linked to a project. Create a project first to access assets.' 
+          return {
+            success: false,
+            error: 'Game is not linked to a project. Create a project first to access assets.'
           };
         }
 
@@ -490,60 +491,112 @@ export const listUserAssetsTool = (gameId: string) => {
         // Query assets from the linked project
         const assets3D = type === '3d' || type === 'all'
           ? await prisma.generated3DAsset.findMany({
-              where: {
-                projectId,
-                approvalStatus: 'approved',
-                // Optional search filter
-                ...(search && {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { assetId: { contains: search, mode: 'insensitive' } },
-                  ],
-                }),
-              },
-              take: limit,
-              orderBy: { updatedAt: 'desc' },
-            })
+            where: {
+              projectId,
+              approvalStatus: 'approved',
+              // Optional search filter
+              ...(search && {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { assetId: { contains: search, mode: 'insensitive' } },
+                ],
+              }),
+            },
+            take: limit,
+            orderBy: { updatedAt: 'desc' },
+          })
           : [];
+
+        console.log('✅ Found', assets3D.length, 'approved 3D assets');
 
         // Also check for 2D assets
         const assets2D = type === '2d' || type === 'all'
           ? await prisma.generatedAsset.findMany({
-              where: {
-                projectId,
-                approvalStatus: 'approved',
-                // Optional search filter
-                ...(search && {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { assetId: { contains: search, mode: 'insensitive' } },
-                  ],
-                }),
-              },
-              take: limit,
-              orderBy: { updatedAt: 'desc' },
-            })
+            where: {
+              projectId,
+              // Note: GeneratedAsset doesn't have approvalStatus field
+              // Optional search filter
+              ...(search && {
+                OR: [
+                  { assetId: { contains: search, mode: 'insensitive' } },
+                ],
+              }),
+            },
+            take: limit,
+            orderBy: { updatedAt: 'desc' },
+          })
           : [];
 
-        // Combine and format assets
-        const combinedAssets = [
-          ...assets3D.map(asset => ({
-            id: asset.id,
-            name: asset.name || asset.assetId,
-            type: '3d',
-            glbUrl: asset.riggedModelUrl || asset.draftModelUrl,
-            thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
-            projectId: asset.projectId,
-          })),
-          ...assets2D.map(asset => ({
-            id: asset.id,
-            name: asset.name || asset.assetId,
-            type: '2d',
-            imageUrl: asset.imageUrl,
-            thumbnailUrl: asset.thumbnailUrl,
-            projectId: asset.projectId,
-          })),
-        ];
+        // Phase 10: Get permanent asset data from GameAssetRef for 3D assets
+        // Query GameAssetRef for each approved 3D asset to get glbData
+        const gameAssetRefs = await prisma.gameAssetRef.findMany({
+          where: {
+            projectId,
+            assetType: '3d',
+            assetId: { in: assets3D.map(a => a.id) },
+          },
+          select: {
+            assetId: true,
+            glbUrl: true,
+            ...(includeGlbData ? { glbData: true } : {}),
+          },
+        });
+
+        // Create map for quick lookup
+        const assetRefMap = new Map<string, { glbData: string | null; glbUrl: string | null }>();
+        gameAssetRefs.forEach(ref => {
+          assetRefMap.set(ref.assetId, {
+            glbData: includeGlbData && "glbData" in ref ? ref.glbData : null,
+            glbUrl: ref.glbUrl || null,
+          });
+        });
+
+        // Combine and format assets with glbData
+        const assets3DFormatted = await Promise.all(assets3D.map(async asset => {
+            const assetRef = assetRefMap.get(asset.id);
+            const glbData = includeGlbData ? assetRef?.glbData || null : null;
+            const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl || null;
+            const glbUrl = await resolveR2AssetUrl(storedUrl);
+
+            return {
+              id: asset.id,
+              name: asset.name || asset.assetId,
+              type: '3d',
+              glbUrl: glbUrl,
+              glbData: glbData,
+              thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
+              projectId: asset.projectId,
+            };
+          }));
+
+        const assets2DFormatted = assets2D.map(asset => {
+            // Parse metadata to extract image information
+            let imageUrl = '';
+            let thumbnailUrl = '';
+            let name = asset.assetId;
+
+            try {
+              if (asset.metadata) {
+                const metadata = JSON.parse(asset.metadata);
+                imageUrl = metadata.imageUrl || '';
+                thumbnailUrl = metadata.thumbnailUrl || '';
+                name = metadata.name || asset.assetId;
+              }
+            } catch (error) {
+              console.warn('⚠️ Failed to parse 2D asset metadata:', error);
+            }
+
+            return {
+              id: asset.id,
+              name: name,
+              type: '2d',
+              imageUrl: imageUrl,
+              thumbnailUrl: thumbnailUrl,
+              projectId: asset.projectId,
+            };
+          });
+
+        const combinedAssets = [...assets3DFormatted, ...assets2DFormatted];
 
         // Apply limit after combining
         const limitedAssets = combinedAssets.slice(0, limit);
@@ -672,7 +725,6 @@ scene.enablePhysics(gravity, physicsPlugin);
 var physicsPlugin = new BABYLON.CannonJSPlugin();
 scene.enablePhysics(gravity, physicsPlugin);
 `}
-
 return physicsPlugin;`;
 
   return physicsCode.trim();

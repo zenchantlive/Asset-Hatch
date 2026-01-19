@@ -1,22 +1,22 @@
 # 📋 Project Brief - Asset Hatch
 
 **Project Name:** Asset Hatch
-**Version:** 0.3.0 (Security & Logic Hardening)
-**Last Updated:** 2025-12-28
-**Status:** Phase 3 (Generation) - Individual Asset Workflow Complete, Multi-User Hardened
+**Version:** 0.6.0 (3D + Hatch Studios Expansion)
+**Last Updated:** 2026-01-18
+**Status:** Asset Hatch 2D/3D in active development; Hatch Studios game creation nearing MVP
 
 ---
 
 ## 🎯 Mission Statement
 
-**Asset Hatch** is an AI-powered game asset planning and generation tool that helps indie game developers go from idea to production-ready sprite sheets without needing an artist.
+**Asset Hatch** is an AI-powered asset and game creation platform that helps indie developers go from idea to production-ready 2D/3D assets and a playable Babylon.js prototype.
 
 ### Core Value Proposition
 - **For:** Indie game developers, solo devs, hobbyists
-- **Who Need:** Game assets (sprites, tiles, UI elements)
-- **Our Product:** AI-guided asset planning → style anchoring → generation → export
-- **Unlike:** Generic AI art generators (MidJourney, DALL-E)
-- **We Provide:** Game-specific workflows, consistent style, sprite sheet outputs
+- **Who Need:** Game assets (sprites, tiles, UI, 3D props) and a playable prototype
+- **Our Product:** AI-guided asset planning → style anchoring → generation → export + Hatch Studios game creation
+- **Unlike:** Generic AI art generators and code sandboxes
+- **We Provide:** Game-specific workflows, consistent style, reusable assets, and multi-file Babylon.js projects
 
 ---
 
@@ -34,6 +34,9 @@
 - **LLM Provider:** OpenRouter (google/gemini-3-pro-preview)
 - **Image Generation:** OpenRouter (black-forest-labs/flux.2-pro, flux.2-pro)
 - **Vision Analysis:** OpenRouter (GPT-4o for style extraction)
+- **3D Generation:** Tripo3D API (GLB output)
+- **Game Runtime:** Babylon.js (Hatch Studios preview)
+- **3D Preview:** Three.js
 
 ### Data & State
 - **Server Database:** Prisma with SQLite (source of truth)
@@ -51,24 +54,39 @@
 
 ## 🧭 Product Phases (Slices)
 
-### Phase 1: Planning (Slices 1-4) - **✅ Complete**
+### Asset Hatch: 2D Workflow
+
+#### Phase 1: Planning (Slices 1-4) - **✅ Complete**
 - Create project → Chat with AI → Define qualities → Generate asset plan
 - **Status:** All planning tools working, plan generation functional
 
-### Phase 2: Style Anchor (Slices 5-8) - **✅ Complete**
+#### Phase 2: Style Anchor (Slices 5-8) - **✅ Complete**
 - Define style keywords → Generate reference image → Approve → Style locked
 - **Status:** Flux.2 image generation working, StylePreview displays image
 - **Key Feature:** AI-generated style anchor via OpenRouter Flux.2
 
-### Phase 3: Generation (Slices 9-12) - **🟢 85% Complete**
+#### Phase 3: Generation (Slices 9-12) - **🟢 85% Complete**
 - Queue assets → Generate via Flux.2 → Preview → Refine → Approve
 - **Status:** Backend complete, UI components built, integration pending
 
-### Phase 4: Export (Slices 13-15) - **🔴 Not Started**
+#### Phase 4: Export (Slices 13-15) - **🔴 Not Started**
 - Organize → Generate sprite sheets → Download zip
 - **Status:** Not started
 
 ---
+
+### Asset Hatch: 3D Workflow
+
+- **Planning + Generation + Preview:** **✅ Live**
+- **Rigging/Animation UI:** **⏳ Pending**
+- **Export:** **✅ GLB download via proxy**
+
+### Hatch Studios (Game Creation)
+
+- **Unified Assets/Game UI + shared context:** **✅ Live**
+- **Multi-file code tools + activity log:** **✅ Live**
+- **Asset loading in preview:** **🟡 In progress (signed URL hosting fix)**
+- **Export bundle:** **🔴 Not started**
 
 ## 🚫 Non-Negotiables
 
@@ -88,6 +106,10 @@
 4. **Fast Iteration**
    - 3 clicks max from idea to preview
    - No unnecessary forms
+
+5. **Shared Context**
+   - Game concept is a first-class document shared across Assets and Game tabs
+   - AI must never require the user to repeat core game details
 
 ### Technical Constraints
 1. **Hybrid Persistence**
@@ -129,10 +151,12 @@
 - [x] AI generates style anchor reference image
 - [x] UI feels polished (animations, colors visible)
 - [x] No critical bugs in planning/style phases
+- [ ] Generate a playable Babylon.js prototype from chat prompts
 
 ### Long-Term Goals
 - Generate 100 assets in <10 minutes
 - Export sprite sheet with metadata
+- Export game bundle with linked assets
 - Support multiple projects
 - Community-shared templates
 
