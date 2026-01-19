@@ -281,7 +281,6 @@ model GameScene {
   game       Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
   name       String
   orderIndex Int              @default(0)
-  code       String           @db.Text // Deprecated: use GameFile instead
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   placements AssetPlacement[]

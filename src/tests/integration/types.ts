@@ -82,7 +82,6 @@ export interface GameScene {
     gameId: string;
     name: string;
     orderIndex: number;
-    code: string;
     createdAt?: string;
     updatedAt?: string;
 }

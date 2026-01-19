@@ -65,8 +65,26 @@ export async function GET(request: Request) {
             })
             : [];
 
-        // Format assets for API response
-        const formattedAssets = assets3D.map((asset) => ({
+        // Fetch 2D assets if needed
+        const assets2D = type === 'all' || type === '2d'
+            ? await prisma.generatedAsset.findMany({
+                where: {
+                    projectId: { in: projectIds },
+                    status: 'completed',
+                    ...(search ? { assetId: { contains: search, mode: 'insensitive' } } : {}),
+                },
+                include: {
+                    project: {
+                        select: { name: true },
+                    },
+                },
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+            })
+            : [];
+
+        // Format 3D assets
+        const formatted3D = assets3D.map((asset) => ({
             id: asset.id,
             projectId: asset.projectId,
             name: asset.name || asset.assetId,
@@ -77,6 +95,34 @@ export async function GET(request: Request) {
             prompt: asset.promptUsed,
             updatedAt: asset.updatedAt.toISOString(),
         }));
+
+        // Format 2D assets
+        const formatted2D = assets2D.map((asset) => {
+            let imageUrl = null;
+            try {
+                const metadata = asset.metadata ? JSON.parse(asset.metadata) : {};
+                imageUrl = metadata.imageUrl || null;
+            } catch {
+                // Ignore parse errors
+            }
+
+            return {
+                id: asset.id,
+                projectId: asset.projectId,
+                name: asset.assetId,
+                type: '2d' as const,
+                thumbnailUrl: imageUrl,
+                modelUrl: null,
+                riggedModelUrl: null,
+                prompt: asset.promptUsed || '',
+                updatedAt: asset.updatedAt.toISOString(),
+            };
+        });
+
+        // Combine and sort by updatedAt
+        const formattedAssets = [...formatted3D, ...formatted2D]
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .slice(0, limit);
 
         return NextResponse.json({
             success: true,

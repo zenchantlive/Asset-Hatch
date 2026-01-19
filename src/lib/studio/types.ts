@@ -69,8 +69,6 @@ export interface SceneData {
     name: string;
     /** Order index for sorting scenes */
     orderIndex: number;
-    /** Scene code content */
-    code: string;
     /** ISO timestamp of creation */
     createdAt: string;
     /** ISO timestamp of last update */
