@@ -108,7 +108,22 @@ Create \`.agents/roster.md\` with **exactly** this structure:
   - **Last updated:** (date or turn label)
 
 ### 4) Practical Implementer
-- (same fields)
+- **Role:**
+- **Mandate:**
+- **Trust Model:**
+- **Key Questions:**
+  - Q1
+  - Q2
+  - Q3
+- **Always-Flags:**
+  - Risk A
+  - Risk B
+- **Blind Spots:**
+- **Ledger:**
+  - **Current stance:**
+  - **Warnings:**
+  - **Open questions:**
+  - **Last updated:** (date or turn label)
 
 ## Rotation History
 - (date/turn) change made, why, what replaced
