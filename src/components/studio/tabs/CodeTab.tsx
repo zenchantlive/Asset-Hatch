@@ -8,14 +8,37 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useStudio } from '@/lib/studio/context';
+import { FileTabs } from '../FileTabs';
+import { FileVersionHistory } from './FileVersionHistory';
 import { Button } from '@/components/ui/button';
-import { Play, FileCode, X, ChevronRight, ChevronDown, Folder } from 'lucide-react';
+import { Play, History, ChevronRight, ChevronDown, Folder, FileCode, FileJson, FileType } from 'lucide-react';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import type { GameFileData } from '@/lib/studio/types';
 
 // Dynamically import Monaco to avoid SSR issues
 let Editor: typeof import('@monaco-editor/react').Editor | null = null;
+
+/**
+ * Get file icon based on extension
+ */
+function getFileIcon(name: string) {
+    const ext = name.split('.').pop()?.toLowerCase();
+    switch (ext) {
+        case 'js':
+        case 'javascript':
+            return <FileCode className="w-4 h-4 text-yellow-400" />;
+        case 'ts':
+        case 'typescript':
+            return <FileCode className="w-4 h-4 text-blue-400" />;
+        case 'json':
+            return <FileJson className="w-4 h-4 text-green-400" />;
+        case 'html':
+            return <FileType className="w-4 h-4 text-orange-400" />;
+        default:
+            return <FileCode className="w-4 h-4 text-gray-400" />;
+    }
+}
 
 /**
  * CodeTab - Monaco editor with file explorer for multi-file editing
@@ -26,12 +49,17 @@ export function CodeTab() {
         activeFileId, 
         setActiveFileId, 
         updateFileContent, 
-        refreshPreview 
+        refreshPreview,
+        openFile,
+        game 
     } = useStudio();
     
     const [isEditorLoaded, setIsEditorLoaded] = useState(false);
     const [editorComponent, setEditorComponent] = useState<typeof import('@monaco-editor/react').Editor | null>(null);
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
+    
+    // Version history panel state
+    const [showVersionHistory, setShowVersionHistory] = useState(false);
 
     // Get currently active file
     const activeFile = files.find((f) => f.id === activeFileId) || null;
@@ -121,8 +149,8 @@ export function CodeTab() {
 
     // Handle file selection
     const handleFileSelect = useCallback((fileId: string) => {
-        setActiveFileId(fileId);
-    }, [setActiveFileId]);
+        openFile(fileId);
+    }, [openFile]);
 
     // Loading state
     if (!isEditorLoaded || !editorComponent) {
@@ -175,8 +203,16 @@ export function CodeTab() {
                                                 : 'hover:bg-white/5 text-muted-foreground hover:text-foreground'
                                         }`}
                                     >
-                                        <FileCode className="w-4 h-4" />
-                                        <span className="truncate">{file.name}</span>
+                                        {/* File icon */}
+                                        {getFileIcon(file.name)}
+                                        
+                                        {/* Filename */}
+                                        <span className="truncate flex-1 text-left">{file.name}</span>
+                                        
+                                        {/* Order index badge */}
+                                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted/20 text-muted-foreground font-mono">
+                                            {file.orderIndex}
+                                        </span>
                                     </button>
                                 ))}
                                 
@@ -198,40 +234,44 @@ export function CodeTab() {
 
             {/* Editor Area */}
             <div className="flex-1 flex flex-col">
-                {/* Toolbar with tab */}
-                <div className="h-12 border-b border-studio-panel-border flex items-center bg-studio-panel-bg">
-                    {/* Active file tab */}
-                    {activeFile ? (
-                        <div className="flex items-center gap-2 px-4 h-full bg-primary/10 border-b-2 border-primary">
-                            <FileCode className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium text-primary">{activeFile.name}</span>
-                            <span className="text-xs text-muted-foreground ml-1">
-                                (order: {activeFile.orderIndex})
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="px-4 h-full flex items-center text-sm text-muted-foreground">
-                            No file selected
-                        </div>
-                    )}
+                {/* Toolbar with file tabs */}
+                <div className="border-b border-studio-panel-border flex flex-col bg-studio-panel-bg">
+                    {/* File tabs */}
+                    <FileTabs />
 
-                    <div className="flex-1" />
+                    {/* Run button row */}
+                    <div className="h-10 flex items-center px-4 gap-2">
+                        {/* History button */}
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setShowVersionHistory(true)}
+                            disabled={!activeFile}
+                            className="gap-2"
+                        >
+                            <History className="h-4 w-4" />
+                            History
+                        </Button>
+                        
+                        <div className="flex-1" />
 
-                    {/* Run button */}
-                    <Button
-                        size="sm"
-                        onClick={handleRun}
-                        className="mr-4 gap-2 bg-green-600 hover:bg-green-700"
-                    >
-                        <Play className="h-4 w-4" />
-                        Run
-                    </Button>
+                        {/* Run button */}
+                        <Button
+                            size="sm"
+                            onClick={handleRun}
+                            className="gap-2 bg-green-600 hover:bg-green-700"
+                        >
+                            <Play className="h-4 w-4" />
+                            Run
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Monaco Editor */}
                 <div className="flex-1 bg-studio-code-bg">
                     {activeFile ? (
                         <EditorComponent
+                            key={activeFile.id} // Force re-mount when switching files
                             height="100%"
                             defaultLanguage="javascript"
                             value={activeFile.content}
@@ -256,6 +296,16 @@ export function CodeTab() {
                         </div>
                     )}
                 </div>
+
+                {/* Version History Panel */}
+                {game && activeFile && (
+                    <FileVersionHistory
+                        isOpen={showVersionHistory}
+                        onClose={() => setShowVersionHistory(false)}
+                        gameId={game.id}
+                        fileId={activeFile.id}
+                    />
+                )}
             </div>
         </div>
     );
