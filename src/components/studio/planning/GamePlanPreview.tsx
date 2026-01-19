@@ -100,9 +100,9 @@ function parseGamePlanMarkdown(markdown: string): React.ReactNode {
             );
         }
         // Checkbox items - [ ] or [x]
-        else if (line.match(/^-\s+\[[ x]\]/i)) {
+        else if (line.match(/^\s*-\s+\[( |x)\]/i)) {
             const isChecked = line.includes('[x]') || line.includes('[X]');
-            const content = line.replace(/^-\s+\[[ xX]\]\s*/, '');
+            const content = line.replace(/^\s*-\s+\[[ xX]\]\s*/, '');
             elements.push(
                 <div key={index} className="flex items-start gap-3 mb-2 text-sm group">
                     {isChecked ? (
