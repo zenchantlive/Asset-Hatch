@@ -22,18 +22,19 @@ A first-principles thinking protocol that **creates and maintains** a durable se
 
 ## The Process
 
-### Step 1: Ensure Roster Storage Exists
+### Step 1: Ensure Roster Storage & Tooling Exists
 
 **The roster must live at:** `.agents/roster.md`
 
-If missing:
-- Call `ensureRosterInitialized()` to guarantee the roster exists and is loaded (creating `.agents/roster.md` if missing).
+If missing or if the management utility is missing:
+1.  Create folder `.agents/`
+2.  Create `.agents/roster.md` using the template in **Step 2**.
+3.  Create `.agents/roster_tool.py` (a self-managed Python utility) to handle structured reads/writes.
 
 **Rules:**
-- The roster file is the **single source of truth** for personas, mandates, and ledger state.
-- Use dedicated roster tools to abstract away file I/O and ensure data integrity.
-- You do **not** need to manually read/write the Markdown file.
-- You **must call tools** whenever you might **update** personas, ledger entries, tensions, or rotation history.
+- The roster file is the **single source of truth**.
+- **Never edit the Markdown manually.** Always use `python3 .agents/roster_tool.py` to ensure data integrity and schema validation.
+- The utility should support commands like `get`, `update-persona`, `add-persona`, `update-ledger`, etc.
 
 ---
 
@@ -144,9 +145,9 @@ At the beginning of each user turn, the **Meta Persona** must decide:
 2. **Whether roster updates might be needed** (domain shift, new risks, repeated failures, user-requested angle)
 
 **If updates might be needed:**
-- Call `getRoster()` to retrieve the current structured roster state.
+- Run `python3 .agents/roster_tool.py get` to retrieve the current structured roster state.
 - Decide on changes based on the structured data.
-- Apply changes via `addPersona()`, `removePersona()`, `updatePersona()`, `updateLedger()`, `appendRotationHistory()`, or `upsertTension()`.
+- Apply changes by executing the utility with appropriate arguments (e.g., `update-persona`, `add-persona`, `update-ledger`).
 
 **If not:**
 - Proceed with the current roster state.
@@ -205,7 +206,7 @@ Before final answer:
 
 ### Step 8: Update Ledger (When Changed)
 
-If any of these changed during the turn, **use the appropriate tools** to update the state:
+If any of these changed during the turn, **use the Python utility** to update the state:
 
 - Persona roster membership (add/remove/replace)
 - Persona mandates/questions/always-flags
@@ -213,24 +214,21 @@ If any of these changed during the turn, **use the appropriate tools** to update
 - Rotation history
 - Open tensions/tradeoffs
 
-Tools handle persistence (atomic write + validation) to `.agents/roster.md`.
+The utility handles persistence (atomic write + validation) to `.agents/roster.md`.
 
 
 ---
 
-### Roster Tools (API)
+### Roster Management Utility (`.agents/roster_tool.py`)
 
-The following tools are available to manage the roster state. These tools handle validation and atomic persistence to `.agents/roster.md`.
+The agent should maintain a Python utility to manage the roster state. This utility handles validation and atomic persistence to `.agents/roster.md`.
 
-- `ensureRosterInitialized(templateVersion?: string) -> Roster`: Guarantees roster exists and is loaded.
-- `getRoster() -> Roster`: Returns the current structured roster object.
-- `updatePersona(name: string, patch: object) -> Roster`: Updates an existing persona's fields.
-- `addPersona(personaSpec: object) -> Roster`: Adds a new persona to the roster.
-- `removePersona(name: string) -> Roster`: Removes a persona from the roster.
-- `updateLedger(personaName: string, ledgerPatch: object) -> Roster`: Updates a persona's ledger state.
-- `appendRotationHistory(entry: string) -> Roster`: Adds an entry to the rotation history.
-- `upsertTension(tensionIdOrTitle: string, patch: object) -> Roster`: Adds or updates a tension/tradeoff.
-- `validateRoster() -> { ok: boolean, errors: string[] }`: Validates the current roster against protocol invariants.
+**Recommended CLI Interface:**
+- `python3 .agents/roster_tool.py get`: Returns the current roster as JSON.
+- `python3 .agents/roster_tool.py update-persona --name "Name" --patch '{"mandate": "..."}'`: Updates a persona.
+- `python3 .agents/roster_tool.py add-persona --spec '{"name": "...", ...}'`: Adds a new persona.
+- `python3 .agents/roster_tool.py update-ledger --name "Name" --patch '{"stance": "..."}'`: Updates ledger.
+- `python3 .agents/roster_tool.py validate`: Checks protocol invariants.
 
 ---
 
@@ -242,14 +240,14 @@ The following tools are available to manage the roster state. These tools handle
 flowchart TD
   U[User Message] --> M[Meta Persona Gate]
   M -->|Update needed?| R{Yes/No}
-  R -->|Yes| IO[Call getRoster()<br/>Update via tools]
+  R -->|Yes| IO[Run roster_tool.py get<br/>Update via roster_tool.py]
   R -->|No| FP[First-Principles Decomposition]
   IO --> FP
   FP --> PC[Persona Consultation<br/>min 3 for non-atomic]
   PC --> SYN[Synthesis & Tension Resolution]
   SYN --> RT[Red-Team Check]
   RT --> OUT[Final Answer<br/>+ Decision Trace]
-  OUT -->|If changed| LED[Tools persist changes to roster.md]
+  OUT -->|If changed| LED[roster_tool.py persists to roster.md]
 ```
 
 ### Roster Lifecycle (State Machine)
@@ -258,8 +256,8 @@ flowchart TD
 stateDiagram-v2
   [*] --> Stable
   Stable --> NeedsRotation: Domain shift / repeated failures / new high-stakes constraints
-  NeedsRotation --> Updated: Meta persona selects <= 1 swap via tools
-  Updated --> Stable: Tools persist to roster.md
+  NeedsRotation --> Updated: Meta persona selects <= 1 swap via roster_tool.py
+  Updated --> Stable: roster_tool.py persists to roster.md
 ```
 
 ---
@@ -268,10 +266,11 @@ stateDiagram-v2
 
 | Component                 | Required? | When                                      |
 |--------------------------|----------:|-------------------------------------------|
-| `.agents/roster.md`      | ✓         | Must exist; tools create if missing       |
+| `.agents/roster.md`      | ✓         | Must exist; created by agent if missing   |
+| `.agents/roster_tool.py` | ✓         | Must exist; created by agent if missing   |
 | Meta Persona             | ✓         | Every turn (govern rotation + enforcement)|
-| Roster tools (read)      | -         | Only when updates may be needed           |
-| Roster tools (write)     | -         | Whenever roster/ledger/history changes    |
+| `roster_tool.py get`     | -         | Only when updates may be needed           |
+| `roster_tool.py update`  | -         | Whenever roster/ledger/history changes    |
 | First-principles decomposition | ✓   | Every turn (brief by default)             |
 | ≥3 persona inputs        | ✓         | Non-atomic tasks                          |
 | Decision Trace           | ✓         | Every turn with major recommendations     |
@@ -291,7 +290,7 @@ stateDiagram-v2
 
 **Forgetting to persist changes**
 - **Problem:** Roster diverges from reality  
-- **Fix:** Use roster tools to update state whenever changes occur  
+- **Fix:** Use `roster_tool.py` to update state whenever changes occur  
 
 ---
 
@@ -306,4 +305,4 @@ stateDiagram-v2
 - Keep roster stable by default  
 - Use Decision Trace for major recommendations  
 - Run Red-Team check when stakes/complexity warrant it  
-- Use roster tools to persist changes to `.agents/roster.md`.
+- Use `roster_tool.py` to persist changes to `.agents/roster.md`.
