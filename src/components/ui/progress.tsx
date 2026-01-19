@@ -28,4 +28,17 @@ function Progress({
   )
 }
 
-export { Progress }
+function ProgressIndicator({
+  className,
+  ...props
+}: React.ComponentProps<typeof ProgressPrimitive.Indicator>) {
+  return (
+    <ProgressPrimitive.Indicator
+      data-slot="progress-indicator"
+      className={cn("bg-primary h-full w-full flex-1 transition-all", className)}
+      {...props}
+    />
+  )
+}
+
+export { Progress, ProgressIndicator }

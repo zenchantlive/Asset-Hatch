@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useStudio } from '@/lib/studio/context';
 import type { UnifiedProjectContext } from '@/lib/types/shared-context';
+import chatStorage from '@/lib/storage/chat-storage';
 
 interface ChatPanelProps {
   gameId: string;
@@ -29,8 +30,8 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const hasRestoredMessages = useRef(false);
 
   // Get studio context to update code/preview when tools execute
-  // Multi-file: Use loadFiles/setFiles instead of setCode/loadSceneCode
-  const { refreshPreview, refreshGame, loadFiles, setFiles, addActivity } = useStudio();
+  // Multi-file: Use loadFiles instead of setCode/loadSceneCode
+  const { refreshPreview, refreshGame, loadFiles, addActivity } = useStudio();
 
   // Unique chat ID per game to maintain separate histories
   const chatId = `studio-chat-${gameId}`;
@@ -43,7 +44,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     setMessages,
     sendMessage,
     status,
-     
+
   } = useChat({
     id: chatId,
     // AI SDK v6: Use transport for custom API endpoint
@@ -214,39 +215,67 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     },
   });
 
-  // Restore messages from localStorage on first mount
+  // Migrate from localStorage to IndexedDB on first load
   useEffect(() => {
-    if (!gameId || hasRestoredMessages.current) return;
+    if (!gameId) return;
 
-    const storageKey = `studio-conversation-${gameId}`;
-    const saved = localStorage.getItem(storageKey);
-
-    if (saved) {
+    const migrateAndLoad = async () => {
       try {
-        const parsed = JSON.parse(saved) as UIMessage[];
-        console.log('📂 Restoring', parsed.length, 'studio messages from localStorage');
-        setMessages(parsed);
+        // Migrate existing localStorage data
+        await chatStorage.migrateFromLocalStorage();
+
+        // Load messages using the new storage system
+        const savedMessages = await chatStorage.loadMessages(gameId);
+        if (savedMessages && savedMessages.length > 0) {
+          console.log('📂 Restoring', savedMessages.length, 'studio messages from hybrid storage');
+          setMessages(savedMessages);
+        } else {
+          console.log('📂 No saved studio messages found in hybrid storage');
+        }
         hasRestoredMessages.current = true;
       } catch (error) {
         console.error('Failed to restore studio chat history:', error);
+        // Fallback to localStorage if hybrid storage fails
+        const storageKey = `studio-conversation-${gameId}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as UIMessage[];
+            console.log('📂 Restoring', parsed.length, 'studio messages from localStorage fallback');
+            setMessages(parsed);
+          } catch (fallbackError) {
+            console.error('Failed to restore from localStorage fallback:', fallbackError);
+          }
+        }
+        hasRestoredMessages.current = true;
       }
-    } else {
-      console.log('📂 No saved studio messages found in localStorage');
-      hasRestoredMessages.current = true;
-    }
+    };
+
+    migrateAndLoad();
   }, [gameId, setMessages]);
 
-  // Save messages to localStorage whenever they change
+  // Save messages using hybrid storage whenever they change
   useEffect(() => {
     if (!gameId || !hasRestoredMessages.current || messages.length === 0) return;
 
-    const storageKey = `studio-conversation-${gameId}`;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(messages));
-      console.log('💾 Saved', messages.length, 'studio messages to localStorage');
-    } catch (error) {
-      console.error('Failed to save studio chat history:', error);
-    }
+    const saveWithFallback = async () => {
+      try {
+        await chatStorage.saveMessages(gameId, messages);
+        console.log('💾 Saved', messages.length, 'studio messages to hybrid storage');
+      } catch (error) {
+        console.error('Failed to save to hybrid storage, falling back to localStorage:', error);
+        // Fallback to localStorage
+        const storageKey = `studio-conversation-${gameId}`;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(messages));
+          console.log('💾 Saved', messages.length, 'studio messages to localStorage fallback');
+        } catch (fallbackError) {
+          console.error('Failed to save to localStorage fallback:', fallbackError);
+        }
+      }
+    };
+
+    saveWithFallback();
   }, [messages, gameId]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -330,11 +359,10 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
                 className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${
-                    message.role === "user"
-                      ? "aurora-gradient text-white"
-                      : "glass-panel aurora-glow-hover"
-                  }`}
+                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${message.role === "user"
+                    ? "aurora-gradient text-white"
+                    : "glass-panel aurora-glow-hover"
+                    }`}
                 >
                   <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
                     <ReactMarkdown>

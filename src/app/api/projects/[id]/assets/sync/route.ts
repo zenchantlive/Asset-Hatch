@@ -112,6 +112,9 @@ export async function POST(
     const changes: SyncAssetsResponse["changes"] = [];
     const syncedAssetKeys: string[] = [];
 
+    // Get the game ID for creating GameAssetRef records
+    const gameId = project.game?.id;
+
     // Process each pending asset
     for (const assetKey of pendingAssets) {
       const asset = manifest.assets?.[assetKey];
@@ -128,6 +131,36 @@ export async function POST(
         });
 
         syncedAssetKeys.push(assetKey);
+
+        // Create GameAssetRef record for AI access (Phase 9)
+        if (gameId) {
+          try {
+            await prisma.gameAssetRef.upsert({
+              where: {
+                gameId_assetId: {
+                  gameId,
+                  assetId: asset.id,
+                },
+              },
+              update: {},
+              create: {
+                gameId,
+                projectId: projectId,
+                assetType: asset.type,
+                assetId: asset.id,
+                assetName: asset.name,
+                thumbnailUrl: asset.urls.thumbnail || null,
+                modelUrl: asset.urls.model || null,
+                glbUrl: asset.urls.glb || null,
+                manifestKey: assetKey,
+                createdAt: new Date(),
+              },
+            });
+            console.log(`🔗 Created GameAssetRef for: ${asset.name}`);
+          } catch (syncError) {
+            console.error(`❌ Failed to create GameAssetRef for ${asset.name}:`, syncError);
+          }
+        }
 
         console.log(`🔄 Synced asset: ${asset.name} (${asset.type})`);
       }

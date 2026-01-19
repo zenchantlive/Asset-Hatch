@@ -361,6 +361,10 @@ model GameAssetRef {
   modelUrl       String?
   glbUrl         String?
 
+  // Permanent 3D asset storage (Phase 10)
+  // Base64-encoded GLB data for permanent access without URL expiration
+  glbData        String?    @db.Text
+
   // Manifest key (for easy lookup in Project.assetManifest)
   manifestKey    String?
 
