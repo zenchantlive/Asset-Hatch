@@ -126,7 +126,7 @@ Create \`.agents/roster.md\` with **exactly** this structure:
   - **Last updated:** (date or turn label)
 
 ## Rotation History
-- (date/turn) change made, why, what replaced
+- (date or turn label) change made, why, what replaced
 
 ## Open Tensions / Tradeoffs
 - Tension: …
