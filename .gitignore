@@ -71,3 +71,5 @@ mcp_agent_mail/
 .beads/daemon.lock
 .beads/daemon.log
 .beads/issues.jsonl
+.beads/.local_version
+.beads/metadata.json
