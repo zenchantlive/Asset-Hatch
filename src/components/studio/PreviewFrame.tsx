@@ -243,7 +243,7 @@ ${scriptTags}
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [onReady, onError]);
+    }, [onReady, onError, gameId]);
 
     return (
         <div className="relative w-full h-full">
