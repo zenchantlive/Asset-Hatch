@@ -20,10 +20,10 @@ const createSceneSchema = z.object({
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
@@ -49,11 +49,11 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -103,11 +103,11 @@ export async function GET(
 
 export async function POST(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
