@@ -63,11 +63,11 @@ export function UnifiedProjectView({ projectId, initialContext }: UnifiedProject
         });
         const data = await response.json();
         if (data.success) {
-          setProjectContext((prev) =>
-            prev
-              ? { ...prev, ...updates, updatedAt: new Date().toISOString() }
-              : undefined
-          );
+          setProjectContext((prev) => ({
+            ...(prev ?? {}),
+            ...updates,
+            updatedAt: new Date().toISOString(),
+          }));
         }
       } catch (error) {
         console.error('Failed to save context:', error);
