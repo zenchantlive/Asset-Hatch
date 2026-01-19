@@ -4,69 +4,80 @@ import { prisma } from '@/lib/prisma';
 import type { AssetManifest } from '@/lib/types/unified-project';
 
 /**
- * Fetch real metadata for an asset from GeneratedAsset/Generated3DAsset tables
+ * Batch fetch all asset metadata to avoid N+1 queries
  */
-async function fetchAssetMetadata(
-  assetId: string,
-  assetType: string
-): Promise<{
-  prompt?: string;
-  style?: string;
-  animations?: string[];
-  poses?: string[];
-}> {
-  const result: {
-    prompt?: string;
-    style?: string;
-    animations?: string[];
-    poses?: string[];
-  } = {};
+async function fetchAllAssetMetadata(
+  assetRefs: Array<{ assetId: string; assetType: string }>
+): Promise<Map<string, { prompt?: string; style?: string; animations?: string[]; poses?: string[] }>> {
+  const metadataMap = new Map<string, { prompt?: string; style?: string; animations?: string[]; poses?: string[] }>();
 
-  if (assetType === '3d' || assetType === 'model') {
-    // Fetch from Generated3DAsset
+  // Separate 2D and 3D asset IDs
+  const gen3dIds: string[] = [];
+  const gen2dIds: string[] = [];
+
+  for (const ref of assetRefs) {
+    if (ref.assetType === '3d' || ref.assetType === 'model') {
+      gen3dIds.push(ref.assetId);
+    } else if (ref.assetType === '2d' || ref.assetType === 'texture') {
+      gen2dIds.push(ref.assetId);
+    }
+  }
+
+  // Batch fetch 3D assets
+  if (gen3dIds.length > 0) {
     try {
-      const gen3d = await prisma.generated3DAsset.findUnique({
-        where: { id: assetId },
+      const gen3dAssets = await prisma.generated3DAsset.findMany({
+        where: { id: { in: gen3dIds } },
       });
-      if (gen3d) {
-        result.prompt = gen3d.promptUsed || undefined;
+
+      for (const asset of gen3dAssets) {
+        const metadata: { prompt?: string; style?: string; animations?: string[]; poses?: string[] } = {
+          prompt: asset.promptUsed || undefined,
+        };
         // Parse animations from animatedModelUrls JSON
-        if (gen3d.animatedModelUrls) {
+        if (asset.animatedModelUrls) {
           try {
-            const urls = JSON.parse(gen3d.animatedModelUrls);
-            result.animations = Object.keys(urls);
+            const urls = JSON.parse(asset.animatedModelUrls);
+            metadata.animations = Object.keys(urls);
           } catch (e) {
-            console.warn(`[fetchAssetMetadata] Failed to parse animatedModelUrls for asset ${assetId}:`, e);
+            console.warn(`[fetchAllAssetMetadata] Failed to parse animatedModelUrls for asset ${asset.id}:`, e);
           }
         }
+        metadataMap.set(asset.id, metadata);
       }
     } catch (e) {
-      console.error(`[fetchAssetMetadata] Database error fetching 3D asset ${assetId}:`, e);
+      console.error('[fetchAllAssetMetadata] Database error fetching 3D assets:', e);
     }
-  } else if (assetType === '2d' || assetType === 'texture') {
-    // Fetch from GeneratedAsset
+  }
+
+  // Batch fetch 2D assets
+  if (gen2dIds.length > 0) {
     try {
-      const genAsset = await prisma.generatedAsset.findUnique({
-        where: { id: assetId },
+      const gen2dAssets = await prisma.generatedAsset.findMany({
+        where: { id: { in: gen2dIds } },
       });
-      if (genAsset) {
-        result.prompt = genAsset.promptUsed || undefined;
+
+      for (const asset of gen2dAssets) {
+        const metadata: { prompt?: string; style?: string; animations?: string[]; poses?: string[] } = {
+          prompt: asset.promptUsed || undefined,
+        };
         // Parse metadata for style info
-        if (genAsset.metadata) {
+        if (asset.metadata) {
           try {
-            const meta = JSON.parse(genAsset.metadata);
-            result.style = meta.style || meta.artStyle;
+            const meta = JSON.parse(asset.metadata);
+            metadata.style = meta.style || meta.artStyle;
           } catch {
             // Not valid JSON, ignore
           }
         }
+        metadataMap.set(asset.id, metadata);
       }
-    } catch {
-      // GeneratedAsset not found, continue with defaults
+    } catch (e) {
+      console.error('[fetchAllAssetMetadata] Database error fetching 2D assets:', e);
     }
   }
 
-  return result;
+  return metadataMap;
 }
 
 /**
@@ -100,15 +111,19 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
+  // Batch fetch all metadata at once to avoid N+1 queries
+  const assetRefs = game.assetRefs.map(ref => ({ assetId: ref.assetId, assetType: ref.assetType }));
+  const metadataMap = await fetchAllAssetMetadata(assetRefs);
+
   // Build asset manifest from GameAssetRefs
   const assets: AssetManifest['assets'] = {};
-  
+
   for (const ref of game.assetRefs) {
     const key = ref.manifestKey || ref.assetId;
-    
-    // Fetch real metadata from source tables
-    const metadata = await fetchAssetMetadata(ref.assetId, ref.assetType);
-    
+
+    // Look up pre-fetched metadata from map
+    const metadata = metadataMap.get(ref.assetId) || {};
+
     assets[key] = {
       id: ref.assetId,
       type: ref.assetType as '2d' | '3d',
