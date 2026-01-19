@@ -52,7 +52,7 @@ export async function GET(
             );
         }
 
-        // Find game with ownership verification and soft-delete check
+// Find game with ownership verification and soft-delete check
         const game = await prisma.game.findFirst({
             where: {
                 id: params.id,
@@ -60,6 +60,9 @@ export async function GET(
                 deletedAt: null, // Exclude soft-deleted
             },
             include: {
+                project: {
+                    select: { id: true },
+                },
                 scenes: {
                     orderBy: { orderIndex: "asc" }, // Order scenes by index
                     select: {
@@ -82,7 +85,14 @@ export async function GET(
             );
         }
 
-        return NextResponse.json({ success: true, game });
+        // Transform to include projectId at top level
+        const { project, ...gameData } = game;
+        const responseGame = {
+            ...gameData,
+            projectId: project?.id || null,
+        };
+
+        return NextResponse.json({ success: true, game: responseGame });
     } catch (error) {
         console.error("Failed to fetch game:", error);
         return NextResponse.json(

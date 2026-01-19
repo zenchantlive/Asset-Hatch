@@ -37,7 +37,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         setMessages,
         sendMessage,
         status,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
     } = useChat({
         id: chatId,
         transport: new DefaultChatTransport({
