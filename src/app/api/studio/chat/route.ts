@@ -62,7 +62,11 @@ export async function POST(req: NextRequest) {
             ? JSON.parse(projectContextJson)
             : projectContextJson;
       } catch (error) {
-        console.warn('Failed to parse projectContext:', error);
+        console.error('❌ Studio Chat API: Failed to parse projectContext JSON.', error);
+        return new Response(
+          JSON.stringify({ error: 'Invalid projectContext format. Expected a valid JSON object or string.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
       }
     }
 
