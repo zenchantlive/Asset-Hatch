@@ -134,13 +134,19 @@
   /* slightly crisper border */
   --glass-highlight: oklch(1 0 0 / 0.03);
   
-  /* Hatch Studios Variables */
+/* Hatch Studios Variables */
   --studio-panel-bg: hsl(var(--card));
   --studio-panel-border: hsl(var(--border));
   --studio-preview-bg: #1a1a1a;
   --studio-code-bg: #1e1e1e;
   --studio-chat-width: 35%;
   --studio-min-chat-width: 20rem;
+
+  /* Phase 6B: Tab Theme Colors */
+  --tab-assets-primary: oklch(0.65 0.2 280);
+  --tab-assets-bg: oklch(0.65 0.2 280 / 0.1);
+  --tab-game-primary: oklch(0.65 0.2 220);
+  --tab-game-bg: oklch(0.65 0.2 220 / 0.1);
 }
 
 /* Force Dark Mode defaults since we want a "Space" theme primarily */

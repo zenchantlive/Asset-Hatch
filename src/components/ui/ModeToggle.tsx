@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Layers, Box } from "lucide-react";
+import { Layers, Box, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ModeToggleProps {
-    value: "2d" | "3d";
-    onValueChange: (value: "2d" | "3d") => void;
+    value: "2d" | "3d" | "hybrid";
+    onValueChange: (value: "2d" | "3d" | "hybrid") => void;
     className?: string;
     disabled?: boolean;
 }
@@ -58,6 +58,24 @@ export function ModeToggle({
             >
                 <Box className="h-3.5 w-3.5" />
                 <span>3D</span>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => onValueChange("hybrid")}
+                disabled={disabled}
+                data-state={value === "hybrid" ? "active" : "inactive"}
+                className={cn(
+                    "flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-300",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    value === "hybrid"
+                        ? "bg-purple-600/80 text-white shadow-sm border border-purple-400/30"
+                        : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                )}
+                aria-pressed={value === "hybrid"}
+            >
+                <Grid3X3 className="h-3.5 w-3.5" />
+                <span>Hybrid</span>
             </button>
         </div>
     );

@@ -48,3 +48,17 @@ This feeds our "Building in Public" blog - be honest, vulnerable, and technicall
 
 ## Blog Voice
 Humorous, narrative-driven, technically honest. Admit mistakes. Highlight "loops" (recursive errors, ironic moments). Not corporate marketing - developer diary.
+
+## Airweave MCP (Semantic Search)
+**When to use**: Search codebase context (docs, design docs, implementation notes) when you need semantic understanding beyond grep.
+
+```typescript
+// Use Airweave when searching for:
+// - "how does generation work?" (conceptual search)
+// - "where is the auth logic?" (semantic find)
+// - "find the cost tracking code" (description-based find)
+// - "summarize commits from [today's date]"
+// - "detail the [pr number] and comments and the commits"
+
+// Default search: hybrid (semantic + keyword)
+// Returns ranked results with relevance scores

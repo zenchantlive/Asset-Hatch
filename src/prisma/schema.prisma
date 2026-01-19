@@ -78,20 +78,39 @@ model VerificationToken {
 // =============================================================================
 
 // Project model - main entity representing a game asset project
+// Extended with unified fields for Phase 6 (Asset Hatch + Hatch Studios)
 model Project {
   id                  String              @id @default(uuid())
   userId              String?             // Nullable for existing projects without auth
   user                User?               @relation(fields: [userId], references: [id])
   name                String
   phase               String              @default("planning")
-  mode                String              @default("2d") // "2d" | "3d" - generation mode
+  mode                String              @default("2d") // "2d" | "3d" | "hybrid" - generation mode
   artStyle            String?
   baseResolution      String?
   perspective         String?
-  gameGenre           String?
-  theme               String?
-  mood                String?
-  colorPalette        String?
+
+  // =============================================================================
+  // UNIFIED PROJECT FIELDS (Phase 6)
+  // =============================================================================
+
+  // Game creation (linked game if any)
+  // 1:1 relation - Project owns the relation with unique gameId
+  gameId              String?             @unique
+  game                Game?               @relation(fields: [gameId], references: [id]) // Explicit 1:1 relation to Game
+
+  // Asset Manifest - THE CORE OF UNIFICATION
+  // JSON blob tracking all linked assets and their sync state
+  assetManifest       Json?               @default("{}")
+
+  // Sync state tracking
+  syncStatus          String              @default("clean") // "clean" | "pending" | "syncing" | "error"
+  lastSyncAt          DateTime?
+  pendingAssetCount   Int                 @default(0)
+
+  // =============================================================================
+  // RELATIONS
+  // =============================================================================
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   memoryFiles         MemoryFile[]
@@ -100,6 +119,9 @@ model Project {
   characterRegistry   CharacterRegistry[]
   generationCosts     GenerationCost[]
   generated3DAssets   Generated3DAsset[]
+  gameRefs            GameAssetRef[]      // Phase 6: asset references from games
+
+  @@index([userId, updatedAt])
 }
 
 // MemoryFile model - stores JSON content like entities.json, conversation history
@@ -224,6 +246,7 @@ model Generated3DAsset {
 // =============================================================================
 
 // Game model - main entity for a Hatch Studios game project
+// Extended with project reference for Phase 6 unification
 model Game {
   id              String            @id @default(uuid())
   userId          String
@@ -234,6 +257,17 @@ model Game {
   // Validation that it belongs to this game is done in API layer
   activeSceneId   String?
   phase           String            @default("planning") // 'planning' | 'building' | 'testing'
+
+  // =============================================================================
+  // UNIFIED PROJECT REFERENCE (Phase 6)
+  // =============================================================================
+  // 1:1 relation - Game references Project with projectId
+  projectId       String?           @unique
+  project         Project?          @relation(fields: [projectId], references: [id])
+
+  // =============================================================================
+  // RELATIONS
+  // =============================================================================
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   deletedAt       DateTime?         // Soft delete support
@@ -281,6 +315,7 @@ model GameScene {
   game       Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
   name       String
   orderIndex Int              @default(0)
+  code       String           @db.Text // Deprecated: use GameFile instead
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   placements AssetPlacement[]
@@ -301,20 +336,42 @@ model CodeVersion {
 }
 
 // GameAssetRef model - links external assets to a game
+// Extended for Phase 6 with version locking and manifest key
 model GameAssetRef {
   id             String           @id @default(uuid())
   gameId         String
   game           Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  assetProjectId String           // Original project the asset came from
-  assetId        String           // Asset ID within that project
-  assetType      String           // 'model' | 'texture' | 'skybox' | etc.
-  name           String
+
+  // Asset source tracking
+  projectId      String           // Original project the asset came from
+  project        Project          @relation(fields: [projectId], references: [id])
+
+  // Asset identification
+  assetType      String           // '2d' | '3d' | 'model' | 'texture' | 'skybox'
+  assetId        String           // ID in GeneratedAsset or Generated3DAsset
+  assetName      String
+
+  // Version locking (critical for sync safety)
+  // Snapshots the asset version at time of linking to prevent breaking changes
+  lockedVersionId String?
+  lockedAt       DateTime?
+
+  // Asset data (snapshot at time of linking)
   thumbnailUrl   String?
+  modelUrl       String?
   glbUrl         String?
+
+  // Manifest key (for easy lookup in Project.assetManifest)
+  manifestKey    String?
+
+  // Relation: all placements of this asset
+  placements     AssetPlacement[]
+
   createdAt      DateTime         @default(now())
-  placements     AssetPlacement[] // Relation: all placements of this asset
 
   @@unique([gameId, assetId])
+  @@index([gameId])
+  @@index([projectId])
 }
 
 // AssetPlacement model - positions an asset within a scene

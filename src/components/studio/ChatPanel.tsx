@@ -9,9 +9,11 @@ import { Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useStudio } from '@/lib/studio/context';
+import type { UnifiedProjectContext } from '@/lib/types/shared-context';
 
 interface ChatPanelProps {
   gameId: string;
+  projectContext?: UnifiedProjectContext;
 }
 
 /**
@@ -22,7 +24,7 @@ interface ChatPanelProps {
  *
  * @see src/components/planning/ChatInterface.tsx for reference implementation
  */
-export function ChatPanel({ gameId }: ChatPanelProps) {
+export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const hasRestoredMessages = useRef(false);
 
@@ -34,14 +36,14 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
   const chatId = `studio-chat-${gameId}`;
 
   // Debug: Log gameId to verify it's defined
-  console.log('🎮 ChatPanel mounted with gameId:', gameId);
+  console.log('🎮 ChatPanel mounted with gameId:', gameId, 'hasContext:', !!projectContext);
 
   const {
     messages,
     setMessages,
     sendMessage,
     status,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
   } = useChat({
     id: chatId,
     // AI SDK v6: Use transport for custom API endpoint
@@ -206,13 +208,19 @@ export function ChatPanel({ gameId }: ChatPanelProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
-      console.log('📨 Sending message to /api/studio/chat with gameId:', gameId);
+      console.log('📨 Sending message to /api/studio/chat with gameId:', gameId, 'hasContext:', !!projectContext);
+
+      // Pass projectContext in body when available (Phase 6B)
+      const messageBody: { gameId: string; projectContext?: string } = { gameId };
+      if (projectContext) {
+        messageBody.projectContext = JSON.stringify(projectContext);
+      }
 
       // CRITICAL: Pass body here, not in hook config (AI SDK v6 pattern)
       sendMessage(
         { text: input },
         {
-          body: { gameId }
+          body: messageBody
         }
       );
       setInput("");
