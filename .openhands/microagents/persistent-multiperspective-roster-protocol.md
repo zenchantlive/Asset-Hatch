@@ -87,7 +87,7 @@ Create \`.agents/roster.md\` with **exactly** this structure:
   - **Current stance:**
   - **Warnings:**
   - **Open questions:**
-  - **Last updated:**
+  - **Last updated:** (date or turn label)
 
 ### 3) Unintended Consequences
 - (same fields)
