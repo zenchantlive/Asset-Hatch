@@ -55,7 +55,7 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
       }
       
       // Handle 3D models
-      if (asset.type === '3d' || asset.metadata.animations) {
+      if (asset.type === '3d') {
         return BABYLON.SceneLoader.ImportMeshAsync('', url.split('/').slice(0, -1).join('/') + '/', url.split('/').pop(), scene)
           .then(function(result) {
             console.log('[ASSETS] Loaded 3D asset: ' + key);
