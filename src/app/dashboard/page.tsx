@@ -66,12 +66,17 @@ export default async function DashboardPage() {
 
   // Transform projects to unified format
   const projectsWithStatus: UnifiedProject[] = projects.map((project) => {
-    // Parse asset manifest to get asset count
-    const manifest = (project.assetManifest as Record<string, unknown> | null) || {};
-    const assets = (manifest.assets as Record<string, unknown>) || {};
-    const syncState = (manifest.syncState as { pendingAssets?: string[] } | null) || {
-      pendingAssets: [],
-    };
+    // Safely parse asset manifest to get asset count
+    const manifestSchema = z.object({
+      assets: z.record(z.unknown()).optional().default({}),
+      syncState: z.object({
+        pendingAssets: z.array(z.string()).optional().default([]),
+      }).optional().default({}),
+    }).optional().default({});
+
+    const manifest = manifestSchema.parse(project.assetManifest);
+    const assets = manifest.assets;
+    const syncState = manifest.syncState;
 
     // Get game phase, converting null to undefined
     const gamePhaseValue = project.game?.phase;
