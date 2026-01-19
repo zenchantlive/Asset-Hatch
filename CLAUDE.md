@@ -57,21 +57,8 @@ Humorous, narrative-driven, technically honest. Admit mistakes. Highlight "loops
 // - "how does generation work?" (conceptual search)
 // - "where is the auth logic?" (semantic find)
 // - "find the cost tracking code" (description-based find)
-// - "summaize commits from [today's date]"
+// - "summarize commits from [today's date]"
 // - "detail the [pr number] and comments and the commits"
 
 // Default search: hybrid (semantic + keyword)
 // Returns ranked results with relevance scores
-```
-
-**Collection ID:** `c3a49bac-31ef-4319-a343-eba9972701ee`
-
-**When to prefer Airweave over grep:**
-| Scenario | Tool |
-|----------|------|
-| Exact function/variable name | `grep` or `serena_search_for_pattern` |
-| "Find where X is defined" | LSP (`lsp_find_references`) |
-| Conceptual search ("how does Y work") | **Airweave** |
-| Multi-concept query ("auth + error handling") | **Airweave** |
-| Design docs, decisions, patterns | **Airweave** |
-| Github Querey | **Airweave** |

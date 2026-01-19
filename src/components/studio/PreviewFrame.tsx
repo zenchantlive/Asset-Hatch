@@ -50,7 +50,7 @@ interface PreviewFrameProps {
  * Concatenate files in orderIndex order for execution
  */
 function concatenateFiles(files: GameFileData[]): string {
-    return files
+    return [...files]
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((f) => f.content)
         .join('\n\n');

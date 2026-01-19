@@ -403,23 +403,17 @@ export default function PlanningPage() {
 {/* RIGHT: Game & Files only (Parameters moved to bar below) */}
           <div className="flex items-center gap-3">
             {gameId ? (
-              <a
+              <Link
                 href={`/studio/${gameId}`}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all"
               >
                 🎮 Go to Game
-              </a>
+              </Link>
             ) : (
               <span className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/30">
                 No Game Yet
               </span>
             )}
-            <button
-              onClick={() => setAssetsMenuOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
-            >
-              Assets
-            </button>
             <button
               onClick={() => setFilesMenuOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"

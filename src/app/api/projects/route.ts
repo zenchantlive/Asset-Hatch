@@ -143,7 +143,7 @@ export async function POST(
     }
 
     // Set initial phase based on startWith
-    const initialPhase = startWith === "game" ? "building" : "assets";
+    const initialPhase = startWith === "game" ? "building" : "planning";
 
     // Create initial asset manifest
     const initialManifest = {
@@ -157,37 +157,52 @@ export async function POST(
       },
     };
 
-    // Create project with user ownership and mode
-    const project = await prisma.project.create({
-      data: {
-        name,
-        userId: userId,
-        phase: initialPhase,
-        mode: mode,
-        assetManifest: initialManifest,
-        syncStatus: "clean",
-      },
-    });
-
-    // Optionally create a linked game (Game First flow)
+    let project;
     let gameId: string | undefined;
-    if (startWith === "game") {
-      const game = await prisma.game.create({
-        data: {
-          userId: userId,
-          name: `${name} Game`,
-          phase: "planning",
-          projectId: project.id,
-        },
-      });
-      gameId = game.id;
 
-      // Update project with game reference
-      await prisma.project.update({
-        where: { id: project.id },
+    if (startWith === "game") {
+      // Use a transaction to ensure atomic creation of project and game
+      project = await prisma.$transaction(async (tx) => {
+        const newProject = await tx.project.create({
+          data: {
+            name,
+            userId: userId,
+            phase: "assets", // Start with 'assets' and update to 'building' inside transaction
+            mode: mode,
+            assetManifest: initialManifest,
+            syncStatus: "clean",
+          },
+        });
+
+        const newGame = await tx.game.create({
+          data: {
+            userId: userId,
+            name: `${name} Game`,
+            phase: "planning",
+            projectId: newProject.id,
+          },
+        });
+        gameId = newGame.id;
+
+        // Update project with game reference and correct phase
+        return tx.project.update({
+          where: { id: newProject.id },
+          data: {
+            gameId: newGame.id,
+            phase: "building",
+          },
+        });
+      });
+    } else {
+      // Create project without a game
+      project = await prisma.project.create({
         data: {
-          gameId: game.id,
-          phase: "building",
+          name,
+          userId: userId,
+          phase: initialPhase,
+          mode: mode,
+          assetManifest: initialManifest,
+          syncStatus: "clean",
         },
       });
     }

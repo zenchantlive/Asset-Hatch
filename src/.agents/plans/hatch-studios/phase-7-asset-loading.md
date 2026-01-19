@@ -250,7 +250,11 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
       
       // Handle 3D models
       if (asset.type === '3d' || asset.metadata.animations) {
-        return BABYLON.SceneLoader.ImportMeshAsync('', url.split('/').slice(0, -1).join('/') + '/', url.split('/').pop(), scene)
+        var lastSlash = url.lastIndexOf('/');
+        var rootUrl = lastSlash === -1 ? '' : url.substring(0, lastSlash + 1);
+        var filename = lastSlash === -1 ? url : url.substring(lastSlash + 1);
+
+        return BABYLON.SceneLoader.ImportMeshAsync('', rootUrl, filename, scene)
           .then(function(result) {
             console.log('[ASSETS] Loaded 3D asset: ' + key);
             // Store metadata on first mesh
