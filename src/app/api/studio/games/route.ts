@@ -210,14 +210,13 @@ export async function POST(
             }
         }
 
-        // Create game with a default "Main Scene" and initial main.js file using a transaction
-        // This ensures game, scene, and file are created atomically
+        // Create game with initial main.js file using a transaction
+        // Note: Scenes are created explicitly via the scenes API, not during game creation.
+        // The activeSceneId should be set when the first scene is created.
         const game = await prisma.game.create({
             data: {
                 name,
                 description: description || null,
-                // Do not create a legacy default scene; `GameScene.code` is deprecated.
-                // Rely on `GameFile` for initial code, and create scenes explicitly via the scenes API.
                 activeSceneId: null,
                 // Create initial main.js file for multi-file support
                 files: {
@@ -239,24 +238,9 @@ export async function POST(
             },
         });
 
-        // Set the active scene to the newly created default scene
-        const updatedGame = await prisma.game.update({
-            where: { id: game.id },
-            data: { activeSceneId: game.scenes[0]?.id ?? null },
-            include: {
-                scenes: {
-                    select: {
-                        id: true,
-                        name: true,
-                        orderIndex: true,
-                    },
-                },
-            },
-        });
-
         return NextResponse.json({
             success: true,
-            game: updatedGame,
+            game,
         });
     } catch (error) {
         console.error("Failed to create game:", error);
