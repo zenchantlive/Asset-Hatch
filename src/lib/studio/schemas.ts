@@ -117,9 +117,8 @@ export type CreateFileInput = z.infer<typeof createFileSchema>;
  * Schema for updating an existing file's content
  */
 export const updateFileSchema = z.object({
-  name: z.string()
-    .min(1)
-    .describe('Name of the file to update (e.g., "player.js")'),
+  fileId: z.string()
+    .describe('ID of the file to update'),
   content: z.string()
     .min(1)
     .describe('New JavaScript/Babylon.js code content'),
@@ -131,12 +130,25 @@ export type UpdateFileInput = z.infer<typeof updateFileSchema>;
  * Schema for deleting a file from the game
  */
 export const deleteFileSchema = z.object({
-  name: z.string()
-    .min(1)
-    .describe('Name of the file to delete (e.g., "enemies.js")'),
+  fileId: z.string()
+    .describe('ID of the file to delete'),
 });
 
 export type DeleteFileInput = z.infer<typeof deleteFileSchema>;
+
+/**
+ * Schema for renaming a file
+ */
+export const renameFileSchema = z.object({
+  fileId: z.string()
+    .describe('ID of the file to rename'),
+  name: z.string()
+    .min(1)
+    .regex(/^[a-zA-Z0-9_-]+\.js$/, 'Filename must end with .js and contain only alphanumeric, underscore, or hyphen')
+    .describe('New filename (e.g., "player.js", "enemies.js")'),
+});
+
+export type RenameFileInput = z.infer<typeof renameFileSchema>;
 
 /**
  * Schema for listing all files in the game
@@ -153,7 +165,7 @@ export type ListFilesInput = z.infer<typeof listFilesSchema>;
 export const reorderFilesSchema = z.object({
   fileOrder: z.array(z.string())
     .min(1)
-    .describe('Array of filenames in desired execution order'),
+    .describe('Array of file IDs in desired execution order'),
 });
 
 export type ReorderFilesInput = z.infer<typeof reorderFilesSchema>;
