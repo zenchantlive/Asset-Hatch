@@ -57,9 +57,16 @@ export async function GET(request: Request) {
       try {
         const verified = verifyProxyToken({ token, gameId, key });
         if (!verified.valid) {
+          console.warn("⚠️ Proxy token verification failed:", {
+            reason: verified.reason,
+            gameId,
+            key,
+          });
           return withCorsHeaders(new NextResponse("Unauthorized", { status: 401 }));
         }
-      } catch {
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Unknown token verification error";
+        console.error("❌ Proxy token verification threw an error:", { message, gameId, key });
         return withCorsHeaders(new NextResponse("Unauthorized", { status: 401 }));
       }
     }
