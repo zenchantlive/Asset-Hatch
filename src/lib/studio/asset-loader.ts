@@ -18,6 +18,9 @@ import type { AssetInfo } from "./types";
 export function generateAssetLoaderScript(assets: AssetInfo[]): string {
   const assetsJson = JSON.stringify(assets, null, 2);
   
+  // Escape </script> sequences to prevent XSS
+  const escapedJson = assetsJson.replace(/<\//g, '<\\/');
+  
   return `
 (function() {
   'use strict';
@@ -26,7 +29,7 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
   const ASSET_REGISTRY = new Map();
   
   // Initialize registry with assets
-  ${assetsJson}.forEach(function(asset) {
+  ${escapedJson}.forEach(function(asset) {
     ASSET_REGISTRY.set(asset.key, asset);
   });
   
@@ -54,8 +57,15 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
         return Promise.resolve(null);
       }
       
-      // Handle 3D models
-      if (asset.type === '3d') {
+      // Handle 2D textures
+      if (asset.type === '2d' || asset.type === 'texture') {
+        var texture = new BABYLON.Texture(url, scene);
+        console.log('[ASSETS] Loaded 2D asset: ' + key);
+        return Promise.resolve(texture);
+      }
+      
+      // Handle 3D models (including 'model' type)
+      if (asset.type === '3d' || asset.type === 'model') {
         return BABYLON.SceneLoader.ImportMeshAsync('', url.split('/').slice(0, -1).join('/') + '/', url.split('/').pop(), scene)
           .then(function(result) {
             console.log('[ASSETS] Loaded 3D asset: ' + key);
@@ -85,11 +95,18 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
           });
       }
       
-      // Handle 2D textures
-      if (asset.type === '2d') {
-        var texture = new BABYLON.Texture(url, scene);
-        console.log('[ASSETS] Loaded 2D asset: ' + key);
-        return Promise.resolve(texture);
+      // Handle skybox assets
+      if (asset.type === 'skybox') {
+        var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+        var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+        skyboxMaterial.backFaceCulling = false;
+        skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(url.replace(/\/[^\/]*$/, '/'), scene);
+        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        skybox.material = skyboxMaterial;
+        console.log('[ASSETS] Loaded skybox: ' + key);
+        return Promise.resolve(skybox);
       }
       
       console.warn('[ASSETS] Unknown asset type: ' + asset.type);
@@ -137,6 +154,6 @@ export function validateAssetInfo(asset: unknown): asset is AssetInfo {
     typeof a.key === 'string' &&
     typeof a.name === 'string' &&
     typeof a.type === 'string' &&
-    (a.type === '2d' || a.type === '3d')
+    (a.type === '2d' || a.type === '3d' || a.type === 'model' || a.type === 'texture' || a.type === 'skybox')
   );
 }

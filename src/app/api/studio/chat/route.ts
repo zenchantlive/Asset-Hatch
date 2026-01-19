@@ -16,7 +16,7 @@ const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, gameId } = await req.json();
+    const { messages, gameId, projectContextJson } = await req.json();
     if (!Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: 'messages must be an array' }),

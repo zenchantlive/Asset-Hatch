@@ -26,7 +26,7 @@ export interface AssetManifestEntry {
   /** Unique identifier for the asset */
   id: string;
   /** Asset type */
-  type: "2d" | "3d";
+  type: "2d" | "3d" | "model" | "texture" | "skybox";
   /** Human-readable name */
   name: string;
   /** Version number for change tracking */

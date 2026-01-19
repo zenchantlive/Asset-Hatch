@@ -126,7 +126,7 @@ export async function GET(
 
     assets[key] = {
       id: ref.assetId,
-      type: ref.assetType as '2d' | '3d',
+      type: ref.assetType as '2d' | '3d' | 'model' | 'texture' | 'skybox',
       name: ref.assetName,
       version: ref.lockedVersionId ? 1 : 0,
       urls: {

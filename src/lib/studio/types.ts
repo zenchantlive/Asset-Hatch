@@ -280,7 +280,7 @@ export interface AssetInfo {
   /** Manifest key (e.g., "knight", "forest_sky") */
   key: string;
   /** Asset type */
-  type: "2d" | "3d";
+  type: "2d" | "3d" | "model" | "texture" | "skybox";
   /** Human-readable name */
   name: string;
   /** Asset URLs */
