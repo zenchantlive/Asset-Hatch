@@ -10,6 +10,7 @@ type UnifiedTab = 'assets' | 'game';
 interface UnifiedProjectViewProps {
   projectId: string;
   initialContext?: UnifiedProjectContext;
+  initialTab?: 'assets' | 'game';
 }
 
 /**

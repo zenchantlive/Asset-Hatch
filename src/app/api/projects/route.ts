@@ -110,7 +110,7 @@ export async function POST(
       );
     }
 
-    const { name, mode, startWith } = parsed.data as CreateProjectData;
+    const { name, mode } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -207,12 +207,12 @@ export async function POST(
       });
     }
 
-    console.log(`✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`);
+    console.log(`✅ Created unified project: ${project.id} with game: ${game.id}`);
 
     return NextResponse.json({
       success: true,
       projectId: project.id,
-      gameId,
+      gameId: game.id,
     });
   } catch (error) {
     console.error("Failed to create project:", error);
