@@ -14,7 +14,7 @@ triggers:
 
 A first-principles thinking protocol that **creates and maintains** a durable set of internal expert personas (“the Roster”) across the conversation, persisted in \`.agents/roster.md\`.
 
-**Core principle:** Decompose → Consult roster → Synthesize tensions → Decide with trace → Red-team check → Update roster ledger.
+**Core principle:** Decompose → Consult roster → Red-team check → Synthesis → Final Answer + Decision Trace.
 
 **Announce at start:** “I’m using the persistent-multiperspective-roster-protocol skill.”
 
@@ -24,17 +24,16 @@ A first-principles thinking protocol that **creates and maintains** a durable se
 
 ### Step 1: Ensure Roster Storage Exists
 
-**The roster must live at:** \`.agents/roster.md\`
+**The roster must live at:** `.agents/roster.md`
 
 If missing:
-- Create folder \`.agents/\`
-- Create file \`roster.md\` using the template in **Step 2**
+- Call `ensureRosterInitialized()` to guarantee the roster exists and is loaded (creating `.agents/roster.md` if missing).
 
 **Rules:**
 - The roster file is the **single source of truth** for personas, mandates, and ledger state.
-- You do **not** need to read it every time.
-- You **must read it** whenever you might **update** personas, ledger entries, tensions, or rotation history.
-- You **must write updates** back whenever changes occur.
+- Use dedicated roster tools to abstract away file I/O and ensure data integrity.
+- You do **not** need to manually read/write the Markdown file.
+- You **must call tools** whenever you might **update** personas, ledger entries, tensions, or rotation history.
 
 ---
 
@@ -145,12 +144,12 @@ At the beginning of each user turn, the **Meta Persona** must decide:
 2. **Whether roster updates might be needed** (domain shift, new risks, repeated failures, user-requested angle)
 
 **If updates might be needed:**
-- Read \`.agents/roster.md\`
-- Make changes
-- Write updates back
+- Call `getRoster()` to retrieve the current structured roster state.
+- Decide on changes based on the structured data.
+- Apply changes via `addPersona()`, `removePersona()`, `updatePersona()`, `updateLedger()`, `appendRotationHistory()`, or `upsertTension()`.
 
 **If not:**
-- Proceed without reading
+- Proceed with the current roster state.
 
 ---
 
@@ -206,7 +205,7 @@ Before final answer:
 
 ### Step 8: Update Ledger (When Changed)
 
-If any of these changed during the turn, **update \`.agents/roster.md\`**:
+If any of these changed during the turn, **use the appropriate tools** to update the state:
 
 - Persona roster membership (add/remove/replace)
 - Persona mandates/questions/always-flags
@@ -214,35 +213,54 @@ If any of these changed during the turn, **update \`.agents/roster.md\`**:
 - Rotation history
 - Open tensions/tradeoffs
 
+Tools handle persistence (atomic write + validation) to `.agents/roster.md`.
+
+
+---
+
+### Roster Tools (API)
+
+The following tools are available to manage the roster state. These tools handle validation and atomic persistence to `.agents/roster.md`.
+
+- `ensureRosterInitialized(templateVersion?: string) -> Roster`: Guarantees roster exists and is loaded.
+- `getRoster() -> Roster`: Returns the current structured roster object.
+- `updatePersona(name: string, patch: object) -> Roster`: Updates an existing persona's fields.
+- `addPersona(personaSpec: object) -> Roster`: Adds a new persona to the roster.
+- `removePersona(name: string) -> Roster`: Removes a persona from the roster.
+- `updateLedger(personaName: string, ledgerPatch: object) -> Roster`: Updates a persona's ledger state.
+- `appendRotationHistory(entry: string) -> Roster`: Adds an entry to the rotation history.
+- `upsertTension(tensionIdOrTitle: string, patch: object) -> Roster`: Adds or updates a tension/tradeoff.
+- `validateRoster() -> { ok: boolean, errors: string[] }`: Validates the current roster against protocol invariants.
+
 ---
 
 ## Mermaid Diagrams (Use When Helpful)
 
 ### Protocol Flow
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
   U[User Message] --> M[Meta Persona Gate]
   M -->|Update needed?| R{Yes/No}
-  R -->|Yes| IO[Read .agents/roster.md<br/>Update roster/ledger<br/>Write back]
+  R -->|Yes| IO[Call getRoster()<br/>Update via tools]
   R -->|No| FP[First-Principles Decomposition]
   IO --> FP
   FP --> PC[Persona Consultation<br/>min 3 for non-atomic]
   PC --> SYN[Synthesis & Tension Resolution]
   SYN --> RT[Red-Team Check]
   RT --> OUT[Final Answer<br/>+ Decision Trace]
-  OUT -->|If changed| LED[Update roster.md ledger/history]
-\`\`\`
+  OUT -->|If changed| LED[Tools persist changes to roster.md]
+```
 
 ### Roster Lifecycle (State Machine)
 
-\`\`\`mermaid
+```mermaid
 stateDiagram-v2
   [*] --> Stable
   Stable --> NeedsRotation: Domain shift / repeated failures / new high-stakes constraints
-  NeedsRotation --> Updated: Meta persona selects <= 1 swap
-  Updated --> Stable: Roster.md written + ledger updated
-\`\`\`
+  NeedsRotation --> Updated: Meta persona selects <= 1 swap via tools
+  Updated --> Stable: Tools persist to roster.md
+```
 
 ---
 
@@ -250,10 +268,10 @@ stateDiagram-v2
 
 | Component                 | Required? | When                                      |
 |--------------------------|----------:|-------------------------------------------|
-| \`.agents/roster.md\`      | ✓         | Must exist; create if missing             |
+| `.agents/roster.md`      | ✓         | Must exist; tools create if missing       |
 | Meta Persona             | ✓         | Every turn (govern rotation + enforcement)|
-| Roster read              | -         | Only when updates may be needed           |
-| Roster write             | -         | Whenever roster/ledger/history changes    |
+| Roster tools (read)      | -         | Only when updates may be needed           |
+| Roster tools (write)     | -         | Whenever roster/ledger/history changes    |
 | First-principles decomposition | ✓   | Every turn (brief by default)             |
 | ≥3 persona inputs        | ✓         | Non-atomic tasks                          |
 | Decision Trace           | ✓         | Every turn with major recommendations     |
@@ -273,7 +291,7 @@ stateDiagram-v2
 
 **Forgetting to persist changes**
 - **Problem:** Roster diverges from reality  
-- **Fix:** Write back to \`.agents/roster.md\` whenever changes occur  
+- **Fix:** Use roster tools to update state whenever changes occur  
 
 ---
 
@@ -288,4 +306,4 @@ stateDiagram-v2
 - Keep roster stable by default  
 - Use Decision Trace for major recommendations  
 - Run Red-Team check when stakes/complexity warrant it  
-- Persist changes to \`.agents/roster.md\`.
+- Use roster tools to persist changes to `.agents/roster.md`.
