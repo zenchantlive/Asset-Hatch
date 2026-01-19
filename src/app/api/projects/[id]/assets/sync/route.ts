@@ -116,20 +116,51 @@ export async function POST(
     for (const assetKey of pendingAssets) {
       const asset = manifest.assets?.[assetKey];
 
-      if (asset) {
-        // Build change description
-        const changeDescription = `[ASSET SYNC] Added ${asset.type} asset: ${asset.name}`;
+      if (asset && project.game) {
+        // Fetch the actual asset data from the database
+        let assetRecord;
+        if (asset.type === "2d") {
+          assetRecord = await prisma.generatedAsset.findUnique({
+            where: { id: asset.id },
+          });
+        } else if (asset.type === "3d") {
+          assetRecord = await prisma.generated3DAsset.findUnique({
+            where: { id: asset.id },
+          });
+        }
 
-        changes.push({
-          fileId: `asset-${assetKey}`,
-          fileName: `${asset.name} (${asset.type})`,
-          changeType: "created",
-          description: changeDescription,
-        });
+        if (assetRecord) {
+          // Create GameAssetRef record for the synced asset
+          await prisma.gameAssetRef.create({
+            data: {
+              gameId: project.game.id,
+              projectId: project.id,
+              assetType: asset.type,
+              assetId: asset.id,
+              assetName: asset.name,
+              lockedVersionId: asset.lockedVersion ? String(asset.lockedVersion) : null,
+              lockedAt: new Date(),
+              thumbnailUrl: asset.urls.thumbnail,
+              modelUrl: asset.urls.model,
+              glbUrl: asset.urls.glb,
+              manifestKey: assetKey,
+            },
+          });
 
-        syncedAssetKeys.push(assetKey);
+          // Build change description
+          const changeDescription = `[ASSET SYNC] Added ${asset.type} asset: ${asset.name}`;
 
-        console.log(`🔄 Synced asset: ${asset.name} (${asset.type})`);
+          changes.push({
+            fileId: `asset-${assetKey}`,
+            fileName: `${asset.name} (${asset.type})`,
+            changeType: "created",
+            description: changeDescription,
+          });
+
+          syncedAssetKeys.push(assetKey);
+
+          console.log(`🔄 Synced asset: ${asset.name} (${asset.type})`);
+        }
       }
     }
 
