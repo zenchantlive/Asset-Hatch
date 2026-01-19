@@ -7,8 +7,9 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useStudio } from '@/lib/studio/context';
+import type { AssetManifest } from '@/lib/types/unified-project';
 import { PreviewFrame } from '../PreviewFrame';
 import { AlertCircle } from 'lucide-react';
 
@@ -17,10 +18,11 @@ import { AlertCircle } from 'lucide-react';
  * Multi-file support: Uses files array from context instead of code string
  */
 export function PreviewTab() {
-    const { files, isPlaying, previewKey, requestErrorFix } = useStudio();
+    const { files, isPlaying, previewKey, requestErrorFix, game } = useStudio();
     const [fps, setFps] = useState<number>(0);
     const [hasError, setHasError] = useState(false);
     const [isReady, setIsReady] = useState(false);
+    const [assetManifest, setAssetManifest] = useState<AssetManifest | null>(null);
 
     // Handle iframe ready
     const handleReady = useCallback(() => {
@@ -33,6 +35,26 @@ export function PreviewTab() {
         setHasError(true);
         console.log('🚨 Preview error:', message);
     }, []);
+
+    // Fetch asset manifest on mount
+    useEffect(() => {
+        if (!game?.id) return;
+        
+        async function fetchAssets() {
+            try {
+                // Safely get game.id - game comes from context and should exist
+            const response = await fetch(`/api/studio/games/${game.id}/assets`);
+                if (response.ok) {
+                    const manifest = await response.json();
+                    setAssetManifest(manifest);
+                }
+            } catch (error) {
+                console.warn('[PreviewTab] Failed to fetch asset manifest:', error);
+            }
+        }
+        
+        fetchAssets();
+    }, [game?.id]);
 
     // Handle fix request from PreviewFrame
     const handleRequestFix = useCallback((error: { message: string; line?: number }) => {
@@ -48,6 +70,12 @@ export function PreviewTab() {
                     <span className="text-sm text-muted-foreground">
                         {files.length} file{files.length !== 1 ? 's' : ''}
                     </span>
+                    {/* Asset count indicator */}
+                    {assetManifest && Object.keys(assetManifest.assets).length > 0 && (
+                        <span className="text-xs text-purple-400">
+                            {Object.keys(assetManifest.assets).length} asset{Object.keys(assetManifest.assets).length !== 1 ? 's' : ''}
+                        </span>
+                    )}
                     
                     {/* FPS Badge */}
                     {isReady && !hasError && (
@@ -76,6 +104,7 @@ export function PreviewTab() {
             <div className="flex-1 bg-studio-preview-bg relative">
                 <PreviewFrame
                     files={files}
+                    assetManifest={assetManifest || undefined}
                     isPlaying={isPlaying}
                     previewKey={previewKey}
                     onReady={handleReady}

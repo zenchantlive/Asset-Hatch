@@ -11,6 +11,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertTriangle, Wrench, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { GameFileData } from '@/lib/studio/types';
+import { generateAssetLoaderScript } from '@/lib/studio/asset-loader';
+import { manifestEntryToAssetInfo } from '@/lib/studio/types';
+import type { AssetManifest, AssetManifestEntry } from '@/lib/types/unified-project';
+import type { AssetInfo } from '@/lib/studio/types';
+
 import { IFRAME_SCRIPTS } from '@/lib/studio/preview-libraries';
 
 /**
@@ -27,6 +32,8 @@ interface ErrorInfo {
 interface PreviewFrameProps {
     /** Array of game files to execute in order (sorted by orderIndex) */
     files: GameFileData[];
+    /** Optional asset manifest for ASSETS global helper */
+    assetManifest?: AssetManifest;
     /** Whether the scene should be playing */
     isPlaying: boolean;
     /** Callback when iframe is ready */
@@ -53,8 +60,19 @@ function concatenateFiles(files: GameFileData[]): string {
  * PreviewFrame - sandboxed Babylon.js execution environment
  * Multi-file support: accepts GameFile[] instead of single code string
  */
+
+/**
+ * Convert AssetManifest to AssetInfo array for iframe
+ */
+function convertManifestToAssetInfo(manifest: AssetManifest): AssetInfo[] {
+  return Object.entries(manifest.assets).map(([key, entry]) =>
+    manifestEntryToAssetInfo(key, entry)
+  );
+}
+
 export function PreviewFrame({
     files,
+    assetManifest,
     isPlaying,
     onReady,
     onError,
@@ -78,6 +96,11 @@ export function PreviewFrame({
             onRequestFix(currentError);
         }
     }, [currentError, onRequestFix]);
+
+    // Generate asset loader script if manifest provided
+    const assetScript = generateAssetLoaderScript(
+      assetManifest ? convertManifestToAssetInfo(assetManifest) : []
+    );
 
     // Generate script tags from library manifest
     const scriptTags = IFRAME_SCRIPTS
@@ -125,6 +148,10 @@ ${scriptTags}
 
     // Execute user code (concatenated from multiple files)
     try {
+      // ASSETS global injected before user code
+      ${assetScript}
+      
+      // User code executes after ASSETS is available
       ${concatenatedCode}
     } catch (error) {
       const errorEl = document.getElementById('error-overlay');
