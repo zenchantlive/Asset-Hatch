@@ -22,11 +22,11 @@ const updateSceneSchema = z.object({
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
-    params: { id: string; sceneId: string };
+interface RouteContext {
+    params: Promise<{ id: string; sceneId: string }>;
 }
 
 // =============================================================================
@@ -51,11 +51,11 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -115,11 +115,11 @@ export async function GET(
 
 export async function PATCH(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -211,11 +211,11 @@ export async function PATCH(
 
 export async function DELETE(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
