@@ -35,13 +35,13 @@ async function fetchAssetMetadata(
           try {
             const urls = JSON.parse(gen3d.animatedModelUrls);
             result.animations = Object.keys(urls);
-          } catch {
-            // Not valid JSON, ignore
+          } catch (e) {
+            console.warn(`[fetchAssetMetadata] Failed to parse animatedModelUrls for asset ${assetId}:`, e);
           }
         }
       }
-    } catch {
-      // Generated3DAsset not found, continue with defaults
+    } catch (e) {
+      console.error(`[fetchAssetMetadata] Database error fetching 3D asset ${assetId}:`, e);
     }
   } else if (assetType === '2d' || assetType === 'texture') {
     // Fetch from GeneratedAsset
