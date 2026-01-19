@@ -89,6 +89,10 @@ model Project {
   artStyle            String?
   baseResolution      String?
   perspective         String?
+  gameGenre           String?
+  theme               String?
+  mood                String?
+  colorPalette        String?
 
   // =============================================================================
   // UNIFIED PROJECT FIELDS (Phase 6)
@@ -315,7 +319,6 @@ model GameScene {
   game       Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
   name       String
   orderIndex Int              @default(0)
-  code       String           @db.Text // Deprecated: use GameFile instead
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   placements AssetPlacement[]

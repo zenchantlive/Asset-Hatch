@@ -39,7 +39,6 @@ interface GameData {
         id: string;
         name: string;
         orderIndex: number;
-        code: string;
     }>;
 }
 
@@ -223,7 +222,6 @@ export async function POST(
                     create: {
                         name: "Main Scene",
                         orderIndex: 0,
-                        code: "", // Empty code - multi-file uses GameFile table
                     },
                 },
                 // Create initial main.js file for multi-file support
@@ -241,7 +239,6 @@ export async function POST(
                         id: true,
                         name: true,
                         orderIndex: true,
-                        code: true,
                     },
                 },
             },
@@ -257,7 +254,6 @@ export async function POST(
                         id: true,
                         name: true,
                         orderIndex: true,
-                        code: true,
                     },
                 },
             },

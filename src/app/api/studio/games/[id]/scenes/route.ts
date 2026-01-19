@@ -17,8 +17,6 @@ import { z } from "zod";
 const createSceneSchema = z.object({
     // Scene name is required, must be at least 1 character
     name: z.string().min(1, "Name is required"),
-    // Optional initial code for the scene
-    code: z.string().optional(),
 });
 
 // =============================================================================
@@ -84,7 +82,6 @@ export async function GET(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -143,7 +140,7 @@ export async function POST(
             );
         }
 
-        const { name, code } = parsed.data;
+        const { name } = parsed.data;
 
         // Calculate next orderIndex based on existing scenes count
         const sceneCount = await prisma.gameScene.count({
@@ -155,7 +152,6 @@ export async function POST(
             data: {
                 gameId: params.id,
                 name,
-                code: code || "", // Default to empty string if no code provided
                 orderIndex: sceneCount, // New scene goes at the end
             },
             select: {
@@ -163,7 +159,6 @@ export async function POST(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },
