@@ -494,12 +494,15 @@ export const listUserAssetsTool = (gameId: string) => {
         // Use Generated3DAsset for 3D, GeneratedAsset for 2D
         const assets3D = type === '3d' || type === 'all'
           ? await prisma.generated3DAsset.findMany({
-            where: {
-              projectId: game.userId,
-              approvalStatus: 'approved',
-            },
-            take: limit,
-          })
+              where: { projectId: game.userId, approvalStatus: 'approved' },
+              take: limit,
+            })
+          : [];
+        const assets2D = type === '2d' || type === 'all'
+          ? await prisma.generatedAsset.findMany({
+              where: { projectId: game.userId, approvalStatus: 'approved' },
+              take: limit,
+            })
           : [];
 
         const simplifiedAssets3D = assets3D.map(asset => ({
@@ -509,11 +512,19 @@ export const listUserAssetsTool = (gameId: string) => {
           glbUrl: asset.riggedModelUrl || asset.draftModelUrl,
           thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
         }));
+        const simplifiedAssets2D = assets2D.map(asset => ({
+          id: asset.id,
+          name: asset.name,
+          type: '2d',
+          url: asset.imageUrl,
+          thumbnailUrl: asset.thumbnailUrl,
+        }));
 
+        const assets = [...simplifiedAssets3D, ...simplifiedAssets2D];
         return {
           success: true,
-          message: `Found ${simplifiedAssets3D.length} 3D assets`,
-          assets: simplifiedAssets3D,
+          message: `Found ${assets.length} assets`,
+          assets,
         };
       } catch (error) {
         console.error('❌ Failed to list assets:', error);
