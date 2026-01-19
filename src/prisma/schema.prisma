@@ -30,7 +30,6 @@ model User {
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
-  games            Game[]    // Hatch Studios games relation
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -89,6 +88,10 @@ model Project {
   artStyle            String?
   baseResolution      String?
   perspective         String?
+  gameGenre           String?
+  theme               String?
+  mood                String?
+  colorPalette        String?
 
   // =============================================================================
   // UNIFIED PROJECT FIELDS (Phase 6)
@@ -97,7 +100,7 @@ model Project {
   // Game creation (linked game if any)
   // 1:1 relation - Project owns the relation with unique gameId
   gameId              String?             @unique
-  game                Game?               @relation(fields: [gameId], references: [id]) // Explicit 1:1 relation to Game
+  game                Game?               // Prisma infers relation from unique gameId
 
   // Asset Manifest - THE CORE OF UNIFICATION
   // JSON blob tracking all linked assets and their sync state
@@ -239,7 +242,6 @@ model Generated3DAsset {
 
   @@unique([projectId, assetId])
 }
-
 // =============================================================================
 // HATCH STUDIOS MODELS
 // Game creation platform with AI-assisted code generation
@@ -315,7 +317,6 @@ model GameScene {
   game       Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
   name       String
   orderIndex Int              @default(0)
-  code       String           @db.Text // Deprecated: use GameFile instead
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   placements AssetPlacement[]

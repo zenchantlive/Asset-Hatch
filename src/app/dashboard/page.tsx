@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Settings, Gamepad2, Layers } from "lucide-react";
+import { z } from "zod";
 import { NewProjectDialog } from "@/components/dashboard/NewProjectDialog";
 import { UnifiedProjectCard } from "@/components/dashboard/UnifiedProjectCard";
 
@@ -67,12 +68,18 @@ export default async function DashboardPage() {
   // Transform projects to unified format
   const projectsWithStatus: UnifiedProject[] = projects.map((project) => {
     // Safely parse asset manifest to get asset count
-    const manifestSchema = z.object({
-      assets: z.record(z.unknown()).optional().default({}),
-      syncState: z.object({
-        pendingAssets: z.array(z.string()).optional().default([]),
-      }).optional().default({}),
-    }).optional().default({});
+    const manifestSchema = z
+      .object({
+        assets: z.record(z.unknown()).optional().default({}),
+        syncState: z
+          .object({
+            pendingAssets: z.array(z.string()).optional().default([]),
+          })
+          .optional()
+          .default({}),
+      })
+      .optional()
+      .default({});
 
     const manifest = manifestSchema.parse(project.assetManifest);
     const assets = manifest.assets;
@@ -89,9 +96,10 @@ export default async function DashboardPage() {
       phase: project.phase,
       syncStatus: project.syncStatus,
       pendingAssetCount: syncState.pendingAssets?.length ?? 0,
-      assetCount: Object.keys(assets).length > 0
-        ? Object.keys(assets).length
-        : project._count.generatedAssets + project._count.generated3DAssets,
+      assetCount:
+        Object.keys(assets).length > 0
+          ? Object.keys(assets).length
+          : project._count.generatedAssets + project._count.generated3DAssets,
       gamePhase,
       updatedAt: project.updatedAt,
     };
@@ -117,12 +125,8 @@ export default async function DashboardPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-white/90">
-                Your Projects
-              </h1>
-              <p className="text-white/60">
-                Manage assets and games in one unified workspace
-              </p>
+              <h1 className="text-4xl font-bold text-white/90">Your Projects</h1>
+              <p className="text-white/60">Manage assets and games in one unified workspace</p>
             </div>
           </div>
 
@@ -185,12 +189,9 @@ export default async function DashboardPage() {
             // Empty state
             <div className="text-center py-20 border border-dashed border-glass-border rounded-lg glass-panel">
               <div className="text-6xl mb-4">🚀</div>
-              <p className="text-xl text-white/70 mb-4">
-                No projects yet
-              </p>
+              <p className="text-xl text-white/70 mb-4">No projects yet</p>
               <p className="text-white/50 mb-6">
-                Create your first project to start building games with
-                AI-generated assets.
+                Create your first project to start building games with AI-generated assets.
               </p>
               <NewProjectDialog size="lg">
                 <span className="mr-2">+</span>

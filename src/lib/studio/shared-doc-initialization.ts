@@ -66,7 +66,7 @@ export async function updateAssetInventoryDocument(
   projectId: string,
   assetInfo: {
     name: string;
-    type: '2d' | '3d' | 'model';
+    type: '2d' | '3d' | 'model' | 'skybox';
     description?: string;
     animations?: string[];
   }
@@ -77,7 +77,8 @@ export async function updateAssetInventoryDocument(
   const typeMap: Record<string, 'character' | 'environment' | 'item'> = {
     '3d': 'character',
     'model': 'character',
-    '2d': 'item'
+    '2d': 'item',
+    'skybox': 'environment',
   };
   
   await appendAssetToInventory(projectId, {

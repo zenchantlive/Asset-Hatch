@@ -16,7 +16,7 @@ const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, gameId } = await req.json();
+    const { messages, gameId, projectContext: projectContextJson } = await req.json();
     if (!Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: 'messages must be an array' }),
@@ -68,11 +68,7 @@ export async function POST(req: NextRequest) {
             ? JSON.parse(projectContextJson)
             : projectContextJson;
       } catch (error) {
-        console.error('❌ Studio Chat API: Failed to parse projectContext JSON.', error);
-        return new Response(
-          JSON.stringify({ error: 'Invalid projectContext format. Expected a valid JSON object or string.' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+        console.warn('Failed to parse projectContext:', error);
       }
     }
 
@@ -107,24 +103,28 @@ export async function POST(req: NextRequest) {
       const metadataMap = new Map<string, Record<string, unknown>>();
 
       for (const asset of gen3dAssets) {
-        const metadata: { prompt?: string; animations?: string[] } = { prompt: asset.promptUsed || undefined };
+        const metadata: Record<string, unknown> = {
+          prompt: asset.promptUsed || undefined,
+        };
         if (asset.animatedModelUrls) {
           try {
             metadata.animations = Object.keys(JSON.parse(asset.animatedModelUrls));
           } catch {}
         }
-        metadataMap.set(asset.id, metadata as Record<string, unknown>);
+        metadataMap.set(asset.id, metadata);
       }
 
       for (const asset of gen2dAssets) {
-        const metadata: { prompt?: string; style?: string } = { prompt: asset.promptUsed || undefined };
+        const metadata: Record<string, unknown> = {
+          prompt: asset.promptUsed || undefined,
+        };
         if (asset.metadata) {
           try {
             const meta = JSON.parse(asset.metadata);
             metadata.style = meta.style || meta.artStyle;
           } catch {}
         }
-        metadataMap.set(asset.id, metadata as Record<string, unknown>);
+        metadataMap.set(asset.id, metadata);
       }
 
       linkedAssets = assetRefs.map(ref => ({

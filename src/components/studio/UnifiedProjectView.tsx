@@ -19,15 +19,9 @@ interface UnifiedProjectViewProps {
  * Phase 6B: Shared Context & Unified UI
  * Replaces separate /project/[id]/planning and /studio/[id] routes
  */
-interface UnifiedProjectViewProps {
-  projectId: string;
-  initialContext?: UnifiedProjectContext;
-  initialTab?: UnifiedTab;
-}
-
-export function UnifiedProjectView({ projectId, initialContext, initialTab }: UnifiedProjectViewProps) {
+export function UnifiedProjectView({ projectId, initialContext, initialTab = 'assets' }: UnifiedProjectViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<UnifiedTab>(initialTab || 'assets');
+  const [activeTab, setActiveTab] = useState<UnifiedTab>(initialTab);
   const [projectContext, setProjectContext] = useState<UnifiedProjectContext | undefined>(initialContext);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -70,11 +64,11 @@ export function UnifiedProjectView({ projectId, initialContext, initialTab }: Un
         });
         const data = await response.json();
         if (data.success) {
-          setProjectContext((prev) => ({
-            ...(prev ?? {}),
-            ...updates,
-            updatedAt: new Date().toISOString(),
-          }));
+          setProjectContext((prev) =>
+            prev
+              ? { ...prev, ...updates, updatedAt: new Date().toISOString() }
+              : undefined
+          );
         }
       } catch (error) {
         console.error('Failed to save context:', error);

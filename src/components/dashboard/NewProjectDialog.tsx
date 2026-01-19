@@ -46,7 +46,7 @@ export function NewProjectDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"2d" | "3d" | "hybrid">("3d");
-  const [startWith, setStartWith] = useState<"assets" | "game">("assets");
+  const [startWith, setStartWith] = useState<"assets" | "game" | "both">("both");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -66,17 +66,21 @@ export function NewProjectDialog({
         throw new Error(data.error || "Failed to create project");
       }
 
-      const { projectId } = await response.json();
+      const { projectId, gameId } = await response.json();
 
       // Reset form
       setName("");
       setMode("3d");
-      setStartWith("assets");
+      setStartWith("both");
       setIsOpen(false);
 
-      // Navigate to unified project view with selected tab
-      const tabParam = startWith === "game" ? "game" : "assets";
-      router.push(`/project/${projectId}?tab=${tabParam}`);
+      // Redirect based on startWith
+      if (startWith === "game" || startWith === "both") {
+        router.push(`/studio/${gameId}`);
+      } else {
+        router.push(`/project/${projectId}/planning`);
+      }
+
       router.refresh();
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -127,10 +131,10 @@ export function NewProjectDialog({
             <ModeToggle value={mode} onValueChange={setMode} disabled={isLoading} />
           </div>
 
-          {/* Start with selection */}
+          {/* Start with selection - KEY FEATURE */}
           <div>
             <label className="text-sm font-medium mb-3 block">Start with</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
                 onClick={() => setStartWith("assets")}
@@ -163,11 +167,30 @@ export function NewProjectDialog({
                 <Gamepad2 className="h-6 w-6" />
                 <span className="text-sm font-medium">Game First</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setStartWith("both")}
+                disabled={isLoading}
+                className={`
+                  flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
+                  ${
+                    startWith === "both"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50 hover:bg-muted"
+                  }
+                `}
+              >
+                <Sparkles className="h-6 w-6" />
+                <span className="text-sm font-medium">Both Together</span>
+              </button>
             </div>
             <p className="text-sm text-muted-foreground mt-3">
-              {startWith === "assets"
-                ? "Generate assets first, then create your game when ready. Assets can be synced to your game later."
-                : "Start building your game code. Add assets anytime from the Game tab."}
+              {startWith === "assets" &&
+                "Generate assets first, then build your game with them"}
+              {startWith === "game" &&
+                "Start building your game, add assets later as needed"}
+              {startWith === "both" &&
+                "Create assets and game side by side in the same project"}
             </p>
           </div>
         </div>

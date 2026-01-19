@@ -24,6 +24,11 @@ import { IFRAME_SCRIPTS } from '@/lib/studio/preview-libraries';
 interface ErrorInfo {
     message: string;
     line?: number;
+    kind: 'runtime' | 'asset';
+    code?: string;
+    stage?: string;
+    requestId?: string;
+    key?: string;
 }
 
 /**
@@ -34,6 +39,8 @@ interface PreviewFrameProps {
     files: GameFileData[];
     /** Optional asset manifest for ASSETS global helper */
     assetManifest?: AssetManifest;
+    /** Game ID for asset resolving */
+    gameId?: string;
     /** Whether the scene should be playing */
     isPlaying: boolean;
     /** Callback when iframe is ready */
@@ -73,6 +80,7 @@ function convertManifestToAssetInfo(manifest: AssetManifest): AssetInfo[] {
 export function PreviewFrame({
     files,
     assetManifest,
+    gameId,
     isPlaying,
     onReady,
     onError,
@@ -98,9 +106,12 @@ export function PreviewFrame({
     }, [currentError, onRequestFix]);
 
     // Generate asset loader script if manifest provided
-    const assetScript = generateAssetLoaderScript(
-      assetManifest ? convertManifestToAssetInfo(assetManifest) : []
-    );
+    const assetScript = assetManifest
+      ? generateAssetLoaderScript(
+          convertManifestToAssetInfo(assetManifest),
+          { gameId }
+        )
+      : '// No assets available';
 
     // Generate script tags from library manifest
     const scriptTags = IFRAME_SCRIPTS
@@ -175,24 +186,67 @@ ${scriptTags}
     // Listen for postMessage from iframe
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.data.type === 'ready') {
+            const data = event.data;
+            const iframeWindow = iframeRef.current?.contentWindow;
+            if (!iframeWindow || event.source !== iframeWindow) return;
+            if (event.origin !== 'null') return;
+            if (data?.type === 'ready') {
                 setCurrentError(null);
                 onReady?.();
-            } else if (event.data.type === 'error') {
+            } else if (data?.type === 'error') {
                 const errorInfo: ErrorInfo = {
-                    message: event.data.message,
-                    line: event.data.line,
+                    message: data.message,
+                    line: data.line,
+                    kind: 'runtime',
                 };
                 setCurrentError(errorInfo);
-                onError?.(event.data.message);
-            } else if (event.data.type === 'fps') {
+                onError?.(data.message);
+            } else if (data?.type === 'asset-error') {
+                const errorInfo: ErrorInfo = {
+                    message: data.message,
+                    kind: 'asset',
+                    code: data.code,
+                    stage: data.stage,
+                    requestId: data.requestId,
+                    key: data.key,
+                };
+                setCurrentError(errorInfo);
+                onError?.(data.message);
+            } else if (data?.type === 'asset-resolve-request') {
+                if (!gameId || !iframeRef.current?.contentWindow) return;
+                const requestId = data.requestId;
+                const key = data.key;
+                if (!requestId || !key) return;
+                void fetch('/api/studio/assets/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, key }),
+                }).then(async (response) => {
+                    const payload = await response.json().catch(() => ({}));
+                    iframeRef.current?.contentWindow?.postMessage({
+                        type: 'asset-resolve-response',
+                        requestId,
+                        success: response.ok && payload?.url,
+                        url: payload?.url || null,
+                        source: payload?.source || null,
+                        error: payload?.error || null,
+                    }, '*');
+                }).catch(() => {
+                    iframeRef.current?.contentWindow?.postMessage({
+                        type: 'asset-resolve-response',
+                        requestId,
+                        success: false,
+                        error: 'RESOLVE_REQUEST_FAILED',
+                    }, '*');
+                });
+            } else if (data?.type === 'fps') {
                 // FPS updates handled by parent component
             }
         };
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [onReady, onError]);
+    }, [gameId, onReady, onError]);
 
     return (
         <div className="relative w-full h-full">
@@ -213,7 +267,9 @@ ${scriptTags}
                         {/* Error header */}
                         <div className="flex items-center gap-3 text-red-400">
                             <AlertTriangle className="w-6 h-6 shrink-0" />
-                            <h3 className="font-semibold text-lg">Runtime Error</h3>
+                            <h3 className="font-semibold text-lg">
+                                {currentError.kind === 'asset' ? 'Asset Error' : 'Runtime Error'}
+                            </h3>
                         </div>
 
                         {/* Error message */}
@@ -221,7 +277,27 @@ ${scriptTags}
                             <code className="text-sm text-red-300 font-mono break-all">
                                 {currentError.message}
                             </code>
-                            {currentError.line && (
+                            {currentError.code && (
+                                <p className="text-xs text-red-400/70 mt-2">
+                                    Code: {currentError.code}
+                                </p>
+                            )}
+                            {currentError.stage && (
+                                <p className="text-xs text-red-400/70 mt-1">
+                                    Stage: {currentError.stage}
+                                </p>
+                            )}
+                            {currentError.key && (
+                                <p className="text-xs text-red-400/70 mt-1">
+                                    Asset: {currentError.key}
+                                </p>
+                            )}
+                            {currentError.requestId && (
+                                <p className="text-xs text-red-400/70 mt-1">
+                                    Request: {currentError.requestId}
+                                </p>
+                            )}
+                            {currentError.line && currentError.kind === 'runtime' && (
                                 <p className="text-xs text-red-400/70 mt-2">
                                     Line: {currentError.line}
                                 </p>

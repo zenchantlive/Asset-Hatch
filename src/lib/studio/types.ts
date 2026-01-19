@@ -71,6 +71,8 @@ export interface SceneData {
     name: string;
     /** Order index for sorting scenes */
     orderIndex: number;
+    /** Scene code content */
+    code: string;
     /** ISO timestamp of creation */
     createdAt: string;
     /** ISO timestamp of last update */
@@ -277,39 +279,51 @@ export interface FileResponse {
  * Runtime asset info - extracted from AssetManifest for iframe use
  */
 export interface AssetInfo {
-  /** Manifest key (e.g., "knight", "forest_sky") */
-  key: string;
-  /** Asset type */
-  type: "2d" | "3d";
-  /** Human-readable name */
-  name: string;
-  /** Asset URLs */
-  urls: {
-    thumbnail?: string;
-    model?: string;
-    glb?: string;
-  };
-  /** Generation metadata */
-  metadata: {
-    prompt?: string;
-    style?: string;
-    animations?: string[];
-    poses?: string[];
-  };
+    /** Manifest key (e.g., "knight", "forest_sky") */
+    key: string;
+    /** Asset type */
+    type: "2d" | "3d" | "skybox";
+    /** Human-readable name */
+    name: string;
+    /** Asset URLs */
+    urls: {
+        thumbnail?: string;
+        model?: string;
+        glb?: string;
+        /** Base64-encoded GLB data for permanent storage (Phase 10) */
+        glbData?: string;
+    };
+    /** Generation metadata */
+    metadata: {
+        prompt?: string;
+        style?: string;
+        animations?: string[];
+        poses?: string[];
+        skybox?: boolean;
+    };
 }
 
 /**
  * Map AssetManifestEntry to AssetInfo for runtime use
  */
 export function manifestEntryToAssetInfo(
-  key: string,
-  entry: import("@/lib/types/unified-project").AssetManifestEntry
+    key: string,
+    entry: import("@/lib/types/unified-project").AssetManifestEntry
 ): AssetInfo {
-  return {
-    key,
-    type: entry.type,
-    name: entry.name,
-    urls: entry.urls,
-    metadata: entry.metadata,
-  };
+    // Phase 10: Handle glbData for permanent asset storage
+    const urls = { ...(entry.urls || {}) };
+
+    // If glbData exists in urls, construct data URL
+    if (urls.glbData) {
+        urls.glb = `data:application/octet-stream;base64,${urls.glbData}`;
+        urls.model = `data:application/octet-stream;base64,${urls.glbData}`;
+    }
+
+    return {
+        key,
+        type: entry.type,
+        name: entry.name,
+        urls: urls,
+        metadata: entry.metadata,
+    };
 }

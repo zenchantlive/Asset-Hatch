@@ -17,7 +17,7 @@ import type { CreateProjectData } from "@/lib/types/unified-project";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
-  startWith: z.enum(["assets", "game"]).default("assets"),
+  startWith: z.enum(["assets", "game", "both"]).default("assets"),
 });
 
 // =============================================================================
@@ -46,7 +46,9 @@ interface UnifiedProjectResponse {
 // GET - Fetch all projects for the authenticated user
 // =============================================================================
 
-export async function GET(): Promise<NextResponse<ProjectResponse | { projects: Array<{ id: string; name: string; phase: string }> }>> {
+export async function GET(): Promise<
+  NextResponse<ProjectResponse | { projects: Array<{ id: string; name: string; phase: string }> }>
+> {
   try {
     // Get current session
     const session = await auth();
@@ -110,7 +112,7 @@ export async function POST(
       );
     }
 
-    const { name, mode } = parsed.data as CreateProjectData;
+    const { name, mode, startWith } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -143,7 +145,7 @@ export async function POST(
     }
 
     // Set initial phase based on startWith
-    const initialPhase = startWith === "game" ? "building" : "planning";
+    const initialPhase = startWith === "game" || startWith === "both" ? "building" : "assets";
 
     // Create initial asset manifest
     const initialManifest = {
@@ -160,14 +162,14 @@ export async function POST(
     let project;
     let gameId: string | undefined;
 
-    if (startWith === "game") {
+    if (startWith === "game" || startWith === "both") {
       // Use a transaction to ensure atomic creation of project and game
       project = await prisma.$transaction(async (tx) => {
         const newProject = await tx.project.create({
           data: {
             name,
             userId: userId,
-            phase: "assets", // Start with 'assets' and update to 'building' inside transaction
+            phase: "assets",
             mode: mode,
             assetManifest: initialManifest,
             syncStatus: "clean",
@@ -207,12 +209,14 @@ export async function POST(
       });
     }
 
-    console.log(`✅ Created unified project: ${project.id} with game: ${game.id}`);
+    console.log(
+      `✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`
+    );
 
     return NextResponse.json({
       success: true,
       projectId: project.id,
-      gameId: game.id,
+      gameId,
     });
   } catch (error) {
     console.error("Failed to create project:", error);

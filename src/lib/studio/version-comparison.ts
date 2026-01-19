@@ -34,16 +34,15 @@ function isSourceUpdated(lockedAt: Date | null, sourceUpdatedAt: Date): boolean 
 
 /**
  * Parse animations from animatedModelUrls JSON
- * Uses sorted keys for stable comparison
  *
  * @param animatedModelUrls - JSON string of animation URLs
- * @returns Array of animation names (sorted for stability)
+ * @returns Array of animation names
  */
 function parseAnimations(animatedModelUrls: string | null): string[] {
   if (!animatedModelUrls) return [];
   try {
     const parsed = JSON.parse(animatedModelUrls);
-    return Object.keys(parsed).sort();
+    return Object.keys(parsed);
   } catch {
     return [];
   }
@@ -172,85 +171,6 @@ function compare2DAssets(
 }
 
 /**
- * Get locked snapshot values for 3D assets from source tables
- * This fetches the actual values that were current at the time of locking
- *
- * @param assetRef - The GameAssetRef record
- * @param latest3D - The latest source asset
- * @returns Snapshot values for comparison
- */
-async function getLockedSnapshot3D(
-  assetRef: {
-    assetId: string;
-    lockedAt: Date | null;
-  },
-  latest3D: {
-    animatedModelUrls: string | null;
-    promptUsed: string | null;
-    riggedModelUrl: string | null;
-  }
-): Promise<{
-  animatedModelUrls: string | null;
-  promptUsed: string | null;
-  glbUrl: string | null;
-}> {
-  // If not locked, return current values as the "locked" snapshot
-  if (!assetRef.lockedAt) {
-    return {
-      animatedModelUrls: latest3D.animatedModelUrls,
-      promptUsed: latest3D.promptUsed,
-      glbUrl: latest3D.riggedModelUrl,
-    };
-  }
-
-  // For now, we use the current source values as the locked snapshot
-  // In a production system, you would want to store historical snapshots
-  // or use a temporal query to get values at lockedAt timestamp
-  return {
-    animatedModelUrls: latest3D.animatedModelUrls,
-    promptUsed: latest3D.promptUsed,
-    glbUrl: latest3D.riggedModelUrl,
-  };
-}
-
-/**
- * Get locked snapshot values for 2D assets from source tables
- * This fetches the actual values that were current at the time of locking
- *
- * @param assetRef - The GameAssetRef record
- * @param latest2D - The latest source asset
- * @returns Snapshot values for comparison
- */
-async function getLockedSnapshot2D(
-  assetRef: {
-    assetId: string;
-    lockedAt: Date | null;
-  },
-  latest2D: {
-    metadata: string | null;
-    promptUsed: string | null;
-  }
-): Promise<{
-  metadata: string | null;
-  promptUsed: string | null;
-}> {
-  // If not locked, return current values as the "locked" snapshot
-  if (!assetRef.lockedAt) {
-    return {
-      metadata: latest2D.metadata,
-      promptUsed: latest2D.promptUsed,
-    };
-  }
-
-  // For now, we use the current source values as the locked snapshot
-  // In a production system, you would want to store historical snapshots
-  return {
-    metadata: latest2D.metadata,
-    promptUsed: latest2D.promptUsed,
-  };
-}
-
-/**
  * Compare versions for a single asset reference
  *
  * @param assetRef - The GameAssetRef record with all needed fields
@@ -282,16 +202,14 @@ export async function compareAssetVersions(
       latestUpdatedAt = latest3D.updatedAt;
       latestVersion = 1; // 3D assets don't have explicit version numbers
 
-      // Fetch locked snapshot values from source tables for accurate comparison
-      // If lockedAt is set, we need to find what the values were at that time
-      // For now, we'll use the current source values as the "locked" snapshot
-      // since we don't have historical snapshots. This is a best-effort comparison.
-      const lockedSnapshot = await getLockedSnapshot3D(assetRef, latest3D);
-
       // Compare with locked version
       if (isSourceUpdated(assetRef.lockedAt, latest3D.updatedAt)) {
         versionChanges = compare3DAssets(
-          lockedSnapshot,
+          {
+            animatedModelUrls: null, // Not stored in GameAssetRef
+            promptUsed: null, // Not stored in GameAssetRef
+            glbUrl: assetRef.glbUrl,
+          },
           {
             animatedModelUrls: latest3D.animatedModelUrls,
             promptUsed: latest3D.promptUsed,
@@ -313,13 +231,13 @@ export async function compareAssetVersions(
       latestUpdatedAt = latest2D.updatedAt;
       latestVersion = 1;
 
-      // Fetch locked snapshot values from source tables for accurate comparison
-      const lockedSnapshot = await getLockedSnapshot2D(assetRef, latest2D);
-
       // Compare with locked version
       if (isSourceUpdated(assetRef.lockedAt, latest2D.updatedAt)) {
         versionChanges = compare2DAssets(
-          lockedSnapshot,
+          {
+            metadata: null, // 2D assets snapshot doesn't store metadata in GameAssetRef
+            promptUsed: null, // Not stored in GameAssetRef
+          },
           {
             metadata: latest2D.metadata,
             promptUsed: latest2D.promptUsed,
@@ -573,12 +491,11 @@ export async function syncAssetVersion(refId: string): Promise<{
   let changes: AssetVersionChanges;
   if (assetRef.assetType === '3d' || assetRef.assetType === 'model') {
     const source3D = latestSource3D!;
-    // Use actual source values for comparison instead of null
     changes = compare3DAssets(
       {
-        animatedModelUrls: source3D.animatedModelUrls,
-        promptUsed: source3D.promptUsed ?? null,
-        glbUrl: source3D.riggedModelUrl,
+        animatedModelUrls: null, // Not stored in GameAssetRef snapshot
+        promptUsed: null, // Not stored in GameAssetRef snapshot
+        glbUrl: assetRef.glbUrl,
       },
       {
         animatedModelUrls: source3D.animatedModelUrls,
@@ -588,11 +505,10 @@ export async function syncAssetVersion(refId: string): Promise<{
     );
   } else {
     const source2D = latestSource2D!;
-    // Use actual source values for comparison instead of null
     changes = compare2DAssets(
       {
-        metadata: source2D.metadata,
-        promptUsed: source2D.promptUsed ?? null,
+        metadata: null, // Not stored in GameAssetRef snapshot
+        promptUsed: null, // Not stored in GameAssetRef snapshot
       },
       {
         metadata: source2D.metadata,
@@ -605,12 +521,12 @@ export async function syncAssetVersion(refId: string): Promise<{
   const updatedRef = await prisma.gameAssetRef.update({
     where: { id: refId },
     data: {
-      // Update data snapshot with all relevant fields
+      // Update data snapshot
       glbUrl: assetRef.assetType === '3d' || assetRef.assetType === 'model'
         ? latestSource3D?.riggedModelUrl ?? null
         : undefined,
-      // Update lock info with proper version identifier (asset ID, not URL)
-      lockedVersionId: assetRef.assetId,
+      // Update lock info
+      lockedVersionId: (latestSource3D?.riggedModelUrl ?? assetRef.assetId) || assetRef.assetId,
       lockedAt: latestSource3D?.updatedAt ?? latestSource2D?.updatedAt,
     },
   });

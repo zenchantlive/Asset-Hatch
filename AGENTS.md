@@ -106,7 +106,7 @@ import { generateAssetPrompt } from "@/lib/prompt-templates"
   console.log('📤 Submitting to external API...')
   console.error('❌ Error:', error)
   ```
-  throw new Error(`Failed to fetch: ${reason}`)
+- **Throw descriptive errors**: `throw new Error("Failed to fetch: ${reason}")`
 
 ## Architecture Patterns
 
