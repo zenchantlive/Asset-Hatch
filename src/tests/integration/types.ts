@@ -60,3 +60,52 @@ export interface MemoryFileResponse {
     file?: Record<string, unknown>;
     error?: string;
 }
+
+// =============================================================================
+// HATCH STUDIOS TEST TYPES
+// =============================================================================
+
+export interface Game {
+    id: string;
+    name: string;
+    userId: string;
+    description?: string | null;
+    activeSceneId?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+    deletedAt?: string | null;
+    scenes?: GameScene[];
+}
+
+export interface GameScene {
+    id: string;
+    gameId: string;
+    name: string;
+    orderIndex: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface GameResponse {
+    success: boolean;
+    game?: Game;
+    error?: string;
+}
+
+export interface GameListResponse {
+    success: boolean;
+    games?: Game[];
+    error?: string;
+}
+
+export interface SceneResponse {
+    success: boolean;
+    scene?: GameScene;
+    error?: string;
+}
+
+export interface SceneListResponse {
+    success: boolean;
+    scenes?: GameScene[];
+    error?: string;
+}
