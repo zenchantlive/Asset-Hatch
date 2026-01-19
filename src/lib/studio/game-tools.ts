@@ -23,6 +23,7 @@ import {
   reorderFilesSchema,
   updatePlanSchema,
   getPlanSchema,
+  renameFileSchema,
   type CreateSceneInput,
   type SwitchSceneInput,
   type PlaceAssetInput,
@@ -33,6 +34,7 @@ import {
   type DeleteFileInput,
   type ReorderFilesInput,
   type UpdatePlanInput,
+  type RenameFileInput,
 } from '@/lib/studio/schemas';
 
 // =============================================================================
@@ -430,14 +432,23 @@ export const updateFileTool = (gameId: string) => {
   return tool({
     description: 'Update the content of an existing file in the game.',
     inputSchema: updateFileSchema,
-    execute: async ({ name, content }: UpdateFileInput) => {
+    execute: async ({ fileId, content }: UpdateFileInput) => {
       try {
-        console.log('💾 Updating file:', name);
+        console.log('💾 Updating file:', fileId);
 
-        // Update file in database
-        const file = await prisma.gameFile.update({
+        // First, get the file to retrieve its name for version history
+        const file = await prisma.gameFile.findUnique({
+          where: { id: fileId },
+        });
+
+        if (!file) {
+          return { success: false, error: `File not found` };
+        }
+
+        // Update file in database using fileId
+        const updatedFile = await prisma.gameFile.update({
           where: {
-            gameId_name: { gameId, name },
+            id: fileId,
           },
           data: {
             content,
@@ -449,26 +460,26 @@ export const updateFileTool = (gameId: string) => {
         await prisma.codeVersion.create({
           data: {
             gameId,
-            fileName: name,
+            fileName: file.name,
             code: content,
-            description: `Updated file: ${name}`,
+            description: `Updated file: ${file.name}`,
             trigger: 'updateFile',
             createdAt: new Date(),
           },
         });
 
-        console.log('✅ File updated:', file.id);
+        console.log('✅ File updated:', updatedFile.id);
 
         return {
           success: true,
-          message: `Updated file "${name}"`,
-          fileId: file.id,
-          name,
+          message: `Updated file "${file.name}"`,
+          fileId: updatedFile.id,
+          name: file.name,
           content,
         };
       } catch (error) {
         console.error('❌ Failed to update file:', error);
-        return { success: false, error: `File "${name}" not found or update failed` };
+        return { success: false, error: 'File not found or update failed' };
       }
     },
   });
@@ -484,27 +495,103 @@ export const deleteFileTool = (gameId: string) => {
   return tool({
     description: 'Delete a file from the game. This cannot be undone.',
     inputSchema: deleteFileSchema,
-    execute: async ({ name }: DeleteFileInput) => {
+    execute: async ({ fileId }: DeleteFileInput) => {
       try {
-        console.log('🗑️ Deleting file:', name);
+        console.log('🗑️ Deleting file:', fileId);
 
-        // Delete file from database
+        // First, get the file to retrieve its name for response
+        const file = await prisma.gameFile.findUnique({
+          where: { id: fileId },
+        });
+
+        if (!file) {
+          return { success: false, error: 'File not found' };
+        }
+
+        // Delete file from database using fileId
         await prisma.gameFile.delete({
           where: {
-            gameId_name: { gameId, name },
+            id: fileId,
           },
         });
 
-        console.log('✅ File deleted:', name);
+        console.log('✅ File deleted:', file.name);
 
         return {
           success: true,
-          message: `Deleted file "${name}"`,
-          name,
+          message: `Deleted file "${file.name}"`,
+          fileId,
+          name: file.name,
         };
       } catch (error) {
         console.error('❌ Failed to delete file:', error);
-        return { success: false, error: `File "${name}" not found or delete failed` };
+        return { success: false, error: 'File not found or delete failed' };
+      }
+    },
+  });
+};
+
+/**
+ * Rename file tool
+ *
+ * @param gameId - Current game ID
+ * @returns AI SDK tool for renaming files
+ */
+export const renameFileTool = (gameId: string) => {
+  return tool({
+    description: 'Rename a file in the game. This updates the filename while keeping the file ID the same.',
+    inputSchema: renameFileSchema,
+    execute: async ({ fileId, name }: RenameFileInput) => {
+      try {
+        console.log('📝 Renaming file:', fileId, 'to', name);
+
+        // First, get the old file to retrieve its name for version history
+        const oldFile = await prisma.gameFile.findUnique({
+          where: { id: fileId },
+        });
+
+        if (!oldFile) {
+          return { success: false, error: 'File not found' };
+        }
+
+        // Update file name in database using fileId
+        const renamedFile = await prisma.gameFile.update({
+          where: {
+            id: fileId,
+          },
+          data: {
+            name,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Create version history record for the rename
+        await prisma.codeVersion.create({
+          data: {
+            gameId,
+            fileName: name,
+            code: oldFile.content,
+            description: `Renamed file from "${oldFile.name}" to "${name}"`,
+            trigger: 'renameFile',
+            createdAt: new Date(),
+          },
+        });
+
+        console.log('✅ File renamed:', renamedFile.id);
+
+        return {
+          success: true,
+          message: `Renamed file from "${oldFile.name}" to "${name}"`,
+          fileId: renamedFile.id,
+          name: renamedFile.name,
+        };
+      } catch (error) {
+        console.error('❌ Failed to rename file:', error);
+        // Check for unique constraint violation (file name already exists)
+        if ((error as { code?: string }).code === 'P2002') {
+          return { success: false, error: `File "${name}" already exists in this game` };
+        }
+        return { success: false, error: 'File not found or rename failed' };
       }
     },
   });
@@ -564,16 +651,16 @@ export const listFilesTool = (gameId: string) => {
  */
 export const reorderFilesTool = (gameId: string) => {
   return tool({
-    description: 'Change the execution order of files. Pass an array of filenames in the desired order.',
+    description: 'Change the execution order of files. Pass an array of file IDs in the desired order.',
     inputSchema: reorderFilesSchema,
     execute: async ({ fileOrder }: ReorderFilesInput) => {
       try {
         console.log('🔄 Reordering files:', fileOrder);
 
         // Update each file's orderIndex based on position in array
-        const updates = fileOrder.map((name, index) =>
+        const updates = fileOrder.map((fileId, index) =>
           prisma.gameFile.update({
-            where: { gameId_name: { gameId, name } },
+            where: { id: fileId, gameId },
             data: { orderIndex: index },
           })
         );
@@ -589,7 +676,7 @@ export const reorderFilesTool = (gameId: string) => {
         };
       } catch (error) {
         console.error('❌ Failed to reorder files:', error);
-        return { success: false, error: 'Failed to reorder files. Check that all filenames exist.' };
+        return { success: false, error: 'Failed to reorder files. Check that all file IDs exist.' };
       }
     },
   });
@@ -717,6 +804,7 @@ export function createGameTools(gameId: string) {
     createFile: createFileTool(gameId),
     updateFile: updateFileTool(gameId),
     deleteFile: deleteFileTool(gameId),
+    renameFile: renameFileTool(gameId),
     listFiles: listFilesTool(gameId),
     reorderFiles: reorderFilesTool(gameId),
 
