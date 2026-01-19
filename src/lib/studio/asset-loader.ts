@@ -85,7 +85,7 @@ export function generateAssetLoaderScript(
         stage: error.stage,
         key: error.key,
         message: error.message
-      }, window.location.origin);
+      }, '*');
     }
   }
 
@@ -135,6 +135,7 @@ export function generateAssetLoaderScript(
 
     window.addEventListener('message', function(event) {
       const data = event.data;
+      if (event.source !== window.parent) return;
       if (!data || data.type !== 'asset-resolve-response') return;
       const requestId = data.requestId;
       if (!requestId) return;
@@ -158,7 +159,7 @@ export function generateAssetLoaderScript(
           type: 'asset-resolve-request',
           requestId: requestId,
           key: key
-        }, window.location.origin);
+        }, '*');
       } else {
         RESOLVE_REQUESTS.delete(requestId);
         reject({

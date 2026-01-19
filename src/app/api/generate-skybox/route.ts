@@ -145,6 +145,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        let parsedPalette: string[] | undefined;
+        if (styleAnchor?.colorPalette) {
+            try {
+                const parsed = JSON.parse(styleAnchor.colorPalette);
+                if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+                    parsedPalette = parsed;
+                }
+            } catch (error) {
+                console.warn("⚠️ Failed to parse skybox colorPalette JSON:", error);
+            }
+        }
+
         // Build FLUX2-optimized prompt using new builder
         // Pass style anchor for color/lighting consistency with other project assets
         const fullPrompt = buildSkyboxPrompt({
@@ -153,10 +165,7 @@ export async function POST(request: NextRequest) {
             styleAnchor: styleAnchor ? {
                 styleKeywords: styleAnchor.styleKeywords || undefined,
                 lightingKeywords: styleAnchor.lightingKeywords || undefined,
-                // Parse colorPalette from JSON string to array
-                colorPalette: styleAnchor.colorPalette
-                    ? JSON.parse(styleAnchor.colorPalette)
-                    : undefined,
+                colorPalette: parsedPalette,
             } : undefined,
         });
 

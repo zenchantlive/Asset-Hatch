@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2026-01-18
+**Last Updated:** 2026-01-03
 
 ---
 

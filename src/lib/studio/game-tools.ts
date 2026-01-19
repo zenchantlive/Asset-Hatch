@@ -437,7 +437,7 @@ export const updateFileTool = (gameId: string) => {
         console.log('💾 Updating file:', fileId);
 
         // First, get the file and verify ownership
-        const file = await prisma.gameFile.findUnique({
+        const file = await prisma.gameFile.findFirst({
           where: { id: fileId, gameId },
         });
 
@@ -449,7 +449,6 @@ export const updateFileTool = (gameId: string) => {
         const updatedFile = await prisma.gameFile.update({
           where: {
             id: fileId,
-            gameId,
           },
           data: {
             content,
@@ -501,7 +500,7 @@ export const deleteFileTool = (gameId: string) => {
         console.log('🗑️ Deleting file:', fileId);
 
         // First, get the file and verify ownership
-        const file = await prisma.gameFile.findUnique({
+        const file = await prisma.gameFile.findFirst({
           where: { id: fileId, gameId },
         });
 
@@ -513,7 +512,6 @@ export const deleteFileTool = (gameId: string) => {
         await prisma.gameFile.delete({
           where: {
             id: fileId,
-            gameId,
           },
         });
 
@@ -548,7 +546,7 @@ export const renameFileTool = (gameId: string) => {
         console.log('📝 Renaming file:', fileId, 'to', name);
 
         // First, get the old file and verify ownership
-        const oldFile = await prisma.gameFile.findUnique({
+        const oldFile = await prisma.gameFile.findFirst({
           where: { id: fileId, gameId },
         });
 
@@ -560,7 +558,6 @@ export const renameFileTool = (gameId: string) => {
         const renamedFile = await prisma.gameFile.update({
           where: {
             id: fileId,
-            gameId,
           },
           data: {
             name,
@@ -661,9 +658,21 @@ export const reorderFilesTool = (gameId: string) => {
         console.log('🔄 Reordering files:', fileOrder);
 
         // Update each file's orderIndex based on position in array
+        const files = await prisma.gameFile.findMany({
+          where: {
+            gameId,
+            id: { in: fileOrder },
+          },
+          select: { id: true },
+        });
+
+        if (files.length !== fileOrder.length) {
+          return { success: false, error: 'Some files were not found or access denied.' };
+        }
+
         const updates = fileOrder.map((fileId, index) =>
           prisma.gameFile.update({
-            where: { id: fileId, gameId },
+            where: { id: fileId },
             data: { orderIndex: index },
           })
         );
