@@ -126,13 +126,13 @@ describe('/api/studio/games', () => {
                     gameId: 'new-game-id',
                     name: 'Main Scene',
                     orderIndex: 0,
-                    code: '',
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                 }],
             };
 
             prismaMock.game.create.mockImplementation(() => Promise.resolve(mockGame));
+            prismaMock.game.update.mockImplementation(() => Promise.resolve(mockGame));
 
             const req = new NextRequest('http://localhost/api/studio/games', {
                 method: 'POST',
@@ -198,8 +198,8 @@ describe('/api/studio/games/[id]', () => {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 scenes: [
-                    { id: 'scene-1', gameId: 'game-1', name: 'Scene 1', orderIndex: 0, code: '' },
-                    { id: 'scene-2', gameId: 'game-1', name: 'Scene 2', orderIndex: 1, code: '' },
+                    { id: 'scene-1', name: 'Scene 1', orderIndex: 0 },
+                    { id: 'scene-2', name: 'Scene 2', orderIndex: 1 },
                 ],
             };
 

@@ -97,7 +97,7 @@ model Project {
   // Game creation (linked game if any)
   // 1:1 relation - Project owns the relation with unique gameId
   gameId              String?             @unique
-  game                Game?               // Prisma infers relation from unique gameId
+  game                Game?               @relation(fields: [gameId], references: [id]) // Explicit 1:1 relation to Game
 
   // Asset Manifest - THE CORE OF UNIFICATION
   // JSON blob tracking all linked assets and their sync state

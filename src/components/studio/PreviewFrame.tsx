@@ -50,7 +50,7 @@ interface PreviewFrameProps {
  * Concatenate files in orderIndex order for execution
  */
 function concatenateFiles(files: GameFileData[]): string {
-    return files
+    return [...files]
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((f) => f.content)
         .join('\n\n');
@@ -98,9 +98,9 @@ export function PreviewFrame({
     }, [currentError, onRequestFix]);
 
     // Generate asset loader script if manifest provided
-    const assetScript = assetManifest
-      ? generateAssetLoaderScript(convertManifestToAssetInfo(assetManifest))
-      : '// No assets available';
+    const assetScript = generateAssetLoaderScript(
+      assetManifest ? convertManifestToAssetInfo(assetManifest) : []
+    );
 
     // Generate script tags from library manifest
     const scriptTags = IFRAME_SCRIPTS

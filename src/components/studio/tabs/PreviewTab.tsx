@@ -43,10 +43,7 @@ export function PreviewTab() {
         async function fetchAssets() {
             try {
                 // Safely get game.id - game comes from context and should exist
-            const currentGameId = game?.id;
-            if (!currentGameId) return;
-            
-            const response = await fetch(`/api/studio/games/${currentGameId}/assets`);
+            const response = await fetch(`/api/studio/games/${game.id}/assets`);
                 if (response.ok) {
                     const manifest = await response.json();
                     setAssetManifest(manifest);

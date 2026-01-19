@@ -46,7 +46,7 @@ export function NewProjectDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"2d" | "3d" | "hybrid">("3d");
-  const [startWith, setStartWith] = useState<"assets" | "game" | "both">("both");
+  const [startWith, setStartWith] = useState<"assets" | "game">("assets");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {

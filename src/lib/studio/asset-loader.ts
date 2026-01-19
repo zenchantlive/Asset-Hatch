@@ -55,16 +55,29 @@ export function generateAssetLoaderScript(assets: AssetInfo[]): string {
       }
       
       // Handle 3D models
-      if (asset.type === '3d' || asset.metadata.animations) {
+      if (asset.type === '3d') {
         return BABYLON.SceneLoader.ImportMeshAsync('', url.split('/').slice(0, -1).join('/') + '/', url.split('/').pop(), scene)
           .then(function(result) {
             console.log('[ASSETS] Loaded 3D asset: ' + key);
-            // Store metadata on first mesh
-            if (result.meshes[0] && asset.metadata.animations) {
-              result.meshes[0].metadata = result.meshes[0].metadata || {};
-              result.meshes[0].metadata.animations = asset.metadata.animations;
+      
+            // If there are no meshes, return null
+            if (!result.meshes || result.meshes.length === 0) {
+              return null;
             }
-            return result.meshes[0];
+      
+            // Create a root node to hold all meshes
+            var rootNode = new BABYLON.TransformNode("root_" + key, scene);
+            result.meshes.forEach(function(mesh) {
+              mesh.parent = rootNode;
+            });
+
+            // Store metadata on the root node
+            if (asset.metadata.animations) {
+              rootNode.metadata = rootNode.metadata || {};
+              rootNode.metadata.animations = asset.metadata.animations;
+            }
+      
+            return rootNode;
           })
           .catch(function(error) {
             console.error('[ASSETS] Failed to load 3D asset: ' + key, error);
