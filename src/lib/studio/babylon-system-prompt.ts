@@ -190,9 +190,17 @@ Havok is pre-loaded in the preview as global HavokPhysics. ALWAYS initialize phy
 (async function initPhysics() {
   const havok = await HavokPhysics();
   const plugin = new BABYLON.HavokPlugin(true, havok);
+  // This enables physics and will trigger the onPhysicsReadyObservable internally
   scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), plugin);
-  scene.onPhysicsReadyObservable.notifyObservers();
 })();
+
+// In other files (e.g., player.js), you would then use the observable like this:
+/*
+scene.onPhysicsReadyObservable.addOnce(() => {
+  // It is now safe to create physics bodies and aggregates
+  const playerAggregate = new BABYLON.PhysicsAggregate(playerMesh, ...);
+});
+*/
 \`\`\`
 
 CRITICAL RULES:
