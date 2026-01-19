@@ -40,6 +40,25 @@ describe('asset-loader', () => {
       expect(script).toContain('knight');
       expect(script).toContain('forest');
     });
+
+    it('should embed resolver config when provided', () => {
+      const script = generateAssetLoaderScript(
+        [{ key: 'ship', type: '3d', name: 'Ship', urls: { glb: 'https://example.com/ship.glb' }, metadata: {} }],
+        { gameId: 'game-123', timeoutMs: 5000 }
+      );
+
+      expect(script).toContain('game-123');
+      expect(script).toContain('timeoutMs');
+    });
+
+    it('should support skybox assets', () => {
+      const script = generateAssetLoaderScript([
+        { key: 'sky', type: 'skybox', name: 'Skybox', urls: { model: 'https://example.com/sky.jpg' }, metadata: { skybox: true } },
+      ]);
+
+      expect(script).toContain('skybox');
+      expect(script).toContain('PhotoDome');
+    });
   });
 
   describe('validateAssetInfo', () => {
