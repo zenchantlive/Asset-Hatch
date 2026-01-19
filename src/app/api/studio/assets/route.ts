@@ -48,22 +48,77 @@ export async function GET(request: Request) {
         }
 
         // Fetch 3D assets if needed
-        const assets3D = type === 'all' || type === '3d'
-            ? await prisma.generated3DAsset.findMany({
-                where: {
-                    projectId: { in: projectIds },
-                    approvalStatus: 'approved',
-                    ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
-                },
-                include: {
-                    project: {
-                        select: { name: true },
-                    },
-                },
-                take: limit,
-                orderBy: { updatedAt: 'desc' },
-            })
-            : [];
+        const [assets3D, assets2D] = await Promise.all([
+            type === 'all' || type === '3d'
+                ? prisma.generated3DAsset.findMany({
+                      where: {
+                          projectId: { in: projectIds },
+                          approvalStatus: 'approved',
+                          ...(search
+                              ? { name: { contains: search, mode: 'insensitive' } }
+                              : {}),
+                      },
+                      include: {
+                          project: {
+                              select: { name: true },
+                          },
+                      },
+                      take: limit,
+                      orderBy: { updatedAt: 'desc' },
+                  })
+                : Promise.resolve([]),
+            type === 'all' || type === '2d'
+                ? prisma.generatedAsset.findMany({
+                      where: {
+                          projectId: { in: projectIds },
+                          approvalStatus: 'approved',
+                          ...(search
+                              ? { name: { contains: search, mode: 'insensitive' } }
+                              : {}),
+                      },
+                      include: {
+                          project: {
+                              select: { name: true },
+                          },
+                      },
+                      take: limit,
+                      orderBy: { updatedAt: 'desc' },
+                  })
+                : Promise.resolve([]),
+        ]);
+
+        const formattedAssets3D = assets3D.map((asset) => ({
+            id: asset.id,
+            projectId: asset.projectId,
+            name: asset.name || asset.assetId,
+            type: '3d' as const,
+            thumbnailUrl: asset.draftModelUrl || null,
+            modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
+            riggedModelUrl: asset.riggedModelUrl,
+            prompt: asset.promptUsed,
+            updatedAt: asset.updatedAt.toISOString(),
+        }));
+
+        const formattedAssets2D = assets2D.map((asset) => ({
+            id: asset.id,
+            projectId: asset.projectId,
+            name: asset.name || asset.assetId,
+            type: '2d' as const,
+            // Prefer common 2D output fields; fall back safely if schema differs
+            thumbnailUrl:
+                (asset as any).imageUrl ||
+                (asset as any).generatedImageUrl ||
+                (asset as any).outputUrl ||
+                null,
+            modelUrl: null,
+            riggedModelUrl: null,
+            prompt: (asset as any).promptUsed,
+            updatedAt: asset.updatedAt.toISOString(),
+        }));
+
+        const formattedAssets = [...formattedAssets3D, ...formattedAssets2D]
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+            .slice(0, limit);
 
         // Fetch 2D assets if needed
         const assets2D = type === 'all' || type === '2d'
