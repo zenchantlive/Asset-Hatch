@@ -23,6 +23,7 @@ export function PreviewTab() {
     const [hasError, setHasError] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [assetManifest, setAssetManifest] = useState<AssetManifest | null>(null);
+    const [showAssetRegistry, setShowAssetRegistry] = useState(false);
 
     // Handle iframe ready
     const handleReady = useCallback(() => {
@@ -99,15 +100,48 @@ export function PreviewTab() {
                             Error in scene
                         </div>
                     )}
+                    {assetManifest && Object.keys(assetManifest.assets).length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAssetRegistry((prev) => !prev)}
+                            className="text-xs text-muted-foreground hover:text-white transition-colors"
+                        >
+                            {showAssetRegistry ? 'Hide Assets' : 'Show Assets'}
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Preview iframe with built-in error overlay */}
             {/* Multi-file: Pass files array instead of code string */}
             <div className="flex-1 bg-studio-preview-bg relative">
+                {showAssetRegistry && assetManifest && (
+                    <div className="absolute top-3 left-3 z-20 max-w-xs w-64 bg-black/60 border border-white/10 rounded-lg p-3 text-xs text-white backdrop-blur">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">Asset Registry</span>
+                            <span className="text-[10px] text-white/60">
+                                {Object.keys(assetManifest.assets).length} total
+                            </span>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto space-y-2">
+                            {Object.entries(assetManifest.assets).map(([key, entry]) => (
+                                <div key={key} className="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div className="font-medium text-white/90">{key}</div>
+                                        <div className="text-[10px] text-white/60">{entry.name}</div>
+                                    </div>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/70">
+                                        {entry.type.toUpperCase()}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <PreviewFrame
                     files={files}
                     assetManifest={assetManifest || undefined}
+                    gameId={game?.id}
                     isPlaying={isPlaying}
                     previewKey={previewKey}
                     onReady={handleReady}
