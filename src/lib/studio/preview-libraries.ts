@@ -22,6 +22,18 @@ export const PREVIEW_LIBRARIES = {
     description: 'Core Babylon.js engine - always available',
     required: true,
   },
+
+  // Physics (Havok)
+  havok: {
+    cdn: 'https://cdn.babylonjs.com/havok/HavokPhysics_umd.js',
+    global: 'HavokPhysics',
+    description: 'Havok physics WASM/JS runtime',
+    whenToUse: [
+      'Rigid body physics',
+      'PhysicsAggregate usage',
+      'Collision-enabled gameplay',
+    ],
+  },
   
   // UI System
   babylonGUI: {
@@ -156,7 +168,7 @@ export const LIBRARY_USAGE_RULES = [
     feature: 'Physics',
     libraries: ['havok'],
     rule: 'Use HavokPlugin for physics (configured separately)',
-    note: 'Havok requires WASM initialization - use scene.enablePhysics()',
+    note: 'Havok requires async initialization - use HavokPhysics() then scene.enablePhysics()',
   },
 ];
 
@@ -193,6 +205,9 @@ All libraries are PRE-LOADED - just use them directly!
 export const IFRAME_SCRIPTS = [
   // Core engine (required)
   'https://cdn.babylonjs.com/babylon.js',
+
+  // Physics (Havok)
+  'https://cdn.babylonjs.com/havok/HavokPhysics_umd.js',
   
   // UI System (commonly needed)
   'https://cdn.babylonjs.com/gui/babylon.gui.min.js',

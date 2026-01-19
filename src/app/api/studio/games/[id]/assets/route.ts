@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { AssetManifest } from '@/lib/types/unified-project';
+import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
 /**
  * Fetch real metadata for an asset from GeneratedAsset/Generated3DAsset tables
@@ -83,6 +84,8 @@ export async function GET(
   }
 
   const { id: gameId } = await params;
+  const { searchParams } = new URL(request.url);
+  const includeGlbData = searchParams.get("includeGlbData") === "1";
 
   // Fetch game with asset references
   const game = await prisma.game.findFirst({
@@ -100,6 +103,47 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
+  // Auto-link skybox if missing (older projects)
+  if (game.projectId) {
+    const hasSkyboxRef = game.assetRefs.some((ref) => ref.assetType === "skybox");
+    if (!hasSkyboxRef) {
+      const skyboxAsset = await prisma.generated3DAsset.findFirst({
+        where: {
+          projectId: game.projectId,
+          assetId: { endsWith: "-skybox" },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      if (skyboxAsset) {
+        const skyboxRef = await prisma.gameAssetRef.upsert({
+          where: {
+            gameId_assetId: {
+              gameId: game.id,
+              assetId: skyboxAsset.id,
+            },
+          },
+          update: {},
+          create: {
+            gameId: game.id,
+            projectId: game.projectId,
+            assetType: "skybox",
+            assetId: skyboxAsset.id,
+            assetName: skyboxAsset.name || "Environment Skybox",
+            thumbnailUrl: skyboxAsset.draftModelUrl || null,
+            modelUrl: skyboxAsset.draftModelUrl || null,
+            glbUrl: null,
+            manifestKey: "environment_skybox",
+            createdAt: new Date(),
+          },
+        });
+
+        game.assetRefs.push(skyboxRef);
+        console.log("✅ Auto-linked skybox asset to game manifest:", skyboxAsset.assetId);
+      }
+    }
+  }
+
   // Build asset manifest from GameAssetRefs
   const assets: AssetManifest['assets'] = {};
   
@@ -108,16 +152,20 @@ export async function GET(
     
     // Fetch real metadata from source tables
     const metadata = await fetchAssetMetadata(ref.assetId, ref.assetType);
+
+    const resolvedModelUrl = await resolveR2AssetUrl(ref.modelUrl || ref.glbUrl || null);
+    const resolvedGlbUrl = await resolveR2AssetUrl(ref.glbUrl || ref.modelUrl || null);
     
     assets[key] = {
       id: ref.assetId,
-      type: ref.assetType as '2d' | '3d',
+      type: ref.assetType as '2d' | '3d' | 'skybox',
       name: ref.assetName,
       version: ref.lockedVersionId ? 1 : 0,
       urls: {
         thumbnail: ref.thumbnailUrl || undefined,
-        model: ref.modelUrl || undefined,
-        glb: ref.glbUrl || undefined,
+        model: resolvedModelUrl || undefined,
+        glb: resolvedGlbUrl || undefined,
+        ...(includeGlbData && ref.glbData ? { glbData: ref.glbData } : {}),
       },
       metadata,
       linkedAt: ref.createdAt.toISOString(),

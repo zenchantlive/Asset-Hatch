@@ -20,6 +20,7 @@ import { auth } from "@/auth";
 import { generateFluxImage } from "@/lib/openrouter-image";
 import { getModelById, getDefaultModel } from "@/lib/model-registry";
 import { buildSkyboxPrompt, type SkyboxPreset } from "@/lib/skybox-prompts";
+import { updateAssetInventoryDocument } from "@/lib/studio/shared-doc-initialization";
 
 // =============================================================================
 // Types
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
         // Verify the project exists, user has access, and fetch style anchor
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { id: true, userId: true }
+            select: { id: true, userId: true, gameId: true }
         });
 
         if (!project) {
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
         // Persist to database
         try {
             const skyboxAssetId = `${projectId}-skybox`;
-            await prisma.generated3DAsset.upsert({
+            const skyboxRecord = await prisma.generated3DAsset.upsert({
                 where: {
                     projectId_assetId: {
                         projectId,
@@ -212,6 +213,39 @@ export async function POST(request: NextRequest) {
                 },
             });
             console.log("💾 Skybox saved to database:", skyboxAssetId);
+
+            // Update shared asset inventory for AI context
+            await updateAssetInventoryDocument(projectId, {
+                name: "Environment Skybox",
+                type: "skybox",
+                description: prompt,
+            });
+
+            // Auto-link skybox to game for manifest availability
+            if (project.gameId) {
+                await prisma.gameAssetRef.upsert({
+                    where: {
+                        gameId_assetId: {
+                            gameId: project.gameId,
+                            assetId: skyboxRecord.id,
+                        },
+                    },
+                    update: {},
+                    create: {
+                        gameId: project.gameId,
+                        projectId,
+                        assetType: "skybox",
+                        assetId: skyboxRecord.id,
+                        assetName: "Environment Skybox",
+                        thumbnailUrl: skyboxRecord.draftModelUrl || null,
+                        modelUrl: skyboxRecord.draftModelUrl || null,
+                        glbUrl: null,
+                        manifestKey: "environment_skybox",
+                        createdAt: new Date(),
+                    },
+                });
+                console.log("✅ Linked skybox to game:", project.gameId);
+            }
         } catch (dbError) {
             console.error("⚠️ Failed to save skybox to DB:", dbError);
             // Don't fail the request if DB save fails, just warn
