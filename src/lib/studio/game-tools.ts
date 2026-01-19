@@ -390,19 +390,20 @@ export const updateFileTool = (gameId: string) => {
       try {
         console.log('💾 Updating file:', fileId);
 
-        // First, get the file to retrieve its name for version history
+        // First, get the file and verify ownership
         const file = await prisma.gameFile.findUnique({
-          where: { id: fileId },
+          where: { id: fileId, gameId },
         });
 
         if (!file) {
-          return { success: false, error: `File not found` };
+          return { success: false, error: `File not found or access denied` };
         }
 
-        // Update file in database using fileId
+        // Update file in database using fileId and gameId
         const updatedFile = await prisma.gameFile.update({
           where: {
             id: fileId,
+            gameId,
           },
           data: {
             content,
@@ -453,19 +454,20 @@ export const deleteFileTool = (gameId: string) => {
       try {
         console.log('🗑️ Deleting file:', fileId);
 
-        // First, get the file to retrieve its name for response
+        // First, get the file and verify ownership
         const file = await prisma.gameFile.findUnique({
-          where: { id: fileId },
+          where: { id: fileId, gameId },
         });
 
         if (!file) {
-          return { success: false, error: 'File not found' };
+          return { success: false, error: 'File not found or access denied' };
         }
 
-        // Delete file from database using fileId
+        // Delete file from database using fileId and gameId
         await prisma.gameFile.delete({
           where: {
             id: fileId,
+            gameId,
           },
         });
 
@@ -499,19 +501,20 @@ export const renameFileTool = (gameId: string) => {
       try {
         console.log('📝 Renaming file:', fileId, 'to', name);
 
-        // First, get the old file to retrieve its name for version history
+        // First, get the old file and verify ownership
         const oldFile = await prisma.gameFile.findUnique({
-          where: { id: fileId },
+          where: { id: fileId, gameId },
         });
 
         if (!oldFile) {
-          return { success: false, error: 'File not found' };
+          return { success: false, error: 'File not found or access denied' };
         }
 
-        // Update file name in database using fileId
+        // Update file name in database using fileId and gameId
         const renamedFile = await prisma.gameFile.update({
           where: {
             id: fileId,
+            gameId,
           },
           data: {
             name,
