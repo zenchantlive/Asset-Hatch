@@ -98,9 +98,9 @@ export function PreviewFrame({
     }, [currentError, onRequestFix]);
 
     // Generate asset loader script if manifest provided
-    const assetScript = assetManifest
-      ? generateAssetLoaderScript(convertManifestToAssetInfo(assetManifest))
-      : '// No assets available';
+    const assetScript = generateAssetLoaderScript(
+      assetManifest ? convertManifestToAssetInfo(assetManifest) : []
+    );
 
     // Generate script tags from library manifest
     const scriptTags = IFRAME_SCRIPTS
