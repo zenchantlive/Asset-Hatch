@@ -216,14 +216,9 @@ export async function POST(
             data: {
                 name,
                 description: description || null,
-                userId: userId,
-                // Create default scene inline (legacy, for backwards compatibility)
-                scenes: {
-                    create: {
-                        name: "Main Scene",
-                        orderIndex: 0,
-                    },
-                },
+                // Do not create a legacy default scene; `GameScene.code` is deprecated.
+                // Rely on `GameFile` for initial code, and create scenes explicitly via the scenes API.
+                activeSceneId: null,
                 // Create initial main.js file for multi-file support
                 files: {
                     create: {
