@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { findAvailableUpdates } from '@/lib/studio/version-comparison';
 import type { AssetUpdatesResponse } from '@/lib/types/asset-version';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/studio/games/[id]/assets/updates
@@ -80,5 +81,3 @@ export async function GET(
   }
 }
 
-// Import prisma at the end to avoid circular dependencies
-import { prisma } from '@/lib/prisma';
