@@ -19,10 +19,10 @@ const restoreVersionSchema = z.object({
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string; fileId: string }>;
 }
 
@@ -61,10 +61,10 @@ async function verifyFileOwnership(fileId: string, gameId: string) {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         if (!session?.user?.id) {
@@ -125,10 +125,10 @@ export async function GET(
 
 export async function POST(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         if (!session?.user?.id) {

@@ -17,15 +17,13 @@ import { z } from "zod";
 const createSceneSchema = z.object({
     // Scene name is required, must be at least 1 character
     name: z.string().min(1, "Name is required"),
-    // Optional initial code for the scene
-    code: z.string().optional(),
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
@@ -51,11 +49,11 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -84,7 +82,6 @@ export async function GET(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -106,11 +103,11 @@ export async function GET(
 
 export async function POST(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -143,7 +140,7 @@ export async function POST(
             );
         }
 
-        const { name, code } = parsed.data;
+        const { name } = parsed.data;
 
         // Calculate next orderIndex based on existing scenes count
         const sceneCount = await prisma.gameScene.count({
@@ -155,7 +152,6 @@ export async function POST(
             data: {
                 gameId: params.id,
                 name,
-                code: code || "", // Default to empty string if no code provided
                 orderIndex: sceneCount, // New scene goes at the end
             },
             select: {
@@ -163,7 +159,6 @@ export async function POST(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },

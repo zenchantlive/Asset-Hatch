@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
@@ -15,14 +15,14 @@ interface RouteParams {
  * GET /api/studio/games/[id]/plan
  * Get the plan for a game
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, context: RouteContext) {
     try {
         const session = await auth();
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id: gameId } = await params;
+        const { id: gameId } = await context.params;
 
         // Verify game ownership
         const game = await prisma.game.findFirst({
@@ -59,14 +59,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * POST /api/studio/games/[id]/plan
  * Create a new plan for a game
  */
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, context: RouteContext) {
     try {
         const session = await auth();
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id: gameId } = await params;
+        const { id: gameId } = await context.params;
         const body = await request.json();
         const { content, status = 'draft' } = body;
 
@@ -115,14 +115,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
  * PATCH /api/studio/games/[id]/plan
  * Update the plan for a game
  */
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
     try {
         const session = await auth();
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id: gameId } = await params;
+        const { id: gameId } = await context.params;
         const body = await request.json();
         const { content, status } = body;
 

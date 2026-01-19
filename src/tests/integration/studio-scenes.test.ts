@@ -67,8 +67,8 @@ describe('/api/studio/games/[id]/scenes', () => {
 
             // Mock scenes list
             prismaMock.gameScene.findMany.mockImplementation(() => Promise.resolve([
-                { id: 'scene-1', gameId: 'game-1', name: 'Scene 1', orderIndex: 0, code: '' },
-                { id: 'scene-2', gameId: 'game-1', name: 'Scene 2', orderIndex: 1, code: 'console.log("hi")' },
+                { id: 'scene-1', gameId: 'game-1', name: 'Scene 1', orderIndex: 0 },
+                { id: 'scene-2', gameId: 'game-1', name: 'Scene 2', orderIndex: 1 },
             ]));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes');
@@ -141,7 +141,6 @@ describe('/api/studio/games/[id]/scenes', () => {
                 gameId: 'game-1',
                 name: 'New Scene',
                 orderIndex: 2,
-                code: '',
             }));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes', {
@@ -215,7 +214,6 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
                 gameId: 'game-1',
                 name: 'Main Scene',
                 orderIndex: 0,
-                code: 'const game = {};',
             }));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1');
@@ -243,7 +241,6 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
                 gameId: 'game-1',
                 name: 'Old Name',
                 orderIndex: 0,
-                code: '',
             }));
 
             prismaMock.gameScene.update.mockImplementation(() => Promise.resolve({
@@ -251,12 +248,11 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
                 gameId: 'game-1',
                 name: 'New Name',
                 orderIndex: 0,
-                code: 'new code',
             }));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1', {
                 method: 'PATCH',
-                body: JSON.stringify({ name: 'New Name', code: 'new code' }),
+                body: JSON.stringify({ name: 'New Name' }),
             });
             const res = await PATCH(req, { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
             const body = await res.json() as SceneResponse;

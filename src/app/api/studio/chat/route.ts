@@ -16,6 +16,12 @@ const chatModel = getDefaultModel('chat');
 export async function POST(req: NextRequest) {
   try {
     const { messages, gameId } = await req.json();
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: 'messages must be an array' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate gameId is present
     console.log('🎮 Studio Chat API received gameId:', gameId);
