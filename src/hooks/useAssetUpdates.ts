@@ -141,20 +141,21 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
 
     try {
       // Sync each update sequentially
-      for (const update of updates) {
-        const response = await fetch(
+      const syncPromises = updates.map(update =>
+        fetch(
           `/api/studio/games/${gameId}/assets/${update.refId}/sync`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reason: "Bulk sync all updates" }),
           }
-        );
+        )
+      );
 
-        if (!response.ok) {
-          allSucceeded = false;
-        }
-      }
+      const responses = await Promise.all(syncPromises);
+      allSucceeded = responses.every(res => res.ok);
+
+
 
       // Clear updates list after attempting all syncs
       setUpdates([]);
