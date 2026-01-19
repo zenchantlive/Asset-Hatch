@@ -76,14 +76,10 @@ export async function GET(request: Request) {
     const assetRef = await prisma.gameAssetRef.findFirst({
       where: {
         gameId,
-        ...(hasSession
-          ? {
-              game: {
-                userId: session?.user?.id,
-                deletedAt: null,
-              },
-            }
-          : {}),
+        game: {
+          deletedAt: null,
+          ...(hasSession ? { userId: session?.user?.id } : {}),
+        },
         OR: [{ manifestKey: key }, { assetId: key }],
       },
     });

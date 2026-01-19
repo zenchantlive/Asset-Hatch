@@ -187,6 +187,9 @@ ${scriptTags}
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             const data = event.data;
+            const iframeWindow = iframeRef.current?.contentWindow;
+            if (!iframeWindow || event.source !== iframeWindow) return;
+            if (event.origin !== 'null') return;
             if (data?.type === 'ready') {
                 setCurrentError(null);
                 onReady?.();
@@ -243,7 +246,7 @@ ${scriptTags}
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [onReady, onError, gameId]);
+    }, [gameId, onReady, onError]);
 
     return (
         <div className="relative w-full h-full">

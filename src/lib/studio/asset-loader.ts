@@ -169,8 +169,8 @@ export function generateAssetLoaderScript(
     });
   }
 
-  function resolveAssetUrl(key, asset, requestId) {
-    const candidate = asset.urls.glb || asset.urls.model;
+  function resolveAssetUrl(key, asset, requestId, fallbackCandidate) {
+    const candidate = fallbackCandidate || asset.urls.glb || asset.urls.model;
     if (candidate && candidate.startsWith('data:')) {
       return Promise.resolve({ url: candidate, source: 'data' });
     }
@@ -391,43 +391,45 @@ export function generateAssetLoaderScript(
 
       // Handle 2D textures
       if (asset.type === '2d') {
-        var textureUrl = asset.urls.model || asset.urls.thumbnail;
-        if (!textureUrl) {
-          var textureError = buildAssetError({
-            code: 'URL_MISSING',
-            stage: 'resolve',
-            key: key,
-            message: 'No texture URL available for asset',
-            requestId: requestId,
-            assetType: asset.type
-          });
-          reportAssetError(textureError);
-          return Promise.reject(textureError);
-        }
-
         return withTimeout(
-          new Promise(function(resolve, reject) {
-            var texture = new BABYLON.Texture(
-              textureUrl,
-              scene,
-              false,
-              false,
-              BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-              function() {
-                console.log('[ASSETS] Loaded 2D asset: ' + key);
-                resolve(texture);
-              },
-              function(message) {
-                reject(buildAssetError({
-                  code: 'LOAD_FAILED',
-                  stage: 'load',
-                  key: key,
-                  message: message || 'Failed to load 2D asset',
-                  requestId: requestId,
-                  assetType: asset.type
-                }));
-              }
-            );
+          resolveAssetUrl(key, asset, requestId, asset.urls.model || asset.urls.thumbnail).then(function(resolved) {
+            if (!resolved.url) {
+              var textureError = buildAssetError({
+                code: 'URL_MISSING',
+                stage: 'resolve',
+                key: key,
+                message: 'No texture URL available for asset',
+                requestId: requestId,
+                assetType: asset.type,
+                source: resolved.source
+              });
+              reportAssetError(textureError);
+              throw textureError;
+            }
+
+            return new Promise(function(resolve, reject) {
+              var texture = new BABYLON.Texture(
+                resolved.url,
+                scene,
+                false,
+                false,
+                BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+                function() {
+                  console.log('[ASSETS] Loaded 2D asset: ' + key);
+                  resolve(texture);
+                },
+                function(message) {
+                  reject(buildAssetError({
+                    code: 'LOAD_FAILED',
+                    stage: 'load',
+                    key: key,
+                    message: message || 'Failed to load 2D asset',
+                    requestId: requestId,
+                    assetType: asset.type
+                  }));
+                }
+              );
+            });
           }),
           (options && options.timeoutMs) ? options.timeoutMs : ASSET_CONFIG.timeoutMs,
           function() {

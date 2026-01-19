@@ -72,12 +72,12 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (Array.isArray(data?.updates)) {
         setUpdates(data.updates || []);
-        return data.hasUpdates;
-      } else {
-        throw new Error(data.message || "Check failed");
+        return Boolean(data.hasUpdates);
       }
+
+      throw new Error("Check failed");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);

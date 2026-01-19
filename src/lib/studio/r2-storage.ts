@@ -177,7 +177,9 @@ export async function resolveR2AssetUrl(
   if (storedUrlOrKey.startsWith("data:")) return storedUrlOrKey;
 
   const config = loadR2Config();
-  if (!config) return storedUrlOrKey;
+  if (!config) {
+    return storedUrlOrKey.includes("://") ? storedUrlOrKey : null;
+  }
 
   const key = extractKeyFromR2Url(storedUrlOrKey, config);
   if (!key) return storedUrlOrKey;
