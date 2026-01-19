@@ -71,6 +71,8 @@ export interface SceneData {
     name: string;
     /** Order index for sorting scenes */
     orderIndex: number;
+    /** Scene code content */
+    code: string;
     /** ISO timestamp of creation */
     createdAt: string;
     /** ISO timestamp of last update */
@@ -309,7 +311,7 @@ export function manifestEntryToAssetInfo(
     entry: import("@/lib/types/unified-project").AssetManifestEntry
 ): AssetInfo {
     // Phase 10: Handle glbData for permanent asset storage
-    const urls = { ...(entry.urls || {}) };
+    const urls = entry.urls || {};
 
     // If glbData exists in urls, construct data URL
     if (urls.glbData) {
