@@ -234,9 +234,10 @@ export const setCameraTool = (gameId: string) => {
 
         // Update scene code to configure camera
         const cameraCode = generateCameraSetupCode(type, target);
+        const newCode = `${cameraCode}\n\n${scene.code || ''}`;
         await prisma.gameScene.update({
           where: { id: activeSceneId },
-          data: { code: cameraCode, updatedAt: new Date() },
+          data: { code: newCode, updatedAt: new Date() },
         });
 
         console.log('✅ Camera set:', type);
