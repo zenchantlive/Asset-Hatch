@@ -84,7 +84,9 @@ export default async function DashboardPage() {
       phase: project.phase,
       syncStatus: project.syncStatus,
       pendingAssetCount: syncState.pendingAssets?.length ?? 0,
-      assetCount: Object.keys(assets).length || project._count.generatedAssets + project._count.generated3DAssets,
+      assetCount: Object.keys(assets).length > 0
+        ? Object.keys(assets).length
+        : project._count.generatedAssets + project._count.generated3DAssets,
       gamePhase,
       updatedAt: project.updatedAt,
     };
