@@ -143,7 +143,7 @@ export async function POST(
     }
 
     // Set initial phase based on startWith
-    const initialPhase = startWith === "game" ? "building" : "assets";
+    const initialPhase = startWith === "game" ? "building" : "planning";
 
     // Create initial asset manifest
     const initialManifest = {
