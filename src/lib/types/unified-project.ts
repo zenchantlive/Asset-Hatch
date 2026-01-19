@@ -26,7 +26,7 @@ export interface AssetManifestEntry {
   /** Unique identifier for the asset */
   id: string;
   /** Asset type */
-  type: "2d" | "3d";
+  type: "2d" | "3d" | "skybox";
   /** Human-readable name */
   name: string;
   /** Version number for change tracking */
@@ -39,6 +39,8 @@ export interface AssetManifestEntry {
     model?: string;
     /** GLB/GLTF model URL */
     glb?: string;
+    /** Phase 10: Base64-encoded GLB data for permanent storage */
+    glbData?: string;
   };
   /** Generation metadata */
   metadata: {
@@ -50,6 +52,8 @@ export interface AssetManifestEntry {
     animations?: string[];
     /** Available poses */
     poses?: string[];
+    /** Skybox flag for panorama images */
+    skybox?: boolean;
   };
   /** When the asset was linked */
   linkedAt: string;

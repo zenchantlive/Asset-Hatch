@@ -66,7 +66,7 @@ export async function updateAssetInventoryDocument(
   projectId: string,
   assetInfo: {
     name: string;
-    type: '2d' | '3d' | 'model';
+    type: '2d' | '3d' | 'model' | 'skybox';
     description?: string;
     animations?: string[];
   }
@@ -83,7 +83,11 @@ export async function updateAssetInventoryDocument(
   const existingContent = existing?.content || getAssetInventoryTemplate();
 
   // Parse existing content to find the Characters/Environments/Items sections
-  const sectionName = assetInfo.type === '3d' || assetInfo.type === 'model' ? 'Characters' : 'Items';
+  const sectionName = assetInfo.type === 'skybox'
+    ? 'Environments'
+    : assetInfo.type === '3d' || assetInfo.type === 'model'
+      ? 'Characters'
+      : 'Items';
   const assetLine = `## ${sectionName}\n- **${assetInfo.name}**${assetInfo.description ? `: ${assetInfo.description}` : ''}${assetInfo.animations?.length ? ` (animations: ${assetInfo.animations.join(', ')})` : ''}`;
 
   // Check if asset already exists in inventory

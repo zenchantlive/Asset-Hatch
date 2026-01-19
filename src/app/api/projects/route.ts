@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import type { CreateProjectData } from "@/lib/types/unified-project";
+import { initializeSharedDocuments } from "@/lib/studio/shared-doc-initialization";
 
 // =============================================================================
 // VALIDATION SCHEMA
@@ -82,6 +83,68 @@ export async function GET(): Promise<NextResponse<ProjectResponse | { projects: 
 // =============================================================================
 // POST - Create a new project (unified with optional game creation)
 // =============================================================================
+
+// Auto-link approved assets function (Phase 9)
+async function autoLinkApprovedAssetsToGame(gameId: string, projectId: string): Promise<void> {
+  console.log('🔗 Auto-linking approved 3D assets from project:', projectId, 'to game:', gameId);
+
+  // Fetch approved 3D assets (2D assets use different workflow without approval)
+  const approved3D = await prisma.generated3DAsset.findMany({
+    where: { projectId, approvalStatus: 'approved' },
+  });
+
+  // Fetch skybox assets (stored as Generated3DAsset with -skybox suffix)
+  const skyboxes = await prisma.generated3DAsset.findMany({
+    where: {
+      projectId,
+      assetId: { endsWith: "-skybox" },
+    },
+  });
+
+  // Build asset ref data for 3D assets only
+  const assetRefs = approved3D.map(asset => ({
+    gameId,
+    projectId,
+    assetType: '3d' as const,
+    assetId: asset.id,
+    assetName: asset.name || asset.assetId,
+    thumbnailUrl: asset.draftModelUrl || null,
+    modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
+    glbUrl: asset.riggedModelUrl || null,
+    manifestKey: (asset.name || asset.assetId).toLowerCase().replace(/\s+/g, '_'),
+    createdAt: new Date(),
+  }));
+
+  const skyboxRefs = skyboxes.map(asset => ({
+    gameId,
+    projectId,
+    assetType: 'skybox' as const,
+    assetId: asset.id,
+    assetName: asset.name || 'Environment Skybox',
+    thumbnailUrl: asset.draftModelUrl || null,
+    modelUrl: asset.draftModelUrl || null,
+    glbUrl: null,
+    manifestKey: 'environment_skybox',
+    createdAt: new Date(),
+  }));
+
+  // Bulk upsert in transaction (skip duplicates, update nothing if exists)
+  const refsToCreate = [...assetRefs, ...skyboxRefs];
+
+  if (refsToCreate.length > 0) {
+    await prisma.$transaction(
+      refsToCreate.map(ref =>
+        prisma.gameAssetRef.upsert({
+          where: { gameId_assetId: { gameId, assetId: ref.assetId } },
+          update: {},
+          create: ref,
+        })
+      )
+    );
+  }
+
+  console.log('✅ Auto-linked', refsToCreate.length, 'approved assets to game');
+}
 
 export async function POST(
   request: Request
@@ -178,6 +241,9 @@ export async function POST(
         projectId: project.id,
       },
     });
+
+    // Auto-link all approved assets from project to game (Phase 9)
+    await autoLinkApprovedAssetsToGame(game.id, project.id);
 
     // Initialize shared documents for the project (game-design.md, asset-inventory.md, etc.)
     await initializeSharedDocuments(project.id);
