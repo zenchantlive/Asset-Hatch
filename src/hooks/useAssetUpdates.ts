@@ -136,6 +136,7 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
     if (updates.length === 0) return false;
 
     let allSucceeded = true;
+    const failedRefIds: string[] = [];
     setIsSyncing(true);
     setError(null);
 
@@ -149,16 +150,32 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reason: "Bulk sync all updates" }),
           }
-        )
+        ).then(async (res) => {
+          const data = await res.json();
+          return { refId: update.refId, success: res.ok && data.success, error: data.message };
+        })
       );
 
-      const responses = await Promise.all(syncPromises);
-      allSucceeded = responses.every(res => res.ok);
+      const results = await Promise.all(syncPromises);
+      
+      // Check each result for errors
+      for (const result of results) {
+        if (!result.success) {
+          allSucceeded = false;
+          if (result.refId) {
+            failedRefIds.push(result.refId);
+          }
+        }
+      }
 
-
-
-      // Clear updates list after attempting all syncs
-      setUpdates([]);
+      // Only clear updates list if all syncs succeeded
+      if (allSucceeded) {
+        setUpdates([]);
+      } else {
+        // Keep failed updates in the list so user can retry
+        setUpdates((prev) => prev.filter((u) => failedRefIds.includes(u.refId)));
+        setError(`Some syncs failed: ${results.filter(r => !r.success).map(r => r.error).join(', ')}`);
+      }
 
       return allSucceeded;
     } catch (err) {
