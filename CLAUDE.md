@@ -1,24 +1,26 @@
 # CLAUDE.md
 
 ## Memory System (ALWAYS DO THIS)
-**Before working**: Read `memory/active_state.md`, `memory/PROJECT_ARCHITECTURE.md`, `memory/system_patterns.md`
-**Before committing**: Update `active_state.md`, add patterns to `system_patterns.md`, create ADR for big decisions
+**Before working**: Read `src/memory/active_state.md`, `src/memory/PROJECT_ARCHITECTURE.md`, `src/memory/system_patterns.md`
+**Before committing**: Update `src/memory/active_state.md`, add patterns to `src/memory/system_patterns.md`, create ADR for big decisions in `src/memory/adr/`
 
 ## Commands
 ```bash
-bun dev              # Dev server
-bun build && bun start # Production
-bun run lint         # ESLint
-bun run typecheck    # Type check
-bun run test         # Jest watch
-bunx prisma studio   # DB GUI
+cd asset-hatch/src
+bun dev                 # Dev server
+bun build && bun start  # Production
+bun run lint            # ESLint
+bun run typecheck       # Type check
+bun run test            # Jest watch
+bunx prisma studio      # DB GUI
 ```
 
 ## Tech Stack (One-liner)
-Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI SDK v6 + OpenRouter (Gemini) | Prisma (Neon PostgreSQL) + Dexie (IndexedDB cache)
+Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI SDK v6 + OpenRouter (Gemini + Flux) | Tripo3D + Three.js + Babylon.js | Prisma (SQLite/Neon) + Dexie (IndexedDB cache)
 
 ## Architecture Summary
-- **4 Phases**: Planning → Style Anchor → Generation → Export
+- **Asset Hatch**: Planning → Style Anchor (2D) → Generation (2D/3D) → Export
+- **Hatch Studios**: Plan → Code → Preview (Babylon.js), shared context with Asset Hatch
 - **Dual DB**: Prisma = server truth, Dexie = client cache. API routes use Prisma, components use Dexie.
 - **AI Tools**: Chat calls `streamText()` with tools → tool executes → streams back via SSE
 
@@ -28,11 +30,14 @@ Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI 
 3. **Token Limits**: Never return base64 in tool results - return ID, fetch image separately
 4. **Prisma ↔ Client**: Map `art_style` → `artStyle` between layers
 5. **CI/CD Build Config**: Vercel uses BOTH `vercel.json` AND `package.json` scripts. Always grep for failing commands across ALL config files before fixing. Use `/debug-ci` command.
+6. **Preview iframe auth**: `srcdoc` iframe runs at origin `null`; cookies aren't available. Asset proxy must support token-based access and CORS headers.
+7. **R2 signed URLs**: `R2_SIGNED_URL_TTL` should be set; fallback signing defaults to 900s when unset.
 
 ## Code Rules
 - `"use client"` only when hooks are needed
 - No `any` or `unknown` types
-- Add line-by-line comments explaining reasoning
+- Avoid type assertions (`as any`, `@ts-ignore`)
+- Add brief comments only when logic is non-obvious
 - Reuse existing code, keep files short and focused
 - Use `cn()` for conditional Tailwind classes
 
