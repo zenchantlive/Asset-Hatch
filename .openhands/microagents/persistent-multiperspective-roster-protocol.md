@@ -228,9 +228,9 @@ flowchart TD
   R -->|No| FP[First-Principles Decomposition]
   IO --> FP
   FP --> PC[Persona Consultation<br/>min 3 for non-atomic]
-  PC --> RT[Red-Team Check]
-  RT --> SYN[Synthesis & Tension Resolution]
-  SYN --> OUT[Final Answer<br/>+ Decision Trace]
+  PC --> SYN[Synthesis & Tension Resolution]
+  SYN --> RT[Red-Team Check]
+  RT --> OUT[Final Answer<br/>+ Decision Trace]
   OUT -->|If changed| LED[Update roster.md ledger/history]
 \`\`\`
 
