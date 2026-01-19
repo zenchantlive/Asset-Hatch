@@ -1,170 +1,149 @@
 # Active State
 
-## Current Session (2026-01-18)
-
-### Issue: Asset Incorporation - From AI Plan to Game Code
-**Status**: 🔴 In Progress - NEXT UP
-
-**Problem Description**:
-When user creates assets in Asset Gen Chat (plans, generates, approves assets), those assets need to be incorporated into the Game mode. Currently:
-1. Assets exist as Generated3DAsset/Generated2DAsset records
-2. Game mode has no way to browse and load these assets
-3. No UI to view, filter, or add assets from the asset inventory
-4. The bridge from "asset planning" to "asset usage in game" is missing
-
-**Expected Behavior**:
-1. User creates assets in Asset Gen Chat (planning → generation → approval)
-2. Approved assets appear in Game mode automatically
-3. Game mode has an "Asset Browser" panel showing all approved assets
-4. AI can suggest assets from inventory for game scenes
-5. User can drag/drop or click to add assets to scenes
-
-**Next Phase**: Phase 9 - Asset Incorporation UI & Workflow
+## Current Session (2026-01-19)
 
 ---
 
-### Issue: Unified Project Creation - Auto-create and Link Both Modes
-**Status**: ✅ Complete - RESOLVED
+## 🟢 RESOLVED: Asset Loading Reliability + Skybox Pipeline
 
-**Problem Description**:
-When user creates a NEW project, BOTH game AND asset gen modes should be created and linked immediately.
+### Implementation Summary
 
-**What Was Implemented**:
-1. ✅ `src/app/api/projects/route.ts` - Always creates project + game + shared docs atomically
-2. ✅ `src/lib/types/unified-project.ts` - Made startWith optional (backward compat)
-3. ✅ `src/components/dashboard/NewProjectDialog.tsx` - Simplified UI, preserves tab selection
-4. ✅ `src/components/studio/UnifiedProjectView.tsx` - Accepts initialTab prop from URL
-5. ✅ `src/app/project/[id]/page.tsx` - Passes tab from searchParams to UnifiedProjectView
-6. ✅ `src/lib/studio/shared-doc-tools.ts` - Created project-scoped tools (no gameId dependency)
-7. ✅ `src/app/api/chat/route.ts` - Added shared docs import, fetch, and project-scoped tools
+1. **Asset Loading Reliability**
+   * **The Issue**: Preview iframe could not load assets due to CORS, auth, and unsigned R2 URLs.
+   * **The Fix**: Added resolver + proxy pipeline with token support for `srcdoc` iframe, CORS headers, and default signed URL TTL.
+   * **Runtime Support**: ASSETS.load now supports timeouts, typed errors, and resolver handshake.
 
-**Auto-Documentation Feature**:
-- ✅ Updated system prompt to instruct AI to proactively update shared documents
-- ✅ AI automatically updates game-design.md, asset-inventory.md, scene-notes.md, development-log.md
-- ✅ No need for user to ask - AI docs as it plans
+2. **Havok Preload + Prompt Alignment**
+   * **The Issue**: Havok was undefined in preview; physics aggregates threw errors.
+   * **The Fix**: Preloaded Havok in preview libraries and enforced async init + readiness gating in the system prompt.
 
-**Result**:
-- User creates project → Both tabs appear immediately
-- User selects "Assets First" → Redirects to Assets tab
-- User selects "Game First" → Redirects to Game tab
-- Shared documents auto-initialize and AI auto-updates them
+3. **Skybox Auto-Linking + PhotoDome**
+   * **The Issue**: Skyboxes were not in the asset manifest and never appeared in AVAILABLE ASSETS.
+   * **The Fix**: Added skybox type support in manifest + loader (PhotoDome), and auto-linked skyboxes at generation and on game manifest load for legacy projects.
+
+### What Worked ✓
+
+- **Proxy-based loading** - Assets load in `srcdoc` iframe without CORS failures.
+- **Signed R2 URLs** - Default TTL ensures R2 fetches succeed when env unset.
+- **Skybox visibility** - Skyboxes now show in AVAILABLE ASSETS and render via PhotoDome.
 
 ---
 
-### Phase 8b: Unified Project Architecture Fix
-**Status**: ✅ Complete - RESOLVED
+## Instructions for Next AI Session
 
-**Changes Made**:
-- Project creation always creates unified project (project + game + shared docs)
-- Removed conditional game creation flow
-- Frontend simplified to single "start with" choice (UI only)
-- Both modes accessible from unified /project/[id] page
-- Initial tab determined by user selection in NewProjectDialog
+### Use the Lattice Protocol
 
-**Key Files Changed**:
-- `src/app/api/projects/route.ts`
-- `src/components/dashboard/NewProjectDialog.tsx`
-- `src/app/project/[id]/page.tsx`
-- `src/components/studio/UnifiedProjectView.tsx`
-- `src/lib/studio/shared-doc-tools.ts`
-- `src/app/api/chat/route.ts`
+**Read `.claude/commands/validation/lattice.md` BEFORE making any architectural decisions.**
 
----
+This is mandatory. The protocol provides:
+- First-principles decomposition framework
+- Dynamic perspective generation (4-7 viewpoints)
+- Tension resolution methodology
+- Anti-pattern detection
 
-### Phase 8: AI Integration & Asset Tools
-- **Created Files**:
-  - `src/lib/types/asset-version.ts` - Type definitions for version updates
-  - `src/lib/studio/version-comparison.ts` - Version comparison logic (timestamp-based)
-  - `src/app/api/studio/games/[id]/assets/updates/route.ts` - Update detection endpoint
-  - `src/app/api/studio/games/[id]/assets/[refId]/sync/route.ts` - Sync action endpoint
-  - `src/components/studio/AssetVersionBadge.tsx` - Version status badge (current/outdated/locked)
-  - `src/components/studio/VersionConflictBanner.tsx` - Update notification banner with actions
-  - `src/hooks/useAssetUpdates.ts` - Frontend hook for update management
-- **Updated Files**:
-  - `src/lib/studio/schemas.ts` - Added getLinkedAssetsSchema, getAssetUpdatesSchema, syncAssetVersionSchema
-  - `src/lib/studio/game-tools.ts` - Added getLinkedAssetsTool, getAssetUpdatesTool, syncAssetVersionTool
-  - `src/lib/studio/babylon-system-prompt.ts` - Added asset management section with tool descriptions
-- **Key Achievements**:
-  - AI can now query linked assets with `getLinkedAssets` tool
-  - AI can check for updates with `getAssetUpdates` tool
-  - AI can sync assets with `syncAssetVersion` tool
-  - Frontend has UI components for version conflict display
-  - Version comparison uses `lockedAt` vs `updatedAt` timestamps (correct strategy)
+### Develop Powerful Personas (Meta-Creation)
 
-### Phase 7: Asset Loading in Preview
-- **Status**: ✅ Complete - Committed `b830bd7`
-- **Created Files**:
-  - `src/lib/studio/asset-loader.ts` - ASSETS global helper generation
-  - `src/app/api/studio/games/[id]/assets/route.ts` - Asset manifest API with REAL metadata
-  - `src/lib/studio/asset-loader.test.ts` - Unit tests (Jest has pre-existing config issues)
-- **Updated Files**:
-  - `src/lib/studio/types.ts` - Added AssetInfo interface
-  - `src/components/studio/PreviewFrame.tsx` - assetManifest prop, ASSETS injection
-  - `src/components/studio/tabs/PreviewTab.tsx` - Fetches assets, passes to PreviewFrame
-  - `src/lib/studio/babylon-system-prompt.ts` - ASSETS usage examples
-  - `src/app/api/studio/chat/route.ts` - Fetches linked assets for AI
-- **Key Achievement**: AI generates `await ASSETS.load("knight", scene)` with real metadata
+Create 3-5 discipline-specific personas for this problem. Examples:
 
-### Phase 6b: Shared Context & Unified UI
-- **Status**: ✅ Complete - Merged into Phase 7b
-- **Spec**: Added Phase 6b to implementation-prd.md
-- **Note**: Core context API implemented, enhanced in Phase 7b with rich metadata
+1. **CloudFront Signed URL Expert** - Understands URL expiration, policy construction, edge cache behavior
+2. **Game Asset Pipeline Architect** - How games actually ship with 3D assets (bundling, CDN, versioning)
+3. **Babylon.js Loading Specialist** - `ASSETS.load()`, `ImportMeshAsync`, async loading patterns, caching
+4. **Security/Crypto Boundary Analyst** - Token expiration, CORS, origin restrictions, replay attacks
 
-### Phase 6 Implementation: Unified Project Architecture
-- **Status**: ✅ Complete - All 15 tasks implemented
-- **Created Files**:
-  - `src/lib/types/unified-project.ts` - Type definitions for manifest, status, sync
-  - `src/lib/studio/sync-tools.ts` - AI SDK tool for asset sync
-  - `src/hooks/useProjectSync.ts` - Client hook for sync state management
-  - `src/app/api/projects/[id]/status/route.ts` - Project status endpoint
-  - `src/app/api/projects/[id]/assets/sync/route.ts` - Asset sync endpoint
-  - `src/components/dashboard/NewProjectDialog.tsx` - Start path selection UI
-  - `src/components/dashboard/UnifiedProjectCard.tsx` - Dashboard cards with game status
-  - `src/components/dashboard/SyncStatusBanner.tsx` - Pending sync warning
-  - `src/components/dashboard/AssetSyncButton.tsx` - Header sync button
-- **Updated Files**:
-  - `src/prisma/schema.prisma` - Extended Project/Game with unified fields
-  - `src/app/api/projects/route.ts` - Added startWith option
-  - `src/app/dashboard/page.tsx` - Unified dashboard with stats
-  - `src/components/ui/ModeToggle.tsx` - Added hybrid mode
-  - `src/app/api/export/route.ts` - Fixed colorPalette reference
-- **Database**: ✅ Pushed with `db push --accept-data-loss`
-- **Commit**: `49f478c`
+Reference these personas throughout your analysis. Each should:
+- Ask 3-5 specific questions about the problem
+- Identify what others would miss
+- Have explicit blind spots documented
 
-### Phase 4B: Multi-File UI Connection
-- **Status**: ✅ Fixed - Files now load in CodeTab
-- **Changed Files**:
-  - `src/components/studio/ChatPanel.tsx` - Tool call handling
-  - `src/components/studio/StudioProvider.tsx` - Files state management
-  - `src/components/studio/WorkspacePanel.tsx` - Layout integration
-  - `src/components/studio/tabs/CodeTab.tsx` - File display
-  - `src/lib/studio/context.ts` - Context updates
+### Push Back on Our Architecture
 
-### Phase 3 Implementation: Hatch Studios AI Chat
-- **Status**: ✅ Complete - All 8 tasks implemented
+Question these assumptions:
+
+1. **"We need to store URLs at all"** - Why not download and re-host? What are the tradeoffs?
+2. **"CloudFront is the right CDN"** - What about R2, Backblaze, or self-hosted?
+3. **"ASSETS.load is the solution"** - Is this abstraction helping or hiding problems?
+4. **"Tripo3D URLs are the source of truth"** - What if we fetched and cached on our infrastructure?
+5. **"One-time download on approval"** - Should we refresh URLs periodically?
+
+### Specific Questions to Answer
+
+1. **Short-term fix**: Validate proxy + resolver diagnostics with `/debug-asset-loading`.
+2. **Medium-term solution**: Evaluate asset cache strategy (IndexedDB) for offline preview.
+3. **Asset inclusion**: Ensure skybox generation always produces a GameAssetRef.
+4. **Cache strategy**: Consider bundling assets for export pipeline.
 
 ---
 
 ## Next Actions
 
-### Phase 9: Asset Incorporation UI & Workflow
+### Phase 10: Permanent Asset Hosting (Required Fix)
 
-**Goal**: Bridge assets from Asset Gen Chat to Game Mode
+**Goal**: Assets load reliably, URLs don't expire.
 
-**Tasks**:
-1. Create Asset Browser panel in Game mode
-2. Fetch approved assets from API
-3. Display assets in browsable grid/list
-4. Allow AI to reference assets when generating code
-5. Enable drag-drop or click-to-add asset to scene
-6. Auto-link asset metadata (name, type, metadata) to game usage
+**Options to Evaluate**:
+1. **Proxy + Refresh**: Use resolver + proxy for iframe-safe fetches
+2. **Download + Upload**: On approval, download GLB from Tripo3D, upload to R2, store permanent URL
+3. **Client Cache**: Download to IndexedDB on first load, use cached version
 
-**Files to Create**:
-- `src/components/studio/AssetBrowser.tsx` - Asset browsing UI
-- `src/app/api/projects/[id]/assets/route.ts` - List approved assets for project
-- `src/lib/studio/asset-integration.ts` - Helper to link assets to scenes
+**Files likely involved**:
+- `src/app/api/generate-3d/approve/route.ts` - Add download/upload logic
+- `src/lib/studio/asset-loader.ts` - Update ASSETS.load to handle permanent URLs
+- `src/app/api/studio/games/[id]/assets/route.ts` - Return permanent URLs
+- Maybe new R2/S3 upload utility
 
-**Files to Update**:
-- `src/components/studio/WorkspacePanel.tsx` - Add AssetBrowser tab
-- `src/lib/studio/game-tools.ts` - Add browseAssets tool for AI
-- `src/components/studio/PreviewFrame.tsx` - Support loading assets from inventory
+---
+
+## What Actually Happened in This Session
+
+### Timeline
+
+1. **Added resolver + proxy for asset loading** ✓
+2. **Resolved iframe CORS/auth issues with proxy token** ✓
+3. **Defaulted R2 signed URL TTL when env missing** ✓
+4. **Preloaded Havok + updated physics prompt** ✓
+5. **Enabled skybox type + auto-linking** ✓
+
+### Key Learnings
+
+- **Iframe auth matters** - `srcdoc` has origin `null`, requiring token-based proxy access.
+- **R2 signing required** - unsigned R2 URLs return 400; default TTL fixes this.
+- **Skybox must be linked** - auto-linking is needed for AVAILABLE ASSETS to include skybox.
+
+### Console Evidence
+
+```
+✅ [ASSETS] Loaded 3D asset: ringed_gas_giant
+✅ [ASSETS] Loaded 3D asset: explorer_starship_"vector"
+✅ [ASSETS] Loaded 3D asset: iron_asteroid_alpha
+✅ PhotoDome skybox visible in preview
+```
+
+---
+
+## For Reference
+
+### Key Files Modified This Session
+
+| File | Change |
+|------|--------|
+| `src/lib/studio/asset-loader.ts` | Resolver handshake, timeouts, skybox support |
+| `src/app/api/studio/assets/proxy/route.ts` | Proxy with CORS + diagnostics |
+| `src/app/api/studio/assets/resolve/route.ts` | Resolver with proxy token |
+| `src/lib/studio/preview-libraries.ts` | Havok preload |
+| `src/app/api/generate-skybox/route.ts` | Auto-link skybox to game |
+
+### Commands
+
+```bash
+bun dev              # Dev server (restart after code changes)
+bun run lint         # ESLint
+bun run typecheck    # TypeScript
+bunx prisma studio   # Database GUI
+```
+
+### Tech Stack Reminder
+
+- Next.js 16 + React 19 + TypeScript strict
+- Tailwind v4 + shadcn/ui
+- Vercel AI SDK v6 + OpenRouter (Gemini)
+- Prisma (Neon PostgreSQL) + Dexie (IndexedDB cache)

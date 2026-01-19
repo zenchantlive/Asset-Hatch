@@ -99,6 +99,17 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - API route must handle streaming properly using `toUIMessageStreamResponse()`.
   - **File:** `app/api/chat/route.ts`
 
+### Preview Asset Loading (Hatch Studios)
+* **Iframe origin is null**
+  - `srcdoc` iframes run at origin `null`, so cookies are unavailable.
+  - **Mitigation:** Use token-based proxy access and CORS headers for `/api/studio/assets/proxy`.
+* **R2 signed URLs required**
+  - Unsigned R2 URLs can return 400 in server-side proxy fetch.
+  - **Mitigation:** `resolveR2AssetUrl` signs URLs (default TTL 900s if env unset).
+* **Skybox handling**
+  - Equirectangular skyboxes must use `BABYLON.PhotoDome`, not `ASSETS.load` for meshes.
+  - **Mitigation:** Support `type: "skybox"` or `metadata.skybox` in manifest and loader.
+
 ### Glassmorphism Styling
 * **Invisible Glass Effect**
   - `backdrop-filter: blur()` only visible over colored background
