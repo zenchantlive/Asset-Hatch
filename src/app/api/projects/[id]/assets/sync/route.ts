@@ -168,15 +168,31 @@ export async function POST(
   } catch (error) {
     console.error("Failed to sync assets:", error);
 
-    // Reset sync status on error
+    const { id: projectId } = await props.params;
     try {
-      const { id: projectId } = await props.params;
-      await prisma.project.update({
-        where: { id: projectId },
-        data: { syncStatus: "error" },
-      });
-    } catch {
-      // Best effort cleanup
+      // ... (rest of the try block)
+    } catch (error) {
+      console.error("Failed to sync assets:", error);
+
+      // Reset sync status on error
+      try {
+        await prisma.project.update({
+          where: { id: projectId },
+          data: { syncStatus: "error" },
+        });
+      } catch (cleanupError) {
+        console.error(`Failed to set syncStatus to "error" for project ${projectId}:`, cleanupError);
+        // Best effort cleanup
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          syncedAssets: [],
+          message: error instanceof Error ? error.message : "Unknown error during sync",
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
