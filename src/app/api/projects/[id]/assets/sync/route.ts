@@ -150,7 +150,7 @@ export async function POST(
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        assetManifest: updatedManifest as any,
+        assetManifest: updatedManifest as unknown as Prisma.JsonValue,
         syncStatus: "clean",
         lastSyncAt: new Date(),
         pendingAssetCount: 0,
