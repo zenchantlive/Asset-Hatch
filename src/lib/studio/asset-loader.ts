@@ -280,12 +280,10 @@ export function generateAssetLoaderScript(
             var loadPromise;
 
             if (isDataUrl) {
-              var dataUrlMatch = resolved.url.match(/^data:([^;]+);base64,(.+)$/);
-              var base64Data = dataUrlMatch ? dataUrlMatch[2] : '';
               loadPromise = BABYLON.SceneLoader.ImportMeshAsync(
                 '',
                 '',
-                'data:application/octet-stream;base64,' + base64Data,
+                resolved.url,
                 scene,
                 null,
                 '.glb'
