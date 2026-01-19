@@ -28,7 +28,7 @@ const updateSceneSchema = z.object({
 // =============================================================================
 
 interface RouteParams {
-    params: Promise<{ id: string; sceneId: string }>;
+    params: { id: string; sceneId: string };
 }
 
 // =============================================================================
