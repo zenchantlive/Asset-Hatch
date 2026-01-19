@@ -183,7 +183,7 @@ export async function resolveR2AssetUrl(
   if (!key) return storedUrlOrKey;
 
   const signedTtlSeconds = config.signedUrlTtlSeconds ?? 900;
-  if (signedTtlSeconds) {
+  if (signedTtlSeconds > 0) {
     try {
       const client = getR2Client(config);
       const signedUrl = await getSignedUrl(
@@ -195,7 +195,8 @@ export async function resolveR2AssetUrl(
         { expiresIn: signedTtlSeconds }
       );
       return signedUrl;
-    } catch {
+    } catch (error) {
+      console.warn("⚠️ R2 signed URL generation failed, falling back to public URL.", { key, error });
       return buildR2PublicUrl(config, key);
     }
   }
