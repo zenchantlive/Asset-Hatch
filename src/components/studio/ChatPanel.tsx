@@ -47,10 +47,11 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const [queuedPrompts, setQueuedPrompts] = useState<string[]>([]);
   const isQueueSendingRef = useRef(false);
   const hasRestoredMessages = useRef(false);
+  const lastProcessedFixIdRef = useRef<string>('');
 
   // Get studio context to update code/preview when tools execute
   // Multi-file: Use loadFiles instead of setCode/loadSceneCode
-  const { refreshPreview, refreshGame, loadFiles, addActivity } = useStudio();
+  const { refreshPreview, refreshGame, loadFiles, addActivity, pendingFixRequest, clearFixRequest } = useStudio();
 
   // Unique chat ID per game to maintain separate histories
   const chatId = `studio-chat-${gameId}`;
@@ -62,6 +63,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     messages,
     setMessages,
     sendMessage,
+    append,
     status,
     stop,
 
@@ -243,13 +245,44 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     saveWithFallback();
   }, [messages, gameId]);
 
+  // Derive loading state (must be defined before effects that reference it)
+  const isLoading = status === 'submitted' || status === 'streaming';
+  // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
+  useEffect(() => {
+    if (!pendingFixRequest || isLoading) return;
+
+    // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
+    if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
+
+    // Mark this request as being processed to prevent re-entrancy
+    lastProcessedFixIdRef.current = pendingFixRequest.id;
+
+    console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
+
+    // Build comprehensive fix prompt with all available context
+    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${pendingFixRequest.fileName}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${pendingFixRequest.message}${pendingFixRequest.stack ? `\n\nStack trace:\n${pendingFixRequest.stack}` : ''}`;
+
+    // Use sendMessage with proper request body context
+    sendMessage(
+      { text: fixPrompt },
+      { body: buildMessageBody() }
+    ).then(() => {
+      // Clear the pending request AFTER successful send
+      clearFixRequest();
+    }).catch((error) => {
+      // If send fails, reset the processed ID so we can retry
+      console.error('Failed to auto-send fix request:', error);
+      lastProcessedFixIdRef.current = '';
+      // Don't clear pendingFixRequest so the user can retry manually
+    });
+  }, [pendingFixRequest, isLoading, clearFixRequest, sendMessage, buildMessageBody]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
 
   // Only show loading state if there are messages (prevents initial loading state)
   const hasMessages = messages.length > 0;
-  const isLoading = status === 'submitted' || status === 'streaming';
   const showLoading = isLoading && hasMessages;
 
   const isNearBottom = () => {
