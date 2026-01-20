@@ -9,15 +9,27 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
-import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
+import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
+import { PromptChips } from '@/components/chat/PromptChips';
+import { PinnedContext } from '@/components/chat/PinnedContext';
+import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar';
+import { extractMessageParts } from '@/lib/chat/message-utils';
+import { getStudioPresets } from '@/lib/preset-prompts';
 
 interface GamePlanChatProps {
     gameId: string;
     gameName: string;
     onPlanUpdate: (content: string) => void;
+}
+
+interface StudioPlanToolCall {
+    toolName: string;
+    args?: {
+        content?: string;
+    };
 }
 
 /**
@@ -44,8 +56,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         transport: new DefaultChatTransport({
             api: '/api/studio/chat',
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onToolCall: ({ toolCall }: { toolCall: any }) => {
+        onToolCall: ({ toolCall }: { toolCall: StudioPlanToolCall }) => {
             console.log('📝 Plan tool called:', toolCall.toolName, 'Args:', toolCall.args);
 
             // Handle plan updates
@@ -64,7 +75,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
 
         if (saved) {
             try {
-                const parsed = JSON.parse(saved) as UIMessage[];
+                const parsed: UIMessage[] = JSON.parse(saved);
                 console.log('📂 Restoring', parsed.length, 'plan messages');
                 setMessages(parsed);
                 hasRestoredMessages.current = true;
@@ -89,14 +100,40 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
     }, [messages, gameId]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const userScrolledRef = useRef(false);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only show loading state if there are messages (prevents initial loading state)
+    const hasMessages = messages.length > 0;
+    const isLoading = status === 'submitted' || status === 'streaming';
+    const showLoading = isLoading && hasMessages;
+
+    const isNearBottom = () => {
+        const container = scrollContainerRef.current;
+        if (!container) return true;
+        const threshold = 120;
+        const distanceToBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight;
+        return distanceToBottom <= threshold;
+    };
+
+    const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+        if (!messagesEndRef.current) return;
+        messagesEndRef.current.scrollIntoView({ behavior });
+    };
+
+    const handleScroll = () => {
+        userScrolledRef.current = !isNearBottom();
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages.length]);
+        if (userScrolledRef.current && isLoading) {
+            return;
+        }
+        if (!userScrolledRef.current) {
+            scrollToBottom('smooth');
+        }
+    }, [messages.length, isLoading]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,14 +151,87 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         }
     };
 
-    const hasMessages = messages.length > 0;
-    const isLoading = status === 'submitted' || status === 'streaming';
-    const showLoading = isLoading && hasMessages;
+    const presets = getStudioPresets().map((preset) => ({
+        id: preset.id,
+        label: preset.label,
+        prompt: preset.prompt,
+        tone: 'neutral',
+    }));
+
+    const buildQuote = (text: string) => {
+        const trimmed = text.trim();
+        if (!trimmed) {
+            return;
+        }
+        const quoted = trimmed
+            .split('\n')
+            .map((line) => `> ${line}`)
+            .join('\n');
+        setInput((current) => (current ? `${current}\n\n${quoted}\n` : `${quoted}\n`));
+    };
+
+    const handleEdit = (text: string) => {
+        if (!text.trim()) {
+            return;
+        }
+        setInput(text);
+    };
+
+    const handleRegenerateFromIndex = (startIndex: number) => {
+        for (let index = startIndex; index >= 0; index -= 1) {
+            const candidate = messages[index];
+            if (candidate.role !== 'user') {
+                continue;
+            }
+            const extracted = extractMessageParts(candidate);
+            if (!extracted.hasTextContent) {
+                continue;
+            }
+            sendMessage(
+                { text: extracted.textContent },
+                {
+                    body: {
+                        gameId,
+                        mode: 'planning',
+                    },
+                }
+            );
+            return;
+        }
+    };
+
+    const pinnedSummary = `Planning ${gameName}`;
+
+    const quickFixActions: QuickFixAction[] = [
+        {
+            id: 'plan-outline',
+            label: 'Outline plan',
+            prompt: 'Draft a concise plan outline with key systems and files.',
+        },
+        {
+            id: 'plan-gaps',
+            label: 'Find gaps',
+            prompt: 'Identify missing gameplay systems or files we should include.',
+        },
+        {
+            id: 'plan-priorities',
+            label: 'Prioritize work',
+            prompt: 'Prioritize the next development steps for this game plan.',
+        },
+    ];
 
     return (
         <div className="flex flex-col h-full">
             {/* Messages display */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-6 pt-6">
+                    <PinnedContext title="Planning context" summary={pinnedSummary} />
+                </div>
+                <div
+                    ref={scrollContainerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
+                >
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
                         <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
@@ -141,72 +251,25 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                     </div>
                 ) : (
                     messages.map((message, index) => {
-                        interface UIMessagePart {
-                            type: 'text' | 'reasoning' | 'tool-call' | string;
-                            text?: string;
-                            toolName?: string;
-                            args?: Record<string, unknown>;
+                        const extracted = extractMessageParts(message);
+                        if (!extracted.hasTextContent && !extracted.hasToolCalls) {
+                            return null;
                         }
-                        const parts = message.parts as UIMessagePart[] | undefined;
-                        const textParts = parts?.filter(p =>
-                            p.type === 'text' || p.type === 'reasoning'
-                        ) || [];
-                        const toolParts = parts?.filter((part) =>
-                            part.type === 'tool-call' || part.type.startsWith('tool-')
-                        ) || [];
-                        const toolLabels = toolParts.map((part) => {
-                            if (part.type === 'tool-call') {
-                                return part.toolName || 'tool';
-                            }
-                            if (part.toolName) {
-                                return part.toolName;
-                            }
-                            if (part.type.startsWith('tool-')) {
-                                return part.type.replace('tool-', '');
-                            }
-                            return 'tool';
-                        });
-
-                        const rawText = textParts.map(p => p.text ?? '').join('');
-                        const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
-
-                        const hasTextContent = textContent.length > 0;
-                        const hasToolCalls = toolLabels.length > 0;
-
-                        if (!hasTextContent && !hasToolCalls) return null;
 
                         return (
-                            <div
-                                key={index}
-                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                <div
-                                    className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${
-                                        message.role === 'user'
-                                            ? 'aurora-gradient text-white'
-                                            : 'glass-panel aurora-glow-hover'
-                                    }`}
-                                >
-                                    {hasTextContent && (
-                                        <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                                            <ReactMarkdown>{textContent}</ReactMarkdown>
-                                        </div>
-                                    )}
-                                    {message.role === 'assistant' && hasToolCalls && (
-                                        <div className={`${hasTextContent ? 'mt-3' : ''} flex flex-wrap gap-2`}>
-                                            {toolLabels.map((label, toolIndex) => (
-                                                <span
-                                                    key={`${label}-${toolIndex}`}
-                                                    className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wide text-white/70"
-                                                >
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] shadow-[0_0_0.5rem_0_var(--aurora-2)]" />
-                                                    {label}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <ChatMessageRow
+                                key={`${message.id ?? 'msg'}-${index}`}
+                                message={message}
+                                extracted={extracted}
+                                isStreaming={
+                                    isLoading &&
+                                    message.role === 'assistant' &&
+                                    index === messages.length - 1
+                                }
+                                onQuote={buildQuote}
+                                onEdit={handleEdit}
+                                onRegenerate={() => handleRegenerateFromIndex(index)}
+                            />
                         );
                     })
                 )}
@@ -224,9 +287,24 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                 )}
                 <div ref={messagesEndRef} />
             </div>
+            </div>
 
             {/* Input area */}
             <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
+                {!isLoading && (
+                    <PromptChips
+                        presets={presets}
+                        onSelect={setInput}
+                        className="mb-3 max-w-3xl mx-auto w-full"
+                    />
+                )}
+                {hasMessages && (
+                    <QuickFixBar
+                        actions={quickFixActions}
+                        onSelect={setInput}
+                        className="mb-3 max-w-3xl mx-auto w-full"
+                    />
+                )}
                 <form
                     onSubmit={handleSubmit}
                     className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"

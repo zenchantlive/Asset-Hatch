@@ -27,6 +27,12 @@ export interface PresetPrompt {
     mode: 'planning' | 'style'
 }
 
+export interface StudioPreset {
+    id: string
+    label: string
+    prompt: string
+}
+
 // -----------------------------------------------------------------------------
 // Plan Mode Presets
 // -----------------------------------------------------------------------------
@@ -181,6 +187,52 @@ export const STYLE_PRESETS: PresetPrompt[] = [
 ]
 
 // -----------------------------------------------------------------------------
+// Studio Chat Presets
+// -----------------------------------------------------------------------------
+
+/**
+ * Studio presets focus on quick fixes and common iteration requests.
+ */
+export const STUDIO_PRESETS: StudioPreset[] = [
+    {
+        id: 'studio-blank-screen',
+        label: 'Fix blank screen',
+        prompt:
+            'The preview is blank. Diagnose what is missing (camera, light, scene setup) and update the code to render something visible.',
+    },
+    {
+        id: 'studio-camera',
+        label: 'Improve camera',
+        prompt:
+            'Update the camera to frame the scene properly, add smooth controls, and ensure the player or focal object is visible.',
+    },
+    {
+        id: 'studio-controls',
+        label: 'Add controls',
+        prompt:
+            'Add simple player controls (WASD or arrows) and make sure input feels responsive.',
+    },
+    {
+        id: 'studio-physics',
+        label: 'Fix physics',
+        prompt:
+            'Review the physics/collision setup and correct any issues with gravity, ground, or colliders.',
+    },
+    {
+        id: 'studio-lighting',
+        label: 'Improve lighting',
+        prompt:
+            'Improve lighting to make the scene readable and polished. Use balanced key/fill lights and soft shadows where possible.',
+    },
+    {
+        id: 'studio-errors',
+        label: 'Explain errors',
+        prompt:
+            'Summarize any preview errors, explain what caused them, and outline the fix before applying changes.',
+    },
+]
+
+// -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
 
@@ -197,6 +249,10 @@ export function getPresetsForMode(mode: 'planning' | 'style', is3D: boolean = fa
         return PLAN_3D_PRESETS
     }
     return mode === 'planning' ? PLAN_PRESETS : STYLE_PRESETS
+}
+
+export function getStudioPresets(): StudioPreset[] {
+    return STUDIO_PRESETS
 }
 
 /**

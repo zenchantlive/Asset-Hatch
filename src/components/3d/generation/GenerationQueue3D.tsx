@@ -389,6 +389,18 @@ export function GenerationQueue3D({ projectId }: GenerationQueue3DProps) {
     // Generate 3D model for selected asset
     const handleGenerate = useCallback(async () => {
         if (!selectedAsset || !selectedAssetId) return;
+        if (selectedAsset.category === "Skybox" || selectedAssetId.endsWith("-skybox")) {
+            setAssetStates((prev) => {
+                const next = new Map(prev);
+                next.set(selectedAssetId, {
+                    status: "failed",
+                    progress: 0,
+                    error: "Skyboxes must be generated in the Skybox panel.",
+                });
+                return next;
+            });
+            return;
+        }
 
         // Update state to generating
         setAssetStates((prev) => {

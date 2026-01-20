@@ -102,6 +102,12 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - **Pattern:** Avoid base64 or large blobs in AI tool schemas/results; return IDs/URLs and fetch separately.
   - **Why:** Prevents token overflow and chat context breaks.
 
+### OpenRouter Image Responses
+* **Image data location varies**
+  - **Issue:** Gemini image models may return image payloads in `message.content` or `message.annotations`, not just `message.images`.
+  - **Pattern:** Check `message.images`, then scan `message.content` and `message.annotations` for `image_url`, `url`, or base64 fields.
+  - **File:** `lib/openrouter-image.ts`
+
 ### Glassmorphism Styling
 * **Invisible Glass Effect**
   - `backdrop-filter: blur()` only visible over colored background
@@ -218,6 +224,11 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - Bouncing dots (3 dots with staggered delays)
   - Spinning aurora gradient (for longer waits)
 * **Never use:** Generic spinners or "Loading..." text alone
+
+### Chat Auto-Scroll
+* **Pattern:** Auto-scroll while streaming unless the user scrolls away from the bottom.
+* **Implementation:** Track a scroll container ref + `userScrolledRef` and gate auto-scroll when distance to bottom exceeds threshold.
+* **Files:** `components/planning/ChatInterface.tsx`, `components/studio/ChatPanel.tsx`, `components/studio/planning/GamePlanChat.tsx`
 * **File:** `components/planning/ChatInterface.tsx:67-79` (thinking indicator)
 
 ### Form Inputs

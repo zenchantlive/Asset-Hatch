@@ -4,17 +4,34 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
-import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useStudio } from '@/lib/studio/context';
 import type { UnifiedProjectContext } from '@/lib/types/shared-context';
 import chatStorage from '@/lib/storage/chat-storage';
+import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
+import { PromptChips } from '@/components/chat/PromptChips';
+import { PinnedContext } from '@/components/chat/PinnedContext';
+import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar';
+import { extractMessageParts } from '@/lib/chat/message-utils';
+import { getStudioPresets } from '@/lib/preset-prompts';
 
 interface ChatPanelProps {
   gameId: string;
   projectContext?: UnifiedProjectContext;
+}
+
+interface StudioToolCallArgs {
+  name?: string;
+  status?: string;
+  content?: string;
+  fileOrder?: string[];
+}
+
+interface StudioToolCallPayload {
+  toolName: string;
+  args?: StudioToolCallArgs;
 }
 
 /**
@@ -52,8 +69,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     transport: new DefaultChatTransport({
       api: '/api/studio/chat',
     }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onToolCall: async ({ toolCall }: { toolCall: any }) => {
+    onToolCall: async ({ toolCall }: { toolCall: StudioToolCallPayload }) => {
       // IMPORTANT: This fires when AI calls a tool
       console.log('🎮 Tool called:', toolCall.toolName, 'Args:', toolCall.args);
 
@@ -187,7 +203,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
         const saved = localStorage.getItem(storageKey);
         if (saved) {
           try {
-            const parsed = JSON.parse(saved) as UIMessage[];
+            const parsed: UIMessage[] = JSON.parse(saved);
             console.log('📂 Restoring', parsed.length, 'studio messages from localStorage fallback');
             setMessages(parsed);
           } catch (fallbackError) {
@@ -226,46 +242,153 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   }, [messages, gameId]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      console.log('📨 Sending message to /api/studio/chat with gameId:', gameId, 'hasContext:', !!projectContext);
-
-      // Pass projectContext in body when available (Phase 6B)
-      const messageBody: { gameId: string; projectContext?: string } = { gameId };
-      if (projectContext) {
-        messageBody.projectContext = JSON.stringify(projectContext);
-      }
-
-      // CRITICAL: Pass body here, not in hook config (AI SDK v6 pattern)
-      sendMessage(
-        { text: input },
-        {
-          body: messageBody
-        }
-      );
-      setInput("");
-    }
-  };
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledRef = useRef(false);
 
   // Only show loading state if there are messages (prevents initial loading state)
   const hasMessages = messages.length > 0;
   const isLoading = status === 'submitted' || status === 'streaming';
   const showLoading = isLoading && hasMessages;
 
+  const isNearBottom = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    const threshold = 120;
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceToBottom <= threshold;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (!messagesEndRef.current) return;
+    messagesEndRef.current.scrollIntoView({ behavior });
+  };
+
+  const handleScroll = () => {
+    userScrolledRef.current = !isNearBottom();
+  };
+
+  useEffect(() => {
+    if (userScrolledRef.current && isLoading) {
+      return;
+    }
+    if (!userScrolledRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [messages.length, isLoading]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      console.log('📨 Sending message to /api/studio/chat with gameId:', gameId, 'hasContext:', !!projectContext);
+      sendMessage({ text: input }, { body: buildMessageBody() });
+      setInput("");
+    }
+  };
+
+  const presets = getStudioPresets().map((preset) => ({
+    id: preset.id,
+    label: preset.label,
+    prompt: preset.prompt,
+    tone: "neutral",
+  }));
+
+  const buildMessageBody = () => {
+    const messageBody: { gameId: string; projectContext?: string } = { gameId };
+    if (projectContext) {
+      messageBody.projectContext = JSON.stringify(projectContext);
+    }
+    return messageBody;
+  };
+
+  const buildQuote = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    const quoted = trimmed
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n");
+    setInput((current) => (current ? `${current}\n\n${quoted}\n` : `${quoted}\n`));
+  };
+
+  const handleEdit = (text: string) => {
+    if (!text.trim()) {
+      return;
+    }
+    setInput(text);
+  };
+
+  const handleRegenerateFromIndex = (startIndex: number) => {
+    for (let index = startIndex; index >= 0; index -= 1) {
+      const candidate = messages[index];
+      if (candidate.role !== "user") {
+        continue;
+      }
+      const extracted = extractMessageParts(candidate);
+      if (!extracted.hasTextContent) {
+        continue;
+      }
+      sendMessage(
+        { text: extracted.textContent },
+        {
+          body: buildMessageBody(),
+        }
+      );
+      return;
+    }
+  };
+
+  const pinnedSummary = projectContext?.gameConcept
+    ? projectContext.gameConcept
+    : "Share your core game concept to anchor the build.";
+
+  const pinnedItems = projectContext
+    ? [
+        { label: "Audience", value: projectContext.targetAudience },
+        {
+          label: "Features",
+          value: projectContext.keyFeatures.slice(0, 3).join(", ") || "None yet",
+        },
+      ].filter((item) => item.value.length > 0)
+    : [];
+
+  const quickFixActions: QuickFixAction[] = [
+    {
+      id: "studio-fix-blank",
+      label: "Fix blank screen",
+      prompt:
+        "The preview is blank. Diagnose the issue and update the scene so something renders.",
+    },
+    {
+      id: "studio-explain-errors",
+      label: "Explain errors",
+      prompt: "Summarize any preview errors and propose fixes.",
+    },
+    {
+      id: "studio-show-changes",
+      label: "Show changes",
+      prompt: "List the latest changes you made to the game files.",
+    },
+  ];
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages display */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-6 pt-6">
+          <PinnedContext
+            title="Game context"
+            summary={pinnedSummary}
+            items={pinnedItems}
+          />
+        </div>
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
+        >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
             <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
@@ -280,77 +403,25 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
           </div>
         ) : (
           messages.map((message, index) => {
-            // Extract text from parts (AI SDK v6 pattern)
-            // In v6, messages have a parts array instead of content
-            interface UIMessagePart {
-              type: 'text' | 'reasoning' | 'tool-call' | string;
-              text?: string;
-              toolName?: string;
-              args?: Record<string, unknown>;
+            const extracted = extractMessageParts(message);
+            if (!extracted.hasTextContent && !extracted.hasToolCalls) {
+              return null;
             }
-            const parts = message.parts as UIMessagePart[] | undefined;
-            const textParts = parts?.filter(p =>
-              p.type === 'text' || p.type === 'reasoning'
-            ) || [];
-            const toolParts = parts?.filter((part) =>
-              part.type === 'tool-call' || part.type.startsWith('tool-')
-            ) || [];
-            const toolLabels = toolParts.map((part) => {
-              if (part.type === 'tool-call') {
-                return part.toolName || 'tool';
-              }
-              if (part.toolName) {
-                return part.toolName;
-              }
-              if (part.type.startsWith('tool-')) {
-                return part.type.replace('tool-', '');
-              }
-              return 'tool';
-            });
-
-            // Join all text parts and remove [REDACTED] placeholders
-            const rawText = textParts.map(p => p.text ?? '').join('');
-            const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
-
-            const hasTextContent = textContent.length > 0;
-            const hasToolCalls = toolLabels.length > 0;
-
-            // Skip messages with no text content or tool-call parts
-            if (!hasTextContent && !hasToolCalls) return null;
 
             return (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${message.role === "user"
-                    ? "aurora-gradient text-white"
-                    : "glass-panel aurora-glow-hover"
-                    }`}
-                >
-                  {hasTextContent && (
-                    <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                      <ReactMarkdown>
-                        {textContent}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                  {message.role === 'assistant' && hasToolCalls && (
-                    <div className={`${hasTextContent ? 'mt-3' : ''} flex flex-wrap gap-2`}>
-                      {toolLabels.map((label, toolIndex) => (
-                        <span
-                          key={`${label}-${toolIndex}`}
-                          className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wide text-white/70"
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] shadow-[0_0_0.5rem_0_var(--aurora-2)]" />
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ChatMessageRow
+                key={`${message.id ?? "msg"}-${index}`}
+                message={message}
+                extracted={extracted}
+                isStreaming={
+                  isLoading &&
+                  message.role === "assistant" &&
+                  index === messages.length - 1
+                }
+                onQuote={buildQuote}
+                onEdit={handleEdit}
+                onRegenerate={() => handleRegenerateFromIndex(index)}
+              />
             );
           })
         )}
@@ -368,9 +439,24 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
         )}
         <div ref={messagesEndRef} />
       </div>
+      </div>
 
       {/* Input area - floating style */}
       <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
+        {!isLoading && (
+          <PromptChips
+            presets={presets}
+            onSelect={setInput}
+            className="mb-3 max-w-3xl mx-auto w-full"
+          />
+        )}
+        {hasMessages && (
+          <QuickFixBar
+            actions={quickFixActions}
+            onSelect={setInput}
+            className="mb-3 max-w-3xl mx-auto w-full"
+          />
+        )}
         <form
           onSubmit={handleSubmit}
           className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"

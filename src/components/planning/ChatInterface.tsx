@@ -3,8 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import TextareaAutosize from 'react-textarea-autosize';
-import ReactMarkdown from 'react-markdown';
-import { Send, Sparkles, MessageSquare, Square } from "lucide-react";
+import { Send, Sparkles, Square } from "lucide-react";
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import type { UIMessage } from "@ai-sdk/react";
 import { ProjectQualities } from "./QualitiesBar";
@@ -24,13 +23,11 @@ import {
   finalizePlan3DSchema,
 } from "@/lib/schemas-3d";
 import type { StyleDraft, GeneratedStyleAnchor } from "@/components/style/StylePreview";
-
-interface UIMessagePart {
-  type: 'text' | 'reasoning' | 'tool-call';
-  text?: string;
-  toolName?: string;
-  input?: unknown;
-}
+import { ChatMessageRow } from "@/components/chat/ChatMessageRow";
+import { PromptChips } from "@/components/chat/PromptChips";
+import { PinnedContext } from "@/components/chat/PinnedContext";
+import { QuickFixBar, type QuickFixAction } from "@/components/chat/QuickFixBar";
+import { extractMessageParts } from "@/lib/chat/message-utils";
 
 interface ChatInterfaceProps {
   qualities: ProjectQualities;
@@ -49,6 +46,72 @@ interface ChatInterfaceProps {
 export interface ChatInterfaceHandle {
   sendMessage: (message: string) => void;
 }
+
+interface ToolCallPayload {
+  toolName: string;
+  input?: {
+    qualityKey?: string;
+    value?: string;
+    planMarkdown?: string;
+    markdown?: string;
+    prompt?: string;
+    meshStyle?: string;
+    textureQuality?: string;
+    defaultShouldRig?: boolean;
+    defaultAnimations?: string[];
+    [key: string]:
+      | string
+      | boolean
+      | string[]
+      | undefined;
+  };
+  result?: {
+    success?: boolean;
+    imageUrl?: string;
+    styleAnchorId?: string;
+    prompt?: string;
+  };
+}
+
+interface ToolResultShape {
+  success?: boolean;
+  styleAnchorId?: string;
+}
+
+interface ToolResultCarrier {
+  result?: Record<string, string | boolean | undefined>;
+  output?: Record<string, string | boolean | undefined>;
+  success?: boolean;
+  styleAnchorId?: string;
+}
+
+const isToolResultCarrier = (
+  part: UIMessage["parts"][number]
+): part is UIMessage["parts"][number] & ToolResultCarrier =>
+  "result" in part || "output" in part || "success" in part || "styleAnchorId" in part;
+
+const getStyleAnchorResult = (
+  part: UIMessage["parts"][number]
+): ToolResultShape | undefined => {
+  if (part.type !== "tool-generateStyleAnchor") {
+    return undefined;
+  }
+
+  if (!isToolResultCarrier(part)) {
+    return undefined;
+  }
+
+  const payload = part.result ?? part.output ?? {
+    success: part.success,
+    styleAnchorId: part.styleAnchorId,
+  };
+
+  return {
+    success: typeof payload.success === "boolean" ? payload.success : undefined,
+    styleAnchorId:
+      typeof payload.styleAnchorId === "string" ? payload.styleAnchorId : undefined,
+  };
+};
 
 export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>(({
   qualities,
@@ -90,8 +153,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     id: chatId,
     // In AI SDK v6, body in hook config becomes stale
     // We pass body in sendMessage instead
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onToolCall: ({ toolCall }: { toolCall: any }) => {
+    onToolCall: ({ toolCall }: { toolCall: ToolCallPayload }) => {
       // IMPORTANT: This fires when AI calls a tool
       console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
 
@@ -105,10 +167,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         } else {
           // Fallback for potential model hallucinations (e.g. multi-key objects)
           console.warn('⚠️ Schema validation failed, attempting fallback parsing:', result.error);
-          const input = toolCall.input as Record<string, unknown>;
-          if (input && typeof input === 'object') {
+          const input = toolCall.input;
+          if (input) {
             Object.entries(input).forEach(([key, value]) => {
-              // Basic validation for string values
               if (typeof value === 'string') {
                 console.log('✅ Updating multiple qualities (fallback):', key, '→', value);
                 onQualityUpdate(key, value);
@@ -124,8 +185,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           onPlanUpdate(result.data.planMarkdown);
         } else {
           // Fallback for 'markdown' key if model hallucinates
-          const input = toolCall.input as Record<string, unknown>;
-          const markdown = input?.planMarkdown || input?.markdown;
+          const markdown = toolCall.input?.planMarkdown || toolCall.input?.markdown;
           if (typeof markdown === 'string') {
             console.log('✅ Updating plan (fallback), length:', markdown.length, 'chars');
             onPlanUpdate(markdown);
@@ -151,7 +211,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           console.log('✅ Style anchor generation triggered with prompt:', result.data.prompt);
           // The server handles generation, but we notify on tool result
           // The actual image URL comes back in the tool result
-          const toolResult = toolCall.result as { success: boolean; imageUrl?: string; styleAnchorId?: string; prompt?: string };
+          const toolResult = toolCall.result;
           if (toolResult?.success && toolResult.imageUrl && toolResult.styleAnchorId) {
             onStyleAnchorGenerated?.({
               id: toolResult.styleAnchorId,
@@ -202,8 +262,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           onPlanUpdate(result.data.planMarkdown);
         } else {
           // Fallback for 'markdown' key if model hallucinates
-          const input = toolCall.input as Record<string, unknown>;
-          const markdown = input?.planMarkdown || input?.markdown;
+          const markdown = toolCall.input?.planMarkdown || toolCall.input?.markdown;
           if (typeof markdown === 'string') {
             console.log('✅ Updating 3D plan (fallback), length:', markdown.length, 'chars');
             onPlanUpdate(markdown);
@@ -229,7 +288,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
 
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as UIMessage[];
+        const parsed: UIMessage[] = JSON.parse(saved);
         console.log('📂 Restoring', parsed.length, 'messages from localStorage');
         setMessages(parsed);
         hasRestoredMessages.current = true;
@@ -273,14 +332,40 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   }));
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const userScrolledRef = useRef(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Only show loading state if there are messages (prevents initial loading state)
+  const hasMessages = messages.length > 0;
+  const isLoading = status === 'submitted' || status === 'streaming';
+  const showLoading = isLoading && hasMessages;
+
+  const isNearBottom = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    const threshold = 120;
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceToBottom <= threshold;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (!messagesEndRef.current) return;
+    messagesEndRef.current.scrollIntoView({ behavior });
+  };
+
+  const handleScroll = () => {
+    userScrolledRef.current = !isNearBottom();
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]);
+    if (userScrolledRef.current && isLoading) {
+      return;
+    }
+    if (!userScrolledRef.current) {
+      scrollToBottom("smooth");
+    }
+  }, [messages.length, isLoading]);
 
   // Track processed style anchor IDs to prevent infinite refetching
   const processedStyleAnchorIds = useRef(new Set<string>());
@@ -294,15 +379,14 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     for (const message of messages) {
       if (message.role !== 'assistant') continue;
 
-      const parts = message.parts as Array<{ type: string; toolName?: string; output?: unknown }> | undefined;
+      const parts = message.parts;
       if (!parts) continue;
 
       for (const part of parts) {
         // AI SDK v6 uses 'tool-{toolName}' format for tool parts
         if (part.type === 'tool-generateStyleAnchor') {
           // Use the ref-based Set to track processed IDs across renders
-          const toolPart = part as Record<string, unknown>;
-          const output = (toolPart.result || toolPart.output || toolPart) as { success?: boolean; styleAnchorId?: string } | undefined;
+          const output = getStyleAnchorResult(part);
           if (output?.success && output.styleAnchorId && !processedStyleAnchorIds.current.has(output.styleAnchorId)) {
             processedStyleAnchorIds.current.add(output.styleAnchorId);
             console.log('🖼️ Found style anchor ID, fetching image:', output.styleAnchorId);
@@ -314,7 +398,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                 if (data.imageUrl) {
                   console.log('✅ Fetched style anchor image');
                   onStyleAnchorGenerated?.({
-                    id: output.styleAnchorId!,
+                    id: output.styleAnchorId,
                     imageUrl: data.imageUrl,
                     prompt: '',
                   });
@@ -346,15 +430,106 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     }
   };
 
-  // Only show loading state if there are messages (prevents initial loading state)
-  const hasMessages = messages.length > 0;
-  const isLoading = status === 'submitted' || status === 'streaming';
-  const showLoading = isLoading && hasMessages;
+  const presets = getPresetsForMode(mode, is3D).map((preset) => ({
+    id: preset.id,
+    label: preset.label,
+    prompt: preset.prompt,
+    tone: preset.id === "style-infer" ? "primary" : "neutral",
+  }));
+
+  const buildQuote = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    const quoted = trimmed
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n");
+    setInput((current) => (current ? `${current}\n\n${quoted}\n` : `${quoted}\n`));
+  };
+
+  const handleEdit = (text: string) => {
+    if (!text.trim()) {
+      return;
+    }
+    setInput(text);
+  };
+
+  const handleRegenerateFromIndex = (startIndex: number) => {
+    for (let index = startIndex; index >= 0; index -= 1) {
+      const candidate = messages[index];
+      if (candidate.role !== "user") {
+        continue;
+      }
+      const extracted = extractMessageParts(candidate);
+      if (!extracted.hasTextContent) {
+        continue;
+      }
+      sendMessage(
+        { text: extracted.textContent },
+        {
+          body: {
+            qualities,
+            projectId,
+          },
+        }
+      );
+      return;
+    }
+  };
+
+  const qualityEntries = Object.entries(qualities).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === "string" && entry[1].length > 0
+  );
+
+  const qualityItems = qualityEntries.map(([key, value]) => ({
+    label: key.replace(/_/g, " "),
+    value,
+  }));
+
+  const pinnedSummary = qualityItems.length
+    ? qualityItems
+        .slice(0, 3)
+        .map((item) => item.value)
+        .join(" · ")
+    : "Set your game vision to guide the plan.";
+
+  const quickFixActions: QuickFixAction[] = [
+    {
+      id: "plan-summarize",
+      label: "Summarize plan",
+      prompt: "Summarize the current plan in 5 bullet points.",
+    },
+    {
+      id: "plan-gaps",
+      label: "Find gaps",
+      prompt: "Identify missing asset categories and suggest what to add.",
+    },
+    {
+      id: "plan-next",
+      label: "Next steps",
+      prompt: "Propose the next 3 steps to finalize this plan.",
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-6 pt-6">
+          <PinnedContext
+            title="Planning context"
+            summary={pinnedSummary}
+            items={qualityItems}
+          />
+        </div>
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
+        >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
             <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
@@ -369,83 +544,25 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           </div>
         ) : (
           messages.map((message, index) => {
-            // In AI SDK v6, messages have a parts array instead of content
-            // Extract text from text and reasoning parts
-    const parts = message.parts as UIMessagePart[] | undefined;
-    const textParts = parts?.filter((part) =>
-      part.type === 'text' || part.type === 'reasoning'
-    ) || [];
-    // Join all text parts and remove [REDACTED] placeholders that AI SDK adds for tool calls
-    const rawText = textParts.map((part) => part.text ?? '').join('');
-    const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
-    const toolParts = parts?.filter((part) =>
-      part.type === 'tool-call' || part.type.startsWith('tool-')
-    ) || [];
-    const toolLabels = toolParts.map((part) => {
-      if (part.type === 'tool-call') {
-        return part.toolName || 'tool';
-      }
-      if (part.toolName) {
-        return part.toolName;
-      }
-      if (part.type.startsWith('tool-')) {
-        return part.type.replace('tool-', '');
-      }
-      return 'tool';
-    });
-
-            if (message.role === 'assistant') {
-              const debugParts = parts?.map((p) => {
-                if (p.type === 'tool-call') {
-                  return { type: p.type, toolName: p.toolName, input: p.input };
-                }
-                return { type: p.type, hasText: !!p.text };
-              });
-              console.log('Assistant message parts:', debugParts);
-            }
-
-            const hasTextContent = textContent.length > 0;
-            const hasToolCalls = toolLabels.length > 0;
-
-            // Skip messages that have neither text nor tool-call parts
-            if (!hasTextContent && !hasToolCalls) {
+            const extracted = extractMessageParts(message);
+            if (!extracted.hasTextContent && !extracted.hasToolCalls) {
               return null;
             }
 
             return (
-              <div
-                key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm transition-all duration-300 ${message.role === "user"
-                    ? "aurora-gradient text-white"
-                    : "glass-panel aurora-glow-hover"
-                    }`}
-                >
-                  {hasTextContent && (
-                    <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                      <ReactMarkdown>
-                        {textContent}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                  {message.role === 'assistant' && hasToolCalls && (
-                    <div className={`${hasTextContent ? 'mt-3' : ''} flex flex-wrap gap-2`}>
-                      {toolLabels.map((label, toolIndex) => (
-                        <span
-                          key={`${label}-${toolIndex}`}
-                          className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wide text-white/70"
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] shadow-[0_0_0.5rem_0_var(--aurora-2)]" />
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ChatMessageRow
+                key={`${message.id ?? "msg"}-${index}`}
+                message={message}
+                extracted={extracted}
+                isStreaming={
+                  isLoading &&
+                  message.role === "assistant" &&
+                  index === messages.length - 1
+                }
+                onQuote={buildQuote}
+                onEdit={handleEdit}
+                onRegenerate={() => handleRegenerateFromIndex(index)}
+              />
             );
           })
         )}
@@ -463,28 +580,25 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         )}
         <div ref={messagesEndRef} />
       </div>
+      </div>
 
       {/* Input area - floating style */}
       <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
 
         {/* Preset Prompts Row - Wrapped rows */}
         {!isLoading && (
-          <div className="flex flex-wrap gap-2 mb-3 max-w-3xl mx-auto w-full">
-            {getPresetsForMode(mode, is3D).map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => setInput(preset.prompt)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap
-                  ${preset.id === 'style-infer'
-                    ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_0.625rem_-0.25rem_var(--color-primary)]'
-                    : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-white/70 hover:text-white'
-                  }`}
-              >
-                <MessageSquare className={`w-3 h-3 ${preset.id === 'style-infer' ? 'text-primary' : 'opacity-60'}`} />
-                {preset.label}
-              </button>
-            ))}
-          </div>
+          <PromptChips
+            presets={presets}
+            onSelect={setInput}
+            className="mb-3 max-w-3xl mx-auto w-full"
+          />
+        )}
+        {hasMessages && (
+          <QuickFixBar
+            actions={quickFixActions}
+            onSelect={setInput}
+            className="mb-3 max-w-3xl mx-auto w-full"
+          />
         )}
         <form
           onSubmit={handleSubmit}
