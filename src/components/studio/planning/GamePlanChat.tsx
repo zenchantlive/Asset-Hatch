@@ -19,19 +19,6 @@ import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar'
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
 
-interface GamePlanChatProps {
-    gameId: string;
-    gameName: string;
-    onPlanUpdate: (content: string) => void;
-}
-
-interface StudioPlanToolCall {
-    toolName: string;
-    args?: {
-        content?: string;
-    };
-}
-
 /**
  * GamePlanChat - AI chat for game planning phase
  *
