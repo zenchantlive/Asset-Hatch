@@ -9,6 +9,7 @@ import { z } from "zod";
 // Schema for validating settings update request
 const updateSettingsSchema = z.object({
     openRouterApiKey: z.string().optional().nullable(),
+    tripoApiKey: z.string().optional().nullable(),
 });
 
 // GET: Fetch current user settings
@@ -32,6 +33,7 @@ export async function GET() {
                 email: true,
                 // Return whether key exists, not the key itself (security)
                 openRouterApiKey: true,
+                tripoApiKey: true,
             },
         });
 
@@ -44,10 +46,15 @@ export async function GET() {
 
         // Return settings with masked API key
         return NextResponse.json({
-            hasApiKey: !!user.openRouterApiKey,
+            hasOpenRouterKey: !!user.openRouterApiKey,
             // Show last 4 characters if key exists
-            apiKeyPreview: user.openRouterApiKey
+            openRouterKeyPreview: user.openRouterApiKey
                 ? `sk-or-...${user.openRouterApiKey.slice(-4)}`
+                : null,
+            hasTripoKey: !!user.tripoApiKey,
+            // Show last 4 characters if key exists
+            tripoKeyPreview: user.tripoApiKey
+                ? `tsk-...${user.tripoApiKey.slice(-4)}`
                 : null,
         });
     } catch (error) {
@@ -82,7 +89,7 @@ export async function PATCH(request: NextRequest) {
             );
         }
 
-        const { openRouterApiKey } = result.data;
+        const { openRouterApiKey, tripoApiKey } = result.data;
 
         // If API key is provided, validate it with OpenRouter
         if (openRouterApiKey) {
@@ -95,17 +102,30 @@ export async function PATCH(request: NextRequest) {
             }
         }
 
+        // If Tripo API key is provided, validate it with Tripo
+        if (tripoApiKey) {
+            const isValid = await validateTripoKey(tripoApiKey);
+            if (!isValid) {
+                return NextResponse.json(
+                    { error: "Invalid Tripo API key" },
+                    { status: 400 }
+                );
+            }
+        }
+
         // Update user settings
         await prisma.user.update({
             where: { id: session.user.id },
             data: {
                 openRouterApiKey: openRouterApiKey ?? null,
+                tripoApiKey: tripoApiKey ?? null,
             },
         });
 
         return NextResponse.json({
             success: true,
-            hasApiKey: !!openRouterApiKey,
+            hasOpenRouterKey: !!openRouterApiKey,
+            hasTripoKey: !!tripoApiKey,
         });
     } catch (error) {
         console.error("[Settings PATCH] Error:", error);
@@ -127,6 +147,24 @@ async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
         });
 
         return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+// Validate Tripo API key by making a test request
+async function validateTripoKey(apiKey: string): Promise<boolean> {
+    try {
+        const response = await fetch("https://api.tripo3d.ai/v2/openapi/task", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ type: "text_to_model", prompt: "test" }),
+        });
+        // 401 = unauthorized (valid key format), 400+ = invalid
+        return response.status !== 401;
     } catch {
         return false;
     }

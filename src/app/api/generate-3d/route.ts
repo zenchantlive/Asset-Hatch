@@ -53,17 +53,16 @@ export async function POST(request: NextRequest) {
   try {
     // Get authenticated session to check for user's Tripo API key
     const session = await auth();
-    const userTripoApiKey: string | null = null;
+    let userTripoApiKey: string | null = null;
 
-    // TODO: Add tripoApiKey field to User model in schema.prisma
     // Check if user has their own Tripo API key configured (BYOK)
-    // if (session?.user?.id) {
-    //   const user = await prisma.user.findUnique({
-    //     where: { id: session.user.id },
-    //     select: { tripoApiKey: true },
-    //   });
-    //   userTripoApiKey = user?.tripoApiKey || null;
-    // }
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { tripoApiKey: true },
+      });
+      userTripoApiKey = user?.tripoApiKey || null;
+    }
 
     // Parse and validate request body
     const body: Generate3DRequest = await request.json();

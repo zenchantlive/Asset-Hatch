@@ -14,6 +14,26 @@ Expanded OpenRouter image parsing to read image data from `message.content`/`ann
 
 **Stage:** In Progress
 
+### BYOK Expansion: Tripo API Key
+Added "Bring Your Own Key" support for Tripo3D API, mirroring the existing OpenRouter BYOK pattern.
+
+**Completed:**
+- Added `tripoApiKey` field to User model in schema.prisma
+- Added Tripo key validation in `/api/settings` (validates tsk- prefix)
+- Extended API response to include `hasTripoKey` and `tripoKeyPreview`
+- Refactored ApiKeySettings.tsx to support both OpenRouter and Tripo keys
+- Updated settings page with Tripo section and instructions
+- Enabled BYOK in `/api/generate-3d` route (user key → env fallback)
+
+**Files Modified:**
+- `src/prisma/schema.prisma`
+- `src/app/api/settings/route.ts`
+- `src/components/settings/ApiKeySettings.tsx`
+- `src/app/settings/page.tsx`
+- `src/app/api/generate-3d/route.ts`
+
+**Stage:** ✅ Completed (needs manual testing)
+
 **Trello MCP (Next Session Requirement):**
 - Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards, add labels).
 
@@ -21,7 +41,7 @@ Expanded OpenRouter image parsing to read image data from `message.content`/`ann
 - Preview screenshot capture (user + AI flow) (`Chat Backlog`) — scheduled for the session after next
 - Auto-fix game preview errors (`Gen Backlog`)
 - Skybox generation quality tuning (`Gen Backlog`)
-- BYOK expansion: Tripo API key + settings (`Backend Backlog`)
+- ✅ BYOK expansion: Tripo API key + settings (`In Progress` → Manual Test)
 
 ---
 

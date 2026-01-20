@@ -27,6 +27,7 @@ model User {
   image            String?
   hashedPassword   String?   // For credentials provider (email/password auth)
   openRouterApiKey String?   // User's own OpenRouter API key for BYOK
+  tripoApiKey       String?   // User's own Tripo API key for BYOK 3D generation
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
