@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { ProjectStatus } from "@/lib/types/unified-project";
+import { assetManifestSchema } from "@/lib/studio/schemas";
 
 // =============================================================================
 // GET - Fetch project status including sync state
@@ -50,13 +51,10 @@ export async function GET(
       );
     }
 
-    // Parse asset manifest
-    const manifest = (project.assetManifest as Record<string, unknown> | null) || {
-      assets: {},
-      syncState: { pendingAssets: [], lastSync: null },
-    };
-    const assets = (manifest.assets as Record<string, unknown>) || {};
-    const syncState = (manifest.syncState as { pendingAssets?: string[] }) || { pendingAssets: [] };
+    // Parse asset manifest safely using Zod
+    const manifest = assetManifestSchema.parse(project.assetManifest || {});
+    const assets = manifest.assets;
+    const syncState = manifest.syncState;
 
     // Build response
     const status: ProjectStatus = {

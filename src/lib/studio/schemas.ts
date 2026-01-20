@@ -196,3 +196,58 @@ export const getPlanSchema = z.object({
 });
 
 export type GetPlanInput = z.infer<typeof getPlanSchema>;
+
+// =============================================================================
+// PROJECT MANIFEST SCHEMAS
+// =============================================================================
+
+/**
+ * Schema for asset manifest sync state
+ */
+export const assetManifestSyncStateSchema = z.object({
+  status: z.enum(['clean', 'pending']).default('clean'),
+  pendingAssets: z.array(z.string()).default([]),
+  lastSync: z.string().nullable().default(null),
+});
+
+/**
+ * Schema for asset manifest entry
+ */
+export const assetManifestEntrySchema = z.object({
+  id: z.string(),
+  type: z.enum(['2d', '3d', 'skybox']),
+  name: z.string(),
+  version: z.number(),
+  urls: z.object({
+    thumbnail: z.string().optional(),
+    model: z.string().optional(),
+    glb: z.string().optional(),
+    glbData: z.string().optional(),
+  }),
+  metadata: z.object({
+    prompt: z.string().optional(),
+    style: z.string().optional(),
+    animations: z.array(z.string()).optional(),
+    poses: z.array(z.string()).optional(),
+    skybox: z.boolean().optional(),
+  }),
+  linkedAt: z.string(),
+  lockedVersion: z.number().optional(),
+});
+
+/**
+ * Schema for the full asset manifest
+ */
+export const assetManifestSchema = z.object({
+  version: z.literal('1.0').default('1.0'),
+  lastUpdated: z.string().optional(),
+  assets: z.record(z.string(), assetManifestEntrySchema).default({}),
+  syncState: assetManifestSyncStateSchema.default({
+    status: 'clean',
+    pendingAssets: [],
+    lastSync: null,
+  }),
+});
+
+export type AssetManifest = z.infer<typeof assetManifestSchema>;
+
