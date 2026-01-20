@@ -216,7 +216,7 @@ export async function compareAssetVersions(
           {
             animatedModelUrls: locked3D?.animatedModelUrls ?? null,
             promptUsed: locked3D?.promptUsed ?? null,
-            glbUrl: assetRef.glbUrl,
+            glbUrl: assetRef.glbUrl ?? null,
           },
           {
             animatedModelUrls: latest3D.animatedModelUrls,
@@ -508,7 +508,7 @@ export async function syncAssetVersion(refId: string): Promise<{
       {
         animatedModelUrls: lockedSource3D?.animatedModelUrls ?? null,
         promptUsed: lockedSource3D?.promptUsed ?? null,
-        glbUrl: lockedSource3D?.glbUrl ?? assetRef.glbUrl,
+        glbUrl: assetRef.glbUrl ?? null,
       },
       {
         animatedModelUrls: source3D.animatedModelUrls,

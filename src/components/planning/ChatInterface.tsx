@@ -155,7 +155,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     id: chatId,
     // In AI SDK v6, body in hook config becomes stale
     // We pass body in sendMessage instead
-    onToolCall: ({ toolCall }: { toolCall: ToolCallPayload }) => {
+    onToolCall: ({ toolCall }) => {
       // IMPORTANT: This fires when AI calls a tool
       console.log('🔧 TOOL CALLED:', toolCall.toolName, 'Input:', toolCall.input);
 
@@ -187,7 +187,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           onPlanUpdate(result.data.planMarkdown);
         } else {
           // Fallback for 'markdown' key if model hallucinates
-          const markdown = toolCall.input?.planMarkdown || toolCall.input?.markdown;
+          // Use type assertion since toolCall.input is typed generically in SDK v6
+          const input = toolCall.input as Record<string, unknown> | undefined;
+          const markdown = (input?.planMarkdown ?? input?.markdown) as string | undefined;
           if (typeof markdown === 'string') {
             console.log('✅ Updating plan (fallback), length:', markdown.length, 'chars');
             onPlanUpdate(markdown);
@@ -211,16 +213,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         const result = generateStyleAnchorSchema.safeParse(toolCall.input);
         if (result.success) {
           console.log('✅ Style anchor generation triggered with prompt:', result.data.prompt);
-          // The server handles generation, but we notify on tool result
-          // The actual image URL comes back in the tool result
-          const toolResult = toolCall.result;
-          if (toolResult?.success && toolResult.imageUrl && toolResult.styleAnchorId) {
-            onStyleAnchorGenerated?.({
-              id: toolResult.styleAnchorId,
-              imageUrl: toolResult.imageUrl,
-              prompt: toolResult.prompt || result.data.prompt,
-            });
-          }
+          // The server handles generation asynchronously
+          // We could show a loading state here if needed
         }
       } else if (toolCall.toolName === 'finalizeStyle') {
         // Style finalization tool
@@ -264,7 +258,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           onPlanUpdate(result.data.planMarkdown);
         } else {
           // Fallback for 'markdown' key if model hallucinates
-          const markdown = toolCall.input?.planMarkdown || toolCall.input?.markdown;
+          // Use type assertion since toolCall.input is typed generically in SDK v6
+          const input = toolCall.input as Record<string, unknown> | undefined;
+          const markdown = (input?.planMarkdown ?? input?.markdown) as string | undefined;
           if (typeof markdown === 'string') {
             console.log('✅ Updating 3D plan (fallback), length:', markdown.length, 'chars');
             onPlanUpdate(markdown);
@@ -377,21 +373,24 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       return;
     }
     const [nextPrompt, ...rest] = queuedPrompts;
-    isQueueSendingRef.current = true;
-    setQueuedPrompts(rest);
-    sendMessage(
-      { text: nextPrompt },
-      {
-        body: {
-          qualities,
-          projectId,
-        },
-      }
-    );
-    const timer = window.setTimeout(() => {
+    
+    // Defer state update to avoid synchronous setState in effect
+    const timerId = window.setTimeout(() => {
+      isQueueSendingRef.current = true;
+      setQueuedPrompts(rest);
+      sendMessage(
+        { text: nextPrompt },
+        {
+          body: {
+            qualities,
+            projectId,
+          },
+        }
+      );
       isQueueSendingRef.current = false;
     }, 0);
-    return () => window.clearTimeout(timer);
+    
+    return () => window.clearTimeout(timerId);
   }, [queuedPrompts, status, sendMessage, qualities, projectId]);
 
   // Track processed style anchor IDs to prevent infinite refetching
@@ -422,11 +421,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             fetch(`/api/style-anchor?id=${output.styleAnchorId}`)
               .then(res => res.json())
               .then(data => {
-                if (data.imageUrl) {
+                const imageUrl = data.imageUrl as string | undefined;
+                if (typeof imageUrl === 'string' && imageUrl) {
                   console.log('✅ Fetched style anchor image');
                   onStyleAnchorGenerated?.({
-                    id: output.styleAnchorId,
-                    imageUrl: data.imageUrl,
+                    id: output.styleAnchorId!,
+                    imageUrl: imageUrl,
                     prompt: '',
                   });
                 }
@@ -468,7 +468,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     id: preset.id,
     label: preset.label,
     prompt: preset.prompt,
-    tone: preset.id === "style-infer" ? "primary" : "neutral",
+    tone: (preset.id === "style-infer" ? "primary" : "neutral") as "primary" | "neutral",
   }));
 
   const buildQuote = (text: string) => {

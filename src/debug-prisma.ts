@@ -1,6 +1,11 @@
 
 import { PrismaClient } from '@prisma/client';
 
+interface DmmfDocument {
+    modelMap: Record<string, { fields: Array<{ name: string }> }>;
+    datamodel: { models: Array<{ name: string; fields: Array<{ name: string }> }> };
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -8,7 +13,7 @@ async function main() {
 
     // 1. Check DMMF (Internal Data Model)
     // @ts-expect-error - prisma._baseDmmf is internal
-    const dmmf = prisma._baseDmmf || (prisma as unknown as { _dmmf: Record<string, unknown> })._dmmf;
+    const dmmf = prisma._baseDmmf || (prisma as unknown as { _dmmf: DmmfDocument })._dmmf;
     if (dmmf) {
         const userModel = dmmf.modelMap ? dmmf.modelMap.User : dmmf.datamodel.models.find((m: { name: string }) => m.name === 'User');
         if (userModel) {
@@ -33,7 +38,7 @@ async function main() {
             }
         });
         console.log('✅ Query executed successfully:', user ? 'User found' : 'No user found');
-    } catch (e) {
+    } catch (e: unknown) {
         console.error('❌ Query failed:', e);
     }
 
