@@ -47,6 +47,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const [queuedPrompts, setQueuedPrompts] = useState<string[]>([]);
   const isQueueSendingRef = useRef(false);
   const hasRestoredMessages = useRef(false);
+  const lastProcessedFixIdRef = useRef<string>('');
 
   // Get studio context to update code/preview when tools execute
   // Multi-file: Use loadFiles instead of setCode/loadSceneCode
@@ -245,25 +246,42 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
-    if (pendingFixRequest && !isLoading) {
-      console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
+    if (!pendingFixRequest || isLoading) return;
 
-      // Build fix prompt with error details
-      let fixPrompt = `Fix this runtime error`;
-      if (pendingFixRequest.line) {
-        fixPrompt += ` on line ${pendingFixRequest.line}`;
-      }
-      fixPrompt += `: ${pendingFixRequest.message}`;
+    // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
+    if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
 
-      // Clear the pending request first to prevent re-triggering
-      clearFixRequest();
+    // Mark this request as being processed to prevent re-entrancy
+    lastProcessedFixIdRef.current = pendingFixRequest.id;
 
-      // Programmatically send the message using the useChat hook's append function
-      append({
-        content: fixPrompt,
-        role: 'user',
-      });
+    console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
+
+    // Build comprehensive fix prompt with all available context
+    let fixPrompt = `Fix this runtime error`;
+    if (pendingFixRequest.fileName) {
+      fixPrompt += ` in ${pendingFixRequest.fileName}`;
     }
+    if (pendingFixRequest.line) {
+      fixPrompt += ` on line ${pendingFixRequest.line}`;
+    }
+    fixPrompt += `: ${pendingFixRequest.message}`;
+    if (pendingFixRequest.stack) {
+      fixPrompt += `\n\nStack trace:\n${pendingFixRequest.stack}`;
+    }
+
+    // Use append() with error handling - only clear after successful send
+    append({
+      content: fixPrompt,
+      role: 'user',
+    }).then(() => {
+      // Clear the pending request AFTER successful append
+      clearFixRequest();
+    }).catch((error) => {
+      // If append fails, reset the processed ID so we can retry
+      console.error('Failed to auto-send fix request:', error);
+      lastProcessedFixIdRef.current = '';
+      // Don't clear pendingFixRequest so the user can retry manually
+    });
   }, [pendingFixRequest, isLoading, clearFixRequest, append]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);

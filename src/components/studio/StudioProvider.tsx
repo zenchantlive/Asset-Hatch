@@ -42,7 +42,8 @@ export function StudioProvider({
     const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'assets'>('preview');
     const [isPlaying, setIsPlaying] = useState<boolean>(true);
     const [previewKey, setPreviewKey] = useState<number>(0);
-    const [pendingFixRequest, setPendingFixRequest] = useState<{ message: string; line?: number } | null>(null);
+    const [pendingFixRequest, setPendingFixRequest] = useState<{ id: string; message: string; line?: number; fileName?: string; stack?: string } | null>(null);
+    const pendingFixIdRef = useRef<string>('');
     
     // Multi-file state - replaces single code string
     const [files, setFiles] = useState<GameFileData[]>(initialFiles);
@@ -162,9 +163,10 @@ export function StudioProvider({
     }, []);
 
     // Request error fix - sets pending request for ChatPanel to pick up
-    const requestErrorFix = useCallback((error: { message: string; line?: number }) => {
+    const requestErrorFix = useCallback((error: { message: string; line?: number; fileName?: string; stack?: string }) => {
         console.log('🔧 Error fix requested:', error.message);
-        setPendingFixRequest(error);
+        const id = `fix-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        setPendingFixRequest({ ...error, id });
     }, []);
 
     // Clear fix request after ChatPanel processes it

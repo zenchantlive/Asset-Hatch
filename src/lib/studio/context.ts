@@ -50,8 +50,8 @@ export interface StudioContextValue {
     refreshGame: () => Promise<void>;
 
     // Error fix request (triggers chat message)
-    pendingFixRequest: { message: string; line?: number } | null;
-    requestErrorFix: (error: { message: string; line?: number }) => void;
+    pendingFixRequest: { id: string; message: string; line?: number; fileName?: string; stack?: string } | null;
+    requestErrorFix: (error: { message: string; line?: number; fileName?: string; stack?: string }) => void;
     clearFixRequest: () => void;
 
     // Activity log state
