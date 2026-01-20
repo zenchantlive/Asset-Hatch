@@ -2,7 +2,7 @@
 
 **Purpose:** Registry of lessons learned, coding standards, and gotchas to prevent re-litigating decisions.
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-18
 
 ---
 
@@ -98,6 +98,9 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Streaming Responses**
   - API route must handle streaming properly using `toUIMessageStreamResponse()`.
   - **File:** `app/api/chat/route.ts`
+* **Tool Output Size**
+  - **Pattern:** Avoid base64 or large blobs in AI tool schemas/results; return IDs/URLs and fetch separately.
+  - **Why:** Prevents token overflow and chat context breaks.
 
 ### Glassmorphism Styling
 * **Invisible Glass Effect**
@@ -127,6 +130,10 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - Browsers have storage quotas (varies by browser)
   - Typically 50-100MB for origin
   - **Mitigation:** Compress images, use external storage for large files
+
+* **JSON Metadata Safety**
+  - **Pattern:** Validate parsed JSON is a non-null object before `Object.keys` or property access.
+  - **Why:** Prevents runtime `TypeError` on unexpected JSON (e.g., string/array/null).
 
 ### Prisma 7 / PostgreSQL Adapter
 * **Seed Script Adapter Mismatch**
@@ -227,6 +234,7 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **User messages:** Right-aligned, aurora gradient background, white text
 * **AI messages:** Left-aligned, glass panel, aurora glow on hover
 * **Max width:** 85% of container (not full width)
+* **Tool-call visibility:** Render compact chips under assistant messages; show chips even when no text parts exist.
 
 ### Generation / Batch Dashboard
 * **Grid Layout:** Consistently use `grid-cols-2` with `gap-4` for asset lists.
@@ -446,3 +454,134 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
     - Keeps sensitive/large image data local until final save.
 *   **Example:** `src/lib/image-processing.ts` (`blendSeams` function).
 *   **Gotcha:** Canvas becomes "tainted" if drawing cross-origin images without `crossOrigin="anonymous"`. Always handle CORS requirements for source images.
+
+---
+
+## 🎮 Hatch Studios Patterns (Multi-File Game Architecture)
+
+### Multi-File Game Code Structure
+* **Pattern:** Games use multiple JavaScript files executed in order via concatenation
+* **Structure:**
+  ```typescript
+  // Files sorted by orderIndex, then content joined with '\n\n'
+  const combinedCode = files
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map(f => f.content)
+    .join('\n\n');
+  ```
+* **Execution Order:** Files execute sequentially (orderIndex 0 = first)
+* **Shared State:** Use global scope and TransformNode parenting (no ES modules)
+* **Example:**
+  - `main.js` (orderIndex: 0) → Engine/scene setup
+  - `player.js` (orderIndex: 1) → Creates player mesh (available globally)
+  - `level.js` (orderIndex: 2) → Creates level geometry
+  - `game.js` (orderIndex: 3) → Game loop, controls, UI
+
+### Studio Context State Management
+* **Pattern:** Replace single `code: string` with `files: GameFile[]` state
+* **Context Interface:**
+  ```typescript
+  interface StudioContextValue {
+    game: GameData | null;
+    files: GameFileData[];           // Multi-file state
+    activeFileId: string | null;     // Currently editing
+    loadFiles: () => Promise<void>;  // Refresh from API
+    updateFileContent: (id, content) => void;
+  }
+  ```
+* **Why:** Supports multi-file editing without reloading entire scene
+
+### AI Tool Integration for Multi-File
+* **Pattern:** ChatPanel's `onToolCall` handler must call `loadFiles()` after file operations
+* **Tools:** `createFile`, `updateFile`, `deleteFile`, `listFiles`, `reorderFiles`
+* **Example:**
+  ```typescript
+  case 'createFile':
+    console.log('📄 File created:', toolCall.args?.name);
+    loadFiles();  // CRITICAL: Refresh file list
+    refreshPreview();
+    break;
+  ```
+
+### Preview Iframe with Pre-loaded Libraries
+* **Pattern:** Define available libraries in manifest, generate script tags dynamically
+* **Libraries:** babylon.js, babylon.gui, loaders, proceduralTextures, materials
+* **Manifest:** `src/lib/studio/preview-libraries.ts`
+* **Usage:** AI can use `BABYLON.GUI` without loading script tags (pre-loaded)
+
+### System Prompt for Multi-File Games
+* **Pattern:** Strong multi-file enforcement in system prompt
+* **Key Rules:**
+  - 🚨 MANDATORY multi-file architecture (not optional)
+  - Execute files in orderIndex order
+  - No function calls between files (use global scope)
+  - Example WRONG/RIGHT patterns provided
+* **File:** `src/lib/studio/babylon-system-prompt.ts`
+
+### Game Creation with Initial File
+* **Pattern:** New games auto-create `main.js` with default scene
+* **Implementation:** `POST /api/studio/games` creates both Game and GameFile in transaction
+* **Default Content:** Basic Babylon.js scene with camera, light, rotating box
+
+---
+
+## 🎯 Phase 6: Unified Project Architecture Patterns
+
+### 1:1 Bidirectional Relations in Prisma
+* **Pattern:** For 1:1 relations, only ONE side defines `fields` and `references`
+* **Example:**
+  ```prisma
+  // Project side - owns the relation, defines fields
+  model Project {
+    gameId String? @unique
+    game   Game?   // Prisma infers from unique gameId
+  }
+  
+  // Game side - just references, no fields defined
+  model Game {
+    projectId String? @unique
+    project   Project? @relation(fields: [projectId], references: [id])
+  }
+  ```
+* **Why:** Prisma validates that both sides don't define the relation metadata - only the FK owner should
+* **Gotcha:** If both sides define fields/references → P1012 validation error
+
+### JSON Asset Manifest Pattern
+* **Pattern:** Store asset metadata in Prisma JSON field instead of separate table
+* **Structure:**
+  ```typescript
+  interface AssetManifest {
+    version: "1.0";
+    lastUpdated: string;
+    assets: Record<string, AssetManifestEntry>;
+    syncState: {
+      status: "clean" | "pending";
+      pendingAssets: string[];
+      lastSync: string | null;
+    };
+  }
+  ```
+* **Why:** Simpler queries, atomic updates, no migration needed for new fields
+* **Trade-off:** No Prisma-level foreign key constraints
+
+### Start Path Selection Pattern
+* **Pattern:** Unified project creation with 3 options
+* **Options:**
+  - `assets` → Project only, phase: "assets"
+  - `game` → Project + Game, phase: "building"
+  - `both` → Project + Game, phase: "building"
+* **Implementation:** Single POST creates both entities in transaction
+
+### Asset Sync Workflow
+* **Pattern:** Manual sync trigger for user control
+* **Flow:**
+  1. Assets generated in Project → added to manifest with `pending` status
+  2. Sync banner appears on dashboard
+  3. User clicks "Sync Now" → POST /api/projects/[id]/assets/sync
+  4. Manifest updated, pendingAssets cleared, syncState marked "clean"
+* **Why:** Prevents breaking changes during active development
+
+### Version Locking for Asset References
+* **Pattern:** Snapshot asset URLs at time of linking
+* **Fields:** `lockedVersionId`, `lockedAt` on GameAssetRef
+* **Why:** Prevents "moving target" problem where regenerated assets break existing games

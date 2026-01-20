@@ -2,13 +2,13 @@
 
 **Created:** 2025-12-26
 **Purpose:** Comprehensive understanding of the entire system
-**Status:** Planning Phase P1 (80% complete)
+**Status:** Asset Hatch 2D/3D + Hatch Studios in active development (shared context live; asset loading in preview in progress)
 
 ---
 
 ## Project Vision
 
-**Asset Hatch** is an AI-powered game asset generation tool that transforms natural conversation into complete game asset packs.
+**Asset Hatch** is an AI-powered asset and game creation platform that turns natural conversation into complete 2D/3D asset packs and a playable Babylon.js prototype.
 
 ### The Core Innovation
 Instead of:
@@ -24,11 +24,11 @@ Users get:
 
 ---
 
-## Four-Phase Workflow (2D Mode)
+## Asset Hatch 2D Workflow
 
 ```
 ┌─────────────────┐
-│  1. PLANNING    │ ← Current Focus (P1)
+│  1. PLANNING    │
 │  (Chat-driven)  │   User describes game → AI builds asset plan
 └─────────────────┘
          ↓
@@ -48,7 +48,7 @@ Users get:
 └─────────────────┘
 ```
 
-## 3D Asset Generation Mode (NEW - 2026-01-13)
+## 3D Asset Generation Mode (2026-01-13)
 
 Asset Hatch now supports **3D model generation** alongside 2D sprites. Users can create rigged, animated 3D characters through the same conversational workflow.
 
@@ -101,15 +101,54 @@ Asset Hatch now supports **3D model generation** alongside 2D sprites. Users can
 4. **Next.js 15 Async Params** - Route params are now Promises, must `await` before use
 5. **Polling Strategy** - 2-second intervals, progress tracked 0-100%, updates database on completion
 
-**Current Status (2026-01-13):**
+**Current Status (2026-01-18):**
 - ✅ Text-to-3D generation working end-to-end
 - ✅ Status polling with real-time progress updates
 - ✅ 3D model preview in browser (Three.js)
 - ✅ GLB download via CORS proxy
+- ✅ Approval flow exists (approve + save to inventory)
 - ⏳ Rigging/Animation backend exists but UI not integrated
-- ❌ Approval/Reject/Regenerate workflows not implemented
+- 🟡 Asset loading in game preview requires permanent hosting fix
 - ❌ Batch export not implemented
 - ❌ Additional asset types (skybox, props) not implemented
+
+---
+
+## Hatch Studios (Game Creation) Workflow
+
+```
+┌─────────────────┐
+│  1. PLAN        │   Game concept + mechanics via chat
+│  (Chat-driven)  │   Shared context document persists
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  2. CODE        │   Multi-file Babylon.js project
+│  (Tool-driven)  │   main.js → player.js → level.js → game.js
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  3. PREVIEW     │   Live iframe with Babylon.js
+│  (Interactive)  │   Asset loading via ASSETS.load()
+└─────────────────┘
+         ↓
+┌─────────────────┐
+│  4. EXPORT      │   Bundle code + assets (planned)
+│  (Packaging)    │   Shareable build output
+└─────────────────┘
+```
+
+**Key Architecture:**
+- Unified project view with Assets/Game tabs
+- Shared context document (`project-context.json`) persisted in MemoryFile
+- Multi-file backend with ordered files for preview/export
+- Asset-aware tools that can query 2D/3D inventory
+
+**Current Status (2026-01-18):**
+- ✅ Unified Assets/Game UI + shared context
+- ✅ Multi-file tools + activity log
+- 🟡 Asset loading in preview (signed URL hosting fix)
+- ❌ Export bundling not implemented
 
 ---
 

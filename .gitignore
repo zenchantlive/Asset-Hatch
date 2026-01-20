@@ -66,3 +66,5 @@ src/SWITCH_TO_VERCEL_POSTGRES.md
 blog/asset-hatch-pics
 blog/public/
 mcp_agent_mail/
+
+.beads/

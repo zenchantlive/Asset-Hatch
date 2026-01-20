@@ -37,7 +37,7 @@ export function CreateProjectButton({
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState("");
-    const [mode, setMode] = useState<"2d" | "3d">("2d");
+    const [mode, setMode] = useState<"2d" | "3d" | "hybrid">("2d");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCreate = async () => {

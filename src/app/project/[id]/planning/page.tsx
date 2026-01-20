@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { ChatInterface, ChatInterfaceHandle } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
@@ -43,10 +44,33 @@ export default function PlanningPage() {
 
 
 
-  // Style phase state
+// Style phase state
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
   const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
+  const [gameId, setGameId] = useState<string | null>(null)
+
+  // Fetch gameId for the project (for "Go to Game" button)
+  useEffect(() => {
+    const fetchGameId = async () => {
+      if (!params.id || typeof params.id !== 'string') return;
+      
+      try {
+        const response = await fetch(`/api/projects/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Project has gameId field from the unified schema
+          if (data.project?.gameId) {
+            setGameId(data.project.gameId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch gameId:', error);
+      }
+    };
+
+    fetchGameId();
+  }, [params.id]);
 
   // Sync project data from Prisma to Dexie on mount
   // This ensures GenerationQueue and other client components can find project data
@@ -377,14 +401,20 @@ export default function PlanningPage() {
             </div>
           </div>
 
-          {/* RIGHT: Assets & Files only (Parameters moved to bar below) */}
+{/* RIGHT: Game & Files only (Parameters moved to bar below) */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAssetsMenuOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
-            >
-              Assets
-            </button>
+            {gameId ? (
+              <Link
+                href={`/studio/${gameId}`}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all"
+              >
+                🎮 Go to Game
+              </Link>
+            ) : (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/30">
+                No Game Yet
+              </span>
+            )}
             <button
               onClick={() => setFilesMenuOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
