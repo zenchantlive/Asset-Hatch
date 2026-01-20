@@ -18,10 +18,10 @@ describe('ExpirationBanner', () => {
         render(<ExpirationBanner />)
         
         // Check for the new message structure
-        expect(screen.getByText(/Heads up!/i)).toBeInTheDocument()
-        expect(screen.getByText(/3D model download links expire after ~24 hours unless approved and saved to your project/i)).toBeInTheDocument()
-        expect(screen.getByText(/Export or approve before they time out/i)).toBeInTheDocument()
-        expect(screen.getByText(/Approved models are saved permanently and are safe to use any time/i)).toBeInTheDocument()
+        const messageContainer = screen.getByText(/Heads up!/i).parentElement;
+        expect(messageContainer).toHaveTextContent(
+            /3D model download links expire after ~24 hours unless approved and saved to your project. Export or approve before they time out. Approved models are saved permanently and are safe to use any time./i
+        );
     })
 
     it('does not show the old misleading message', () => {
