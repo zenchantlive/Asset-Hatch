@@ -149,12 +149,12 @@ ${scriptTags}
       const errorEl = document.getElementById('error-overlay');
       errorEl.textContent = 'Error: ' + e.message + '\\n\\nLine: ' + e.lineno;
       errorEl.classList.add('show');
-      window.parent.postMessage({ type: 'error', message: e.message, line: e.lineno }, window.location.origin);
+      window.parent.postMessage({ type: 'error', message: e.message, line: e.lineno }, '*');
     });
 
     // Ready signal
     window.addEventListener('load', function() {
-      window.parent.postMessage({ type: 'ready' }, window.location.origin);
+      window.parent.postMessage({ type: 'ready' }, '*');
     });
 
     // Execute user code (concatenated from multiple files)
@@ -168,14 +168,14 @@ ${scriptTags}
       const errorEl = document.getElementById('error-overlay');
       errorEl.textContent = 'Runtime Error: ' + error.message;
       errorEl.classList.add('show');
-      window.parent.postMessage({ type: 'error', message: error.message }, window.location.origin);
+      window.parent.postMessage({ type: 'error', message: error.message }, '*');
     }
 
     // FPS counter (send to parent every second)
     if (typeof engine !== 'undefined') {
       setInterval(function() {
         const fps = engine.getFps().toFixed(0);
-        window.parent.postMessage({ type: 'fps', value: fps }, window.location.origin);
+        window.parent.postMessage({ type: 'fps', value: fps }, '*');
       }, 1000);
     }
   </script>
@@ -230,14 +230,14 @@ ${scriptTags}
                         url: payload?.url || null,
                         source: payload?.source || null,
                         error: payload?.error || null,
-                    }, window.location.origin);
+                    }, '*');
                 }).catch(() => {
                     iframeRef.current?.contentWindow?.postMessage({
                         type: 'asset-resolve-response',
                         requestId,
                         success: false,
                         error: 'RESOLVE_REQUEST_FAILED',
-                    }, window.location.origin);
+                    }, '*');
                 });
             } else if (data?.type === 'fps') {
                 // FPS updates handled by parent component

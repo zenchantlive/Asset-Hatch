@@ -85,7 +85,7 @@ export function generateAssetLoaderScript(
         stage: error.stage,
         key: error.key,
         message: error.message
-      }, window.location.origin);
+      }, '*');
     }
   }
 
@@ -163,7 +163,7 @@ export function generateAssetLoaderScript(
           type: 'asset-resolve-request',
           requestId: requestId,
           key: key
-        }, window.location.origin);
+        }, '*');
       } else {
         RESOLVE_REQUESTS.delete(requestId);
         reject({
