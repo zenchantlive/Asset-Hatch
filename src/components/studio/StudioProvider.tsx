@@ -164,7 +164,10 @@ export function StudioProvider({
     // Request error fix - sets pending request for ChatPanel to pick up
     const requestErrorFix = useCallback((error: { message: string; line?: number; fileName?: string; stack?: string }) => {
         console.log('🔧 Error fix requested:', error.message);
-        const id = `fix-${crypto.randomUUID()}`;
+        // Generate unique ID with cross-browser compatibility fallback
+        const id = `fix-${typeof crypto !== 'undefined' && crypto.randomUUID 
+            ? crypto.randomUUID() 
+            : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`}`;
         setPendingFixRequest({ ...error, id });
     }, []);
 

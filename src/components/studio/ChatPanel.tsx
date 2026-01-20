@@ -250,7 +250,11 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
-    if (!pendingFixRequest || isLoading) return;
+    // Guard against missing dependencies
+    if (!pendingFixRequest || !clearFixRequest || !append) return;
+    
+    // Skip if already loading to prevent interference with user-initiated messages
+    if (isLoading) return;
 
     // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
     if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
@@ -260,22 +264,42 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
     console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
 
+    // Sanitize and bound error data to prevent prompt overflow and ensure reliability
+    const sanitizeText = (text: string | undefined, maxLength: number = 2000): string => {
+      if (!text) return '';
+      // Truncate if too long
+      const truncated = text.length > maxLength ? text.substring(0, maxLength) + '...[truncated]' : text;
+      // Escape potentially problematic characters for prompt injection prevention
+      return truncated
+        .replace(/```/g, '```') // Escape code block markers
+        .replace(/```(\w+)?/g, '```') // Escape language specifiers
+        .replace(/`/g, '\\`'); // Escape inline code markers
+    };
+
     // Build comprehensive fix prompt with all available context
-    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${pendingFixRequest.fileName}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${pendingFixRequest.message}${pendingFixRequest.stack ? `\n\nStack trace:\n${pendingFixRequest.stack}` : ''}`;
+    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${sanitizeText(pendingFixRequest.fileName, 200)}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${sanitizeText(pendingFixRequest.message, 500)}${pendingFixRequest.stack ? `\n\nStack trace:\n${sanitizeText(pendingFixRequest.stack, 1500)}` : ''}`;
 
     // Use append() with error handling - only clear after successful send
-    append({
-      content: fixPrompt,
-      role: 'user',
-    }).then(() => {
-      // Clear the pending request AFTER successful append
-      clearFixRequest();
-    }).catch((error) => {
-      // If append fails, reset the processed ID so we can retry
-      console.error('Failed to auto-send fix request:', error);
-      lastProcessedFixIdRef.current = '';
-      // Don't clear pendingFixRequest so the user can retry manually
-    });
+    // Wrap in a timeout to ensure this effect has fully settled before triggering
+    const timer = setTimeout(() => {
+      append({
+        content: fixPrompt,
+        role: 'user',
+      }).then(() => {
+        // Clear the pending request AFTER successful append
+        clearFixRequest();
+      }).catch((error) => {
+        // If append fails, reset the processed ID so we can retry
+        console.error('Failed to auto-send fix request:', error);
+        lastProcessedFixIdRef.current = '';
+        // Don't clear pendingFixRequest so the user can retry manually
+      });
+    }, 0);
+
+    // Cleanup function to handle component unmount or dependency changes
+    return () => {
+      clearTimeout(timer);
+    };
   }, [pendingFixRequest, isLoading, clearFixRequest, append]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
