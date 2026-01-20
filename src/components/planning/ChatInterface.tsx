@@ -500,7 +500,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       if (!extracted.hasTextContent) {
         continue;
       }
-      setMessages(messages.slice(0, index));
+      setMessages(prev => prev.slice(0, index));
       sendMessage(
         { text: extracted.textContent },
         {
