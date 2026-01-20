@@ -247,14 +247,9 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Derive loading state (must be defined before effects that reference it)
   const isLoading = status === 'submitted' || status === 'streaming';
-
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
-    // Guard against missing dependencies
-    if (!pendingFixRequest || !clearFixRequest || !append) return;
-    
-    // Skip if already loading to prevent interference with user-initiated messages
-    if (isLoading) return;
+    if (!pendingFixRequest || isLoading) return;
 
     // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
     if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
@@ -262,44 +257,26 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     // Mark this request as being processed to prevent re-entrancy
     lastProcessedFixIdRef.current = pendingFixRequest.id;
 
-  // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
-  if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
+    console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
 
-  // Mark this request as being processed to prevent re-entrancy
-  lastProcessedFixIdRef.current = pendingFixRequest.id;
+    // Build comprehensive fix prompt with all available context
+    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${pendingFixRequest.fileName}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${pendingFixRequest.message}${pendingFixRequest.stack ? `\n\nStack trace:\n${pendingFixRequest.stack}` : ''}`;
 
-  console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
-
-  // Build comprehensive fix prompt with all available context
-  let fixPrompt = `Fix this runtime error`;
-  if (pendingFixRequest.fileName) {
-    fixPrompt += ` in ${pendingFixRequest.fileName}`;
-  }
-  if (pendingFixRequest.line) {
-    fixPrompt += ` on line ${pendingFixRequest.line}`;
-  }
-  fixPrompt += `: ${pendingFixRequest.message}`;
-  if (pendingFixRequest.stack) {
-    fixPrompt += `\n\nStack trace:\n${pendingFixRequest.stack}`;
-  }
-
-  // Send with full game context - only clear after successful send
-  const body: { gameId: string; projectContext?: string } = { gameId };
-  if (projectContext) {
-    body.projectContext = JSON.stringify(projectContext);
-  }
-
-  sendMessage({ text: fixPrompt }, { body })
-    .then(() => {
+    // Use sendMessage with proper request body context
+    sendMessage(
+      { text: fixPrompt },
+      { body: buildMessageBody() }
+    ).then(() => {
       // Clear the pending request AFTER successful send
       clearFixRequest();
-    })
-    .catch((error) => {
+    }).catch((error) => {
       // If send fails, reset the processed ID so we can retry
       console.error('Failed to auto-send fix request:', error);
       lastProcessedFixIdRef.current = '';
       // Don't clear pendingFixRequest so the user can retry manually
     });
+  }, [pendingFixRequest, isLoading, clearFixRequest, sendMessage, buildMessageBody]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
