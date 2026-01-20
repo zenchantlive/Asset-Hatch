@@ -162,52 +162,39 @@ export async function POST(
     let project;
     let gameId: string | undefined;
 
-    if (startWith === "game" || startWith === "both") {
-      // Use a transaction to ensure atomic creation of project and game
-      project = await prisma.$transaction(async (tx) => {
-        const newProject = await tx.project.create({
-          data: {
-            name,
-            userId: userId,
-            phase: "assets",
-            mode: mode,
-            assetManifest: initialManifest,
-            syncStatus: "clean",
-          },
-        });
-
-        const newGame = await tx.game.create({
-          data: {
-            userId: userId,
-            name: `${name} Game`,
-            phase: "planning",
-            projectId: newProject.id,
-          },
-        });
-        gameId = newGame.id;
-
-        // Update project with game reference and correct phase
-        return tx.project.update({
-          where: { id: newProject.id },
-          data: {
-            gameId: newGame.id,
-            phase: "building",
-          },
-        });
-      });
-    } else {
-      // Create project without a game
-      project = await prisma.project.create({
+    // Always create project and game together - they are always linked
+    // The startWith parameter only affects initial view, not creation
+    project = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
         data: {
           name,
           userId: userId,
-          phase: initialPhase,
+          phase: "assets",
           mode: mode,
           assetManifest: initialManifest,
           syncStatus: "clean",
         },
       });
-    }
+
+      const newGame = await tx.game.create({
+        data: {
+          userId: userId,
+          name: `${name} Game`,
+          phase: "planning",
+          projectId: newProject.id,
+        },
+      });
+      gameId = newGame.id;
+
+      // Update project with game reference and correct phase
+      return tx.project.update({
+        where: { id: newProject.id },
+        data: {
+          gameId: newGame.id,
+          phase: initialPhase,
+        },
+      });
+    });
 
     console.log(
       `✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`

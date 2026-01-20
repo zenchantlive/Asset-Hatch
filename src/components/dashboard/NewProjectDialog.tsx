@@ -74,13 +74,10 @@ export function NewProjectDialog({
       setStartWith("both");
       setIsOpen(false);
 
-      // Redirect based on startWith
-      if (startWith === "game" || startWith === "both") {
-        router.push(`/studio/${gameId}`);
-      } else {
-        router.push(`/project/${projectId}/planning`);
-      }
-
+      // Always redirect to unified project view with selected tab
+      // Both project and game are always created together
+      const tabParam = startWith === "game" ? "game" : "assets";
+      router.push(`/project/${projectId}?tab=${tabParam}`);
       router.refresh();
     } catch (error) {
       console.error("Failed to create project:", error);
