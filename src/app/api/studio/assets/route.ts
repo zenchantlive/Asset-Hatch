@@ -114,8 +114,10 @@ export async function GET(request: Request) {
             assets3D.map(async (asset) => {
                 const assetRef = assetRefMap.get(asset.id);
                 const glbData = includeGlbData ? assetRef?.glbData || null : null;
-                const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl || null;
-                const glbUrl = await resolveR2AssetUrl(storedUrl);
+                const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl;
+                const glbUrl = storedUrl
+                    ? await resolveR2AssetUrl(storedUrl)
+                    : null;
 
                 return {
                     id: asset.id,

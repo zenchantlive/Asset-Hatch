@@ -98,6 +98,9 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Streaming Responses**
   - API route must handle streaming properly using `toUIMessageStreamResponse()`.
   - **File:** `app/api/chat/route.ts`
+* **Tool Output Size**
+  - **Pattern:** Avoid base64 or large blobs in AI tool schemas/results; return IDs/URLs and fetch separately.
+  - **Why:** Prevents token overflow and chat context breaks.
 
 ### Glassmorphism Styling
 * **Invisible Glass Effect**
@@ -127,6 +130,10 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - Browsers have storage quotas (varies by browser)
   - Typically 50-100MB for origin
   - **Mitigation:** Compress images, use external storage for large files
+
+* **JSON Metadata Safety**
+  - **Pattern:** Validate parsed JSON is a non-null object before `Object.keys` or property access.
+  - **Why:** Prevents runtime `TypeError` on unexpected JSON (e.g., string/array/null).
 
 ### Prisma 7 / PostgreSQL Adapter
 * **Seed Script Adapter Mismatch**

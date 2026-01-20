@@ -109,8 +109,13 @@ export async function POST(req: NextRequest) {
         if (asset.isRiggable) metadata.rigged = asset.isRiggable;
         if (asset.animatedModelUrls) {
           try {
-            metadata.animations = Object.keys(JSON.parse(asset.animatedModelUrls));
-          } catch {}
+            const parsed = JSON.parse(asset.animatedModelUrls);
+            if (parsed && typeof parsed === 'object') {
+              metadata.animations = Object.keys(parsed);
+            }
+          } catch {
+            // Not valid JSON, or not an object
+          }
         }
         metadataMap.set(asset.id, metadata);
       }

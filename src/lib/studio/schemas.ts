@@ -73,7 +73,6 @@ export const listUserAssetsSchema = z.object({
   type: z.enum(['2d', '3d', 'all']).default('all').describe('Filter by asset type'),
   search: z.string().optional().describe('Search query for asset names'),
   limit: z.number().min(1).max(100).default(50).describe('Maximum number of assets to return'),
-  includeGlbData: z.boolean().optional().default(false).describe('Include base64 GLB data for 3D assets'),
 });
 
 export type ListUserAssetsInput = z.infer<typeof listUserAssetsSchema>;

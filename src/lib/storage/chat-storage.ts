@@ -307,7 +307,7 @@ class IndexedDBChatStorage implements ChatStorage {
                 id: msg.id,
                 role: msg.role as UIMessage['role'],
                 content: msg.content,
-                createdAt: msg.createdAt instanceof Date ? msg.createdAt : (msg.createdAt ? new Date(msg.createdAt) : new Date()),
+                createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
                 parts: []
             };
 
@@ -409,27 +409,17 @@ class LocalStorageChatStorage implements ChatStorage {
     private handleQuotaExceeded(gameId: string, newMessages: UIMessage[]): void {
         try {
             const storageKey = `studio-conversation-${gameId}`;
-            const existingData = localStorage.getItem(storageKey);
 
-            if (existingData) {
-                try {
-                    const existingMessages = JSON.parse(existingData) as UIMessage[];
-                    // Keep only the last 50 messages + new messages
-                    const retainedMessages = existingMessages.slice(-50);
-                    const combinedMessages = [...retainedMessages, ...newMessages];
+            // The new payload is too large, so truncate it directly.
+            const retainedMessages = newMessages.slice(-50);
 
-                    // Try to save the reduced dataset
-                    localStorage.setItem(storageKey, JSON.stringify(combinedMessages));
-                    console.log('📉 Reduced chat history to', combinedMessages.length, 'messages to stay under quota');
-                } catch (error) {
-                    console.error('❌ Even reduced dataset failed to save:', error);
-                    // If still too large, save only new messages
-                    localStorage.setItem(storageKey, JSON.stringify(newMessages));
-                    console.log('🆕 Saved only new messages, old history lost');
-                }
-            } else {
-                // If no existing data, try to save just new messages
-                localStorage.setItem(storageKey, JSON.stringify(newMessages));
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(retainedMessages));
+                console.log('📉 Reduced chat history to', retainedMessages.length, 'messages to stay under quota');
+            } catch (error) {
+                console.error('❌ Even reduced dataset failed to save:', error);
+                localStorage.removeItem(storageKey);
+                console.log('🗑️ Removed chat history as it could not be reduced to fit quota.');
             }
         } catch (error) {
             console.error('❌ All quota handling strategies failed:', error);

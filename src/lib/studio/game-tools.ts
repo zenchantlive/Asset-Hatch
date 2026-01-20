@@ -200,9 +200,9 @@ export const listUserAssetsTool = (gameId: string) => {
   return tool({
     description: 'Query the user\'s Asset Hatch library for available assets to use in the game.',
     inputSchema: listUserAssetsSchema,
-    execute: async ({ type, search, limit, includeGlbData }: ListUserAssetsInput) => {
+    execute: async ({ type, search, limit }: ListUserAssetsInput) => {
       try {
-        console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit, 'includeGlbData:', includeGlbData);
+        console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit);
 
         // Get game to verify ownership and get projectId
         const game = await prisma.game.findUnique({
@@ -264,22 +264,20 @@ export const listUserAssetsTool = (gameId: string) => {
         const gameAssetRefs = assets3D.length
           ? await prisma.gameAssetRef.findMany({
               where: {
-                projectId,
+                gameId,
                 assetType: '3d',
                 assetId: { in: assets3D.map((asset) => asset.id) },
               },
               select: {
                 assetId: true,
                 glbUrl: true,
-                ...(includeGlbData ? { glbData: true } : {}),
               },
             })
           : [];
 
-        const assetRefMap = new Map<string, { glbData: string | null; glbUrl: string | null }>();
+        const assetRefMap = new Map<string, { glbUrl: string | null }>();
         gameAssetRefs.forEach((ref) => {
           assetRefMap.set(ref.assetId, {
-            glbData: includeGlbData && 'glbData' in ref ? ref.glbData : null,
             glbUrl: ref.glbUrl || null,
           });
         });
@@ -287,13 +285,18 @@ export const listUserAssetsTool = (gameId: string) => {
         const formatted3D = await Promise.all(
           assets3D.map(async (asset) => {
             const assetRef = assetRefMap.get(asset.id);
-            const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl || null;
-            const glbUrl = await resolveR2AssetUrl(storedUrl);
+            const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl;
+            const glbUrl = storedUrl
+              ? await resolveR2AssetUrl(storedUrl)
+              : null;
 
             let animations: string[] | null = null;
             if (asset.animatedModelUrls) {
               try {
-                animations = Object.keys(JSON.parse(asset.animatedModelUrls));
+                const parsed = JSON.parse(asset.animatedModelUrls);
+                if (parsed && typeof parsed === 'object') {
+                  animations = Object.keys(parsed);
+                }
               } catch {
                 animations = null;
               }
@@ -304,7 +307,7 @@ export const listUserAssetsTool = (gameId: string) => {
               name: asset.name || asset.assetId,
               type: '3d',
               glbUrl,
-              glbData: includeGlbData ? assetRef?.glbData || null : null,
+              glbData: null,
               thumbnailUrl: asset.draftModelUrl || null,
               projectId: asset.projectId,
               prompt: asset.promptUsed || null,
@@ -316,21 +319,28 @@ export const listUserAssetsTool = (gameId: string) => {
 
         const formatted2D = assets2D.map((asset) => {
           let imageUrl: string | null = null;
-          if (asset.metadata) {
-            try {
+          let thumbnailUrl: string | null = null;
+          let name = asset.assetId;
+
+          try {
+            if (asset.metadata) {
               const metadata = JSON.parse(asset.metadata);
-              imageUrl = metadata.imageUrl || null;
-            } catch {
-              imageUrl = null;
+              if (metadata && typeof metadata === 'object') {
+                imageUrl = metadata.imageUrl || null;
+                thumbnailUrl = metadata.thumbnailUrl || null;
+                name = metadata.name || asset.assetId;
+              }
             }
+          } catch (error) {
+            console.warn(`⚠️ Failed to parse 2D asset metadata for asset ${asset.id}:`, error);
           }
 
           return {
             id: asset.id,
-            name: asset.assetId,
+            name,
             type: '2d',
             imageUrl,
-            thumbnailUrl: imageUrl,
+            thumbnailUrl: thumbnailUrl || imageUrl,
             projectId: asset.projectId,
             prompt: asset.promptUsed || null,
           };

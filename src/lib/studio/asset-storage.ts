@@ -132,17 +132,32 @@ export async function downloadAssetAsBuffer(
         };
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-
-      // Check file size before processing
-      if (arrayBuffer.byteLength > MAX_GL_FILE_SIZE) {
-        const sizeMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2);
-        console.error(
-          `❌ GLB file too large: ${sizeMB}MB (max: ${MAX_GL_FILE_SIZE / 1024 / 1024}MB)`
-        );
+      // Pre-check size via header
+      const contentLength = response.headers.get("content-length");
+      if (contentLength && parseInt(contentLength, 10) > MAX_GL_FILE_SIZE) {
+        const headerMB = (parseInt(contentLength, 10) / 1024 / 1024).toFixed(2);
         return {
           success: false,
-          error: `File too large (${sizeMB}MB). Maximum size is ${MAX_GL_FILE_SIZE / 1024 / 1024}MB.`,
+          error: `File too large (${headerMB}MB). Maximum allowed is ${(
+            MAX_GL_FILE_SIZE /
+            1024 /
+            1024
+          ).toFixed(2)}MB.`,
+        };
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Final size check
+      if (arrayBuffer.byteLength > MAX_GL_FILE_SIZE) {
+        const sizeMB = (arrayBuffer.byteLength / 1024 / 1024).toFixed(2);
+        return {
+          success: false,
+          error: `File too large (${sizeMB}MB). Maximum allowed is ${(
+            MAX_GL_FILE_SIZE /
+            1024 /
+            1024
+          ).toFixed(2)}MB.`,
         };
       }
 
@@ -270,16 +285,14 @@ const MAX_GL_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
  * @returns Base64-encoded string
  */
 function bufferToBase64(data: Uint8Array): string {
-  // Buffer.from() is available in Node.js and modern browsers
-  // For browser-only environments, use TextEncoder + btoa
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(data).toString('base64');
   }
-  // Fallback for browser environments without Buffer
   let binary = '';
-  const len = data.length;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(data[i]);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const slice = data.subarray(i, Math.min(i + chunkSize, data.length));
+    binary += String.fromCharCode.apply(null, Array.from(slice));
   }
   return btoa(binary);
 }
@@ -374,8 +387,11 @@ export function validateBase64Glb(
   base64Data: string
 ): { isValid: boolean; error?: string } {
   try {
-    // Decode base64 to check magic bytes
-    const binaryString = atob(base64Data);
+    // Decode base64 in Node or browser
+    const binaryString =
+      typeof Buffer !== 'undefined'
+        ? Buffer.from(base64Data, 'base64').toString('binary')
+        : atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
