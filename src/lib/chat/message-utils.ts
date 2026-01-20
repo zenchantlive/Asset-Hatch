@@ -37,9 +37,9 @@ const getToolLabel = (part: MessagePart): string => {
   return "tool";
 };
 
-const normalizeCreatedAt = (createdAt?: UIMessage["createdAt"]): Date => {
+const normalizeCreatedAt = (createdAt?: UIMessage["createdAt"]): Date | null => {
   if (!createdAt) {
-    return new Date();
+    return null;
   }
 
   if (createdAt instanceof Date) {
@@ -53,7 +53,7 @@ const normalizeCreatedAt = (createdAt?: UIMessage["createdAt"]): Date => {
     }
   }
 
-  return new Date();
+  return null;
 };
 
 export const extractMessageParts = (message: UIMessage): ExtractedMessageParts => {
