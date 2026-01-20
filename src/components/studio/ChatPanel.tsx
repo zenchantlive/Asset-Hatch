@@ -50,7 +50,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Get studio context to update code/preview when tools execute
   // Multi-file: Use loadFiles instead of setCode/loadSceneCode
-  const { refreshPreview, refreshGame, loadFiles, addActivity } = useStudio();
+  const { refreshPreview, refreshGame, loadFiles, addActivity, pendingFixRequest, clearFixRequest } = useStudio();
 
   // Unique chat ID per game to maintain separate histories
   const chatId = `studio-chat-${gameId}`;
@@ -242,6 +242,32 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
     saveWithFallback();
   }, [messages, gameId]);
+
+  // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
+  useEffect(() => {
+    if (pendingFixRequest && !isLoading) {
+      console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
+      
+      // Build fix prompt with error details
+      let fixPrompt = `Fix this runtime error`;
+      if (pendingFixRequest.line) {
+        fixPrompt += ` on line ${pendingFixRequest.line}`;
+      }
+      fixPrompt += `: ${pendingFixRequest.message}`;
+      
+      // Send the fix prompt
+      setInput(fixPrompt);
+      
+      // Clear the pending request
+      clearFixRequest();
+      
+      // Auto-submit the form
+      const form = document.querySelector('form');
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  }, [pendingFixRequest, isLoading, clearFixRequest]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
