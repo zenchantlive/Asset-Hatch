@@ -501,8 +501,8 @@ export async function syncAssetVersion(refId: string): Promise<{
     const source3D = latestSource3D!;
     changes = compare3DAssets(
       {
-        animatedModelUrls: null, // Not stored in GameAssetRef snapshot
-        promptUsed: null, // Not stored in GameAssetRef snapshot
+        animatedModelUrls: assetRef.assetType === '3d' ? (assetRef as any).animatedModelUrls : null,
+        promptUsed: (assetRef as any).promptUsed ?? null,
         glbUrl: assetRef.glbUrl,
       },
       {
@@ -515,8 +515,8 @@ export async function syncAssetVersion(refId: string): Promise<{
     const source2D = latestSource2D!;
     changes = compare2DAssets(
       {
-        metadata: null, // Not stored in GameAssetRef snapshot
-        promptUsed: null, // Not stored in GameAssetRef snapshot
+        metadata: (assetRef as any).metadata ?? null,
+        promptUsed: (assetRef as any).promptUsed ?? null,
       },
       {
         metadata: source2D.metadata,
@@ -534,7 +534,7 @@ export async function syncAssetVersion(refId: string): Promise<{
         ? latestSource3D?.riggedModelUrl ?? null
         : undefined,
       // Update lock info
-      lockedVersionId: (latestSource3D?.riggedModelUrl ?? assetRef.assetId) || assetRef.assetId,
+      lockedVersionId: assetRef.assetId, // Use assetId as the source-row ID
       lockedAt: latestSource3D?.updatedAt ?? latestSource2D?.updatedAt,
     },
   });

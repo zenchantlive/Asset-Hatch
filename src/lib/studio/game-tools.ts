@@ -48,13 +48,21 @@ import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
  * @param gameId - Current game ID
  * @returns AI SDK tool for creating new scenes
  */
-export const createSceneTool = (gameId: string) => {
+export const createSceneTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Create a new scene/level for the game. Use this when the user wants to add a new level or screen.',
     inputSchema: createSceneSchema,
     execute: async ({ name, orderIndex }: CreateSceneInput) => {
       try {
         console.log('🎮 Creating scene:', name, 'order:', orderIndex);
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         // Create new scene in database
         const scene = await prisma.gameScene.create({
@@ -94,7 +102,7 @@ export const createSceneTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for switching scenes
  */
-export const switchSceneTool = (gameId: string) => {
+export const switchSceneTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Switch to a different scene in the game. Updates the activeSceneId on the game.',
     inputSchema: switchSceneSchema,
@@ -102,11 +110,18 @@ export const switchSceneTool = (gameId: string) => {
       try {
         console.log('🔄 Switching to scene:', sceneId);
 
-        // Update game's active scene
-        await prisma.game.update({
-          where: { id: gameId },
+        // Update game's active scene with ownership check
+        const updateResult = await prisma.game.updateMany({
+          where: { 
+            id: gameId,
+            ...(userId ? { userId } : {})
+          },
           data: { activeSceneId: sceneId },
         });
+
+        if (updateResult.count === 0) {
+          return { success: false, error: 'Game not found or access denied' };
+        }
 
         console.log('✅ Scene switched to:', sceneId);
 
@@ -132,7 +147,7 @@ export const switchSceneTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for placing assets
  */
-export const placeAssetTool = (gameId: string) => {
+export const placeAssetTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Place an asset in a scene at a specific position, rotation, and scale.',
     inputSchema: placeAssetSchema,
@@ -140,13 +155,26 @@ export const placeAssetTool = (gameId: string) => {
       try {
         console.log('📍 Placing asset:', assetId, 'in scene:', sceneId);
 
-        // Verify asset exists in GameAssetRef
+        // Verify asset exists in GameAssetRef and user owns the game
         const assetRef = await prisma.gameAssetRef.findFirst({
-          where: { gameId, assetId },
+          where: { 
+            gameId, 
+            assetId,
+            ...(userId ? { game: { userId } } : {})
+          },
         });
 
         if (!assetRef) {
-          return { success: false, error: `Asset ${assetId} not found` };
+          return { success: false, error: `Asset ${assetId} not found or access denied` };
+        }
+
+        // Verify scene belongs to the game
+        const scene = await prisma.gameScene.findFirst({
+          where: { id: sceneId, gameId },
+        });
+
+        if (!scene) {
+          return { success: false, error: `Scene ${sceneId} not found in this game` };
         }
 
         // Create asset placement record
@@ -196,7 +224,7 @@ export const placeAssetTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for querying user's Asset Hatch library
  */
-export const listUserAssetsTool = (gameId: string) => {
+export const listUserAssetsTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Query the user\'s Asset Hatch library for available assets to use in the game.',
     inputSchema: listUserAssetsSchema,
@@ -205,8 +233,11 @@ export const listUserAssetsTool = (gameId: string) => {
         console.log('📦 Listing assets:', type, 'search:', search, 'limit:', limit);
 
         // Get game to verify ownership and get projectId
-        const game = await prisma.game.findUnique({
-          where: { id: gameId },
+        const game = await prisma.game.findFirst({
+          where: { 
+            id: gameId,
+            ...(userId ? { userId } : {})
+          },
           include: {
             project: {
               select: { id: true, userId: true },
@@ -215,7 +246,7 @@ export const listUserAssetsTool = (gameId: string) => {
         });
 
         if (!game) {
-          return { success: false, error: 'Game not found' };
+          return { success: false, error: 'Game not found or access denied' };
         }
 
         // Phase 6: Use projectId from unified project
@@ -371,7 +402,7 @@ export const listUserAssetsTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for creating new assets
  */
-export const createAssetTool = (gameId: string) => {
+export const createAssetTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Trigger Asset Hatch generation to create a new asset for use in the game.',
     inputSchema: createAssetSchema,
@@ -379,12 +410,15 @@ export const createAssetTool = (gameId: string) => {
       try {
         console.log('➕ Creating asset:', type, 'name:', name);
 
-        const game = await prisma.game.findUnique({
-          where: { id: gameId },
+        const game = await prisma.game.findFirst({
+          where: { 
+            id: gameId,
+            ...(userId ? { userId } : {})
+          },
         });
 
         if (!game) {
-          return { success: false, error: 'Game not found' };
+          return { success: false, error: 'Game not found or access denied' };
         }
 
         // For MVP, return instruction to use Asset Hatch UI
@@ -418,13 +452,21 @@ export const createAssetTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for creating files
  */
-export const createFileTool = (gameId: string) => {
+export const createFileTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Create a new JavaScript file in the game. Files are executed in order when the game runs.',
     inputSchema: createFileSchema,
     execute: async ({ name, content, orderIndex }: CreateFileInput) => {
       try {
         console.log('📄 Creating file:', name);
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         // Get current max orderIndex if not specified
         let finalOrderIndex = orderIndex;
@@ -487,7 +529,7 @@ export const createFileTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for updating files
  */
-export const updateFileTool = (gameId: string) => {
+export const updateFileTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Update the content of an existing file in the game.',
     inputSchema: updateFileSchema,
@@ -497,7 +539,11 @@ export const updateFileTool = (gameId: string) => {
 
         // First, get the file and verify ownership
         const file = await prisma.gameFile.findFirst({
-          where: { id: fileId, gameId },
+          where: { 
+            id: fileId, 
+            gameId,
+            ...(userId ? { game: { userId } } : {})
+          },
         });
 
         if (!file) {
@@ -550,7 +596,7 @@ export const updateFileTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for deleting files
  */
-export const deleteFileTool = (gameId: string) => {
+export const deleteFileTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Delete a file from the game. This cannot be undone.',
     inputSchema: deleteFileSchema,
@@ -560,7 +606,11 @@ export const deleteFileTool = (gameId: string) => {
 
         // First, get the file and verify ownership
         const file = await prisma.gameFile.findFirst({
-          where: { id: fileId, gameId },
+          where: { 
+            id: fileId, 
+            gameId,
+            ...(userId ? { game: { userId } } : {})
+          },
         });
 
         if (!file) {
@@ -596,7 +646,7 @@ export const deleteFileTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for renaming files
  */
-export const renameFileTool = (gameId: string) => {
+export const renameFileTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Rename a file in the game. This updates the filename while keeping the file ID the same.',
     inputSchema: renameFileSchema,
@@ -606,7 +656,11 @@ export const renameFileTool = (gameId: string) => {
 
         // First, get the old file and verify ownership
         const oldFile = await prisma.gameFile.findFirst({
-          where: { id: fileId, gameId },
+          where: { 
+            id: fileId, 
+            gameId,
+            ...(userId ? { game: { userId } } : {})
+          },
         });
 
         if (!oldFile) {
@@ -662,13 +716,21 @@ export const renameFileTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for listing files
  */
-export const listFilesTool = (gameId: string) => {
+export const listFilesTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'List all JavaScript files in the game, in execution order.',
     inputSchema: listFilesSchema,
     execute: async () => {
       try {
         console.log('📋 Listing files for game:', gameId);
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         // Get all files ordered by execution order
         const files = await prisma.gameFile.findMany({
@@ -708,13 +770,21 @@ export const listFilesTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for reordering files
  */
-export const reorderFilesTool = (gameId: string) => {
+export const reorderFilesTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Change the execution order of files. Pass an array of file IDs in the desired order.',
     inputSchema: reorderFilesSchema,
     execute: async ({ fileOrder }: ReorderFilesInput) => {
       try {
         console.log('🔄 Reordering files:', fileOrder);
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         // Update each file's orderIndex based on position in array
         const files = await prisma.gameFile.findMany({
@@ -763,13 +833,21 @@ export const reorderFilesTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for creating/updating game plan
  */
-export const updatePlanTool = (gameId: string) => {
+export const updatePlanTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Create or update the game plan. The plan is a markdown document describing features and files to create.',
     inputSchema: updatePlanSchema,
     execute: async ({ content, status = 'draft' }: UpdatePlanInput) => {
       try {
         console.log('📝 Updating game plan, status:', status);
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         // Upsert plan (create if not exists, update if exists)
         const plan = await prisma.gamePlan.upsert({
@@ -810,13 +888,21 @@ export const updatePlanTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns AI SDK tool for getting current game plan
  */
-export const getPlanTool = (gameId: string) => {
+export const getPlanTool = (gameId: string, userId?: string) => {
   return tool({
     description: 'Get the current game plan.',
     inputSchema: getPlanSchema,
     execute: async () => {
       try {
         console.log('📖 Getting game plan');
+
+        // Verify ownership if userId is provided
+        if (userId) {
+          const game = await prisma.game.findFirst({
+            where: { id: gameId, userId },
+          });
+          if (!game) return { success: false, error: 'Game not found or access denied' };
+        }
 
         const plan = await prisma.gamePlan.findUnique({
           where: { gameId },
@@ -860,27 +946,27 @@ export const getPlanTool = (gameId: string) => {
  * @param gameId - Current game ID
  * @returns Record of game tools for AI SDK
  */
-export function createGameTools(gameId: string) {
+export function createGameTools(gameId: string, userId?: string) {
   return {
     // Scene management
-    createScene: createSceneTool(gameId),
-    switchScene: switchSceneTool(gameId),
+    createScene: createSceneTool(gameId, userId),
+    switchScene: switchSceneTool(gameId, userId),
 
     // Asset management
-    placeAsset: placeAssetTool(gameId),
-    listUserAssets: listUserAssetsTool(gameId),
-    createAsset: createAssetTool(gameId),
+    placeAsset: placeAssetTool(gameId, userId),
+    listUserAssets: listUserAssetsTool(gameId, userId),
+    createAsset: createAssetTool(gameId, userId),
 
     // File management (multi-file support)
-    createFile: createFileTool(gameId),
-    updateFile: updateFileTool(gameId),
-    deleteFile: deleteFileTool(gameId),
-    renameFile: renameFileTool(gameId),
-    listFiles: listFilesTool(gameId),
-    reorderFiles: reorderFilesTool(gameId),
+    createFile: createFileTool(gameId, userId),
+    updateFile: updateFileTool(gameId, userId),
+    deleteFile: deleteFileTool(gameId, userId),
+    renameFile: renameFileTool(gameId, userId),
+    listFiles: listFilesTool(gameId, userId),
+    reorderFiles: reorderFilesTool(gameId, userId),
 
     // Planning
-    updatePlan: updatePlanTool(gameId),
-    getPlan: getPlanTool(gameId),
+    updatePlan: updatePlanTool(gameId, userId),
+    getPlan: getPlanTool(gameId, userId),
   };
 }

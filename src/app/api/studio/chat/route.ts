@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
     const modelMessages = await convertToModelMessages(messages);
 
     // Get game tools
-    const gameTools = createGameTools(gameId);
+    const gameTools = createGameTools(gameId, session.user.id);
 
     // Get shared document tools (Phase 7b - these let AI read/write game-design.md, asset-inventory.md, etc.)
     const sharedDocTools = createSharedDocTools(gameId);
