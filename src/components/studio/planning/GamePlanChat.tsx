@@ -60,7 +60,6 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         sendMessage,
         status,
         stop,
-         
     } = useChat({
         id: chatId,
         transport: new DefaultChatTransport({
