@@ -246,6 +246,16 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Derive loading state (must be defined before effects that reference it)
   const isLoading = status === 'submitted' || status === 'streaming';
+
+  // Build message body helper (must be defined before effects that use it)
+  const buildMessageBody = () => {
+    const messageBody: { gameId: string; projectContext?: string } = { gameId };
+    if (projectContext) {
+      messageBody.projectContext = JSON.stringify(projectContext);
+    }
+    return messageBody;
+  };
+
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
     if (!pendingFixRequest || isLoading) return;
@@ -357,14 +367,6 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     prompt: preset.prompt,
     tone: "neutral" as const,
   }));
-
-  const buildMessageBody = () => {
-    const messageBody: { gameId: string; projectContext?: string } = { gameId };
-    if (projectContext) {
-      messageBody.projectContext = JSON.stringify(projectContext);
-    }
-    return messageBody;
-  };
 
   const buildQuote = (text: string) => {
     const trimmed = text.trim();

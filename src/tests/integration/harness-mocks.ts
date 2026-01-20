@@ -22,6 +22,23 @@ interface MockModel {
     mockReset: () => void;
 }
 
+interface PrismaMock {
+    project: MockModel;
+    user: MockModel;
+    memoryFile: MockModel;
+    styleAnchor: MockModel;
+    generatedAsset: MockModel;
+    generationCost: MockModel;
+    characterRegistry: MockModel;
+    game: MockModel;
+    gameScene: MockModel;
+    codeVersion: MockModel;
+    gameAssetRef: MockModel;
+    assetPlacement: MockModel;
+    gameChatMessage: MockModel;
+    $transaction: Mock<(callback: any) => Promise<any>>;
+}
+
 const createMockModel = (): MockModel => ({
     findUnique: mock(() => Promise.resolve(null)),
     findMany: mock(() => Promise.resolve([])),
@@ -44,7 +61,7 @@ const createMockModel = (): MockModel => ({
 });
 
 // Primary Prisma Mock
-export const prismaMock = {
+export const prismaMock: PrismaMock = {
     project: createMockModel(),
     user: createMockModel(),
     memoryFile: createMockModel(),
@@ -59,6 +76,7 @@ export const prismaMock = {
     gameAssetRef: createMockModel(),
     assetPlacement: createMockModel(),
     gameChatMessage: createMockModel(),
+    $transaction: mock((callback: any) => Promise.resolve(callback(prismaMock))),
 };
 
 // Auth Mock - returns session with user object
@@ -204,10 +222,16 @@ mock.module('@/lib/plan-parser', () => ({
  * Helper to reset all mocks between tests - restores default implementations
  */
 export const resetAllMocks = () => {
-    // Reset Prisma model mocks
-    Object.values(prismaMock).forEach((model) => {
-        if (model.mockReset) model.mockReset();
+    // Reset Prisma model mocks (excluding $transaction which is handled separately)
+    Object.entries(prismaMock).forEach(([key, model]) => {
+        if (key !== '$transaction' && model.mockReset) {
+            model.mockReset();
+        }
     });
+    
+    // Reset $transaction mock
+    prismaMock.$transaction.mockReset();
+    prismaMock.$transaction.mockImplementation((callback: any) => Promise.resolve(callback(prismaMock)));
 
     // Reset and restore auth mock
     authMock.mockReset();
