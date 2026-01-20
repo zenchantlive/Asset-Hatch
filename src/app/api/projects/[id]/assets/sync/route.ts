@@ -150,7 +150,7 @@ export async function POST(
         },
                         update: {
                             assetProjectId: projectId,
-                            assetType: "3d",
+                            assetType: asset.type,
                             assetName: asset.name || asset.assetId,
                             lockedVersionId,
                             lockedAt,
