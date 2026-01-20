@@ -2,7 +2,7 @@
 
 // -----------------------------------------------------------------------------
 // New Project Dialog
-// Unified project creation dialog with start path selection (Phase 6)
+// Unified project creation - always creates both asset and game modes (Phase 6)
 // -----------------------------------------------------------------------------
 
 import { useState } from "react";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/ui/ModeToggle";
-import { Loader2, Plus, Sparkles, Gamepad2, Layers } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 interface NewProjectDialogProps {
   variant?: "default" | "outline" | "ghost" | "secondary";
@@ -29,12 +29,10 @@ interface NewProjectDialogProps {
 }
 
 /**
- * NewProjectDialog - Unified project creation with start path selection
+ * NewProjectDialog - Unified project creation
  *
- * Allows users to create a project starting with:
- * - Assets only (generate assets first, add game later)
- * - Game only (start game, add assets mid-development)
- * - Both together (create assets and game side by side)
+ * Creates a unified project with both asset and game modes linked together.
+ * All projects now automatically include both modes for seamless integration.
  */
 export function NewProjectDialog({
   variant = "default",
@@ -46,7 +44,6 @@ export function NewProjectDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"2d" | "3d" | "hybrid">("3d");
-  const [startWith, setStartWith] = useState<"assets" | "game" | "both">("both");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -58,7 +55,7 @@ export function NewProjectDialog({
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), mode, startWith }),
+        body: JSON.stringify({ name: name.trim(), mode }),
       });
 
       if (!response.ok) {
@@ -71,15 +68,10 @@ export function NewProjectDialog({
       // Reset form
       setName("");
       setMode("3d");
-      setStartWith("both");
       setIsOpen(false);
 
-      // Redirect based on startWith
-      if (startWith === "game" || startWith === "both") {
-        router.push(`/studio/${gameId}`);
-      } else {
-        router.push(`/project/${projectId}/planning`);
-      }
+      // Always redirect to studio since both modes are created
+      router.push(`/studio/${gameId}`);
 
       router.refresh();
     } catch (error) {
@@ -105,7 +97,7 @@ export function NewProjectDialog({
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Start creating assets, games, or both in one unified workspace.
+            Create a unified workspace with both asset generation and game development.
           </DialogDescription>
         </DialogHeader>
 
@@ -129,68 +121,8 @@ export function NewProjectDialog({
           <div>
             <label className="text-sm font-medium mb-2 block">Project Mode</label>
             <ModeToggle value={mode} onValueChange={setMode} disabled={isLoading} />
-          </div>
-
-          {/* Start with selection - KEY FEATURE */}
-          <div>
-            <label className="text-sm font-medium mb-3 block">Start with</label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setStartWith("assets")}
-                disabled={isLoading}
-                className={`
-                  flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "assets"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
-                  }
-                `}
-              >
-                <Layers className="h-6 w-6" />
-                <span className="text-sm font-medium">Assets First</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStartWith("game")}
-                disabled={isLoading}
-                className={`
-                  flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "game"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
-                  }
-                `}
-              >
-                <Gamepad2 className="h-6 w-6" />
-                <span className="text-sm font-medium">Game First</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStartWith("both")}
-                disabled={isLoading}
-                className={`
-                  flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "both"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
-                  }
-                `}
-              >
-                <Sparkles className="h-6 w-6" />
-                <span className="text-sm font-medium">Both Together</span>
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              {startWith === "assets" &&
-                "Generate assets first, then build your game with them"}
-              {startWith === "game" &&
-                "Start building your game, add assets later as needed"}
-              {startWith === "both" &&
-                "Create assets and game side by side in the same project"}
+            <p className="text-sm text-muted-foreground mt-2">
+              Your project will include both asset generation and game development tools, seamlessly linked together.
             </p>
           </div>
         </div>
