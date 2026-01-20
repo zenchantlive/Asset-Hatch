@@ -39,7 +39,6 @@ interface GameData {
         id: string;
         name: string;
         orderIndex: number;
-        code: string;
     }>;
 }
 
@@ -211,21 +210,14 @@ export async function POST(
             }
         }
 
-        // Create game with a default "Main Scene" and initial main.js file using a transaction
-        // This ensures game, scene, and file are created atomically
+        // Create game with initial main.js file using a transaction
+        // Note: Scenes are created explicitly via the scenes API, not during game creation.
+        // The activeSceneId should be set when the first scene is created.
         const game = await prisma.game.create({
             data: {
                 name,
                 description: description || null,
-                userId: userId,
-                // Create default scene inline (legacy, for backwards compatibility)
-                scenes: {
-                    create: {
-                        name: "Main Scene",
-                        orderIndex: 0,
-                        code: "", // Empty code - multi-file uses GameFile table
-                    },
-                },
+                activeSceneId: null,
                 // Create initial main.js file for multi-file support
                 files: {
                     create: {
@@ -241,23 +233,6 @@ export async function POST(
                         id: true,
                         name: true,
                         orderIndex: true,
-                        code: true,
-                    },
-                },
-            },
-        });
-
-        // Set the active scene to the newly created default scene
-        const updatedGame = await prisma.game.update({
-            where: { id: game.id },
-            data: { activeSceneId: game.scenes[0]?.id ?? null },
-            include: {
-                scenes: {
-                    select: {
-                        id: true,
-                        name: true,
-                        orderIndex: true,
-                        code: true,
                     },
                 },
             },
@@ -265,7 +240,7 @@ export async function POST(
 
         return NextResponse.json({
             success: true,
-            game: updatedGame,
+            game,
         });
     } catch (error) {
         console.error("Failed to create game:", error);

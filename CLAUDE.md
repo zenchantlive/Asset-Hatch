@@ -56,13 +56,12 @@ Humorous, narrative-driven, technically honest. Admit mistakes. Highlight "loops
 
 ## Airweave MCP (Semantic Search)
 **When to use**: Search codebase context (docs, design docs, implementation notes) when you need semantic understanding beyond grep.
-
 ```typescript
 // Use Airweave when searching for:
 // - "how does generation work?" (conceptual search)
 // - "where is the auth logic?" (semantic find)
 // - "find the cost tracking code" (description-based find)
-// - "summaize commits from [today's date]"
+// - "summarize commits from [today's date]"
 // - "detail the [pr number] and comments and the commits"
 
 // Default search: hybrid (semantic + keyword)

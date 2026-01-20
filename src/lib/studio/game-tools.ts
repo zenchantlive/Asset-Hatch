@@ -14,11 +14,6 @@ import {
   createSceneSchema,
   switchSceneSchema,
   placeAssetSchema,
-  setCameraSchema,
-  enablePhysicsSchema,
-  updateCodeSchema,
-  addBehaviorSchema,
-  addInteractionSchema,
   listUserAssetsSchema,
   createAssetSchema,
   createFileSchema,
@@ -28,14 +23,10 @@ import {
   reorderFilesSchema,
   updatePlanSchema,
   getPlanSchema,
+  renameFileSchema,
   type CreateSceneInput,
   type SwitchSceneInput,
   type PlaceAssetInput,
-  type SetCameraInput,
-  type EnablePhysicsInput,
-  type UpdateCodeInput,
-  type AddBehaviorInput,
-  type AddInteractionInput,
   type ListUserAssetsInput,
   type CreateAssetInput,
   type CreateFileInput,
@@ -43,6 +34,7 @@ import {
   type DeleteFileInput,
   type ReorderFilesInput,
   type UpdatePlanInput,
+  type RenameFileInput,
 } from '@/lib/studio/schemas';
 import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
@@ -70,7 +62,6 @@ export const createSceneTool = (gameId: string) => {
             gameId,
             name,
             orderIndex,
-            code: '', // Empty code initially
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -196,256 +187,6 @@ export const placeAssetTool = (gameId: string) => {
 };
 
 // =============================================================================
-// SET CAMERA TOOL
-// =============================================================================
-
-/**
- * Configure camera tool
- *
- * @param gameId - Current game ID
- * @returns AI SDK tool for setting camera
- */
-export const setCameraTool = (gameId: string) => {
-  return tool({
-    description: 'Configure the camera type and target for the game scene.',
-    inputSchema: setCameraSchema,
-    execute: async ({ type, target }: SetCameraInput) => {
-      try {
-        console.log('📷 Setting camera:', type, 'target:', target);
-
-        // Get current active scene
-        const game = await prisma.game.findUnique({
-          where: { id: gameId },
-          include: { scenes: true },
-        });
-
-        if (!game) {
-          return { success: false, error: 'Game not found' };
-        }
-
-        const activeSceneId = game.activeSceneId;
-        if (!activeSceneId) {
-          return { success: false, error: 'No active scene' };
-        }
-
-        const scene = game.scenes.find(s => s.id === activeSceneId);
-        if (!scene) {
-          return { success: false, error: 'Active scene not found' };
-        }
-
-        // Update scene code to configure camera
-        const cameraCode = generateCameraSetupCode(type, target);
-        await prisma.gameScene.update({
-          where: { id: activeSceneId },
-          data: { code: cameraCode, updatedAt: new Date() },
-        });
-
-        console.log('✅ Camera set:', type);
-
-        return {
-          success: true,
-          message: `Camera set to ${type}${target ? ` targeting ${target}` : ''}`,
-          type,
-          target,
-        };
-      } catch (error) {
-        console.error('❌ Failed to set camera:', error);
-        return { success: false, error: 'Failed to set camera' };
-      }
-    },
-  });
-};
-
-// =============================================================================
-// ENABLE PHYSICS TOOL
-// =============================================================================
-
-/**
- * Enable physics tool
- *
- * @param gameId - Current game ID
- * @returns AI SDK tool for enabling physics
- */
-export const enablePhysicsTool = (gameId: string) => {
-  return tool({
-    description: 'Enable or configure physics for the game scene. Use Havok (recommended) or Cannon.js (fallback) physics engine.',
-    inputSchema: enablePhysicsSchema,
-    execute: async ({ engine, gravity }: EnablePhysicsInput) => {
-      try {
-        console.log('⚡ Enabling physics:', engine, 'gravity:', gravity);
-
-        const game = await prisma.game.findUnique({
-          where: { id: gameId },
-        });
-
-        if (!game) {
-          return { success: false, error: 'Game not found' };
-        }
-
-        const activeSceneId = game.activeSceneId;
-        if (!activeSceneId) {
-          return { success: false, error: 'No active scene' };
-        }
-
-        // Generate physics setup code
-        const physicsCode = generatePhysicsSetupCode(engine, gravity);
-
-        await prisma.gameScene.update({
-          where: { id: activeSceneId },
-          data: { code: physicsCode, updatedAt: new Date() },
-        });
-
-        console.log('✅ Physics enabled:', engine);
-
-        return {
-          success: true,
-          message: `Physics enabled with ${engine} engine`,
-          engine,
-          gravity,
-        };
-      } catch (error) {
-        console.error('❌ Failed to enable physics:', error);
-        return { success: false, error: 'Failed to enable physics' };
-      }
-    },
-  });
-};
-
-// =============================================================================
-// UPDATE CODE TOOL
-// =============================================================================
-
-/**
- * Update scene code tool
- *
- * @param gameId - Current game ID
- * @returns AI SDK tool for updating code
- */
-export const updateCodeTool = (gameId: string) => {
-  return tool({
-    description: 'Update the Babylon.js code for a specific scene.',
-    inputSchema: updateCodeSchema,
-    execute: async ({ sceneId, code }: UpdateCodeInput) => {
-      try {
-        console.log('💾 Updating code for scene:', sceneId);
-
-        // Update scene code in database
-        await prisma.gameScene.update({
-          where: { id: sceneId },
-          data: {
-            code,
-            updatedAt: new Date(),
-          },
-        });
-
-        // Create code version record for history
-        await prisma.codeVersion.create({
-          data: {
-            gameId,
-            code,
-            description: 'Code update via chat',
-            trigger: 'updateCode',
-            createdAt: new Date(),
-          },
-        });
-
-        console.log('✅ Code updated for scene:', sceneId);
-
-        return {
-          success: true,
-          message: `Updated code for scene ${sceneId}`,
-          sceneId,
-          code,
-        };
-      } catch (error) {
-        console.error('❌ Failed to update code:', error);
-        return { success: false, error: 'Failed to update code' };
-      }
-    },
-  });
-};
-
-// =============================================================================
-// ADD BEHAVIOR TOOL
-// =============================================================================
-
-/**
- * Add behavior tool
- *
- * @param gameId - Current game ID
- * @returns AI SDK tool for adding behaviors
- */
-export const addBehaviorTool = (gameId: string) => {
-  return tool({
-    description: 'Add behavior (movement, AI patrol, chase, idle) to an asset in the scene.',
-    inputSchema: addBehaviorSchema,
-    execute: async ({ assetId, behaviorType, parameters }: AddBehaviorInput) => {
-      try {
-        console.log('🤖 Adding behavior:', behaviorType, 'to asset:', assetId);
-
-        // For MVP, we'll inline behavior code into scene code
-        // Full implementation would store behavior metadata separately
-
-        const behaviorCode = generateBehaviorCode(behaviorType, parameters || {});
-
-        console.log('✅ Behavior added:', behaviorType);
-
-        return {
-          success: true,
-          message: `Added ${behaviorType} behavior to asset ${assetId}`,
-          assetId,
-          behaviorType,
-          parameters,
-          behaviorCode,
-        };
-      } catch (error) {
-        console.error('❌ Failed to add behavior:', error);
-        return { success: false, error: 'Failed to add behavior' };
-      }
-    },
-  });
-};
-
-// =============================================================================
-// ADD INTERACTION TOOL
-// =============================================================================
-
-/**
- * Add interaction tool
- *
- * @param gameId - Current game ID
- * @returns AI SDK tool for adding interactions
- */
-export const addInteractionTool = (gameId: string) => {
-  return tool({
-    description: 'Add interaction triggers (click, proximity, collision) to an asset in the scene.',
-    inputSchema: addInteractionSchema,
-    execute: async ({ assetId, interactionType, parameters }: AddInteractionInput) => {
-      try {
-        console.log('🖱️ Adding interaction:', interactionType, 'to asset:', assetId);
-
-        // For MVP, inline interaction code into scene
-        const interactionCode = generateInteractionCode(interactionType, parameters || {});
-
-        console.log('✅ Interaction added:', interactionType);
-
-        return {
-          success: true,
-          message: `Added ${interactionType} interaction to asset ${assetId}`,
-          assetId,
-          interactionType,
-          parameters,
-          interactionCode,
-        };
-      } catch (error) {
-        console.error('❌ Failed to add interaction:', error);
-        return { success: false, error: 'Failed to add interaction' };
-      }
-    },
-  });
-};
-
-// =============================================================================
 // LIST USER ASSETS TOOL
 // =============================================================================
 
@@ -457,7 +198,7 @@ export const addInteractionTool = (gameId: string) => {
  */
 export const listUserAssetsTool = (gameId: string) => {
   return tool({
-    description: 'Query the user\'s Asset Hatch library for available 3D and 2D assets. Returns assets with their names, types, and URLs. Use this to discover what assets are available for use in the game.',
+    description: 'Query the user\'s Asset Hatch library for available assets to use in the game.',
     inputSchema: listUserAssetsSchema,
     execute: async ({ type, search, limit, includeGlbData }: ListUserAssetsInput) => {
       try {
@@ -482,129 +223,125 @@ export const listUserAssetsTool = (gameId: string) => {
         if (!projectId) {
           return {
             success: false,
-            error: 'Game is not linked to a project. Create a project first to access assets.'
+            error: 'Game is not linked to a project. Create a project first to access assets.',
           };
         }
 
         console.log('🔗 Querying assets for projectId:', projectId);
 
-        // Query assets from the linked project
-        const assets3D = type === '3d' || type === 'all'
-          ? await prisma.generated3DAsset.findMany({
-            where: {
-              projectId,
-              approvalStatus: 'approved',
-              // Optional search filter
-              ...(search && {
-                OR: [
-                  { name: { contains: search, mode: 'insensitive' } },
-                  { assetId: { contains: search, mode: 'insensitive' } },
-                ],
-              }),
-            },
-            take: limit,
-            orderBy: { updatedAt: 'desc' },
-          })
+        const [assets3D, assets2D] = await Promise.all([
+          type === '3d' || type === 'all'
+            ? prisma.generated3DAsset.findMany({
+                where: {
+                  projectId,
+                  approvalStatus: 'approved',
+                  ...(search && {
+                    OR: [
+                      { name: { contains: search, mode: 'insensitive' } },
+                      { assetId: { contains: search, mode: 'insensitive' } },
+                    ],
+                  }),
+                },
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+              })
+            : Promise.resolve([]),
+          type === '2d' || type === 'all'
+            ? prisma.generatedAsset.findMany({
+                where: {
+                  projectId,
+                  status: 'completed',
+                  ...(search && {
+                    OR: [{ assetId: { contains: search, mode: 'insensitive' } }],
+                  }),
+                },
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const gameAssetRefs = assets3D.length
+          ? await prisma.gameAssetRef.findMany({
+              where: {
+                projectId,
+                assetType: '3d',
+                assetId: { in: assets3D.map((asset) => asset.id) },
+              },
+              select: {
+                assetId: true,
+                glbUrl: true,
+                ...(includeGlbData ? { glbData: true } : {}),
+              },
+            })
           : [];
 
-        console.log('✅ Found', assets3D.length, 'approved 3D assets');
-
-        // Also check for 2D assets
-        const assets2D = type === '2d' || type === 'all'
-          ? await prisma.generatedAsset.findMany({
-            where: {
-              projectId,
-              // Note: GeneratedAsset doesn't have approvalStatus field
-              // Optional search filter
-              ...(search && {
-                OR: [
-                  { assetId: { contains: search, mode: 'insensitive' } },
-                ],
-              }),
-            },
-            take: limit,
-            orderBy: { updatedAt: 'desc' },
-          })
-          : [];
-
-        // Phase 10: Get permanent asset data from GameAssetRef for 3D assets
-        // Query GameAssetRef for each approved 3D asset to get glbData
-        const gameAssetRefs = await prisma.gameAssetRef.findMany({
-          where: {
-            projectId,
-            assetType: '3d',
-            assetId: { in: assets3D.map(a => a.id) },
-          },
-          select: {
-            assetId: true,
-            glbUrl: true,
-            ...(includeGlbData ? { glbData: true } : {}),
-          },
-        });
-
-        // Create map for quick lookup
         const assetRefMap = new Map<string, { glbData: string | null; glbUrl: string | null }>();
-        gameAssetRefs.forEach(ref => {
+        gameAssetRefs.forEach((ref) => {
           assetRefMap.set(ref.assetId, {
-            glbData: includeGlbData && "glbData" in ref ? ref.glbData : null,
+            glbData: includeGlbData && 'glbData' in ref ? ref.glbData : null,
             glbUrl: ref.glbUrl || null,
           });
         });
 
-        // Combine and format assets with glbData
-        const assets3DFormatted = await Promise.all(assets3D.map(async asset => {
+        const formatted3D = await Promise.all(
+          assets3D.map(async (asset) => {
             const assetRef = assetRefMap.get(asset.id);
-            const glbData = includeGlbData ? assetRef?.glbData || null : null;
             const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl || null;
             const glbUrl = await resolveR2AssetUrl(storedUrl);
+
+            let animations: string[] | null = null;
+            if (asset.animatedModelUrls) {
+              try {
+                animations = Object.keys(JSON.parse(asset.animatedModelUrls));
+              } catch {
+                animations = null;
+              }
+            }
 
             return {
               id: asset.id,
               name: asset.name || asset.assetId,
               type: '3d',
-              glbUrl: glbUrl,
-              glbData: glbData,
-              thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
+              glbUrl,
+              glbData: includeGlbData ? assetRef?.glbData || null : null,
+              thumbnailUrl: asset.draftModelUrl || null,
               projectId: asset.projectId,
+              prompt: asset.promptUsed || null,
+              riggable: asset.isRiggable || false,
+              animations,
             };
-          }));
+          })
+        );
 
-        const assets2DFormatted = assets2D.map(asset => {
-            // Parse metadata to extract image information
-            let imageUrl = '';
-            let thumbnailUrl = '';
-            let name = asset.assetId;
-
+        const formatted2D = assets2D.map((asset) => {
+          let imageUrl: string | null = null;
+          if (asset.metadata) {
             try {
-              if (asset.metadata) {
-                const metadata = JSON.parse(asset.metadata);
-                imageUrl = metadata.imageUrl || '';
-                thumbnailUrl = metadata.thumbnailUrl || '';
-                name = metadata.name || asset.assetId;
-              }
-            } catch (error) {
-              console.warn('⚠️ Failed to parse 2D asset metadata:', error);
+              const metadata = JSON.parse(asset.metadata);
+              imageUrl = metadata.imageUrl || null;
+            } catch {
+              imageUrl = null;
             }
+          }
 
-            return {
-              id: asset.id,
-              name: name,
-              type: '2d',
-              imageUrl: imageUrl,
-              thumbnailUrl: thumbnailUrl,
-              projectId: asset.projectId,
-            };
-          });
+          return {
+            id: asset.id,
+            name: asset.assetId,
+            type: '2d',
+            imageUrl,
+            thumbnailUrl: imageUrl,
+            projectId: asset.projectId,
+            prompt: asset.promptUsed || null,
+          };
+        });
 
-        const combinedAssets = [...assets3DFormatted, ...assets2DFormatted];
-
-        // Apply limit after combining
-        const limitedAssets = combinedAssets.slice(0, limit);
+        const combinedAssets = [...formatted3D, ...formatted2D].slice(0, limit);
 
         return {
           success: true,
-          message: `Found ${limitedAssets.length} assets (${assets3D.length} 3D, ${assets2D.length} 2D)`,
-          assets: limitedAssets,
+          message: `Found ${combinedAssets.length} assets (${assets3D.length} 3D, ${assets2D.length} 2D)`,
+          assets: combinedAssets,
         };
       } catch (error) {
         console.error('❌ Failed to list assets:', error);
@@ -660,95 +397,6 @@ export const createAssetTool = (gameId: string) => {
     },
   });
 };
-
-// =============================================================================
-// CODE GENERATION HELPERS (INTERNAL)
-// =============================================================================
-
-/**
- * Generate camera setup code
- *
- * Creates Babylon.js camera setup code based on camera type.
- * Uses let declaration to allow camera reassignment in switch cases.
- */
-function generateCameraSetupCode(type: string, target?: string): string {
-  // Generate different camera setup based on type
-  // Each case creates a fully configured camera
-  const targetMesh = target ? `scene.getMeshByName('${target}')` : 'null';
-
-  switch (type) {
-    case 'UniversalCamera':
-      return `
-// Camera Setup: UniversalCamera${target ? ` targeting ${target}` : ''}
-const camera = new BABYLON.UniversalCamera('camera', new BABYLON.Vector3(0, 10, -30), scene);
-camera.attachControl(canvas, true);
-camera.lockedTarget = ${targetMesh};`.trim();
-
-    case 'FollowCamera':
-      return `
-// Camera Setup: FollowCamera${target ? ` targeting ${target}` : ''}
-const camera = new BABYLON.FollowCamera('camera', new BABYLON.Vector3(0, 10, -10), scene);
-camera.radius = 30;
-camera.heightOffset = 10;
-camera.rotationOffset = 180;
-camera.cameraAcceleration = 0.05;
-camera.maxCameraSpeed = 10;
-camera.lockedTarget = ${targetMesh};
-camera.attachControl(canvas, true);`.trim();
-
-    case 'ArcRotateCamera':
-    default:
-      return `
-// Camera Setup: ArcRotateCamera${target ? ` targeting ${target}` : ''}
-const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 3, Math.PI / 4, 10, BABYLON.Vector3.Zero(), scene);
-camera.attachControl(canvas, true);
-camera.wheelPrecision = 50;
-camera.minZ = 0.1;`.trim();
-  }
-}
-
-/**
- * Generate physics setup code
- */
-function generatePhysicsSetupCode(engine: string, gravity: { x: number; y: number; z: number }): string {
-  const { x: gx, y: gy, z: gz } = gravity;
-  const physicsCode = `
-// Physics Setup: ${engine}
-const gravity = new BABYLON.Vector3(${gx}, ${gy}, ${gz});
-
-${engine === 'Havok' ? `
-// Enable Havok physics (recommended)
-const physicsPlugin = new BABYLON.HavokPlugin();
-scene.enablePhysics(gravity, physicsPlugin);
-` : `
-// Enable Cannon.js physics (fallback)
-var physicsPlugin = new BABYLON.CannonJSPlugin();
-scene.enablePhysics(gravity, physicsPlugin);
-`}
-return physicsPlugin;`;
-
-  return physicsCode.trim();
-}
-
-/**
- * Generate behavior code
- */
-function generateBehaviorCode(behaviorType: string, parameters: Record<string, unknown>): string {
-  const code = `// ${behaviorType} behavior for asset
-${JSON.stringify(parameters, null, 2)}`;
-
-  return code.trim();
-}
-
-/**
- * Generate interaction code
- */
-function generateInteractionCode(interactionType: string, parameters: Record<string, unknown>): string {
-  const code = `// ${interactionType} interaction
-${JSON.stringify(parameters, null, 2)}`;
-
-  return code.trim();
-}
 
 // =============================================================================
 // FILE MANAGEMENT TOOLS (Multi-file support)
@@ -833,14 +481,23 @@ export const updateFileTool = (gameId: string) => {
   return tool({
     description: 'Update the content of an existing file in the game.',
     inputSchema: updateFileSchema,
-    execute: async ({ name, content }: UpdateFileInput) => {
+    execute: async ({ fileId, content }: UpdateFileInput) => {
       try {
-        console.log('💾 Updating file:', name);
+        console.log('💾 Updating file:', fileId);
 
-        // Update file in database
-        const file = await prisma.gameFile.update({
+        // First, get the file and verify ownership
+        const file = await prisma.gameFile.findFirst({
+          where: { id: fileId, gameId },
+        });
+
+        if (!file) {
+          return { success: false, error: `File not found or access denied` };
+        }
+
+        // Update file in database using fileId
+        const updatedFile = await prisma.gameFile.update({
           where: {
-            gameId_name: { gameId, name },
+            id: fileId,
           },
           data: {
             content,
@@ -852,26 +509,26 @@ export const updateFileTool = (gameId: string) => {
         await prisma.codeVersion.create({
           data: {
             gameId,
-            fileName: name,
+            fileName: file.name,
             code: content,
-            description: `Updated file: ${name}`,
+            description: `Updated file: ${file.name}`,
             trigger: 'updateFile',
             createdAt: new Date(),
           },
         });
 
-        console.log('✅ File updated:', file.id);
+        console.log('✅ File updated:', updatedFile.id);
 
         return {
           success: true,
-          message: `Updated file "${name}"`,
-          fileId: file.id,
-          name,
+          message: `Updated file "${file.name}"`,
+          fileId: updatedFile.id,
+          name: file.name,
           content,
         };
       } catch (error) {
         console.error('❌ Failed to update file:', error);
-        return { success: false, error: `File "${name}" not found or update failed` };
+        return { success: false, error: 'File not found or update failed' };
       }
     },
   });
@@ -887,27 +544,103 @@ export const deleteFileTool = (gameId: string) => {
   return tool({
     description: 'Delete a file from the game. This cannot be undone.',
     inputSchema: deleteFileSchema,
-    execute: async ({ name }: DeleteFileInput) => {
+    execute: async ({ fileId }: DeleteFileInput) => {
       try {
-        console.log('🗑️ Deleting file:', name);
+        console.log('🗑️ Deleting file:', fileId);
 
-        // Delete file from database
+        // First, get the file and verify ownership
+        const file = await prisma.gameFile.findFirst({
+          where: { id: fileId, gameId },
+        });
+
+        if (!file) {
+          return { success: false, error: 'File not found or access denied' };
+        }
+
+        // Delete file from database using fileId
         await prisma.gameFile.delete({
           where: {
-            gameId_name: { gameId, name },
+            id: fileId,
           },
         });
 
-        console.log('✅ File deleted:', name);
+        console.log('✅ File deleted:', file.name);
 
         return {
           success: true,
-          message: `Deleted file "${name}"`,
-          name,
+          message: `Deleted file "${file.name}"`,
+          fileId,
+          name: file.name,
         };
       } catch (error) {
         console.error('❌ Failed to delete file:', error);
-        return { success: false, error: `File "${name}" not found or delete failed` };
+        return { success: false, error: 'File not found or delete failed' };
+      }
+    },
+  });
+};
+
+/**
+ * Rename file tool
+ *
+ * @param gameId - Current game ID
+ * @returns AI SDK tool for renaming files
+ */
+export const renameFileTool = (gameId: string) => {
+  return tool({
+    description: 'Rename a file in the game. This updates the filename while keeping the file ID the same.',
+    inputSchema: renameFileSchema,
+    execute: async ({ fileId, name }: RenameFileInput) => {
+      try {
+        console.log('📝 Renaming file:', fileId, 'to', name);
+
+        // First, get the old file and verify ownership
+        const oldFile = await prisma.gameFile.findFirst({
+          where: { id: fileId, gameId },
+        });
+
+        if (!oldFile) {
+          return { success: false, error: 'File not found or access denied' };
+        }
+
+        // Update file name in database using fileId
+        const renamedFile = await prisma.gameFile.update({
+          where: {
+            id: fileId,
+          },
+          data: {
+            name,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Create version history record for the rename
+        await prisma.codeVersion.create({
+          data: {
+            gameId,
+            fileName: name,
+            code: oldFile.content,
+            description: `Renamed file from "${oldFile.name}" to "${name}"`,
+            trigger: 'renameFile',
+            createdAt: new Date(),
+          },
+        });
+
+        console.log('✅ File renamed:', renamedFile.id);
+
+        return {
+          success: true,
+          message: `Renamed file from "${oldFile.name}" to "${name}"`,
+          fileId: renamedFile.id,
+          name: renamedFile.name,
+        };
+      } catch (error) {
+        console.error('❌ Failed to rename file:', error);
+        // Check for unique constraint violation (file name already exists)
+        if ((error as { code?: string }).code === 'P2002') {
+          return { success: false, error: `File "${name}" already exists in this game` };
+        }
+        return { success: false, error: 'File not found or rename failed' };
       }
     },
   });
@@ -967,16 +700,28 @@ export const listFilesTool = (gameId: string) => {
  */
 export const reorderFilesTool = (gameId: string) => {
   return tool({
-    description: 'Change the execution order of files. Pass an array of filenames in the desired order.',
+    description: 'Change the execution order of files. Pass an array of file IDs in the desired order.',
     inputSchema: reorderFilesSchema,
     execute: async ({ fileOrder }: ReorderFilesInput) => {
       try {
         console.log('🔄 Reordering files:', fileOrder);
 
         // Update each file's orderIndex based on position in array
-        const updates = fileOrder.map((name, index) =>
+        const files = await prisma.gameFile.findMany({
+          where: {
+            gameId,
+            id: { in: fileOrder },
+          },
+          select: { id: true },
+        });
+
+        if (files.length !== fileOrder.length) {
+          return { success: false, error: 'Some files were not found or access denied.' };
+        }
+
+        const updates = fileOrder.map((fileId, index) =>
           prisma.gameFile.update({
-            where: { gameId_name: { gameId, name } },
+            where: { id: fileId },
             data: { orderIndex: index },
           })
         );
@@ -992,7 +737,7 @@ export const reorderFilesTool = (gameId: string) => {
         };
       } catch (error) {
         console.error('❌ Failed to reorder files:', error);
-        return { success: false, error: 'Failed to reorder files. Check that all filenames exist.' };
+        return { success: false, error: 'Failed to reorder files. Check that all file IDs exist.' };
       }
     },
   });
@@ -1116,21 +861,11 @@ export function createGameTools(gameId: string) {
     listUserAssets: listUserAssetsTool(gameId),
     createAsset: createAssetTool(gameId),
 
-    // Camera & Physics
-    setCamera: setCameraTool(gameId),
-    enablePhysics: enablePhysicsTool(gameId),
-
-    // Legacy single-file code (deprecated, use file tools)
-    updateCode: updateCodeTool(gameId),
-
-    // Behavior & Interaction
-    addBehavior: addBehaviorTool(gameId),
-    addInteraction: addInteractionTool(gameId),
-
     // File management (multi-file support)
     createFile: createFileTool(gameId),
     updateFile: updateFileTool(gameId),
     deleteFile: deleteFileTool(gameId),
+    renameFile: renameFileTool(gameId),
     listFiles: listFilesTool(gameId),
     reorderFiles: reorderFilesTool(gameId),
 

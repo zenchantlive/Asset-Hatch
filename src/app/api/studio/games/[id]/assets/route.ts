@@ -5,69 +5,83 @@ import type { AssetManifest } from '@/lib/types/unified-project';
 import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
 /**
- * Fetch real metadata for an asset from GeneratedAsset/Generated3DAsset tables
+ * Batch fetch all asset metadata to avoid N+1 queries
  */
-async function fetchAssetMetadata(
-  assetId: string,
-  assetType: string
-): Promise<{
-  prompt?: string;
-  style?: string;
-  animations?: string[];
-  poses?: string[];
-}> {
-  const result: {
-    prompt?: string;
-    style?: string;
-    animations?: string[];
-    poses?: string[];
-  } = {};
+async function fetchAllAssetMetadata(
+  assetRefs: Array<{ assetId: string; assetType: string }>
+): Promise<Map<string, { prompt?: string; style?: string; animations?: string[]; poses?: string[] }>> {
+  const metadataMap = new Map<string, { prompt?: string; style?: string; animations?: string[]; poses?: string[] }>();
 
-  if (assetType === '3d' || assetType === 'model') {
-    // Fetch from Generated3DAsset
-    try {
-      const gen3d = await prisma.generated3DAsset.findUnique({
-        where: { id: assetId },
-      });
-      if (gen3d) {
-        result.prompt = gen3d.promptUsed || undefined;
-        // Parse animations from animatedModelUrls JSON
-        if (gen3d.animatedModelUrls) {
-          try {
-            const urls = JSON.parse(gen3d.animatedModelUrls);
-            result.animations = Object.keys(urls);
-          } catch {
-            // Not valid JSON, ignore
-          }
-        }
-      }
-    } catch {
-      // Generated3DAsset not found, continue with defaults
-    }
-  } else if (assetType === '2d' || assetType === 'texture') {
-    // Fetch from GeneratedAsset
-    try {
-      const genAsset = await prisma.generatedAsset.findUnique({
-        where: { id: assetId },
-      });
-      if (genAsset) {
-        result.prompt = genAsset.promptUsed || undefined;
-        // Parse metadata for style info
-        if (genAsset.metadata) {
-          try {
-            const meta = JSON.parse(genAsset.metadata);
-            result.style = meta.style || meta.artStyle;
-          } catch {
-            // Not valid JSON, ignore
-          }
-        }
-      }
-    } catch {
-      // GeneratedAsset not found, continue with defaults
+  // Separate 2D and 3D asset IDs
+  const gen3dIds: string[] = [];
+  const gen2dIds: string[] = [];
+
+  for (const ref of assetRefs) {
+    if (ref.assetType === '3d' || ref.assetType === 'model') {
+      gen3dIds.push(ref.assetId);
+    } else if (ref.assetType === '2d' || ref.assetType === 'texture') {
+      gen2dIds.push(ref.assetId);
     }
   }
 
-  return result;
+  // Batch fetch 3D assets
+  if (gen3dIds.length > 0) {
+    try {
+      const gen3dAssets = await prisma.generated3DAsset.findMany({
+        where: { id: { in: gen3dIds } },
+      });
+
+      for (const asset of gen3dAssets) {
+        const metadata: { prompt?: string; style?: string; animations?: string[]; poses?: string[] } = {
+          prompt: asset.promptUsed || undefined,
+        };
+        // Parse animations from animatedModelUrls JSON
+        if (asset.animatedModelUrls) {
+          try {
+            const urls = JSON.parse(asset.animatedModelUrls);
+            metadata.animations = Object.keys(urls);
+          } catch (error) {
+            console.warn(
+              `[fetchAllAssetMetadata] Failed to parse animatedModelUrls for asset ${asset.id}:`,
+              error
+            );
+          }
+        }
+        metadataMap.set(asset.id, metadata);
+      }
+    } catch (error) {
+      console.error('[fetchAllAssetMetadata] Database error fetching 3D assets:', error);
+    }
+  }
+
+  // Batch fetch 2D assets
+  if (gen2dIds.length > 0) {
+    try {
+      const gen2dAssets = await prisma.generatedAsset.findMany({
+        where: { id: { in: gen2dIds } },
+      });
+
+      for (const asset of gen2dAssets) {
+        const metadata: { prompt?: string; style?: string; animations?: string[]; poses?: string[] } = {
+          prompt: asset.promptUsed || undefined,
+        };
+        // Parse metadata for style info
+        if (asset.metadata) {
+          try {
+            const meta = JSON.parse(asset.metadata);
+            metadata.style = meta.style || meta.artStyle;
+          } catch {
+            // Not valid JSON, ignore
+          }
+        }
+        metadataMap.set(asset.id, metadata);
+      }
+    } catch (error) {
+      console.error('[fetchAllAssetMetadata] Database error fetching 2D assets:', error);
+    }
+  }
+
+  return metadataMap;
 }
 
 /**
@@ -84,8 +98,6 @@ export async function GET(
   }
 
   const { id: gameId } = await params;
-  const { searchParams } = new URL(request.url);
-  const includeGlbData = searchParams.get("includeGlbData") === "1";
 
   // Fetch game with asset references
   const game = await prisma.game.findFirst({
@@ -105,14 +117,14 @@ export async function GET(
 
   // Auto-link skybox if missing (older projects)
   if (game.projectId) {
-    const hasSkyboxRef = game.assetRefs.some((ref) => ref.assetType === "skybox");
+    const hasSkyboxRef = game.assetRefs.some((ref) => ref.assetType === 'skybox');
     if (!hasSkyboxRef) {
       const skyboxAsset = await prisma.generated3DAsset.findFirst({
         where: {
           projectId: game.projectId,
-          assetId: { endsWith: "-skybox" },
+          assetId: { endsWith: '-skybox' },
         },
-        orderBy: { updatedAt: "desc" },
+        orderBy: { updatedAt: 'desc' },
       });
 
       if (skyboxAsset) {
@@ -127,35 +139,39 @@ export async function GET(
           create: {
             gameId: game.id,
             projectId: game.projectId,
-            assetType: "skybox",
+            assetType: 'skybox',
             assetId: skyboxAsset.id,
-            assetName: skyboxAsset.name || "Environment Skybox",
+            assetName: skyboxAsset.name || 'Environment Skybox',
             thumbnailUrl: skyboxAsset.draftModelUrl || null,
             modelUrl: skyboxAsset.draftModelUrl || null,
             glbUrl: null,
-            manifestKey: "environment_skybox",
+            manifestKey: 'environment_skybox',
             createdAt: new Date(),
           },
         });
 
         game.assetRefs.push(skyboxRef);
-        console.log("✅ Auto-linked skybox asset to game manifest:", skyboxAsset.assetId);
+        console.log('✅ Auto-linked skybox asset to game manifest:', skyboxAsset.assetId);
       }
     }
   }
 
+  // Batch fetch all metadata at once to avoid N+1 queries
+  const assetRefs = game.assetRefs.map(ref => ({ assetId: ref.assetId, assetType: ref.assetType }));
+  const metadataMap = await fetchAllAssetMetadata(assetRefs);
+
   // Build asset manifest from GameAssetRefs
   const assets: AssetManifest['assets'] = {};
-  
+
   for (const ref of game.assetRefs) {
     const key = ref.manifestKey || ref.assetId;
-    
-    // Fetch real metadata from source tables
-    const metadata = await fetchAssetMetadata(ref.assetId, ref.assetType);
+
+    // Look up pre-fetched metadata from map
+    const metadata = metadataMap.get(ref.assetId) || {};
 
     const resolvedModelUrl = await resolveR2AssetUrl(ref.modelUrl || ref.glbUrl || null);
     const resolvedGlbUrl = await resolveR2AssetUrl(ref.glbUrl || ref.modelUrl || null);
-    
+
     assets[key] = {
       id: ref.assetId,
       type: ref.assetType as '2d' | '3d' | 'skybox',
@@ -165,7 +181,6 @@ export async function GET(
         thumbnail: ref.thumbnailUrl || undefined,
         model: resolvedModelUrl || undefined,
         glb: resolvedGlbUrl || undefined,
-        ...(includeGlbData && ref.glbData ? { glbData: ref.glbData } : {}),
       },
       metadata,
       linkedAt: ref.createdAt.toISOString(),

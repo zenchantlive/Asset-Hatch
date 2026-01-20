@@ -72,12 +72,12 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (Array.isArray(data?.updates)) {
         setUpdates(data.updates || []);
-        return data.hasUpdates;
-      } else {
-        throw new Error(data.message || "Check failed");
+        return Boolean(data.hasUpdates);
       }
+
+      throw new Error("Check failed");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
@@ -115,9 +115,8 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
           // Remove the synced asset from updates list
           setUpdates((prev) => prev.filter((u) => u.refId !== refId));
           return true;
-        } else {
-          throw new Error(data.message || "Sync failed");
         }
+        throw new Error(data.message || "Sync failed");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         setError(message);
@@ -136,28 +135,48 @@ export function useAssetUpdates(gameId: string): UseAssetUpdatesReturn {
     if (updates.length === 0) return false;
 
     let allSucceeded = true;
+    const failedRefIds: string[] = [];
     setIsSyncing(true);
     setError(null);
 
     try {
-      // Sync each update sequentially
-      for (const update of updates) {
-        const response = await fetch(
-          `/api/studio/games/${gameId}/assets/${update.refId}/sync`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason: "Bulk sync all updates" }),
-          }
-        );
+      // Sync each update in parallel
+      const syncPromises = updates.map((update) =>
+        fetch(`/api/studio/games/${gameId}/assets/${update.refId}/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Bulk sync all updates" }),
+        }).then(async (res) => {
+          const data = await res.json();
+          return { refId: update.refId, success: res.ok && data.success, error: data.message };
+        })
+      );
 
-        if (!response.ok) {
+      const results = await Promise.all(syncPromises);
+
+      // Check each result for errors
+      for (const result of results) {
+        if (!result.success) {
           allSucceeded = false;
+          if (result.refId) {
+            failedRefIds.push(result.refId);
+          }
         }
       }
 
-      // Clear updates list after attempting all syncs
-      setUpdates([]);
+      // Only clear updates list if all syncs succeeded
+      if (allSucceeded) {
+        setUpdates([]);
+      } else {
+        // Keep failed updates in the list so user can retry
+        setUpdates((prev) => prev.filter((u) => failedRefIds.includes(u.refId)));
+        setError(
+          `Some syncs failed: ${results
+            .filter((result) => !result.success)
+            .map((result) => result.error)
+            .join(", ")}`
+        );
+      }
 
       return allSucceeded;
     } catch (err) {

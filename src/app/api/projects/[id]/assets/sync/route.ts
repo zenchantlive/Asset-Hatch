@@ -18,16 +18,19 @@ import type { SyncAssetsResponse } from "@/lib/types/unified-project";
 interface LocalAssetManifest {
   version: string;
   lastUpdated: string;
-  assets: Record<string, {
-    id: string;
-    type: string;
-    name: string;
-    version: number;
-    urls: Record<string, string | undefined>;
-    metadata: Record<string, unknown>;
-    linkedAt: string;
-    lockedVersion?: number;
-  }>;
+  assets: Record<
+    string,
+    {
+      id: string;
+      type: string;
+      name: string;
+      version: number;
+      urls: Record<string, string | undefined>;
+      metadata: Record<string, unknown>;
+      linkedAt: string;
+      lockedVersion?: number;
+    }
+  >;
   syncState: {
     status: string;
     pendingAssets: string[];
@@ -107,7 +110,6 @@ export async function POST(
       where: { id: projectId },
       data: { syncStatus: "syncing" },
     });
-
     // Build sync changes array
     const changes: SyncAssetsResponse["changes"] = [];
     const syncedAssetKeys: string[] = [];
@@ -119,51 +121,77 @@ export async function POST(
     for (const assetKey of pendingAssets) {
       const asset = manifest.assets?.[assetKey];
 
-      if (asset) {
-        // Build change description
-        const changeDescription = `[ASSET SYNC] Added ${asset.type} asset: ${asset.name}`;
-
-        changes.push({
-          fileId: `asset-${assetKey}`,
-          fileName: `${asset.name} (${asset.type})`,
-          changeType: "created",
-          description: changeDescription,
-        });
-
-        syncedAssetKeys.push(assetKey);
-
-        // Create GameAssetRef record for AI access (Phase 9)
-        if (gameId) {
-          try {
-            await prisma.gameAssetRef.upsert({
-              where: {
-                gameId_assetId: {
-                  gameId,
-                  assetId: asset.id,
-                },
-              },
-              update: {},
-              create: {
-                gameId,
-                projectId: projectId,
-                assetType: asset.type,
-                assetId: asset.id,
-                assetName: asset.name,
-                thumbnailUrl: asset.urls.thumbnail || null,
-                modelUrl: asset.urls.model || null,
-                glbUrl: asset.urls.glb || null,
-                manifestKey: assetKey,
-                createdAt: new Date(),
-              },
-            });
-            console.log(`🔗 Created GameAssetRef for: ${asset.name}`);
-          } catch (syncError) {
-            console.error(`❌ Failed to create GameAssetRef for ${asset.name}:`, syncError);
-          }
-        }
-
-        console.log(`🔄 Synced asset: ${asset.name} (${asset.type})`);
+      if (!asset || !project.game) {
+        continue;
       }
+
+      // Fetch the actual asset data from the database
+      let assetRecord;
+      if (asset.type === "2d") {
+        assetRecord = await prisma.generatedAsset.findUnique({
+          where: { id: asset.id },
+        });
+      } else if (asset.type === "3d") {
+        assetRecord = await prisma.generated3DAsset.findUnique({
+          where: { id: asset.id },
+        });
+      }
+
+      if (!assetRecord) {
+        continue;
+      }
+
+      const lockedVersionId = asset.lockedVersion ? String(asset.lockedVersion) : null;
+      const lockedAt = lockedVersionId ? new Date() : null;
+
+      // Create or update GameAssetRef for AI access + sync tracking
+      await prisma.gameAssetRef.upsert({
+        where: {
+          gameId_assetId: {
+            gameId: project.game.id,
+            assetId: asset.id,
+          },
+        },
+        update: {
+          projectId: project.id,
+          assetType: asset.type,
+          assetName: asset.name,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
+          manifestKey: assetKey,
+        },
+        create: {
+          gameId: project.game.id,
+          projectId: project.id,
+          assetType: asset.type,
+          assetId: asset.id,
+          assetName: asset.name,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
+          manifestKey: assetKey,
+          createdAt: new Date(),
+        },
+      });
+
+      // Build change description
+      const changeDescription = `[ASSET SYNC] Added ${asset.type} asset: ${asset.name}`;
+
+      changes.push({
+        fileId: `asset-${assetKey}`,
+        fileName: `${asset.name} (${asset.type})`,
+        changeType: "created",
+        description: changeDescription,
+      });
+
+      syncedAssetKeys.push(assetKey);
+
+      console.log(`🔄 Synced asset: ${asset.name} (${asset.type})`);
     }
 
     // Update manifest - clear pending assets and update last sync
@@ -179,11 +207,10 @@ export async function POST(
     };
 
     // Update project with new manifest and sync state
-     
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        assetManifest: updatedManifest as any,
+        assetManifest: updatedManifest,
         syncStatus: "clean",
         lastSyncAt: new Date(),
         pendingAssetCount: 0,
@@ -208,8 +235,8 @@ export async function POST(
         where: { id: projectId },
         data: { syncStatus: "error" },
       });
-    } catch {
-      // Best effort cleanup
+    } catch (cleanupError) {
+      console.error(`Failed to set syncStatus to "error":`, cleanupError);
     }
 
     return NextResponse.json(

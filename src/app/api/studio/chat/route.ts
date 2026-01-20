@@ -18,6 +18,12 @@ const chatModel = getDefaultModel('chat');
 export async function POST(req: NextRequest) {
   try {
     const { messages, gameId, projectContext: projectContextJson } = await req.json();
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: 'messages must be an array' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate gameId is present
     console.log('🎮 Studio Chat API received gameId:', gameId, 'hasProjectContext:', !!projectContextJson);
@@ -66,15 +72,15 @@ export async function POST(req: NextRequest) {
         console.warn('Failed to parse projectContext:', error);
       }
     }
-
     // Fetch linked assets for system prompt
     let linkedAssets: Array<{ key: string; type: string; name: string; metadata: Record<string, unknown> }> = [];
 
     if (game.projectId) {
-      // Fetch asset refs for this game
+      // Fetch asset refs for this game, including assetId to get metadata
       const assetRefs = await prisma.gameAssetRef.findMany({
         where: { gameId: game.id },
         select: {
+          assetId: true,
           manifestKey: true,
           assetType: true,
           assetName: true,
@@ -82,31 +88,41 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Fetch metadata from Generated3DAsset for all referenced assets
+      // Batch fetch metadata to avoid N+1 queries
       const assetIds = assetRefs.map(ref => ref.assetId);
-      const generatedAssets = await prisma.generated3DAsset.findMany({
-        where: { id: { in: assetIds } },
-        select: {
-          id: true,
-          promptUsed: true,
-          animatedModelUrls: true,
-          isRiggable: true,
-        },
-      });
+      const [gen3dAssets, gen2dAssets] = await Promise.all([
+        prisma.generated3DAsset.findMany({
+          where: { id: { in: assetIds } },
+          select: { id: true, promptUsed: true, animatedModelUrls: true, isRiggable: true },
+        }),
+        prisma.generatedAsset.findMany({
+          where: { id: { in: assetIds } },
+          select: { id: true, promptUsed: true, metadata: true },
+        }),
+      ]);
 
-      // Build metadata map
       const metadataMap = new Map<string, Record<string, unknown>>();
-      for (const asset of generatedAssets) {
+
+      for (const asset of gen3dAssets) {
         const metadata: Record<string, unknown> = {};
         if (asset.promptUsed) metadata.prompt = asset.promptUsed;
         if (asset.isRiggable) metadata.rigged = asset.isRiggable;
         if (asset.animatedModelUrls) {
           try {
-            const anims = JSON.parse(asset.animatedModelUrls);
-            metadata.animations = Object.keys(anims);
-          } catch {
-            // Not valid JSON
-          }
+            metadata.animations = Object.keys(JSON.parse(asset.animatedModelUrls));
+          } catch {}
+        }
+        metadataMap.set(asset.id, metadata);
+      }
+
+      for (const asset of gen2dAssets) {
+        const metadata: Record<string, unknown> = {};
+        if (asset.promptUsed) metadata.prompt = asset.promptUsed;
+        if (asset.metadata) {
+          try {
+            const meta = JSON.parse(asset.metadata);
+            metadata.style = meta.style || meta.artStyle;
+          } catch {}
         }
         metadataMap.set(asset.id, metadata);
       }

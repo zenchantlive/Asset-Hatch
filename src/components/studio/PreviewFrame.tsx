@@ -57,7 +57,7 @@ interface PreviewFrameProps {
  * Concatenate files in orderIndex order for execution
  */
 function concatenateFiles(files: GameFileData[]): string {
-    return files
+    return [...files]
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((f) => f.content)
         .join('\n\n');
@@ -187,6 +187,9 @@ ${scriptTags}
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             const data = event.data;
+            const iframeWindow = iframeRef.current?.contentWindow;
+            if (!iframeWindow || event.source !== iframeWindow) return;
+            if (event.origin !== 'null') return;
             if (data?.type === 'ready') {
                 setCurrentError(null);
                 onReady?.();
@@ -243,7 +246,7 @@ ${scriptTags}
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [onReady, onError]);
+    }, [gameId, onReady, onError]);
 
     return (
         <div className="relative w-full h-full">

@@ -65,13 +65,8 @@ export async function POST(request: Request) {
     if (assetRef.glbData) {
       url = `data:application/octet-stream;base64,${assetRef.glbData}`;
       source = "data";
-    } else if (assetRef.assetType === "3d" || assetRef.assetType === "model") {
-      const origin = new URL(request.url).origin;
-      const token = createProxyToken({ gameId, key });
-      const tokenParam = encodeURIComponent(token.token);
-      url = `${origin}/api/studio/assets/proxy?gameId=${encodeURIComponent(gameId)}&key=${encodeURIComponent(key)}&token=${tokenParam}`;
-      source = "proxy";
     } else {
+      // All other asset types (3d, model, 2d, etc.) are served via proxy
       const origin = new URL(request.url).origin;
       const token = createProxyToken({ gameId, key });
       const tokenParam = encodeURIComponent(token.token);

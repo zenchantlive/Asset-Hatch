@@ -17,17 +17,15 @@ import { prisma } from "@/lib/prisma";
 const updateSceneSchema = z.object({
     // Optional name update, must be non-empty if provided
     name: z.string().min(1, "Name cannot be empty").optional(),
-    // Optional code update
-    code: z.string().optional(),
     // Optional orderIndex update for reordering
     orderIndex: z.number().int().min(0).optional(),
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string; sceneId: string }>;
 }
 
@@ -53,11 +51,11 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -88,7 +86,6 @@ export async function GET(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -113,16 +110,16 @@ export async function GET(
 }
 
 // =============================================================================
-// PATCH - Update scene data (name, code, orderIndex)
+// PATCH - Update scene data (name, orderIndex)
 // =============================================================================
 
 export async function PATCH(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -169,20 +166,16 @@ export async function PATCH(
             );
         }
 
-        const { name, code, orderIndex } = validation.data;
+        const { name, orderIndex } = validation.data;
 
         // Build update data - only include fields that were provided
         const updateData: {
             name?: string;
-            code?: string;
             orderIndex?: number;
         } = {};
 
         if (name !== undefined) {
             updateData.name = name;
-        }
-        if (code !== undefined) {
-            updateData.code = code;
         }
         if (orderIndex !== undefined) {
             updateData.orderIndex = orderIndex;
@@ -197,7 +190,6 @@ export async function PATCH(
                 gameId: true,
                 name: true,
                 orderIndex: true,
-                code: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -219,11 +211,11 @@ export async function PATCH(
 
 export async function DELETE(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session

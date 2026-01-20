@@ -71,61 +71,21 @@ export async function updateAssetInventoryDocument(
     animations?: string[];
   }
 ): Promise<void> {
-  console.log('📦 Updating asset inventory for project:', projectId, 'asset:', assetInfo.name);
-
-  // Fetch existing inventory
-  const existing = await prisma.memoryFile.findUnique({
-    where: {
-      projectId_type: { projectId, type: 'asset-inventory.md' },
-    },
+  // Delegate to the correct implementation in doc-auto-populator
+  const { appendAssetToInventory } = await import('./doc-auto-populator');
+  
+  const typeMap: Record<string, 'character' | 'environment' | 'item'> = {
+    '3d': 'character',
+    'model': 'character',
+    '2d': 'item',
+    'skybox': 'environment',
+  };
+  
+  await appendAssetToInventory(projectId, {
+    name: assetInfo.name,
+    type: typeMap[assetInfo.type] || 'item',
+    assetId: '', // Not available in this context
+    description: assetInfo.description,
+    animations: assetInfo.animations
   });
-
-  const existingContent = existing?.content || getAssetInventoryTemplate();
-
-  // Parse existing content to find the Characters/Environments/Items sections
-  const sectionName = assetInfo.type === 'skybox'
-    ? 'Environments'
-    : assetInfo.type === '3d' || assetInfo.type === 'model'
-      ? 'Characters'
-      : 'Items';
-  const assetLine = `## ${sectionName}\n- **${assetInfo.name}**${assetInfo.description ? `: ${assetInfo.description}` : ''}${assetInfo.animations?.length ? ` (animations: ${assetInfo.animations.join(', ')})` : ''}`;
-
-  // Check if asset already exists in inventory
-  if (existingContent.includes(`**${assetInfo.name}**`)) {
-    console.log('⚠️ Asset already exists in inventory, skipping');
-    return;
-  }
-
-  // Find the section and append the asset
-  const sectionPattern = new RegExp(`(## ${sectionName}\n)(.*?)(\n## |$)`, 's');
-  const match = existingContent.match(sectionPattern);
-
-  let newContent: string;
-  if (match) {
-    // Append to existing section
-    const [, prefix, existingItems, suffix] = match;
-    const newItems = existingItems ? `${existingItems}\n${assetLine}` : assetLine;
-    newContent = existingContent.replace(sectionPattern, `${prefix}${newItems}${suffix}`);
-  } else {
-    // Section doesn't exist, add it
-    newContent = `${existingContent}\n\n## ${sectionName}\n${assetLine}`;
-  }
-
-  // Update the document
-  await prisma.memoryFile.upsert({
-    where: {
-      projectId_type: { projectId, type: 'asset-inventory.md' },
-    },
-    update: {
-      content: newContent,
-      updatedAt: new Date(),
-    },
-    create: {
-      projectId,
-      type: 'asset-inventory.md',
-      content: newContent,
-    },
-  });
-
-  console.log('✅ Updated asset inventory with:', assetInfo.name);
 }

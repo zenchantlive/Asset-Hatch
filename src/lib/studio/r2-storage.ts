@@ -177,13 +177,15 @@ export async function resolveR2AssetUrl(
   if (storedUrlOrKey.startsWith("data:")) return storedUrlOrKey;
 
   const config = loadR2Config();
-  if (!config) return storedUrlOrKey;
+  if (!config) {
+    return storedUrlOrKey.includes("://") ? storedUrlOrKey : null;
+  }
 
   const key = extractKeyFromR2Url(storedUrlOrKey, config);
   if (!key) return storedUrlOrKey;
 
   const signedTtlSeconds = config.signedUrlTtlSeconds ?? 900;
-  if (signedTtlSeconds) {
+  if (signedTtlSeconds > 0) {
     try {
       const client = getR2Client(config);
       const signedUrl = await getSignedUrl(
@@ -195,7 +197,8 @@ export async function resolveR2AssetUrl(
         { expiresIn: signedTtlSeconds }
       );
       return signedUrl;
-    } catch {
+    } catch (error) {
+      console.warn("⚠️ R2 signed URL generation failed, falling back to public URL.", { key, error });
       return buildR2PublicUrl(config, key);
     }
   }

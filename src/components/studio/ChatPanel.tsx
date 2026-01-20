@@ -20,7 +20,7 @@ interface ChatPanelProps {
 /**
  * ChatPanel - AI chat interface for Hatch Studios game creation
  *
- * When AI calls updateCode tool, we update the studio context so the preview
+ * When AI calls file tools, we update the studio context so the preview
  * shows the new code immediately (hot-reload pattern).
  *
  * @see src/components/planning/ChatInterface.tsx for reference implementation
@@ -52,12 +52,12 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
       api: '/api/studio/chat',
     }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onToolCall: ({ toolCall }: { toolCall: any }) => {
+    onToolCall: async ({ toolCall }: { toolCall: any }) => {
       // IMPORTANT: This fires when AI calls a tool
       console.log('🎮 Tool called:', toolCall.toolName, 'Args:', toolCall.args);
 
       // Handle game tool results - update UI state based on tool execution
-      // Multi-file mode: Uses createFile/updateFile instead of updateCode
+      // Multi-file mode: Uses createFile/updateFile 
       switch (toolCall.toolName) {
         case 'createScene':
           console.log('✅ Scene created:', toolCall.args);
@@ -71,60 +71,6 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
           refreshGame();
           break;
 
-        // Legacy single-file handlers - deprecated in multi-file mode
-        // These are kept for backwards compatibility but don't do anything
-        case 'switchScene':
-          console.log('🔄 Scene switched:', toolCall.args?.sceneId);
-          // Multi-file: Files are already loaded, no need to switch scenes
-          break;
-
-        case 'updateCode':
-          // Legacy handler - deprecated in multi-file mode
-          console.log('⚠️ updateCode called (deprecated in multi-file mode):', toolCall.args?.sceneId);
-          break;
-
-        case 'setCamera':
-          console.log('📷 Camera set:', toolCall.args);
-          // Multi-file: Camera code should be in files
-          addActivity({
-            toolName: 'setCamera',
-            status: 'success',
-            details: 'Camera settings updated',
-          });
-          refreshPreview();
-          break;
-
-        case 'enablePhysics':
-          console.log('⚡ Physics enabled:', toolCall.args);
-          // Multi-file: Physics code should be in files
-          addActivity({
-            toolName: 'enablePhysics',
-            status: 'success',
-            details: `Physics enabled: ${toolCall.args?.physicsEngine || 'default'}`,
-          });
-          refreshPreview();
-          break;
-
-        case 'placeAsset':
-          console.log('📍 Asset placed:', toolCall.args);
-          break;
-
-        case 'addBehavior':
-          console.log('🤖 Behavior added:', toolCall.args);
-          break;
-
-        case 'addInteraction':
-          console.log('🖱️ Interaction added:', toolCall.args);
-          break;
-
-        case 'listUserAssets':
-          console.log('📦 Assets listed:', toolCall.args);
-          break;
-
-        case 'createAsset':
-          console.log('➕ Create asset requested:', toolCall.args);
-          break;
-
         // File management tools - multi-file support
         case 'createFile':
           console.log('📄 File created:', toolCall.args?.name);
@@ -135,7 +81,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             fileName: toolCall.args?.name,
           });
           // Refresh files to get the new file in the list
-          loadFiles();
+          await loadFiles();
           refreshPreview();
           break;
 
@@ -148,7 +94,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             fileName: toolCall.args?.name,
           });
           // Refresh files to get updated content
-          loadFiles();
+          await loadFiles();
           refreshPreview();
           break;
 
@@ -161,7 +107,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             fileName: toolCall.args?.name,
           });
           // Refresh files to get updated list
-          loadFiles();
+          await loadFiles();
           refreshPreview();
           break;
 
@@ -173,7 +119,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             details: 'File list refreshed',
           });
           // Just refresh the file list (in case it changed)
-          loadFiles();
+          await loadFiles();
           break;
 
         case 'reorderFiles':
@@ -184,7 +130,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             details: `Reordered ${toolCall.args?.fileOrder?.length || 0} files`,
           });
           // Refresh files since execution order changed
-          loadFiles();
+          await loadFiles();
           refreshPreview();
           break;
 

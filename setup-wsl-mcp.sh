@@ -3,9 +3,9 @@
 set -e
 
 echo "=== Setting up WSL for Asset-Hatch MCP servers ==="
-
-# Navigate to project
-cd /mnt/c/Users/Zenchant/Asset-Hatch
+echo ""
+echo "NOTE: This script must be run from the Asset-Hatch project root directory."
+echo ""
 
 # Install Python 3.14 and uv if needed
 echo "=== Ensuring Python 3.14 and uv are available ==="
@@ -25,12 +25,12 @@ uv sync 2>/dev/null || true
 echo ""
 echo "=== WSL Setup Complete ==="
 echo ""
-echo "To start MCP servers, run in WSL:"
+echo "To start MCP servers, run in WSL from the project root:"
 echo "  1. Agent Mail (port 8765):"
-echo "     cd /mnt/c/Users/Zenchant/Asset-Hatch/mcp_agent_mail"
+echo "     cd mcp_agent_mail"
 echo "     uv run python -m mcp_agent_mail.cli run-server --port 8765"
 echo ""
 echo "  2. Beads MCP:"
-echo "     cd /mnt/c/Users/Zenchant/Asset-Hatch/integrations/beads-mcp-repo/integrations/beads-mcp"
+echo "     cd integrations/beads-mcp-repo/integrations/beads-mcp"
 echo "     uv run python -m beads_mcp"
 echo ""

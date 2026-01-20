@@ -24,10 +24,10 @@ const updateGameSchema = z.object({
 });
 
 // =============================================================================
-// ROUTE PARAMS TYPE
+// ROUTE CONTEXT TYPE
 // =============================================================================
 
-interface RouteParams {
+interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
@@ -37,11 +37,11 @@ interface RouteParams {
 
 export async function GET(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ) {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -52,7 +52,7 @@ export async function GET(
             );
         }
 
-// Find game with ownership verification and soft-delete check
+        // Find game with ownership verification and soft-delete check
         const game = await prisma.game.findFirst({
             where: {
                 id: params.id,
@@ -69,7 +69,6 @@ export async function GET(
                         id: true,
                         name: true,
                         orderIndex: true,
-                        code: true,
                         createdAt: true,
                         updatedAt: true,
                     },
@@ -108,11 +107,11 @@ export async function GET(
 
 export async function PATCH(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ) {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -182,7 +181,6 @@ export async function PATCH(
                         id: true,
                         name: true,
                         orderIndex: true,
-                        code: true,
                     },
                 },
             },
@@ -204,11 +202,11 @@ export async function PATCH(
 
 export async function DELETE(
     request: Request,
-    props: RouteParams
+    context: RouteContext
 ) {
     try {
         // Extract game ID from route params
-        const params = await props.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session

@@ -1,19 +1,50 @@
 # Active State
 
-## Current Session (2026-01-15)
+## Current Session (2026-01-17)
 
-### Style Anchor → Skybox Integration
-Applied style anchor system to skybox generation for visual consistency across all project assets.
+### PR-06 Merge (Asset Loading Hardening)
+Merged `pr/06-asset-loading-hardening` into `base/hatch-studios` after resolving conflicts locally and pushing to remote.
 
-**Change:**
-- `src/app/api/generate-skybox/route.ts` now fetches project's style anchor and passes `colorPalette`, `styleKeywords`, and `lightingKeywords` to `buildSkyboxPrompt()`
+**Highlights:**
+- Hardened asset loader with resolver handshakes + PhotoDome skybox support.
+- Unified project creation with `startWith: assets | game | both`.
+- Asset sync pipeline creates `GameAssetRef` and updates manifest.
+- Studio chat includes `projectContext` and linked asset metadata.
+- Asset listing resolves R2 URLs and auto-links skybox.
 
-**Why:** Skyboxes should match the project's established visual style (same color palette, lighting mood) rather than being generated in isolation.
+**Merge Commit:** `250ee54` on `base/hatch-studios`
+
+### PR-07 (pr/07-sync) Pending
+User rebased `pr/07-sync` onto `base/hatch-studios`; conflicts still need resolution.
+
+**Conflict Set:**
+- `src/app/api/projects/[id]/assets/sync/route.ts`
+- `src/app/api/studio/assets/route.ts`
+- `src/app/api/studio/chat/route.ts`
+- `src/app/api/studio/games/[id]/plan/route.ts`
+- `src/app/api/studio/games/[id]/route.ts`
+- `src/app/api/studio/games/[id]/scenes/[sceneId]/route.ts`
+- `src/app/api/studio/games/[id]/scenes/route.ts`
+- `src/app/api/studio/games/route.ts`
+- `src/components/dashboard/NewProjectDialog.tsx`
+- `src/components/studio/planning/GamePlanPreview.tsx`
+- `src/lib/studio/game-tools.ts`
+- `src/lib/studio/schemas.ts`
+- `src/tests/integration/studio-games.test.ts`
+- `src/tests/integration/studio-scenes.test.ts`
+
+**PR-07 Goal Summary:**
+- R2 storage integration for GLB data + migration script.
+- Enhanced asset list/tooling with `includeGlbData` and richer metadata.
+- Asset sync + approval flow uploads GLB to R2 and creates `GameAssetRef`.
+- Shared doc tools added to chat API.
+- Adds chat storage utility (IndexedDB + localStorage fallback).
+- Adds AWS SDK deps; normalizes CRLF → LF.
 
 ---
 
 ## Branch Status
-- **Current:** `mobile-redesign-v2`
+- **Current:** `base/hatch-studios`
 - **Main:** `main`
 
 ---
