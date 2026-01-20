@@ -1,38 +1,32 @@
 # Active State
 
-## Current Session (2026-01-19)
+## Current Session (2026-01-20)
 
-### PR-07 (pr/07-sync) Merge Prep
-Rebased `pr/07-sync` onto `base/hatch-studios` and resolved all conflicts locally.
+### Skybox Approval Status Restore + Lint Fixes
+Completed skybox approval status persistence wiring and cleared lint/typecheck errors. PR created for `base/hatch-studios`.
 
-**Resolved Conflicts:**
-- `src/app/api/projects/[id]/assets/sync/route.ts`
-- `src/app/api/studio/assets/route.ts`
-- `src/app/api/studio/chat/route.ts`
-- `src/app/api/studio/games/[id]/plan/route.ts`
-- `src/app/api/studio/games/[id]/route.ts`
-- `src/app/api/studio/games/[id]/scenes/[sceneId]/route.ts`
-- `src/app/api/studio/games/[id]/scenes/route.ts`
-- `src/app/api/studio/games/route.ts`
-- `src/components/dashboard/NewProjectDialog.tsx`
-- `src/components/studio/planning/GamePlanPreview.tsx`
-- `src/lib/studio/game-tools.ts`
-- `src/lib/studio/schemas.ts`
-- `src/tests/integration/studio-games.test.ts`
-- `src/tests/integration/studio-scenes.test.ts`
+**Stage:** Code Review
 
-**Review Items (from PR suggestions):**
-- ✅ Switched `gameAssetRef` lookup to `gameId` in game tools.
-- ✅ Removed `includeGlbData` from tool schema to avoid oversized responses.
-- ✅ Added JSON guards for `animatedModelUrls` and 2D metadata parsing.
-- ✅ Guarded `resolveR2AssetUrl` calls when URL is null.
-- ✅ Fixed chat storage timestamp handling + quota reduction.
-- ⏳ Decide whether to remove `includeGlbData` support from `/api/studio/assets`.
+**Trello MCP (Next Session Requirement):**
+- Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards).
+
+**Next Tasks (from Trello):**
+- Chat UI: tool-call chips + minimal thinking state (`Chat Backlog`)
+- Chat UX polish: modern UI + prompt chips/actions/timestamps (`Chat Backlog`)
+- Chat cancel/stop streaming (`Chat Backlog`)
+- Preview screenshot capture (user + AI flow) (`Chat Backlog`)
+- Reset chat history without clearing context (`Chat Backlog`)
+- Queue chat prompts while streaming (`Chat Backlog`)
+- Auto-fix game preview errors (`Gen Backlog`)
+- Studio quick-fix prompt presets (`Gen Backlog`)
+- Skybox generation quality tuning (`Gen Backlog`)
+- BYOK expansion: Tripo API key + settings (`Backend Backlog`)
 
 ---
 
 ## Branch Status
-- **Current:** `pr/07-sync`
+- **Current:** `fix/skybox-approval-status`
+- **Base:** `base/hatch-studios`
 - **Main:** `main`
 
 ---
