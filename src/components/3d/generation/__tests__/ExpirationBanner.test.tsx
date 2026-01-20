@@ -36,7 +36,7 @@ describe('ExpirationBanner', () => {
         render(<ExpirationBanner />)
         
         // Check that dismiss button exists
-        const dismissButton = screen.getByRole('button', { name: /close/i })
+        const dismissButton = screen.getByRole('button', { name: /Dismiss warning/i })
         expect(dismissButton).toBeInTheDocument()
         
         // Click dismiss
