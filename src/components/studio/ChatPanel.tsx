@@ -262,46 +262,44 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     // Mark this request as being processed to prevent re-entrancy
     lastProcessedFixIdRef.current = pendingFixRequest.id;
 
-    console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
+  // Deduplication: Skip if we've already processed this request ID (handles StrictMode, double-effect)
+  if (lastProcessedFixIdRef.current === pendingFixRequest.id) return;
 
-    // Sanitize and bound error data to prevent prompt overflow and ensure reliability
-    const sanitizeText = (text: string | undefined, maxLength: number = 2000): string => {
-      if (!text) return '';
-      // Truncate if too long
-      const truncated = text.length > maxLength ? text.substring(0, maxLength) + '...[truncated]' : text;
-      // Escape potentially problematic characters for prompt injection prevention
-      return truncated
-        .replace(/```/g, '```') // Escape code block markers
-        .replace(/```(\w+)?/g, '```') // Escape language specifiers
-        .replace(/`/g, '\\`'); // Escape inline code markers
-    };
+  // Mark this request as being processed to prevent re-entrancy
+  lastProcessedFixIdRef.current = pendingFixRequest.id;
 
-    // Build comprehensive fix prompt with all available context
-    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${sanitizeText(pendingFixRequest.fileName, 200)}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${sanitizeText(pendingFixRequest.message, 500)}${pendingFixRequest.stack ? `\n\nStack trace:\n${sanitizeText(pendingFixRequest.stack, 1500)}` : ''}`;
+  console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
 
-    // Use append() with error handling - only clear after successful send
-    // Wrap in a timeout to ensure this effect has fully settled before triggering
-    const timer = setTimeout(() => {
-      append({
-        content: fixPrompt,
-        role: 'user',
-      }).then(() => {
-        // Clear the pending request AFTER successful append
-        clearFixRequest();
-      }).catch((error) => {
-        // If append fails, reset the processed ID so we can retry
-        console.error('Failed to auto-send fix request:', error);
-        lastProcessedFixIdRef.current = '';
-        // Don't clear pendingFixRequest so the user can retry manually
-      });
-    }, 0);
+  // Build comprehensive fix prompt with all available context
+  let fixPrompt = `Fix this runtime error`;
+  if (pendingFixRequest.fileName) {
+    fixPrompt += ` in ${pendingFixRequest.fileName}`;
+  }
+  if (pendingFixRequest.line) {
+    fixPrompt += ` on line ${pendingFixRequest.line}`;
+  }
+  fixPrompt += `: ${pendingFixRequest.message}`;
+  if (pendingFixRequest.stack) {
+    fixPrompt += `\n\nStack trace:\n${pendingFixRequest.stack}`;
+  }
 
-    // Cleanup function to handle component unmount or dependency changes
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [pendingFixRequest, isLoading, clearFixRequest, append]);
+  // Send with full game context - only clear after successful send
+  const body: { gameId: string; projectContext?: string } = { gameId };
+  if (projectContext) {
+    body.projectContext = JSON.stringify(projectContext);
+  }
 
+  sendMessage({ text: fixPrompt }, { body })
+    .then(() => {
+      // Clear the pending request AFTER successful send
+      clearFixRequest();
+    })
+    .catch((error) => {
+      // If send fails, reset the processed ID so we can retry
+      console.error('Failed to auto-send fix request:', error);
+      lastProcessedFixIdRef.current = '';
+      // Don't clear pendingFixRequest so the user can retry manually
+    });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
