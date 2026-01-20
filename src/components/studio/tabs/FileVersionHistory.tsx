@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStudio } from '@/lib/studio/context';
 import { Button } from '@/components/ui/button';
-import { History, RotateCcw, X, Clock, ChevronRight, FileCode } from 'lucide-react';
+import { History, RotateCcw, X, Clock, FileCode } from 'lucide-react';
 import type { CodeVersionData } from '@/lib/studio/types';
 import { formatRelativeTime } from '@/lib/studio/activity-types';
 

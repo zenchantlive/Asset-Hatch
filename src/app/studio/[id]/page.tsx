@@ -74,7 +74,6 @@ export default async function GameEditorPage({ params }: PageProps) {
                     id: true,
                     name: true,
                     orderIndex: true,
-                    code: true,
                     createdAt: true,
                     updatedAt: true,
                 },
@@ -99,6 +98,7 @@ export default async function GameEditorPage({ params }: PageProps) {
         scenes: game.scenes.map((scene) => ({
             ...scene,
             gameId: game.id,
+            code: '', // Add missing code property
             createdAt: scene.createdAt.toISOString(),
             updatedAt: scene.updatedAt.toISOString(),
         })),

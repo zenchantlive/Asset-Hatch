@@ -28,10 +28,9 @@ interface AssetSyncButtonProps {
  * - Studio header when viewing unified project
  */
 export function AssetSyncButton({
-  projectId,
   pendingCount,
   onClick,
-}: AssetSyncButtonProps) {
+}: Omit<AssetSyncButtonProps, 'projectId'>) {
   return (
     <Button variant="outline" onClick={onClick} className="relative">
       <Package className="h-4 w-4 mr-2" />

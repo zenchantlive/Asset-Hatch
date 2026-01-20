@@ -218,6 +218,9 @@ export async function POST(
                 name,
                 description: description || null,
                 activeSceneId: null,
+                user: {
+                    connect: { id: userId }
+                },
                 // Create initial main.js file for multi-file support
                 files: {
                     create: {

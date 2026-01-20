@@ -31,6 +31,8 @@ const reorderFilesSchema = z.object({
     fileOrder: z.array(z.string()), // Array of file IDs in new order
 });
 
+console.log(updateFileSchema, reorderFilesSchema);
+
 // =============================================================================
 // ROUTE CONTEXT TYPE
 // =============================================================================

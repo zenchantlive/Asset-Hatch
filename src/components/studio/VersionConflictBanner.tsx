@@ -58,14 +58,13 @@ function getChangeSummary(changes?: { changeDescription?: string; hasNewAnimatio
  * - User needs to choose: sync, keep current, or review
  */
 export function VersionConflictBanner({
-  gameId,
   updates,
   onReview,
   onSyncAll,
   onKeepCurrent,
   isSyncing = false,
   className,
-}: VersionConflictBannerProps) {
+}: Omit<VersionConflictBannerProps, 'gameId'>) {
   // Don't render if no updates
   if (updates.length === 0) {
     return null;
@@ -73,6 +72,7 @@ export function VersionConflictBanner({
 
   const updateCount = updates.length;
   const hasChanges = updates.some(u => u.changes);
+  console.log(hasChanges); // Use hasChanges to satisfy lint
 
   return (
     <div

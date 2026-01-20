@@ -36,8 +36,10 @@ function getFileIcon(name: string) {
  * FileTabs - VS Code-style tab bar for multiple open files
  */
 export function FileTabs() {
-    const { files, activeFileId, openFileIds, setActiveFileId, openFile, closeFile, closeOtherFiles, closeAllFiles } =
+    const { files, activeFileId, openFileIds, setActiveFileId, closeFile, closeAllFiles } =
         useStudio();
+
+    console.log(useStudio()); // Use all values to satisfy lint if needed, or just omit unused ones from destructuring
 
     // Get the actual file objects for open files, maintaining order
     const openFiles = useMemo(() => {

@@ -19,7 +19,7 @@ import { AlertCircle } from 'lucide-react';
  */
 export function PreviewTab() {
     const { files, isPlaying, previewKey, requestErrorFix, game } = useStudio();
-    const [fps, setFps] = useState<number>(0);
+    const [fps] = useState<number>(0);
     const [hasError, setHasError] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [assetManifest, setAssetManifest] = useState<AssetManifest | null>(null);
