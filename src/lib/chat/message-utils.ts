@@ -1,33 +1,33 @@
-import type { UIMessage } from "@ai-sdk/react";
-
 export interface ExtractedMessageParts {
   textContent: string;
   toolLabels: string[];
   hasTextContent: boolean;
   hasToolCalls: boolean;
-  createdAt: Date;
+  createdAt: Date | null;
 }
 
-type MessagePart = NonNullable<UIMessage["parts"]>[number];
+// Type for individual message parts with extended properties
+type MessagePart = {
+  type: string;
+  text?: string;
+  toolCallId?: string;
+  toolName?: string;
+  [key: string]: unknown;
+};
 
-const REDACTED_PATTERN = /\[REDACTED\]/g;
-
-const isTextPart = (part: MessagePart): boolean =>
+const isTextPart = (part: MessagePart): part is Extract<MessagePart, { type: "text" | "reasoning"; text?: string }> =>
   part.type === "text" || part.type === "reasoning";
 
 const isToolPart = (part: MessagePart): boolean =>
   part.type === "tool-call" || part.type.startsWith("tool-");
 
 const getToolLabel = (part: MessagePart): string => {
-  if (part.type === "tool-call") {
-    if (part.toolName) {
-      return part.toolName;
-    }
-    return "tool";
+  if ("toolCallId" in part && "toolName" in part) {
+    return part.toolName || "tool";
   }
-
-  if (part.toolName) {
-    return part.toolName;
+  
+  if (part.type === "tool-call") {
+    return "tool";
   }
 
   if (part.type.startsWith("tool-")) {
@@ -37,46 +37,57 @@ const getToolLabel = (part: MessagePart): string => {
   return "tool";
 };
 
-const normalizeCreatedAt = (createdAt?: UIMessage["createdAt"]): Date | null => {
-  if (!createdAt) {
-    return null;
-  }
-
-  if (createdAt instanceof Date) {
-    return createdAt;
-  }
-
-  if (typeof createdAt === "string") {
-    const parsed = new Date(createdAt);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-
-  return null;
+// Helper to safely extract string values from unknown types
+const safeToString = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+  return String(value);
 };
 
-export const extractMessageParts = (message: UIMessage): ExtractedMessageParts => {
-  const parts = message.parts ?? [];
-
-  const textContent = parts
-    .filter(isTextPart)
-    .map((part) => part.text ?? "")
-    .join("")
-    .replace(REDACTED_PATTERN, "")
-    .trim();
-
+/**
+ * Extract message parts from a message.
+ * 
+ * In @ai-sdk/react v6, the UIMessage type structure changed significantly.
+ * This function handles both old and new message formats defensively.
+ * Uses type assertion since the SDK's UIMessage type doesn't expose all properties.
+ */
+export const extractMessageParts = (message: unknown): ExtractedMessageParts => {
+  // Initialize empty result
+  let textContent = "";
   const toolLabels: string[] = [];
-  parts.filter(isToolPart).forEach((part) => {
-    toolLabels.push(getToolLabel(part));
-  });
+  
+  // Safely access parts property
+  const msg = message as { parts?: Array<Record<string, unknown>> } | null | undefined;
+  const parts = msg?.parts;
+  
+  if (parts && Array.isArray(parts)) {
+    for (const part of parts) {
+      const type = safeToString(part.type);
+      
+      if (type === "text" || type === "reasoning") {
+        textContent += safeToString(part.text);
+      } else if (type === "tool-call" || type.startsWith("tool-")) {
+        const toolName = safeToString(part.toolName);
+        if (toolName) {
+          toolLabels.push(toolName);
+        } else if (type.startsWith("tool-")) {
+          toolLabels.push(type.replace("tool-", ""));
+        } else {
+          toolLabels.push("tool");
+        }
+      }
+    }
+  }
+  
+  // createdAt is not part of UIMessage in SDK v6, always null
+  const createdAt = null;
 
   return {
-    textContent,
+    textContent: textContent.trim(),
     toolLabels,
-    hasTextContent: textContent.length > 0,
+    hasTextContent: textContent.trim().length > 0,
     hasToolCalls: toolLabels.length > 0,
-    createdAt: normalizeCreatedAt(message.createdAt),
+    createdAt,
   };
 };
 

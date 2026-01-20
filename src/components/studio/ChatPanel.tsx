@@ -287,17 +287,20 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
       return;
     }
     const [nextPrompt, ...rest] = queuedPrompts;
-    isQueueSendingRef.current = true;
-    setQueuedPrompts(rest);
-    const messageBody: { gameId: string; projectContext?: string } = { gameId };
-    if (projectContext) {
-      messageBody.projectContext = JSON.stringify(projectContext);
-    }
-    sendMessage({ text: nextPrompt }, { body: messageBody });
-    const timer = window.setTimeout(() => {
+    
+    // Defer state update to avoid synchronous setState in effect
+    const timerId = window.setTimeout(() => {
+      isQueueSendingRef.current = true;
+      setQueuedPrompts(rest);
+      const messageBody: { gameId: string; projectContext?: string } = { gameId };
+      if (projectContext) {
+        messageBody.projectContext = JSON.stringify(projectContext);
+      }
+      sendMessage({ text: nextPrompt }, { body: messageBody });
       isQueueSendingRef.current = false;
     }, 0);
-    return () => window.clearTimeout(timer);
+    
+    return () => window.clearTimeout(timerId);
   }, [queuedPrompts, status, sendMessage, gameId, projectContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -320,7 +323,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     id: preset.id,
     label: preset.label,
     prompt: preset.prompt,
-    tone: "neutral",
+    tone: "neutral" as const,
   }));
 
   const buildMessageBody = () => {
