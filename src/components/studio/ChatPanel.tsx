@@ -63,7 +63,6 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     messages,
     setMessages,
     sendMessage,
-    append,
     status,
     stop,
 
