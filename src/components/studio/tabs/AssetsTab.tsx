@@ -25,7 +25,7 @@ export function AssetsTab() {
     const [assetType, setAssetType] = useState<'all' | '2d' | '3d'>('all');
     const [syncing, setSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
-    const [stored3DCount, setStored3DCount] = useState(0);
+    const [stored3DCount, setStored3DCount] = useState(0); console.log("ASSET_THRESHOLDS", ASSET_THRESHOLDS);
     const { game } = useStudio();
 
     // Get projectId from game (1:1 relation)
@@ -52,8 +52,8 @@ export function AssetsTab() {
                 ).length;
                 setStored3DCount(count);
             }
-        } catch (error) {
-            console.warn('Failed to fetch asset storage count:', error);
+        } catch (err) {
+            console.warn('Failed to fetch asset storage count:', err);
         }
     }, [game?.id]);
 

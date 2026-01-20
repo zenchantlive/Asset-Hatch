@@ -70,18 +70,23 @@ export default async function DashboardPage() {
     // Safely parse asset manifest to get asset count
     const manifestSchema = z
       .object({
-        assets: z.record(z.unknown()).optional().default({}),
+        assets: z.record(z.string(), z.unknown()).optional().default({}),
         syncState: z
           .object({
             pendingAssets: z.array(z.string()).optional().default([]),
           })
           .optional()
-          .default({}),
+          .default({
+            pendingAssets: [],
+          }),
       })
       .optional()
-      .default({});
+      .default({
+        assets: {},
+        syncState: { pendingAssets: [] },
+      });
 
-    const manifest = manifestSchema.parse(project.assetManifest);
+    const manifest = manifestSchema.parse(project.assetManifest || {});
     const assets = manifest.assets;
     const syncState = manifest.syncState;
 

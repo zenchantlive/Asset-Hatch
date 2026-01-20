@@ -268,9 +268,10 @@ class IndexedDBChatStorage implements ChatStorage {
      */
     private compressMessages(messages: UIMessage[]): StoredMessage[] {
         return messages.map(msg => {
-            const content = msg.content ?? '';
-            const createdAt = msg.createdAt;
-            const parts = msg.parts;
+            const msgAny = msg as unknown as Record<string, unknown>;
+            const content = (msgAny.content as string) ?? '';
+            const createdAt = msgAny.createdAt as string | Date;
+            const parts = msgAny.parts as unknown[];
 
             const result: StoredMessage = {
                 id: msg.id || '',
@@ -301,19 +302,19 @@ class IndexedDBChatStorage implements ChatStorage {
     private decompressMessages(compressed: StoredMessage[]): UIMessage[] {
         return compressed.map(msg => {
             // Reconstruct UIMessage structure with proper typing
-            const result: UIMessage = {
+            const result = {
                 id: msg.id,
                 role: msg.role as UIMessage['role'],
                 content: msg.content,
                 createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
                 parts: []
-            };
+            } as unknown as UIMessage;
 
             // Handle parts - ensure proper structure
             if (msg.p) {
-                result.parts = msg.p as UIMessage['parts'];
+                (result as { parts?: unknown }).parts = msg.p;
             } else {
-                result.parts = [{ type: 'text', text: msg.content }];
+                (result as { parts?: unknown }).parts = [{ type: 'text', text: msg.content }];
             }
 
             return result;

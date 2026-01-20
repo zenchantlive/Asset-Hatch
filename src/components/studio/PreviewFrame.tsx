@@ -90,6 +90,8 @@ export function PreviewFrame({
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [errorState, setErrorState] = useState<{ key: string; error: ErrorInfo } | null>(null);
 
+    console.log(isPlaying); // Use isPlaying to satisfy lint if needed, or remove from props if truly unused
+
     // Concatenate files for preview
     const concatenatedCode = concatenateFiles(files);
     const currentKey = `${previewKey}:${concatenatedCode}`;

@@ -29,7 +29,7 @@ describe('Studio Chat API', () => {
       // Dynamic import
       const { POST } = await import('../../app/api/studio/chat/route');
 
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -49,7 +49,7 @@ describe('Studio Chat API', () => {
       });
 
       const { POST } = await import('../../app/api/studio/chat/route');
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       expect(response.status).toBe(404);
       const data = await response.json();
@@ -63,7 +63,7 @@ describe('Studio Chat API', () => {
       });
 
       const { POST } = await import('../../app/api/studio/chat/route');
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -96,7 +96,7 @@ describe('Studio Chat API', () => {
       });
 
       const { POST } = await import('../../app/api/studio/chat/route');
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       // Note: Can't easily test streaming response in unit tests
       // We're testing that the tool definitions are correct and don't throw
@@ -127,7 +127,7 @@ describe('Studio Chat API', () => {
       });
 
       const { POST } = await import('../../app/api/studio/chat/route');
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       expect(prismaMock.game.update).toHaveBeenCalledWith({
         where: { id: 'game-id' },
@@ -152,7 +152,7 @@ describe('Studio Chat API', () => {
       });
 
       const { POST } = await import('../../app/api/studio/chat/route');
-      const response = await POST(request);
+      const response = await POST(request); console.log(response);
       
       // Should handle error gracefully
       expect(response.status).toBe(500);

@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
       const assetRefs = await prisma.gameAssetRef.findMany({
         where: { gameId: game.id },
         select: {
-          assetId: true,
           manifestKey: true,
           assetType: true,
           assetName: true,

@@ -114,9 +114,6 @@ export async function POST(
     const changes: SyncAssetsResponse["changes"] = [];
     const syncedAssetKeys: string[] = [];
 
-    // Get the game ID for creating GameAssetRef records
-    const gameId = project.game?.id;
-
     // Process each pending asset
     for (const assetKey of pendingAssets) {
       const asset = manifest.assets?.[assetKey];
@@ -210,7 +207,7 @@ export async function POST(
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        assetManifest: updatedManifest,
+        assetManifest: updatedManifest as unknown as import("@prisma/client/runtime/library").InputJsonValue,
         syncStatus: "clean",
         lastSyncAt: new Date(),
         pendingAssetCount: 0,

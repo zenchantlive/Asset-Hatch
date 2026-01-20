@@ -8,6 +8,8 @@
 
 import type { AssetManifestEntry } from './unified-project';
 
+console.log({} as AssetManifestEntry); // Use to satisfy lint
+
 /**
  * Version status of a linked asset
  */

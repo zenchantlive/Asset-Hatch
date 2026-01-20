@@ -6,8 +6,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Image, Box } from 'lucide-react';
+import { Image as ImageIcon, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import NextImage from 'next/image';
 
 /**
  * Asset data shape from API
@@ -90,7 +91,7 @@ export function AssetBrowser({ type = 'all' }: AssetBrowserProps) {
             <div className="h-full flex items-center justify-center p-6">
                 <div className="text-center max-w-sm">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Image className="h-8 w-8 text-primary" />
+                        <ImageIcon className="h-8 w-8 text-primary" />
                     </div>
                     <h3 className="text-sm font-medium mb-2">No Assets Yet</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-4">
@@ -124,17 +125,20 @@ export function AssetBrowser({ type = 'all' }: AssetBrowserProps) {
                         >
                             {/* Thumbnail */}
                             {asset.thumbnailUrl ? (
-                                <img
-                                    src={asset.thumbnailUrl}
-                                    alt={asset.name}
-                                    className="w-full h-full object-cover"
-                                />
+                                <div className="relative w-full h-full">
+                                    <NextImage
+                                        src={asset.thumbnailUrl}
+                                        alt={asset.name || 'Asset thumbnail'}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
                             ) : (
                                 <div className="w-full h-full bg-muted flex items-center justify-center">
                                     {asset.type === '3d' ? (
                                         <Box className="h-8 w-8 text-muted-foreground" />
                                     ) : (
-                                        <Image className="h-8 w-8 text-muted-foreground" />
+                                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
                                     )}
                                 </div>
                             )}
@@ -160,19 +164,20 @@ export function AssetBrowser({ type = 'all' }: AssetBrowserProps) {
                 <div className="w-80 border-l border-studio-panel-border p-4 overflow-y-auto">
                     <div className="space-y-4">
                         {/* Preview */}
-                        <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        <div className="aspect-square rounded-lg overflow-hidden bg-muted relative">
                             {selectedAsset.thumbnailUrl ? (
-                                <img
+                                <NextImage
                                     src={selectedAsset.thumbnailUrl}
-                                    alt={selectedAsset.name}
-                                    className="w-full h-full object-cover"
+                                    alt={selectedAsset.name || 'Selected asset thumbnail'}
+                                    fill
+                                    className="object-cover"
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     {selectedAsset.type === '3d' ? (
                                         <Box className="h-16 w-16 text-muted-foreground" />
                                     ) : (
-                                        <Image className="h-16 w-16 text-muted-foreground" />
+                                        <ImageIcon className="h-16 w-16 text-muted-foreground" />
                                     )}
                                 </div>
                             )}

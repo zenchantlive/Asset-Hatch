@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { StudioContext } from '@/lib/studio/context';
 import type { StudioContextValue } from '@/lib/studio/context';
 import type { GameData } from '@/lib/studio/types';
@@ -29,7 +29,7 @@ interface StudioProviderProps {
 /**
  * Default Babylon.js scene code for empty files
  */
-const DEFAULT_FILE_CONTENT = `// Hatch Studios - Babylon.js Scene
+// const DEFAULT_FILE_CONTENT = `// Hatch Studios - Babylon.js Scene
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
@@ -123,11 +123,11 @@ export function StudioProvider({
     // Refresh game data from API (after AI creates scenes, etc.)
     const refreshGame = useCallback(async () => {
         try {
-            const response = await fetch(`/api/studio/games/${game.id}`);
+            const response = await fetch(`/api/studio/games/${game.id}`);;
             if (response.ok) {
                 const data = await response.json();
                 setGame(data.game);
-                console.log('🔄 Game data refreshed from API');
+                console.log('Game data refreshed from API');
             }
         } catch (error) {
             console.error('Failed to refresh game:', error);
@@ -289,6 +289,8 @@ export function StudioProvider({
             closeFile,
             closeOtherFiles,
             closeAllFiles,
+            addActivity,
+            clearActivityLog,
         ]
     );
 

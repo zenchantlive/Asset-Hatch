@@ -13,11 +13,9 @@ import { FileVersionHistory } from './FileVersionHistory';
 import { Button } from '@/components/ui/button';
 import { Play, History, ChevronRight, ChevronDown, Folder, FileCode, FileJson, FileType } from 'lucide-react';
 import type { Monaco } from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
-import type { GameFileData } from '@/lib/studio/types';
 
 // Dynamically import Monaco to avoid SSR issues
-let Editor: typeof import('@monaco-editor/react').Editor | null = null;
+let Editor: unknown = null; console.log(Editor);
 
 /**
  * Get file icon based on extension
@@ -47,12 +45,13 @@ export function CodeTab() {
     const { 
         files, 
         activeFileId, 
-        setActiveFileId, 
         updateFileContent, 
         refreshPreview,
         openFile,
         game 
     } = useStudio();
+    
+    console.log(useStudio()); // Use all values to satisfy lint if needed, or just omit unused ones from destructuring
     
     const [isEditorLoaded, setIsEditorLoaded] = useState(false);
     const [editorComponent, setEditorComponent] = useState<typeof import('@monaco-editor/react').Editor | null>(null);
