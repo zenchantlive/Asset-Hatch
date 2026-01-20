@@ -23,7 +23,8 @@ export interface AssetLoaderScriptOptions {
  */
 export function generateAssetLoaderScript(
   assets: AssetInfo[],
-  options: AssetLoaderScriptOptions = {}
+  options: AssetLoaderScriptOptions = {},
+  parentOrigin: string = '*'
 ): string {
   const assetsJson = JSON.stringify(assets, null, 2);
   const configJson = JSON.stringify(
@@ -31,6 +32,7 @@ export function generateAssetLoaderScript(
       gameId: options.gameId || null,
       timeoutMs: options.timeoutMs ?? 8000,
       resolveTimeoutMs: options.resolveTimeoutMs ?? 6000,
+      parentOrigin: parentOrigin,
     },
     null,
     2
@@ -85,7 +87,7 @@ export function generateAssetLoaderScript(
         stage: error.stage,
         key: error.key,
         message: error.message
-      }, window.location.origin);
+      }, ASSET_CONFIG.parentOrigin);
     }
   }
 
@@ -163,7 +165,7 @@ export function generateAssetLoaderScript(
           type: 'asset-resolve-request',
           requestId: requestId,
           key: key
-        }, window.location.origin);
+        }, ASSET_CONFIG.parentOrigin);
       } else {
         RESOLVE_REQUESTS.delete(requestId);
         reject({

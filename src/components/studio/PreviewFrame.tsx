@@ -109,7 +109,8 @@ export function PreviewFrame({
     const assetScript = assetManifest
       ? generateAssetLoaderScript(
           convertManifestToAssetInfo(assetManifest),
-          { gameId }
+          { gameId },
+          (typeof window !== 'undefined' && window.location.origin !== 'null') ? window.location.origin : '*'
         )
       : '// No assets available';
 
@@ -144,17 +145,18 @@ ${scriptTags}
   <canvas id="renderCanvas"></canvas>
   <div id="error-overlay"></div>
   <script>
+    const PARENT_ORIGIN = typeof window !== 'undefined' ? (window.location.origin === 'null' ? '*' : window.location.origin) : '*';
     // Error handling - capture and send to parent
     window.addEventListener('error', function(e) {
       const errorEl = document.getElementById('error-overlay');
       errorEl.textContent = 'Error: ' + e.message + '\\n\\nLine: ' + e.lineno;
       errorEl.classList.add('show');
-      window.parent.postMessage({ type: 'error', message: e.message, line: e.lineno }, window.location.origin);
+      window.parent.postMessage({ type: 'error', message: e.message, line: e.lineno }, PARENT_ORIGIN);
     });
 
     // Ready signal
     window.addEventListener('load', function() {
-      window.parent.postMessage({ type: 'ready' }, window.location.origin);
+      window.parent.postMessage({ type: 'ready' }, PARENT_ORIGIN);
     });
 
     // Execute user code (concatenated from multiple files)
@@ -168,14 +170,14 @@ ${scriptTags}
       const errorEl = document.getElementById('error-overlay');
       errorEl.textContent = 'Runtime Error: ' + error.message;
       errorEl.classList.add('show');
-      window.parent.postMessage({ type: 'error', message: error.message }, window.location.origin);
+      window.parent.postMessage({ type: 'error', message: error.message }, PARENT_ORIGIN);
     }
 
     // FPS counter (send to parent every second)
     if (typeof engine !== 'undefined') {
       setInterval(function() {
         const fps = engine.getFps().toFixed(0);
-        window.parent.postMessage({ type: 'fps', value: fps }, window.location.origin);
+        window.parent.postMessage({ type: 'fps', value: fps }, PARENT_ORIGIN);
       }, 1000);
     }
   </script>
@@ -189,7 +191,7 @@ ${scriptTags}
             const data = event.data;
             const iframeWindow = iframeRef.current?.contentWindow;
             if (!iframeWindow || event.source !== iframeWindow) return;
-            if (event.origin !== 'null') return;
+            if (event.origin !== 'null' && event.origin !== window.location.origin) return;
             if (data?.type === 'ready') {
                 setErrorState(null);
                 onReady?.();
@@ -230,14 +232,14 @@ ${scriptTags}
                         url: payload?.url || null,
                         source: payload?.source || null,
                         error: payload?.error || null,
-                    }, window.location.origin);
+                    }, event.origin === 'null' ? '*' : event.origin);
                 }).catch(() => {
                     iframeRef.current?.contentWindow?.postMessage({
                         type: 'asset-resolve-response',
                         requestId,
                         success: false,
                         error: 'RESOLVE_REQUEST_FAILED',
-                    }, window.location.origin);
+                    }, event.origin === 'null' ? '*' : event.origin);
                 });
             } else if (data?.type === 'fps') {
                 // FPS updates handled by parent component
