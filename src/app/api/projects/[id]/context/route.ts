@@ -189,10 +189,23 @@ export async function POST(
       existingContext = JSON.parse(existingFile.content);
     }
 
-    // Merge updates
+    // Merge updates with array merging semantics
     const mergedContext: UnifiedProjectContext = {
       ...existingContext,
       ...updates,
+      // Handle array merging for characters, environments, and scenes
+      characters: updates.characters 
+        ? mergeArrays(existingContext.characters || [], updates.characters, 'name')
+        : existingContext.characters,
+      environments: updates.environments
+        ? mergeArrays(existingContext.environments || [], updates.environments, 'name')
+        : existingContext.environments,
+      scenes: updates.scenes
+        ? mergeArrays(existingContext.scenes || [], updates.scenes, 'name')
+        : existingContext.scenes,
+      keyFeatures: updates.keyFeatures
+        ? Array.from(new Set([...(existingContext.keyFeatures || []), ...updates.keyFeatures]))
+        : existingContext.keyFeatures,
       projectId, // Ensure projectId never changes
       updatedAt: new Date().toISOString(),
       lastUpdatedBy: updates.lastUpdatedBy || "assets",
@@ -228,4 +241,24 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+/**
+ * Helper to merge arrays by a unique key (e.g., name)
+ */
+function mergeArrays<T>(existing: T[], updates: T[], key: keyof T): T[] {
+  const merged = [...existing];
+  
+  updates.forEach(update => {
+    const index = merged.findIndex(item => item[key] === update[key]);
+    if (index !== -1) {
+      // Update existing entry
+      merged[index] = { ...merged[index], ...update };
+    } else {
+      // Add new entry
+      merged.push(update);
+    }
+  });
+  
+  return merged;
 }

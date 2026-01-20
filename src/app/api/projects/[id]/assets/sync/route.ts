@@ -44,8 +44,9 @@ interface LocalAssetManifest {
 
 export async function POST(
   request: Request,
-  props: { params: Promise<{ id: string }> }
+  props: { params: { id: string } }
 ): Promise<NextResponse<SyncAssetsResponse>> {
+  const { id: projectId } = props.params;
   try {
     // Get current session
     const session = await auth();
@@ -56,8 +57,6 @@ export async function POST(
         { status: 401 }
       );
     }
-
-    const { id: projectId } = await props.params;
 
     // Fetch project with game and files
     const project = await prisma.project.findUnique({
@@ -149,31 +148,31 @@ export async function POST(
             assetId: asset.id,
           },
         },
-        update: {
-          projectId: project.id,
-          assetType: asset.type,
-          assetName: asset.name,
-          lockedVersionId,
-          lockedAt,
-          thumbnailUrl: asset.urls.thumbnail || null,
-          modelUrl: asset.urls.model || null,
-          glbUrl: asset.urls.glb || null,
-          manifestKey: assetKey,
-        },
-        create: {
-          gameId: project.game.id,
-          projectId: project.id,
-          assetType: asset.type,
-          assetId: asset.id,
-          assetName: asset.name,
-          lockedVersionId,
-          lockedAt,
-          thumbnailUrl: asset.urls.thumbnail || null,
-          modelUrl: asset.urls.model || null,
-          glbUrl: asset.urls.glb || null,
-          manifestKey: assetKey,
-          createdAt: new Date(),
-        },
+                        update: {
+                            assetProjectId: projectId,
+                            assetType: "3d",
+                            assetName: asset.name || asset.assetId,
+                            lockedVersionId,
+                            lockedAt,
+                            thumbnailUrl: asset.urls.thumbnail || null,
+                            modelUrl: asset.urls.model || null,
+                            glbUrl: asset.urls.glb || null,
+                            manifestKey: assetKey,
+                        },
+                        create: {
+                            gameId: project.game.id,
+                            assetProjectId: project.id,
+                            assetType: asset.type,
+                            assetId: asset.id,
+                            assetName: asset.name,
+                            lockedVersionId,
+                            lockedAt,
+                            thumbnailUrl: asset.urls.thumbnail || null,
+                            modelUrl: asset.urls.model || null,
+                            glbUrl: asset.urls.glb || null,
+                            manifestKey: assetKey,
+                            createdAt: new Date(),
+                        },
       });
 
       // Build change description
@@ -227,7 +226,6 @@ export async function POST(
 
     // Reset sync status on error
     try {
-      const { id: projectId } = await props.params;
       await prisma.project.update({
         where: { id: projectId },
         data: { syncStatus: "error" },

@@ -123,7 +123,7 @@ export function StudioProvider({
     // Refresh game data from API (after AI creates scenes, etc.)
     const refreshGame = useCallback(async () => {
         try {
-            const response = await fetch(`/api/studio/games/${game.id}`);;
+            const response = await fetch(`/api/studio/games/${game.id}`);
             if (response.ok) {
                 const data = await response.json();
                 setGame(data.game);

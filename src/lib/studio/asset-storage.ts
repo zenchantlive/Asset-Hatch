@@ -288,11 +288,10 @@ function bufferToBase64(data: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(data).toString('base64');
   }
+  // Browser fallback: iterate byte-by-byte to avoid stack overflow with large assets
   let binary = '';
-  const chunkSize = 0x8000;
-  for (let i = 0; i < data.length; i += chunkSize) {
-    const slice = data.subarray(i, Math.min(i + chunkSize, data.length));
-    binary += String.fromCharCode.apply(null, Array.from(slice));
+  for (let i = 0; i < data.length; i++) {
+    binary += String.fromCharCode(data[i]);
   }
   return btoa(binary);
 }

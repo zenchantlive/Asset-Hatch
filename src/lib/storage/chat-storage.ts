@@ -216,10 +216,17 @@ class IndexedDBChatStorage implements ChatStorage {
                         // Compress and store
                         const compressedData = this.compressMessages(messages);
 
-                        store.put({
-                            gameId,
-                            messages: compressedData,
-                            updatedAt: new Date().toISOString()
+                        await new Promise<void>((resolve, reject) => {
+                            const request = store.put({
+                                gameId,
+                                messages: compressedData,
+                                updatedAt: new Date().toISOString()
+                            });
+                            request.onsuccess = () => resolve();
+                            request.onerror = (event) => {
+                                console.error('❌ Failed to migrate chat data for key', key, ':', event);
+                                reject(new Error('Failed to migrate chat data'));
+                            };
                         });
 
                         // Remove from localStorage after successful migration
@@ -302,19 +309,35 @@ class IndexedDBChatStorage implements ChatStorage {
     private decompressMessages(compressed: StoredMessage[]): UIMessage[] {
         return compressed.map(msg => {
             // Reconstruct UIMessage structure with proper typing
-            const result = {
+            const result: UIMessage = {
                 id: msg.id,
                 role: msg.role as UIMessage['role'],
                 content: msg.content,
                 createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
-                parts: []
-            } as unknown as UIMessage;
+            };
 
             // Handle parts - ensure proper structure
             if (msg.p) {
-                (result as { parts?: unknown }).parts = msg.p;
+                const parts = msg.p as any[];
+                // Map tool-call-related data into toolInvocations for assistant messages
+                if (msg.role === 'assistant') {
+                    const toolInvocations = parts
+                        .filter(p => p.type === 'tool-call' || p.type === 'tool-result')
+                        .map(p => ({
+                            toolCallId: p.toolCallId,
+                            toolName: p.toolName,
+                            args: p.args,
+                            result: p.result,
+                            state: p.type === 'tool-result' ? 'result' : 'call'
+                        }));
+                    
+                    if (toolInvocations.length > 0) {
+                        (result as any).toolInvocations = toolInvocations;
+                    }
+                }
+                (result as any).parts = parts;
             } else {
-                (result as { parts?: unknown }).parts = [{ type: 'text', text: msg.content }];
+                (result as any).parts = [{ type: 'text', text: msg.content }];
             }
 
             return result;

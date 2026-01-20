@@ -26,7 +26,7 @@ const updateSceneSchema = z.object({
 // =============================================================================
 
 interface RouteContext {
-    params: Promise<{ id: string; sceneId: string }>;
+    params: { id: string; sceneId: string };
 }
 
 // =============================================================================
@@ -55,7 +55,7 @@ export async function GET(
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await context.params;
+        const params = context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -119,7 +119,7 @@ export async function PATCH(
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await context.params;
+        const params = context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -215,7 +215,7 @@ export async function DELETE(
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = await context.params;
+        const params = context.params;
         const session = await auth();
 
         // Return 401 if no valid session

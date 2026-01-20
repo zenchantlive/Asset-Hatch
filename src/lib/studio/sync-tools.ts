@@ -100,7 +100,7 @@ export const syncAssetTool = (gameId: string) => {
         let placementId: string;
         if (existingPlacement) {
           // Update existing placement
-          await prisma.assetPlacement.update({
+          const updated = await prisma.assetPlacement.update({
             where: { id: existingPlacement.id },
             data: {
               positionX: position?.x ?? existingPlacement.positionX,
@@ -115,7 +115,7 @@ export const syncAssetTool = (gameId: string) => {
               updatedAt: new Date(),
             },
           });
-          placementId = existingPlacement.id;
+          placementId = updated.id;
           console.log("✅ Updated existing placement:", placementId);
         } else {
           // Create new placement

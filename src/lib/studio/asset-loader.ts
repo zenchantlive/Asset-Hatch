@@ -303,11 +303,23 @@ export function generateAssetLoaderScript(
 
             return loadPromise.then(function(result) {
               console.log('[ASSETS] Loaded 3D asset: ' + key);
-              if (result.meshes[0] && asset.metadata.animations) {
-                result.meshes[0].metadata = result.meshes[0].metadata || {};
-                result.meshes[0].metadata.animations = asset.metadata.animations;
+              
+              // Guard against missing meshes
+              if (!result.meshes || result.meshes.length === 0) {
+                console.warn('[ASSETS] GLB loaded but contains no meshes: ' + key);
+                return null;
               }
-              return result.meshes[0];
+
+              // Return the root node (usually meshes[0])
+              var rootNode = result.meshes[0];
+
+              // Attach animations metadata if it exists
+              if (asset.metadata && asset.metadata.animations) {
+                rootNode.metadata = rootNode.metadata || {};
+                rootNode.metadata.animations = asset.metadata.animations;
+              }
+              
+              return rootNode;
             });
           }),
           timeoutMs,
@@ -336,7 +348,7 @@ export function generateAssetLoaderScript(
       }
 
       // Handle skyboxes (equirectangular panorama images)
-      if (asset.type === 'skybox' || (asset.type === '2d' && asset.metadata.skybox)) {
+      if (asset.type === 'skybox') {
         var skyboxTimeout = (options && options.timeoutMs) ? options.timeoutMs : ASSET_CONFIG.timeoutMs;
 
         return withTimeout(

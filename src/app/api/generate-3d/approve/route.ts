@@ -97,7 +97,10 @@ export async function POST(req: NextRequest) {
                     animations: asset.animatedModelUrls
                         ? Object.keys(JSON.parse(asset.animatedModelUrls))
                         : undefined,
-                }).catch(e => ({ status: 'rejected', reason: `Failed to update asset inventory: ${e instanceof Error ? e.message : e}` }))
+                }).catch(e => ({ 
+                    status: 'rejected', 
+                    reason: `Failed to update asset inventory: ${e instanceof Error ? e.message : (typeof e === 'object' ? JSON.stringify(e) : String(e))}` 
+                }))
             );
 
             // Task 2: Create GameAssetRef and upload to R2
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
                             update: {},
                             create: {
                                 gameId,
-                                projectId,
+                                assetProjectId: projectId,
                                 assetType: "3d",
                                 assetId: asset.id,
                                 assetName: asset.name || asset.assetId,
@@ -143,7 +146,10 @@ export async function POST(req: NextRequest) {
                             data: { glbUrl: uploadResult.url, modelUrl: uploadResult.url },
                         });
                         console.log("✅ Uploaded GLB to R2 for asset:", asset.name || asset.assetId);
-                    })().catch(e => ({ status: 'rejected', reason: `Failed to create GameAssetRef or upload to R2: ${e instanceof Error ? e.message : e}` }))
+                    })().catch(e => ({ 
+                        status: 'rejected', 
+                        reason: `Failed to create GameAssetRef or upload to R2: ${e instanceof Error ? e.message : (typeof e === 'object' ? JSON.stringify(e) : String(e))}` 
+                    }))
                 );
             }
 
@@ -151,6 +157,8 @@ export async function POST(req: NextRequest) {
             results.forEach(result => {
                 if (result.status === 'rejected') {
                     console.warn("⚠️ A non-blocking error occurred during asset approval:", result.reason);
+                } else if (result.status === 'fulfilled' && result.value && result.value.status === 'rejected') {
+                    console.warn("⚠️ A non-blocking task reported failure:", result.value.reason);
                 }
             });
         }

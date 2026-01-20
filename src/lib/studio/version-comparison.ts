@@ -92,7 +92,7 @@ function compare3DAssets(
   }
 
   // Compare prompt (generation seed changed)
-  if (locked.promptUsed !== latest.promptUsed) {
+  if (locked.promptUsed != null && locked.promptUsed !== latest.promptUsed) {
     changes.changedFields.push('prompt');
   }
 
@@ -204,10 +204,18 @@ export async function compareAssetVersions(
 
       // Compare with locked version
       if (isSourceUpdated(assetRef.lockedAt, latest3D.updatedAt)) {
+        // Fetch locked 3D asset if lockedVersionId exists
+        let locked3D = null;
+        if (assetRef.lockedVersionId) {
+          locked3D = await prisma.generated3DAsset.findUnique({
+            where: { id: assetRef.lockedVersionId },
+          });
+        }
+
         versionChanges = compare3DAssets(
           {
-            animatedModelUrls: null, // Not stored in GameAssetRef
-            promptUsed: null, // Not stored in GameAssetRef
+            animatedModelUrls: locked3D?.animatedModelUrls ?? null,
+            promptUsed: locked3D?.promptUsed ?? null,
             glbUrl: assetRef.glbUrl,
           },
           {
