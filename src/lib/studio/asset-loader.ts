@@ -24,7 +24,7 @@ export interface AssetLoaderScriptOptions {
 export function generateAssetLoaderScript(
   assets: AssetInfo[],
   options: AssetLoaderScriptOptions = {},
-  parentOrigin: string
+  parentOrigin: string = '*'
 ): string {
   const assetsJson = JSON.stringify(assets, null, 2);
   const configJson = JSON.stringify(

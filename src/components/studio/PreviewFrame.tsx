@@ -110,7 +110,7 @@ export function PreviewFrame({
       ? generateAssetLoaderScript(
           convertManifestToAssetInfo(assetManifest),
           { gameId },
-          typeof window !== 'undefined' ? window.location.origin : '*'
+          (typeof window !== 'undefined' && window.location.origin !== 'null') ? window.location.origin : '*'
         )
       : '// No assets available';
 
@@ -145,7 +145,7 @@ ${scriptTags}
   <canvas id="renderCanvas"></canvas>
   <div id="error-overlay"></div>
   <script>
-    const PARENT_ORIGIN = typeof window !== 'undefined' ? window.location.origin : '*';
+    const PARENT_ORIGIN = typeof window !== 'undefined' ? (window.location.origin === 'null' ? '*' : window.location.origin) : '*';
     // Error handling - capture and send to parent
     window.addEventListener('error', function(e) {
       const errorEl = document.getElementById('error-overlay');
@@ -232,14 +232,14 @@ ${scriptTags}
                         url: payload?.url || null,
                         source: payload?.source || null,
                         error: payload?.error || null,
-                    }, event.origin);
+                    }, event.origin === 'null' ? '*' : event.origin);
                 }).catch(() => {
                     iframeRef.current?.contentWindow?.postMessage({
                         type: 'asset-resolve-response',
                         requestId,
                         success: false,
                         error: 'RESOLVE_REQUEST_FAILED',
-                    }, event.origin);
+                    }, event.origin === 'null' ? '*' : event.origin);
                 });
             } else if (data?.type === 'fps') {
                 // FPS updates handled by parent component
