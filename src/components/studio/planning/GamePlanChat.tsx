@@ -151,11 +151,11 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         }
     };
 
-    const presets = getStudioPresets().map((preset) => ({
+    const presets = getPresetsForMode('planning', false).map((preset) => ({
         id: preset.id,
         label: preset.label,
         prompt: preset.prompt,
-        tone: 'neutral',
+        tone: preset.id === 'style-infer' ? 'primary' : 'neutral',
     }));
 
     const buildQuote = (text: string) => {
