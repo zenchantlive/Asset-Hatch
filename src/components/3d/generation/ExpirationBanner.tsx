@@ -62,6 +62,7 @@ export function ExpirationBanner() {
             <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Dismiss warning"
                 onClick={handleDismiss}
                 className="h-6 w-6 flex-shrink-0 text-white/50 hover:text-white hover:bg-white/10"
             >
