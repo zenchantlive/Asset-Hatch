@@ -234,6 +234,7 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **User messages:** Right-aligned, aurora gradient background, white text
 * **AI messages:** Left-aligned, glass panel, aurora glow on hover
 * **Max width:** 85% of container (not full width)
+* **Tool-call visibility:** Render compact chips under assistant messages; show chips even when no text parts exist.
 
 ### Generation / Batch Dashboard
 * **Grid Layout:** Consistently use `grid-cols-2` with `gap-4` for asset lists.

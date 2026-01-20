@@ -67,8 +67,4 @@ blog/asset-hatch-pics
 blog/public/
 mcp_agent_mail/
 
-.beads/.local_version
-.beads/daemon.lock
-.beads/daemon.log
-.beads/issues.jsonl
-.beads/metadata.json
+.beads/

@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import TextareaAutosize from 'react-textarea-autosize';
 import ReactMarkdown from 'react-markdown';
-import { Send, Sparkles, MessageSquare } from "lucide-react";
+import { Send, Sparkles, MessageSquare, Square } from "lucide-react";
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import type { UIMessage } from "@ai-sdk/react";
 import { ProjectQualities } from "./QualitiesBar";
@@ -85,6 +85,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
     setMessages,
     sendMessage,
     status,
+    stop,
   } = useChat({
     id: chatId,
     // In AI SDK v6, body in hook config becomes stale
@@ -370,13 +371,28 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           messages.map((message, index) => {
             // In AI SDK v6, messages have a parts array instead of content
             // Extract text from text and reasoning parts
-            const parts = message.parts as UIMessagePart[] | undefined;
-            const textParts = parts?.filter((part) =>
-              part.type === 'text' || part.type === 'reasoning'
-            ) || [];
-            // Join all text parts and remove [REDACTED] placeholders that AI SDK adds for tool calls
-            const rawText = textParts.map((part) => part.text ?? '').join('');
-            const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
+    const parts = message.parts as UIMessagePart[] | undefined;
+    const textParts = parts?.filter((part) =>
+      part.type === 'text' || part.type === 'reasoning'
+    ) || [];
+    // Join all text parts and remove [REDACTED] placeholders that AI SDK adds for tool calls
+    const rawText = textParts.map((part) => part.text ?? '').join('');
+    const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
+    const toolParts = parts?.filter((part) =>
+      part.type === 'tool-call' || part.type.startsWith('tool-')
+    ) || [];
+    const toolLabels = toolParts.map((part) => {
+      if (part.type === 'tool-call') {
+        return part.toolName || 'tool';
+      }
+      if (part.toolName) {
+        return part.toolName;
+      }
+      if (part.type.startsWith('tool-')) {
+        return part.type.replace('tool-', '');
+      }
+      return 'tool';
+    });
 
             if (message.role === 'assistant') {
               const debugParts = parts?.map((p) => {
@@ -388,8 +404,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
               console.log('Assistant message parts:', debugParts);
             }
 
-            // Skip messages with no text content (after removing [REDACTED])
-            if (!textContent) {
+            const hasTextContent = textContent.length > 0;
+            const hasToolCalls = toolLabels.length > 0;
+
+            // Skip messages that have neither text nor tool-call parts
+            if (!hasTextContent && !hasToolCalls) {
               return null;
             }
 
@@ -405,11 +424,26 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
                     : "glass-panel aurora-glow-hover"
                     }`}
                 >
-                  <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                    <ReactMarkdown>
-                      {textContent}
-                    </ReactMarkdown>
-                  </div>
+                  {hasTextContent && (
+                    <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                      <ReactMarkdown>
+                        {textContent}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                  {message.role === 'assistant' && hasToolCalls && (
+                    <div className={`${hasTextContent ? 'mt-3' : ''} flex flex-wrap gap-2`}>
+                      {toolLabels.map((label, toolIndex) => (
+                        <span
+                          key={`${label}-${toolIndex}`}
+                          className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wide text-white/70"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] shadow-[0_0_0.5rem_0_var(--aurora-2)]" />
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -417,15 +451,13 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         )}
         {showLoading && (
           <div className="flex justify-start">
-            <div className="glass-panel rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <div className="w-2 h-2 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <div className="w-2 h-2 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-                <p className="text-sm opacity-70">Thinking...</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+              <div className="flex gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
+              <p className="opacity-70">Thinking...</p>
             </div>
           </div>
         )}
@@ -478,14 +510,25 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             maxRows={10}
             className="flex-1 glass-panel px-4 py-3 rounded-xl border-white/10 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all text-base shadow-lg resize-none custom-scrollbar bg-transparent placeholder:text-muted-foreground outline-none"
           />
-          <Button
-            type="submit"
-            disabled={showLoading || !input.trim()}
-            size="icon"
-            className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+          {showLoading ? (
+            <Button
+              type="button"
+              onClick={() => stop?.()}
+              size="icon"
+              className="h-12 w-12 rounded-xl glass-panel text-white/80 shadow-lg hover:text-white hover:border-white/30 active:scale-95 transition-all duration-200"
+            >
+              <Square className="h-5 w-5" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={!input.trim()}
+              size="icon"
+              className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          )}
         </form>
       </div>
     </div>

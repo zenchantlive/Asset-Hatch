@@ -155,6 +155,7 @@ export function AssetDetailPanel3D({
                 <SkyboxSection
                     projectId={projectId}
                     initialUrl={assetState.draftModelUrl}
+                    initialApprovalStatus={assetState.approvalStatus}
                 />
             </div>
         );

@@ -4,6 +4,7 @@
 // -----------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { SyncAssetsResponse } from "@/lib/types/unified-project";
@@ -26,7 +27,7 @@ interface LocalAssetManifest {
       name: string;
       version: number;
       urls: Record<string, string | undefined>;
-      metadata: Record<string, unknown>;
+      metadata: Record<string, Prisma.JsonValue>;
       linkedAt: string;
       lockedVersion?: number;
     }
@@ -148,31 +149,31 @@ export async function POST(
             assetId: asset.id,
           },
         },
-                        update: {
-                            assetProjectId: projectId,
-                            assetType: asset.type,
-                            assetName: asset.name || asset.assetId,
-                            lockedVersionId,
-                            lockedAt,
-                            thumbnailUrl: asset.urls.thumbnail || null,
-                            modelUrl: asset.urls.model || null,
-                            glbUrl: asset.urls.glb || null,
-                            manifestKey: assetKey,
-                        },
-                        create: {
-                            gameId: project.game.id,
-                            assetProjectId: project.id,
-                            assetType: asset.type,
-                            assetId: asset.id,
-                            assetName: asset.name,
-                            lockedVersionId,
-                            lockedAt,
-                            thumbnailUrl: asset.urls.thumbnail || null,
-                            modelUrl: asset.urls.model || null,
-                            glbUrl: asset.urls.glb || null,
-                            manifestKey: assetKey,
-                            createdAt: new Date(),
-                        },
+        update: {
+          projectId,
+          assetType: asset.type,
+          assetName: asset.name || asset.id,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
+          manifestKey: assetKey,
+        },
+        create: {
+          gameId: project.game.id,
+          projectId,
+          assetType: asset.type,
+          assetId: asset.id,
+          assetName: asset.name || asset.id,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
+          manifestKey: assetKey,
+          createdAt: new Date(),
+        },
       });
 
       // Build change description
@@ -191,7 +192,7 @@ export async function POST(
     }
 
     // Update manifest - clear pending assets and update last sync
-    const updatedManifest: LocalAssetManifest = {
+    const updatedManifest: Prisma.InputJsonValue = {
       version: "1.0",
       lastUpdated: new Date().toISOString(),
       assets: manifest.assets || {},
@@ -206,7 +207,7 @@ export async function POST(
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        assetManifest: updatedManifest as unknown as import("@prisma/client/runtime/library").InputJsonValue,
+        assetManifest: updatedManifest,
         syncStatus: "clean",
         lastSyncAt: new Date(),
         pendingAssetCount: 0,

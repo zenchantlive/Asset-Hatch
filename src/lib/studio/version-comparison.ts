@@ -499,11 +499,16 @@ export async function syncAssetVersion(refId: string): Promise<{
   let changes: AssetVersionChanges;
   if (assetRef.assetType === '3d' || assetRef.assetType === 'model') {
     const source3D = latestSource3D!;
+    const lockedSource3D = assetRef.lockedVersionId
+      ? await prisma.generated3DAsset.findUnique({
+        where: { id: assetRef.lockedVersionId },
+      })
+      : null;
     changes = compare3DAssets(
       {
-        animatedModelUrls: assetRef.assetType === '3d' ? (assetRef as any).animatedModelUrls : null,
-        promptUsed: (assetRef as any).promptUsed ?? null,
-        glbUrl: assetRef.glbUrl,
+        animatedModelUrls: lockedSource3D?.animatedModelUrls ?? null,
+        promptUsed: lockedSource3D?.promptUsed ?? null,
+        glbUrl: lockedSource3D?.glbUrl ?? assetRef.glbUrl,
       },
       {
         animatedModelUrls: source3D.animatedModelUrls,
@@ -513,10 +518,15 @@ export async function syncAssetVersion(refId: string): Promise<{
     );
   } else {
     const source2D = latestSource2D!;
+    const lockedSource2D = assetRef.lockedVersionId
+      ? await prisma.generatedAsset.findUnique({
+        where: { id: assetRef.lockedVersionId },
+      })
+      : null;
     changes = compare2DAssets(
       {
-        metadata: (assetRef as any).metadata ?? null,
-        promptUsed: (assetRef as any).promptUsed ?? null,
+        metadata: lockedSource2D?.metadata ?? null,
+        promptUsed: lockedSource2D?.promptUsed ?? null,
       },
       {
         metadata: source2D.metadata,

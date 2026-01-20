@@ -22,10 +22,10 @@ import { UIMessage } from '@ai-sdk/react';
  */
 interface StoredMessage {
     id: string;
-    role: string;
+    role: UIMessage['role'];
     content: string;
     createdAt?: string | Date;
-    p?: unknown; // parts
+    p?: UIMessage['parts'];
 }
 
 /**
@@ -275,20 +275,17 @@ class IndexedDBChatStorage implements ChatStorage {
      */
     private compressMessages(messages: UIMessage[]): StoredMessage[] {
         return messages.map(msg => {
-            const msgAny = msg as unknown as Record<string, unknown>;
-            const content = (msgAny.content as string) ?? '';
-            const createdAt = msgAny.createdAt as string | Date;
-            const parts = msgAny.parts as unknown[];
+            const parts = msg.parts || [];
+            const content = this.extractTextContent(parts);
 
             const result: StoredMessage = {
                 id: msg.id || '',
                 role: msg.role || 'user',
                 content,
-                createdAt,
             };
 
             // Only include parts if they exist and are different from content
-            if (parts && parts.length > 0) {
+            if (parts.length > 0) {
                 // If it's more than just a simple text part matching the content, store it
                 const isSimpleText = parts.length === 1 &&
                     parts[0].type === 'text' &&
@@ -311,37 +308,26 @@ class IndexedDBChatStorage implements ChatStorage {
             // Reconstruct UIMessage structure with proper typing
             const result: UIMessage = {
                 id: msg.id,
-                role: msg.role as UIMessage['role'],
-                content: msg.content,
-                createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
+                role: msg.role,
+                parts: msg.p ?? this.buildTextParts(msg.content),
             };
-
-            // Handle parts - ensure proper structure
-            if (msg.p) {
-                const parts = msg.p as any[];
-                // Map tool-call-related data into toolInvocations for assistant messages
-                if (msg.role === 'assistant') {
-                    const toolInvocations = parts
-                        .filter(p => p.type === 'tool-call' || p.type === 'tool-result')
-                        .map(p => ({
-                            toolCallId: p.toolCallId,
-                            toolName: p.toolName,
-                            args: p.args,
-                            result: p.result,
-                            state: p.type === 'tool-result' ? 'result' : 'call'
-                        }));
-                    
-                    if (toolInvocations.length > 0) {
-                        (result as any).toolInvocations = toolInvocations;
-                    }
-                }
-                (result as any).parts = parts;
-            } else {
-                (result as any).parts = [{ type: 'text', text: msg.content }];
-            }
 
             return result;
         });
+    }
+
+    private extractTextContent(parts: UIMessage['parts']): string {
+        return parts
+            .filter(part => part.type === 'text' || part.type === 'reasoning')
+            .map(part => part.text)
+            .join('');
+    }
+
+    private buildTextParts(content: string): UIMessage['parts'] {
+        if (!content) {
+            return [];
+        }
+        return [{ type: 'text', text: content }];
     }
 
     /**

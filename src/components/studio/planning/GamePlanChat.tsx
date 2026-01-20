@@ -10,7 +10,7 @@ import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 
@@ -37,6 +37,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         setMessages,
         sendMessage,
         status,
+        stop,
          
     } = useChat({
         id: chatId,
@@ -141,20 +142,38 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                 ) : (
                     messages.map((message, index) => {
                         interface UIMessagePart {
-                            type: 'text' | 'reasoning' | 'tool-call';
+                            type: 'text' | 'reasoning' | 'tool-call' | string;
                             text?: string;
                             toolName?: string;
-                            args?: unknown;
+                            args?: Record<string, unknown>;
                         }
                         const parts = message.parts as UIMessagePart[] | undefined;
                         const textParts = parts?.filter(p =>
                             p.type === 'text' || p.type === 'reasoning'
                         ) || [];
+                        const toolParts = parts?.filter((part) =>
+                            part.type === 'tool-call' || part.type.startsWith('tool-')
+                        ) || [];
+                        const toolLabels = toolParts.map((part) => {
+                            if (part.type === 'tool-call') {
+                                return part.toolName || 'tool';
+                            }
+                            if (part.toolName) {
+                                return part.toolName;
+                            }
+                            if (part.type.startsWith('tool-')) {
+                                return part.type.replace('tool-', '');
+                            }
+                            return 'tool';
+                        });
 
                         const rawText = textParts.map(p => p.text ?? '').join('');
                         const textContent = rawText.replace(/\[REDACTED\]/g, '').trim();
 
-                        if (!textContent) return null;
+                        const hasTextContent = textContent.length > 0;
+                        const hasToolCalls = toolLabels.length > 0;
+
+                        if (!hasTextContent && !hasToolCalls) return null;
 
                         return (
                             <div
@@ -168,9 +187,24 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                                             : 'glass-panel aurora-glow-hover'
                                     }`}
                                 >
-                                    <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
-                                        <ReactMarkdown>{textContent}</ReactMarkdown>
-                                    </div>
+                                    {hasTextContent && (
+                                        <div className="text-sm leading-relaxed prose prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                                            <ReactMarkdown>{textContent}</ReactMarkdown>
+                                        </div>
+                                    )}
+                                    {message.role === 'assistant' && hasToolCalls && (
+                                        <div className={`${hasTextContent ? 'mt-3' : ''} flex flex-wrap gap-2`}>
+                                            {toolLabels.map((label, toolIndex) => (
+                                                <span
+                                                    key={`${label}-${toolIndex}`}
+                                                    className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wide text-white/70"
+                                                >
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] shadow-[0_0_0.5rem_0_var(--aurora-2)]" />
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -178,15 +212,13 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                 )}
                 {showLoading && (
                     <div className="flex justify-start">
-                        <div className="glass-panel rounded-lg px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <div className="flex gap-1">
-                                    <div className="w-2 h-2 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <div className="w-2 h-2 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <div className="w-2 h-2 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                                </div>
-                                <p className="text-sm opacity-70">Planning...</p>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+                            <div className="flex gap-1">
+                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: '300ms' }} />
                             </div>
+                            <p className="opacity-70">Planning...</p>
                         </div>
                     </div>
                 )}
@@ -216,14 +248,25 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                         maxRows={10}
                         className="flex-1 glass-panel px-4 py-3 rounded-xl border-white/10 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all text-base shadow-lg resize-none custom-scrollbar bg-transparent placeholder:text-muted-foreground outline-none"
                     />
-                    <Button
-                        type="submit"
-                        disabled={showLoading || !input.trim()}
-                        size="icon"
-                        className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
-                    >
-                        <Send className="h-5 w-5" />
-                    </Button>
+                    {showLoading ? (
+                        <Button
+                            type="button"
+                            onClick={() => stop?.()}
+                            size="icon"
+                            className="h-12 w-12 rounded-xl glass-panel text-white/80 shadow-lg hover:text-white hover:border-white/30 active:scale-95 transition-all duration-200"
+                        >
+                            <Square className="h-5 w-5" />
+                        </Button>
+                    ) : (
+                        <Button
+                            type="submit"
+                            disabled={!input.trim()}
+                            size="icon"
+                            className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
+                        >
+                            <Send className="h-5 w-5" />
+                        </Button>
+                    )}
                 </form>
             </div>
         </div>

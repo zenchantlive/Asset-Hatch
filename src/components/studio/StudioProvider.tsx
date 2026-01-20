@@ -26,53 +26,6 @@ interface StudioProviderProps {
     initialFiles?: GameFileData[];
 }
 
-/**
- * Default Babylon.js scene code for empty files
- */
-const DEFAULT_FILE_CONTENT = `// Hatch Studios - Babylon.js Scene
-const canvas = document.getElementById('renderCanvas');
-const engine = new BABYLON.Engine(canvas, true);
-const scene = new BABYLON.Scene(engine);
-
-// Camera
-const camera = new BABYLON.ArcRotateCamera(
-  'camera',
-  0,
-  Math.PI / 3,
-  10,
-  BABYLON.Vector3.Zero(),
-  scene
-);
-camera.attachControl(canvas, true);
-
-// Light
-const light = new BABYLON.HemisphericLight(
-  'light',
-  new BABYLON.Vector3(0, 1, 0),
-  scene
-);
-light.intensity = 0.7;
-
-// Create a simple box
-const box = BABYLON.MeshBuilder.CreateBox('box', { size: 2 }, scene);
-box.position.y = 1;
-
-// Add rotation animation
-scene.registerBeforeRender(() => {
-  box.rotation.y += 0.01;
-});
-
-// Render loop
-engine.runRenderLoop(() => {
-  scene.render();
-});
-
-// Handle window resize
-window.addEventListener('resize', () => {
-  engine.resize();
-});
-`;
-
 
 /**
  * StudioProvider - manages all studio state (multi-file support)
