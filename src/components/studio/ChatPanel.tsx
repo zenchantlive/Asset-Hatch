@@ -244,40 +244,27 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   }, [messages, gameId]);
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
-  const pendingFixPromptRef = useRef<string | null>(null);
-  
   useEffect(() => {
     if (pendingFixRequest && !isLoading) {
       console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
-      
+
       // Build fix prompt with error details
       let fixPrompt = `Fix this runtime error`;
       if (pendingFixRequest.line) {
         fixPrompt += ` on line ${pendingFixRequest.line}`;
       }
       fixPrompt += `: ${pendingFixRequest.message}`;
-      
-      // Store in ref for comparison after state update
-      pendingFixPromptRef.current = fixPrompt;
-      
-      // Clear the pending request first
+
+      // Clear the pending request first to prevent re-triggering
       clearFixRequest();
-      
-      // Update input state
-      setInput(fixPrompt);
+
+      // Programmatically send the message using the useChat hook's append function
+      append({
+        content: fixPrompt,
+        role: 'user',
+      });
     }
-  }, [pendingFixRequest, isLoading, clearFixRequest]);
-  
-  // Submit form after input state is updated (fixes race condition)
-  useEffect(() => {
-    if (input === pendingFixPromptRef.current && pendingFixPromptRef.current !== null) {
-      pendingFixPromptRef.current = null;
-      const form = document.querySelector('form');
-      if (form) {
-        form.requestSubmit();
-      }
-    }
-  }, [input]);
+  }, [pendingFixRequest, isLoading, clearFixRequest, append]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
