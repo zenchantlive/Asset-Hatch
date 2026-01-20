@@ -7,8 +7,13 @@ Completed skybox approval status persistence wiring and cleared lint/typecheck e
 
 **Stage:** Code Review
 
+### Hatch Studios Chat UX Phase 1
+Implemented tool-call chips, minimal thinking indicator, and stop controls across planning + studio chats.
+
+**Stage:** Code Review
+
 **Trello MCP (Next Session Requirement):**
-- Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards).
+- Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards, add labels).
 
 **Next Tasks (from Trello):**
 - Chat UI: tool-call chips + minimal thinking state (`Chat Backlog`)
