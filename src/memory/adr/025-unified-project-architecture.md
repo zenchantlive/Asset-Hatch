@@ -58,15 +58,17 @@ model GameAssetRef {
 }
 ```
 
-### Start Path Selection
+### Start Path Selection (Updated)
 
 ```typescript
 interface CreateProjectData {
   name: string;
   mode: "2d" | "3d" | "hybrid";
-  startWith: "assets" | "game" | "both";
+  // Note: startWith field removed - all projects now create both modes automatically
 }
 ```
+
+**Change**: As of 2026-01-20, all projects now automatically create both asset and game modes together. The `startWith` option has been removed because the "both" option wasn't working correctly, and the unified experience is simpler and more powerful.
 
 ---
 
@@ -75,9 +77,10 @@ interface CreateProjectData {
 ### Positive
 
 * **Single Source of Truth**: One project experience for both assets and games
-* **Flexible Workflows**: Users choose how to start (assets first, game first, or both)
+* **Simplified Workflow**: All projects automatically include both asset and game modes
 * **Automatic Linking**: Assets can be synced to games without manual URL copying
 * **Version Safety**: Locked versions prevent breaking changes from regenerated assets
+* **Seamless Integration**: Users can switch between asset generation and game development without friction
 * **Unified Dashboard**: Single view showing all projects with asset/game status
 
 ### Negative

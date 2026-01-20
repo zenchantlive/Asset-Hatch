@@ -111,7 +111,7 @@ export async function POST(
       );
     }
 
-    const { name, mode } = parsed.data as Omit<CreateProjectData, 'startWith'>;
+    const { name, mode } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
