@@ -17,7 +17,6 @@ import type { CreateProjectData } from "@/lib/types/unified-project";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
-  startWith: z.enum(["assets", "game", "both"]).default("assets"),
 });
 
 // =============================================================================
@@ -82,7 +81,7 @@ export async function GET(): Promise<
 }
 
 // =============================================================================
-// POST - Create a new project (unified with optional game creation)
+// POST - Create a new project (unified - always creates both project and game)
 // =============================================================================
 
 export async function POST(
@@ -112,7 +111,7 @@ export async function POST(
       );
     }
 
-    const { name, mode, startWith } = parsed.data as CreateProjectData;
+    const { name, mode } = parsed.data as Omit<CreateProjectData, 'startWith'>;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -144,9 +143,6 @@ export async function POST(
       }
     }
 
-    // Set initial phase based on startWith
-    const initialPhase = startWith === "game" || startWith === "both" ? "building" : "assets";
-
     // Create initial asset manifest
     const initialManifest = {
       version: "1.0",
@@ -159,58 +155,42 @@ export async function POST(
       },
     };
 
-    let project;
-    let gameId: string | undefined;
-
-    if (startWith === "game" || startWith === "both") {
-      // Use a transaction to ensure atomic creation of project and game
-      project = await prisma.$transaction(async (tx) => {
-        const newProject = await tx.project.create({
-          data: {
-            name,
-            userId: userId,
-            phase: "assets",
-            mode: mode,
-            assetManifest: initialManifest,
-            syncStatus: "clean",
-          },
-        });
-
-        const newGame = await tx.game.create({
-          data: {
-            userId: userId,
-            name: `${name} Game`,
-            phase: "planning",
-            projectId: newProject.id,
-          },
-        });
-        gameId = newGame.id;
-
-        // Update project with game reference and correct phase
-        return tx.project.update({
-          where: { id: newProject.id },
-          data: {
-            gameId: newGame.id,
-            phase: "building",
-          },
-        });
-      });
-    } else {
-      // Create project without a game
-      project = await prisma.project.create({
+    // Always create both project and game in a transaction
+    const { project, gameId } = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
         data: {
           name,
           userId: userId,
-          phase: initialPhase,
+          phase: "assets",
           mode: mode,
           assetManifest: initialManifest,
           syncStatus: "clean",
         },
       });
-    }
+
+      const newGame = await tx.game.create({
+        data: {
+          userId: userId,
+          name: `${name} Game`,
+          phase: "planning",
+          projectId: newProject.id,
+        },
+      });
+
+      // Update project with game reference and set to building phase
+      const updatedProject = await tx.project.update({
+        where: { id: newProject.id },
+        data: {
+          gameId: newGame.id,
+          phase: "building",
+        },
+      });
+
+      return { project: updatedProject, gameId: newGame.id };
+    });
 
     console.log(
-      `✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`
+      `✅ Created unified project: ${project.id} with game: ${gameId}`
     );
 
     return NextResponse.json({

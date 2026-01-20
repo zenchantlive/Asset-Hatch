@@ -65,15 +65,39 @@ describe('/api/projects', () => {
             expect(res.status).toBe(400);
         });
 
-        it('creates a new project', async () => {
+        it('creates a new project with game', async () => {
             authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1', email: 'test@example.com' } }));
             prismaMock.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' } as { id: string }));
-            prismaMock.project.create.mockImplementation(() => Promise.resolve({
-                id: 'new-id',
-                name: 'New Project',
-                phase: 'planning',
-                userId: 'user-1'
-            }));
+            
+            // Mock the transaction to return both project and game
+            prismaMock.$transaction.mockImplementation(async (callback: any) => {
+                return await callback({
+                    project: {
+                        create: () => Promise.resolve({
+                            id: 'new-project-id',
+                            name: 'New Project',
+                            phase: 'assets',
+                            userId: 'user-1'
+                        }),
+                        update: () => Promise.resolve({
+                            id: 'new-project-id',
+                            name: 'New Project',
+                            phase: 'building',
+                            userId: 'user-1',
+                            gameId: 'new-game-id'
+                        })
+                    },
+                    game: {
+                        create: () => Promise.resolve({
+                            id: 'new-game-id',
+                            name: 'New Project Game',
+                            phase: 'planning',
+                            userId: 'user-1',
+                            projectId: 'new-project-id'
+                        })
+                    }
+                });
+            });
 
             const req = new NextRequest('http://localhost/api/projects', {
                 method: 'POST',
@@ -81,11 +105,13 @@ describe('/api/projects', () => {
             });
 
             const res = await POST(req);
-            const body = await res.json() as ProjectResponse;
+            const body = await res.json();
 
             expect(res.status).toBe(200);
-            expect(body.project!.name).toBe('New Project');
-            expect(prismaMock.project.create).toHaveBeenCalled();
+            expect(body.success).toBe(true);
+            expect(body.projectId).toBe('new-project-id');
+            expect(body.gameId).toBe('new-game-id');
+            expect(prismaMock.$transaction).toHaveBeenCalled();
         });
     });
 });
