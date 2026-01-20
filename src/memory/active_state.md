@@ -2,35 +2,31 @@
 
 ## Current Session (2026-01-20)
 
-### Skybox Approval Status Restore + Lint Fixes
-Completed skybox approval status persistence wiring and cleared lint/typecheck errors. PR created for `base/hatch-studios`.
+### Chat UX Polish + Shared Components
+Unified message rendering, actions, prompt chips, pinned context, and quick-fix bars across Planning, Studio, and Studio planning chats. Added shared message parsing utilities and auto-scroll behavior that pauses when users scroll mid-stream.
 
-**Stage:** Code Review
+**Stage:** In Progress
 
-### Hatch Studios Chat UX Phase 1
-Implemented tool-call chips, minimal thinking indicator, and stop controls across planning + studio chats.
+### Skybox Generation Reliability
+Expanded OpenRouter image parsing to read image data from `message.content`/`annotations` and blocked 3D generation from running on skybox assets.
 
-**Stage:** Code Review
+**Stage:** In Progress
 
 **Trello MCP (Next Session Requirement):**
 - Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards, add labels).
 
 **Next Tasks (from Trello):**
-- Chat UI: tool-call chips + minimal thinking state (`Chat Backlog`)
-- Chat UX polish: modern UI + prompt chips/actions/timestamps (`Chat Backlog`)
-- Chat cancel/stop streaming (`Chat Backlog`)
 - Preview screenshot capture (user + AI flow) (`Chat Backlog`)
 - Reset chat history without clearing context (`Chat Backlog`)
 - Queue chat prompts while streaming (`Chat Backlog`)
 - Auto-fix game preview errors (`Gen Backlog`)
-- Studio quick-fix prompt presets (`Gen Backlog`)
 - Skybox generation quality tuning (`Gen Backlog`)
 - BYOK expansion: Tripo API key + settings (`Backend Backlog`)
 
 ---
 
 ## Branch Status
-- **Current:** `fix/skybox-approval-status`
+- **Current:** `feat/chat-ui-uniformity-nth`
 - **Base:** `base/hatch-studios`
 - **Main:** `main`
 

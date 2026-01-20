@@ -37,14 +37,14 @@ export function CompactChatInput({
     }
 
     return (
-        <div className="p-3 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
+        <div className="p-3 bg-gradient-to-t from-background via-background/90 to-transparent border-t border-white/10 safe-bottom">
             <div className="flex items-center gap-2 max-w-4xl mx-auto">
                 {/* Chat toggle button */}
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onToggleChat}
-                    className="h-12 w-12 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all outline-none"
+                    className="h-12 w-12 rounded-xl glass-panel text-white/70 hover:text-white active:scale-95 transition-all outline-none"
                 >
                     <MessageSquare className="h-5 w-5 text-white/70" />
                 </Button>
@@ -67,7 +67,7 @@ export function CompactChatInput({
                         placeholder={placeholder}
                         disabled={isLoading}
                         maxRows={4}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all resize-none min-h-[48px] flex items-center"
+                        className="flex-1 glass-panel border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-none min-h-[48px]"
                     />
 
                     <Button
@@ -83,6 +83,9 @@ export function CompactChatInput({
                             <Send className="h-5 w-5" />
                         )}
                     </Button>
+                    <div className="hidden md:flex items-center text-xs text-white/40">
+                        Shift+Enter for newline
+                    </div>
                 </form>
             </div>
         </div>

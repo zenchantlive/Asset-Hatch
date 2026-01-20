@@ -55,7 +55,7 @@ export interface FluxGenerationResult {
  */
 interface OpenRouterImageMessage {
     role: string;
-    content: string;
+    content: string | OpenRouterContentPart[] | OpenRouterContentPart;
     images?: Array<{
         index?: number;
         type?: string;
@@ -66,7 +66,81 @@ interface OpenRouterImageMessage {
             url: string;
         };
     }>;
+    annotations?: OpenRouterContentPart[];
 }
+
+interface OpenRouterContentPart {
+    type?: string;
+    text?: string;
+    url?: string;
+    data?: string;
+    b64_json?: string;
+    image_url?: {
+        url?: string;
+    };
+    image?: {
+        url?: string;
+        data?: string;
+        b64_json?: string;
+        mime_type?: string;
+    };
+}
+
+const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
+    if (part.image_url?.url) {
+        return part.image_url.url;
+    }
+
+    if (part.image?.url) {
+        return part.image.url;
+    }
+
+    if (part.url) {
+        return part.url;
+    }
+
+    if (part.image?.data) {
+        return `data:image/png;base64,${part.image.data}`;
+    }
+
+    if (part.data) {
+        return `data:image/png;base64,${part.data}`;
+    }
+
+    if (part.image?.b64_json) {
+        return `data:image/png;base64,${part.image.b64_json}`;
+    }
+
+    if (part.b64_json) {
+        return `data:image/png;base64,${part.b64_json}`;
+    }
+
+    return "";
+};
+
+const extractImageUrlFromContent = (
+    content: OpenRouterImageMessage["content"]
+): string => {
+    if (Array.isArray(content)) {
+        for (const part of content) {
+            const imageUrl = getImageUrlFromPart(part);
+            if (imageUrl) {
+                return imageUrl;
+            }
+        }
+        return "";
+    }
+
+    if (typeof content === "object" && content) {
+        return getImageUrlFromPart(content);
+    }
+
+    if (typeof content === "string" && content.startsWith("data:image/")) {
+        return content;
+    }
+
+    return "";
+};
 
 /**
  * Generate an image using OpenRouter's Flux models
@@ -179,6 +253,19 @@ export async function generateFluxImage(
         } else if (firstImage.b64_json) {
             // Format: { b64_json: "base64..." }
             imageUrl = `data:image/png;base64,${firstImage.b64_json}`;
+        }
+    }
+
+    if (!imageUrl) {
+        imageUrl = extractImageUrlFromContent(message.content);
+    }
+
+    if (!imageUrl && message.annotations && Array.isArray(message.annotations)) {
+        for (const part of message.annotations) {
+            imageUrl = getImageUrlFromPart(part);
+            if (imageUrl) {
+                break;
+            }
         }
     }
 
