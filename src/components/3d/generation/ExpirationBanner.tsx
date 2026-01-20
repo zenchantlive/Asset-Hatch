@@ -3,7 +3,7 @@
 /**
  * ExpirationBanner Component
  * 
- * One-time education banner that warns users about Tripo3D URL expiration.
+ * One-time education banner that warns users about unapproved 3D model URL expiration.
  * Shown once per user (tracked in localStorage).
  */
 
@@ -27,7 +27,8 @@ function getInitialVisibility(): boolean {
  * ExpirationBanner - Dismissable one-time education banner
  * 
  * Shows on first visit to 3D generation mode to inform users
- * that model download links expire after ~24 hours.
+ * that unapproved model download links expire after ~24 hours,
+ * but approved models are permanent.
  */
 export function ExpirationBanner() {
     // Track if banner should be shown - uses function initializer for SSR safety
@@ -51,9 +52,10 @@ export function ExpirationBanner() {
 
             {/* Message */}
             <div className="flex-1 text-sm text-white/80">
-                <span className="font-medium text-amber-400">Heads up!</span> Generated 3D
-                models have download links that expire after ~24 hours. Export or regenerate
-                before they time out!
+                <span className="font-medium text-amber-400">Heads up!</span> 3D model download
+                links expire after ~24 hours unless approved and saved to your project. Export
+                or approve before they time out. Approved models are saved permanently and are
+                safe to use any time.
             </div>
 
             {/* Dismiss button */}
