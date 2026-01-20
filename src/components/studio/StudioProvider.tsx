@@ -43,7 +43,6 @@ export function StudioProvider({
     const [isPlaying, setIsPlaying] = useState<boolean>(true);
     const [previewKey, setPreviewKey] = useState<number>(0);
     const [pendingFixRequest, setPendingFixRequest] = useState<{ id: string; message: string; line?: number; fileName?: string; stack?: string } | null>(null);
-    const pendingFixIdRef = useRef<string>('');
     
     // Multi-file state - replaces single code string
     const [files, setFiles] = useState<GameFileData[]>(initialFiles);
