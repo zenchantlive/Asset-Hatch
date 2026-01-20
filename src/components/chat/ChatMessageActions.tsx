@@ -34,7 +34,11 @@ const copyToClipboard = async (text: string) => {
   if (!text.trim()) {
     return;
   }
-  await navigator.clipboard.writeText(text);
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    console.error('❌ Copy failed:', error);
+  }
 };
 
 export function ChatMessageActions({
