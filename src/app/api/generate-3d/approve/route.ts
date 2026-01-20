@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
                             update: {},
                             create: {
                                 gameId,
-                                assetProjectId: projectId,
+                                projectId,
                                 assetType: "3d",
                                 assetId: asset.id,
                                 assetName: asset.name || asset.assetId,

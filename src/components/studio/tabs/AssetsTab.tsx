@@ -82,6 +82,7 @@ export function AssetsTab() {
             // Clear result after 3 seconds
             setTimeout(() => setSyncResult(null), 3000);
             } catch (error) {
+                console.error('❌ Asset sync failed:', error);
                 setSyncResult({ success: false, message: 'Network error' });
             } finally {
             setSyncing(false);

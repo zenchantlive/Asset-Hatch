@@ -24,7 +24,7 @@ const createSceneSchema = z.object({
 // =============================================================================
 
 interface RouteContext {
-    params: Promise<{ id: string }>;
+    params: { id: string };
 }
 
 // =============================================================================
@@ -53,7 +53,7 @@ export async function GET(
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await context.params;
+        const params = context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -107,7 +107,7 @@ export async function POST(
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = await context.params;
+        const params = context.params;
         const session = await auth();
 
         // Return 401 if no valid session

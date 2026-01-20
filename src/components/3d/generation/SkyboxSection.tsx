@@ -18,7 +18,7 @@
  * @see SkyboxViewer.tsx for 360 preview component
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     Cloud,
     Play,
@@ -117,6 +117,10 @@ export function SkyboxSection({
 
     // Get available image generation models
     const imageModels = getImageGenerationModels(CURATED_MODELS);
+
+    useEffect(() => {
+        setApprovalStatus(initialApprovalStatus || 'pending');
+    }, [initialApprovalStatus, projectId]);
 
     // Handle Clean Seams
     const handleCleanSeams = async () => {
