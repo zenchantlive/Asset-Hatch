@@ -4,7 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
-import { Send, Sparkles, Square } from 'lucide-react';
+import { Pencil, Send, Sparkles, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useStudio } from '@/lib/studio/context';
@@ -44,6 +44,8 @@ interface StudioToolCallPayload {
  */
 export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const [input, setInput] = useState("");
+  const [queuedPrompts, setQueuedPrompts] = useState<string[]>([]);
+  const isQueueSendingRef = useRef(false);
   const hasRestoredMessages = useRef(false);
 
   // Get studio context to update code/preview when tools execute
@@ -277,13 +279,41 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     }
   }, [messages.length, isLoading]);
 
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming") {
+      return;
+    }
+    if (queuedPrompts.length === 0 || isQueueSendingRef.current) {
+      return;
+    }
+    const [nextPrompt, ...rest] = queuedPrompts;
+    isQueueSendingRef.current = true;
+    setQueuedPrompts(rest);
+    const messageBody: { gameId: string; projectContext?: string } = { gameId };
+    if (projectContext) {
+      messageBody.projectContext = JSON.stringify(projectContext);
+    }
+    sendMessage({ text: nextPrompt }, { body: messageBody });
+    const timer = window.setTimeout(() => {
+      isQueueSendingRef.current = false;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [queuedPrompts, status, sendMessage, gameId, projectContext]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) {
-      console.log('📨 Sending message to /api/studio/chat with gameId:', gameId, 'hasContext:', !!projectContext);
-      sendMessage({ text: input }, { body: buildMessageBody() });
-      setInput("");
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return;
     }
+    if (isLoading) {
+      setQueuedPrompts((current) => [...current, trimmed]);
+      setInput("");
+      return;
+    }
+    console.log('📨 Sending message to /api/studio/chat with gameId:', gameId, 'hasContext:', !!projectContext);
+    sendMessage({ text: trimmed }, { body: buildMessageBody() });
+    setInput("");
   };
 
   const presets = getStudioPresets().map((preset) => ({
@@ -330,6 +360,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
       if (!extracted.hasTextContent) {
         continue;
       }
+      setMessages(messages.slice(0, index));
       sendMessage(
         { text: extracted.textContent },
         {
@@ -338,6 +369,34 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
       );
       return;
     }
+  };
+
+  const handleResetChat = async () => {
+    if (!window.confirm("Reset this chat history? This won't change your project context.")) {
+      return;
+    }
+    setInput("");
+    setQueuedPrompts([]);
+    setMessages([]);
+    try {
+      await chatStorage.clearMessages(gameId);
+    } catch (error) {
+      console.error("Failed to clear chat storage:", error);
+    }
+    localStorage.removeItem(`studio-conversation-${gameId}`);
+  };
+
+  const handleQueueEdit = (index: number) => {
+    const prompt = queuedPrompts[index];
+    if (!prompt) {
+      return;
+    }
+    setQueuedPrompts((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setInput(prompt);
+  };
+
+  const handleQueueDelete = (index: number) => {
+    setQueuedPrompts((current) => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
   const pinnedSummary = projectContext?.gameConcept
@@ -457,6 +516,47 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             className="mb-3 max-w-3xl mx-auto w-full"
           />
         )}
+        {queuedPrompts.length > 0 && (
+          <div className="mb-2 max-w-3xl mx-auto w-full">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+              <span className="font-medium text-white/80">Queued</span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[0.7rem] text-white/70">
+                {queuedPrompts.length}
+              </span>
+              <span className="opacity-70">Will send after this response.</span>
+            </div>
+            <div className="mt-2 space-y-2">
+              {queuedPrompts.map((prompt, index) => (
+                <div
+                  key={`${index}-${prompt.slice(0, 12)}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground"
+                >
+                  <span className="truncate text-white/80" title={prompt}>
+                    {prompt}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleQueueEdit(index)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                      aria-label="Edit queued message"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQueueDelete(index)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                      aria-label="Delete queued message"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"
@@ -473,30 +573,40 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
               }
             }}
             placeholder="Describe your game idea or ask me to create a scene..."
-            disabled={showLoading}
             minRows={1}
             maxRows={10}
             className="flex-1 glass-panel px-4 py-3 rounded-xl border-white/10 focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all text-base shadow-lg resize-none custom-scrollbar bg-transparent placeholder:text-muted-foreground outline-none"
           />
-          {showLoading ? (
+          {showLoading && (
             <Button
               type="button"
               onClick={() => stop?.()}
               size="icon"
               className="h-12 w-12 rounded-xl glass-panel text-white/80 shadow-lg hover:text-white hover:border-white/30 active:scale-95 transition-all duration-200"
+              aria-label="Stop response"
             >
               <Square className="h-5 w-5" />
             </Button>
-          ) : (
-            <Button
-              type="submit"
-              disabled={!input.trim()}
-              size="icon"
-              className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
           )}
+          <Button
+            type="submit"
+            disabled={!input.trim()}
+            size="icon"
+            className="h-12 w-12 rounded-xl aurora-gradient text-white shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200"
+            aria-label={showLoading ? "Queue message" : "Send message"}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void handleResetChat()}
+            size="icon"
+            variant="ghost"
+            className="h-12 w-12 rounded-xl glass-panel text-white/70 shadow-lg hover:text-white hover:border-white/30 active:scale-95 transition-all duration-200"
+            aria-label="Reset chat history"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
         </form>
       </div>
     </div>
