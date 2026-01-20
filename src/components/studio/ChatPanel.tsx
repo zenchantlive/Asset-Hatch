@@ -244,6 +244,8 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   }, [messages, gameId]);
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
+  const pendingFixPromptRef = useRef<string | null>(null);
+  
   useEffect(() => {
     if (pendingFixRequest && !isLoading) {
       console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
@@ -255,19 +257,27 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
       }
       fixPrompt += `: ${pendingFixRequest.message}`;
       
-      // Send the fix prompt
-      setInput(fixPrompt);
+      // Store in ref for comparison after state update
+      pendingFixPromptRef.current = fixPrompt;
       
-      // Clear the pending request
+      // Clear the pending request first
       clearFixRequest();
       
-      // Auto-submit the form
+      // Update input state
+      setInput(fixPrompt);
+    }
+  }, [pendingFixRequest, isLoading, clearFixRequest]);
+  
+  // Submit form after input state is updated (fixes race condition)
+  useEffect(() => {
+    if (input === pendingFixPromptRef.current && pendingFixPromptRef.current !== null) {
+      pendingFixPromptRef.current = null;
       const form = document.querySelector('form');
       if (form) {
         form.requestSubmit();
       }
     }
-  }, [pendingFixRequest, isLoading, clearFixRequest]);
+  }, [input]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
