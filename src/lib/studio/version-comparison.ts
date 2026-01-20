@@ -508,7 +508,7 @@ export async function syncAssetVersion(refId: string): Promise<{
       {
         animatedModelUrls: lockedSource3D?.animatedModelUrls ?? null,
         promptUsed: lockedSource3D?.promptUsed ?? null,
-        glbUrl: assetRef.glbUrl,
+        glbUrl: lockedSource3D?.glbUrl ?? assetRef.glbUrl,
       },
       {
         animatedModelUrls: source3D.animatedModelUrls,
