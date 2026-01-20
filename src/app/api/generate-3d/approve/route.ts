@@ -86,82 +86,73 @@ export async function POST(req: NextRequest) {
 
         // If approved, update shared docs and link to game
         if (status === "approved") {
-            // Update asset-inventory.md shared document
-            await updateAssetInventoryDocument(projectId, {
-                name: asset.name || asset.assetId,
-                type: "3d" as const,
-                description: asset.promptUsed || undefined,
-                animations: asset.animatedModelUrls
-                    ? Object.keys(JSON.parse(asset.animatedModelUrls))
-                    : undefined,
-            });
+            const approvalTasks = [];
 
-            // Create GameAssetRef for the linked game (so AI can use it)
+            // Task 1: Update asset-inventory.md shared document
+            approvalTasks.push(
+                updateAssetInventoryDocument(projectId, {
+                    name: asset.name || asset.assetId,
+                    type: "3d" as const,
+                    description: asset.promptUsed || undefined,
+                    animations: asset.animatedModelUrls
+                        ? Object.keys(JSON.parse(asset.animatedModelUrls))
+                        : undefined,
+                }).catch(e => ({ status: 'rejected', reason: `Failed to update asset inventory: ${e instanceof Error ? e.message : e}` }))
+            );
+
+            // Task 2: Create GameAssetRef and upload to R2
             if (project.gameId) {
-                const createdRef = await prisma.gameAssetRef.upsert({
-                    where: {
-                        gameId_assetId: {
-                            gameId: project.gameId,
-                            assetId: asset.id,
-                        },
-                    },
-                    update: {},
-                    create: {
-                        gameId: project.gameId,
-                        projectId,
-                        assetType: "3d",
-                        assetId: asset.id,
-                        assetName: asset.name || asset.assetId,
-                        thumbnailUrl: asset.draftModelUrl || null,
-                        modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
-                        glbUrl: asset.riggedModelUrl || null,
-                        manifestKey: (asset.name || asset.assetId).toLowerCase().replace(/\s+/g, "_"),
-                        createdAt: new Date(),
-                    },
-                });
-                console.log("✅ Created GameAssetRef for approved asset:", asset.name || asset.assetId);
-
-                // Phase 11: Upload GLB to R2 for permanent access
-                const sourceUrl = asset.riggedModelUrl || asset.draftModelUrl;
-                if (sourceUrl && project.gameId) {
-                    try {
-                        console.log("📥 Downloading GLB for R2 upload:", sourceUrl);
-                        const glbResult = await downloadAssetAsBuffer(sourceUrl);
-
-                        if (glbResult.success && glbResult.data) {
-                            const objectKey = buildR2ObjectKey({
+                const gameId = project.gameId;
+                approvalTasks.push(
+                    (async () => {
+                        const createdRef = await prisma.gameAssetRef.upsert({
+                            where: { gameId_assetId: { gameId, assetId: asset.id } },
+                            update: {},
+                            create: {
+                                gameId,
                                 projectId,
+                                assetType: "3d",
                                 assetId: asset.id,
                                 assetName: asset.name || asset.assetId,
-                            });
+                                thumbnailUrl: asset.draftModelUrl || null,
+                                modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
+                                glbUrl: asset.riggedModelUrl || null,
+                                manifestKey: (asset.name || asset.assetId).toLowerCase().replace(/\s+/g, "_"),
+                                createdAt: new Date(),
+                            },
+                        });
+                        console.log("✅ Created GameAssetRef for approved asset:", asset.name || asset.assetId);
 
-                            const uploadResult = await uploadGlbToR2(glbResult.data, objectKey);
+                        const sourceUrl = asset.riggedModelUrl || asset.draftModelUrl;
+                        if (!sourceUrl) return;
 
-                            if (uploadResult.success && uploadResult.url) {
-                                await prisma.gameAssetRef.update({
-                                    where: { id: createdRef.id },
-                                    data: {
-                                        glbUrl: uploadResult.url,
-                                        modelUrl: uploadResult.url,
-                                    },
-                                });
-                                console.log("✅ Uploaded GLB to R2 for asset:", asset.name || asset.assetId);
-                            } else {
-                                console.warn(
-                                    "⚠️ Failed to upload GLB to R2, using URL fallback:",
-                                    uploadResult.error
-                                );
-                            }
-                        } else {
-                            console.warn("⚠️ Failed to download GLB, using URL fallback:", glbResult.error);
+                        const glbResult = await downloadAssetAsBuffer(sourceUrl);
+                        if (!glbResult.success || !glbResult.data) {
+                            throw new Error(`Failed to download GLB: ${glbResult.error}`);
                         }
-                    } catch (error) {
-                        // Non-blocking: URL fallback still works if download fails
-                        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-                        console.warn("⚠️ R2 upload error (using URL fallback):", errorMessage);
-                    }
-                }
+
+                        const objectKey = buildR2ObjectKey({ projectId, assetId: asset.id, assetName: asset.name || asset.assetId });
+                        const uploadResult = await uploadGlbToR2(glbResult.data, objectKey);
+
+                        if (!uploadResult.success || !uploadResult.url) {
+                            throw new Error(`Failed to upload GLB to R2: ${uploadResult.error}`);
+                        }
+
+                        await prisma.gameAssetRef.update({
+                            where: { id: createdRef.id },
+                            data: { glbUrl: uploadResult.url, modelUrl: uploadResult.url },
+                        });
+                        console.log("✅ Uploaded GLB to R2 for asset:", asset.name || asset.assetId);
+                    })().catch(e => ({ status: 'rejected', reason: `Failed to create GameAssetRef or upload to R2: ${e instanceof Error ? e.message : e}` }))
+                );
             }
+
+            const results = await Promise.allSettled(approvalTasks);
+            results.forEach(result => {
+                if (result.status === 'rejected') {
+                    console.warn("⚠️ A non-blocking error occurred during asset approval:", result.reason);
+                }
+            });
         }
 
         return NextResponse.json({
