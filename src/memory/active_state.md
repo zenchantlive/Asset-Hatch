@@ -7,6 +7,8 @@ Unified message rendering, actions, prompt chips, pinned context, and quick-fix 
 
 **Stage:** In Progress
 
+Recent progress: added chat prompt queueing during streaming, reset-chat history action (preserving context), retry behavior to remove last user+assistant before resending, and queued message visibility with edit/delete controls across Planning, Studio, and Studio planning chats.
+
 ### Skybox Generation Reliability
 Expanded OpenRouter image parsing to read image data from `message.content`/`annotations` and blocked 3D generation from running on skybox assets.
 
@@ -16,9 +18,7 @@ Expanded OpenRouter image parsing to read image data from `message.content`/`ann
 - Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards, add labels).
 
 **Next Tasks (from Trello):**
-- Preview screenshot capture (user + AI flow) (`Chat Backlog`)
-- Reset chat history without clearing context (`Chat Backlog`)
-- Queue chat prompts while streaming (`Chat Backlog`)
+- Preview screenshot capture (user + AI flow) (`Chat Backlog`) — scheduled for the session after next
 - Auto-fix game preview errors (`Gen Backlog`)
 - Skybox generation quality tuning (`Gen Backlog`)
 - BYOK expansion: Tripo API key + settings (`Backend Backlog`)
@@ -26,7 +26,7 @@ Expanded OpenRouter image parsing to read image data from `message.content`/`ann
 ---
 
 ## Branch Status
-- **Current:** `feat/chat-ui-uniformity-nth`
+- **Current:** `feat/chat-ux`
 - **Base:** `base/hatch-studios`
 - **Main:** `main`
 
