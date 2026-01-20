@@ -268,15 +268,13 @@ class IndexedDBChatStorage implements ChatStorage {
      */
     private compressMessages(messages: UIMessage[]): StoredMessage[] {
         return messages.map(msg => {
-            // Use any to bypass version-specific field differences in UIMessage
-            const m = msg as any;
-            const content = m.content || '';
-            const createdAt = m.createdAt;
-            const parts = m.parts;
+            const content = msg.content ?? '';
+            const createdAt = msg.createdAt;
+            const parts = msg.parts;
 
             const result: StoredMessage = {
-                id: m.id || '',
-                role: m.role || 'user',
+                id: msg.id || '',
+                role: msg.role || 'user',
                 content,
                 createdAt,
             };

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { ChatInterface, ChatInterfaceHandle } from "@/components/planning/ChatInterface"
 import { QualitiesBar, ProjectQualities } from "@/components/planning/QualitiesBar"
