@@ -29,7 +29,7 @@ interface StudioProviderProps {
 /**
  * Default Babylon.js scene code for empty files
  */
-// const DEFAULT_FILE_CONTENT = `// Hatch Studios - Babylon.js Scene
+const DEFAULT_FILE_CONTENT = `// Hatch Studios - Babylon.js Scene
 const canvas = document.getElementById('renderCanvas');
 const engine = new BABYLON.Engine(canvas, true);
 const scene = new BABYLON.Scene(engine);
@@ -72,6 +72,7 @@ window.addEventListener('resize', () => {
   engine.resize();
 });
 `;
+
 
 /**
  * StudioProvider - manages all studio state (multi-file support)
