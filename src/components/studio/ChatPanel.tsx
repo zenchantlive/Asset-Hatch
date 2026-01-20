@@ -257,17 +257,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     console.log('🔧 Auto-fixing error:', pendingFixRequest.message);
 
     // Build comprehensive fix prompt with all available context
-    let fixPrompt = `Fix this runtime error`;
-    if (pendingFixRequest.fileName) {
-      fixPrompt += ` in ${pendingFixRequest.fileName}`;
-    }
-    if (pendingFixRequest.line) {
-      fixPrompt += ` on line ${pendingFixRequest.line}`;
-    }
-    fixPrompt += `: ${pendingFixRequest.message}`;
-    if (pendingFixRequest.stack) {
-      fixPrompt += `\n\nStack trace:\n${pendingFixRequest.stack}`;
-    }
+    const fixPrompt = `Fix this runtime error${pendingFixRequest.fileName ? ` in ${pendingFixRequest.fileName}` : ''}${pendingFixRequest.line ? ` on line ${pendingFixRequest.line}` : ''}: ${pendingFixRequest.message}${pendingFixRequest.stack ? `\n\nStack trace:\n${pendingFixRequest.stack}` : ''}`;
 
     // Use append() with error handling - only clear after successful send
     append({
