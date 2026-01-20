@@ -63,6 +63,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     messages,
     setMessages,
     sendMessage,
+    append,
     status,
     stop,
 
@@ -244,6 +245,9 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     saveWithFallback();
   }, [messages, gameId]);
 
+  // Derive loading state (must be defined before effects that reference it)
+  const isLoading = status === 'submitted' || status === 'streaming';
+
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
     if (!pendingFixRequest || isLoading) return;
@@ -280,7 +284,6 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Only show loading state if there are messages (prevents initial loading state)
   const hasMessages = messages.length > 0;
-  const isLoading = status === 'submitted' || status === 'streaming';
   const showLoading = isLoading && hasMessages;
 
   const isNearBottom = () => {
