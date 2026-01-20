@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { GameFileData } from '@/lib/studio/types';
 import { generateAssetLoaderScript } from '@/lib/studio/asset-loader';
 import { manifestEntryToAssetInfo } from '@/lib/studio/types';
-import type { AssetManifest, AssetManifestEntry } from '@/lib/types/unified-project';
+import type { AssetManifest } from '@/lib/types/unified-project';
 import type { AssetInfo } from '@/lib/studio/types';
 
 import { IFRAME_SCRIPTS } from '@/lib/studio/preview-libraries';
@@ -88,22 +88,20 @@ export function PreviewFrame({
     previewKey = 0,
 }: PreviewFrameProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const [currentError, setCurrentError] = useState<ErrorInfo | null>(null);
+    const [errorState, setErrorState] = useState<{ key: string; error: ErrorInfo } | null>(null);
 
     // Concatenate files for preview
     const concatenatedCode = concatenateFiles(files);
+    const currentKey = `${previewKey}:${concatenatedCode}`;
+    const activeError = errorState?.key === currentKey ? errorState.error : null;
 
     // Clear error when preview key changes (new code)
-    useEffect(() => {
-        setCurrentError(null);
-    }, [previewKey, concatenatedCode]);
-
     // Handle fix request
     const handleFixClick = useCallback(() => {
-        if (currentError && onRequestFix) {
-            onRequestFix(currentError);
+        if (activeError && onRequestFix) {
+            onRequestFix(activeError);
         }
-    }, [currentError, onRequestFix]);
+    }, [activeError, onRequestFix]);
 
     // Generate asset loader script if manifest provided
     const assetScript = assetManifest
@@ -191,7 +189,7 @@ ${scriptTags}
             if (!iframeWindow || event.source !== iframeWindow) return;
             if (event.origin !== 'null') return;
             if (data?.type === 'ready') {
-                setCurrentError(null);
+                setErrorState(null);
                 onReady?.();
             } else if (data?.type === 'error') {
                 const errorInfo: ErrorInfo = {
@@ -199,7 +197,7 @@ ${scriptTags}
                     line: data.line,
                     kind: 'runtime',
                 };
-                setCurrentError(errorInfo);
+                setErrorState({ key: currentKey, error: errorInfo });
                 onError?.(data.message);
             } else if (data?.type === 'asset-error') {
                 const errorInfo: ErrorInfo = {
@@ -210,7 +208,7 @@ ${scriptTags}
                     requestId: data.requestId,
                     key: data.key,
                 };
-                setCurrentError(errorInfo);
+                setErrorState({ key: currentKey, error: errorInfo });
                 onError?.(data.message);
             } else if (data?.type === 'asset-resolve-request') {
                 if (!gameId || !iframeRef.current?.contentWindow) return;
@@ -246,7 +244,7 @@ ${scriptTags}
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [gameId, onReady, onError]);
+    }, [currentKey, gameId, onReady, onError]);
 
     return (
         <div className="relative w-full h-full">
@@ -261,45 +259,45 @@ ${scriptTags}
             />
 
             {/* Error overlay with fix button */}
-            {currentError && (
+            {activeError && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-6 z-10">
                     <div className="glass-panel p-6 max-w-md w-full space-y-4 border border-red-500/30">
                         {/* Error header */}
                         <div className="flex items-center gap-3 text-red-400">
                             <AlertTriangle className="w-6 h-6 shrink-0" />
                             <h3 className="font-semibold text-lg">
-                                {currentError.kind === 'asset' ? 'Asset Error' : 'Runtime Error'}
+                                {activeError.kind === 'asset' ? 'Asset Error' : 'Runtime Error'}
                             </h3>
                         </div>
 
                         {/* Error message */}
                         <div className="bg-red-950/50 rounded-lg p-3 border border-red-500/20">
                             <code className="text-sm text-red-300 font-mono break-all">
-                                {currentError.message}
+                                {activeError.message}
                             </code>
-                            {currentError.code && (
+                            {activeError.code && (
                                 <p className="text-xs text-red-400/70 mt-2">
-                                    Code: {currentError.code}
+                                    Code: {activeError.code}
                                 </p>
                             )}
-                            {currentError.stage && (
+                            {activeError.stage && (
                                 <p className="text-xs text-red-400/70 mt-1">
-                                    Stage: {currentError.stage}
+                                    Stage: {activeError.stage}
                                 </p>
                             )}
-                            {currentError.key && (
+                            {activeError.key && (
                                 <p className="text-xs text-red-400/70 mt-1">
-                                    Asset: {currentError.key}
+                                    Asset: {activeError.key}
                                 </p>
                             )}
-                            {currentError.requestId && (
+                            {activeError.requestId && (
                                 <p className="text-xs text-red-400/70 mt-1">
-                                    Request: {currentError.requestId}
+                                    Request: {activeError.requestId}
                                 </p>
                             )}
-                            {currentError.line && currentError.kind === 'runtime' && (
+                            {activeError.line && activeError.kind === 'runtime' && (
                                 <p className="text-xs text-red-400/70 mt-2">
-                                    Line: {currentError.line}
+                                    Line: {activeError.line}
                                 </p>
                             )}
                         </div>
@@ -316,7 +314,7 @@ ${scriptTags}
                                 </Button>
                             )}
                             <Button
-                                onClick={() => setCurrentError(null)}
+                                onClick={() => setErrorState(null)}
                                 variant="outline"
                                 className="flex-1 border-white/20"
                             >

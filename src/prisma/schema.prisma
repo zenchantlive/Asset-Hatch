@@ -30,6 +30,7 @@ model User {
   accounts         Account[]
   sessions         Session[]
   projects         Project[]
+  games            Game[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -361,6 +362,10 @@ model GameAssetRef {
   thumbnailUrl   String?
   modelUrl       String?
   glbUrl         String?
+
+  // Permanent 3D asset storage (Phase 10)
+  // Base64-encoded GLB data for permanent access without URL expiration
+  glbData        String?    @db.Text
 
   // Manifest key (for easy lookup in Project.assetManifest)
   manifestKey    String?

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
 /**
  * GET /api/studio/assets
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
         const type = searchParams.get('type') || 'all'; // '2d' | '3d' | 'all'
         const search = searchParams.get('search') || '';
         const limit = parseInt(searchParams.get('limit') || '50', 10);
+        const includeGlbData = searchParams.get('includeGlbData') === '1';
 
         // Get all user's projects first
         const userProjects = await prisma.project.findMany({
@@ -83,22 +85,58 @@ export async function GET(request: Request) {
                 : Promise.resolve([]),
         ]);
 
-        // Format 3D assets
-        const formatted3D = assets3D.map((asset) => ({
-            id: asset.id,
-            projectId: asset.projectId,
-            name: asset.name || asset.assetId,
-            type: '3d' as const,
-            thumbnailUrl: asset.draftModelUrl || null,
-            modelUrl: asset.riggedModelUrl || asset.draftModelUrl || null,
-            riggedModelUrl: asset.riggedModelUrl,
-            prompt: asset.promptUsed,
-            updatedAt: asset.updatedAt.toISOString(),
-        }));
+        // Phase 10: Get permanent asset data from GameAssetRef
+        const gameAssetRefs = assets3D.length
+            ? await prisma.gameAssetRef.findMany({
+                where: {
+                    projectId: { in: projectIds },
+                    assetType: '3d',
+                    assetId: { in: assets3D.map((asset) => asset.id) },
+                },
+                select: {
+                    assetId: true,
+                    glbUrl: true,
+                    ...(includeGlbData ? { glbData: true } : {}),
+                },
+            })
+            : [];
+
+        const assetRefMap = new Map<string, { glbData: string | null; glbUrl: string | null }>();
+        gameAssetRefs.forEach((ref) => {
+            assetRefMap.set(ref.assetId, {
+                glbData: includeGlbData && 'glbData' in ref ? ref.glbData : null,
+                glbUrl: ref.glbUrl || null,
+            });
+        });
+
+        // Format 3D assets with resolved URLs
+        const formatted3D = await Promise.all(
+            assets3D.map(async (asset) => {
+                const assetRef = assetRefMap.get(asset.id);
+                const glbData = includeGlbData ? assetRef?.glbData || null : null;
+                const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl;
+                const glbUrl = storedUrl
+                    ? await resolveR2AssetUrl(storedUrl)
+                    : null;
+
+                return {
+                    id: asset.id,
+                    projectId: asset.projectId,
+                    name: asset.name || asset.assetId,
+                    type: '3d' as const,
+                    thumbnailUrl: asset.draftModelUrl || null,
+                    modelUrl: glbUrl,
+                    riggedModelUrl: asset.riggedModelUrl,
+                    glbData,
+                    prompt: asset.promptUsed,
+                    updatedAt: asset.updatedAt.toISOString(),
+                };
+            })
+        );
 
         // Format 2D assets
         const formatted2D = assets2D.map((asset) => {
-            let imageUrl = null;
+            let imageUrl: string | null = null;
             try {
                 const metadata = asset.metadata ? JSON.parse(asset.metadata) : {};
                 imageUrl = metadata.imageUrl || null;
@@ -119,7 +157,6 @@ export async function GET(request: Request) {
             };
         });
 
-        // Combine and sort by updatedAt
         const formattedAssets = [...formatted3D, ...formatted2D]
             .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .slice(0, limit);

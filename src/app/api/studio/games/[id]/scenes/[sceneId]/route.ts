@@ -110,7 +110,7 @@ export async function GET(
 }
 
 // =============================================================================
-// PATCH - Update scene data (name, code, orderIndex)
+// PATCH - Update scene data (name, orderIndex)
 // =============================================================================
 
 export async function PATCH(

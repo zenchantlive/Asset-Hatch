@@ -36,6 +36,7 @@ import {
   type UpdatePlanInput,
   type RenameFileInput,
 } from '@/lib/studio/schemas';
+import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
 
 // =============================================================================
 // CREATE SCENE TOOL
@@ -220,79 +221,137 @@ export const listUserAssetsTool = (gameId: string) => {
         // Phase 6: Use projectId from unified project
         const projectId = game.projectId;
         if (!projectId) {
-          return { 
-            success: false, 
-            error: 'Game is not linked to a project. Create a project first to access assets.' 
+          return {
+            success: false,
+            error: 'Game is not linked to a project. Create a project first to access assets.',
           };
         }
 
         console.log('🔗 Querying assets for projectId:', projectId);
 
-        // Query assets from the linked project
-        const assets3D = type === '3d' || type === 'all'
-          ? await prisma.generated3DAsset.findMany({
+        const [assets3D, assets2D] = await Promise.all([
+          type === '3d' || type === 'all'
+            ? prisma.generated3DAsset.findMany({
+                where: {
+                  projectId,
+                  approvalStatus: 'approved',
+                  ...(search && {
+                    OR: [
+                      { name: { contains: search, mode: 'insensitive' } },
+                      { assetId: { contains: search, mode: 'insensitive' } },
+                    ],
+                  }),
+                },
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+              })
+            : Promise.resolve([]),
+          type === '2d' || type === 'all'
+            ? prisma.generatedAsset.findMany({
+                where: {
+                  projectId,
+                  status: 'completed',
+                  ...(search && {
+                    OR: [{ assetId: { contains: search, mode: 'insensitive' } }],
+                  }),
+                },
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+              })
+            : Promise.resolve([]),
+        ]);
+
+        const gameAssetRefs = assets3D.length
+          ? await prisma.gameAssetRef.findMany({
               where: {
-                projectId,
-                approvalStatus: 'approved',
-                // Optional search filter
-                ...(search && {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { assetId: { contains: search, mode: 'insensitive' } },
-                  ],
-                }),
+                gameId,
+                assetType: '3d',
+                assetId: { in: assets3D.map((asset) => asset.id) },
               },
-              take: limit,
-              orderBy: { updatedAt: 'desc' },
+              select: {
+                assetId: true,
+                glbUrl: true,
+              },
             })
           : [];
 
-        // Also check for 2D assets
-        const assets2D = type === '2d' || type === 'all'
-          ? await prisma.generatedAsset.findMany({
-              where: {
-                projectId,
-                approvalStatus: 'approved',
-                // Optional search filter
-                ...(search && {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { assetId: { contains: search, mode: 'insensitive' } },
-                  ],
-                }),
-              },
-              take: limit,
-              orderBy: { updatedAt: 'desc' },
-            })
-          : [];
+        const assetRefMap = new Map<string, { glbUrl: string | null }>();
+        gameAssetRefs.forEach((ref) => {
+          assetRefMap.set(ref.assetId, {
+            glbUrl: ref.glbUrl || null,
+          });
+        });
 
-        // Combine and format assets
-        const combinedAssets = [
-          ...assets3D.map(asset => ({
+        const formatted3D = await Promise.all(
+          assets3D.map(async (asset) => {
+            const assetRef = assetRefMap.get(asset.id);
+            const storedUrl = assetRef?.glbUrl || asset.riggedModelUrl || asset.draftModelUrl;
+            const glbUrl = storedUrl
+              ? await resolveR2AssetUrl(storedUrl)
+              : null;
+
+            let animations: string[] | null = null;
+            if (asset.animatedModelUrls) {
+              try {
+                const parsed = JSON.parse(asset.animatedModelUrls);
+                if (parsed && typeof parsed === 'object') {
+                  animations = Object.keys(parsed);
+                }
+              } catch {
+                animations = null;
+              }
+            }
+
+            return {
+              id: asset.id,
+              name: asset.name || asset.assetId,
+              type: '3d',
+              glbUrl,
+              glbData: null,
+              thumbnailUrl: asset.draftModelUrl || null,
+              projectId: asset.projectId,
+              prompt: asset.promptUsed || null,
+              riggable: asset.isRiggable || false,
+              animations,
+            };
+          })
+        );
+
+        const formatted2D = assets2D.map((asset) => {
+          let imageUrl: string | null = null;
+          let thumbnailUrl: string | null = null;
+          let name = asset.assetId;
+
+          try {
+            if (asset.metadata) {
+              const metadata = JSON.parse(asset.metadata);
+              if (metadata && typeof metadata === 'object') {
+                imageUrl = metadata.imageUrl || null;
+                thumbnailUrl = metadata.thumbnailUrl || null;
+                name = metadata.name || asset.assetId;
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to parse 2D asset metadata for asset ${asset.id}:`, error);
+          }
+
+          return {
             id: asset.id,
-            name: asset.name || asset.assetId,
-            type: '3d',
-            glbUrl: asset.riggedModelUrl || asset.draftModelUrl,
-            thumbnailUrl: asset.riggedModelUrl || asset.draftModelUrl,
-            projectId: asset.projectId,
-          })),
-          ...assets2D.map(asset => ({
-            id: asset.id,
-            name: asset.name || asset.assetId,
+            name,
             type: '2d',
-            imageUrl: asset.imageUrl,
-            thumbnailUrl: asset.thumbnailUrl,
+            imageUrl,
+            thumbnailUrl: thumbnailUrl || imageUrl,
             projectId: asset.projectId,
-          })),
-        ];
+            prompt: asset.promptUsed || null,
+          };
+        });
 
-        // Apply limit after combining
-        const limitedAssets = combinedAssets.slice(0, limit);
+        const combinedAssets = [...formatted3D, ...formatted2D].slice(0, limit);
 
         return {
           success: true,
-          message: `Found ${limitedAssets.length} assets (${assets3D.length} 3D, ${assets2D.length} 2D)`,
-          assets: limitedAssets,
+          message: `Found ${combinedAssets.length} assets (${assets3D.length} 3D, ${assets2D.length} 2D)`,
+          assets: combinedAssets,
         };
       } catch (error) {
         console.error('❌ Failed to list assets:', error);
@@ -445,7 +504,7 @@ export const updateFileTool = (gameId: string) => {
           return { success: false, error: `File not found or access denied` };
         }
 
-        // Update file in database using fileId and gameId
+        // Update file in database using fileId
         const updatedFile = await prisma.gameFile.update({
           where: {
             id: fileId,
@@ -508,7 +567,7 @@ export const deleteFileTool = (gameId: string) => {
           return { success: false, error: 'File not found or access denied' };
         }
 
-        // Delete file from database using fileId and gameId
+        // Delete file from database using fileId
         await prisma.gameFile.delete({
           where: {
             id: fileId,
@@ -554,7 +613,7 @@ export const renameFileTool = (gameId: string) => {
           return { success: false, error: 'File not found or access denied' };
         }
 
-        // Update file name in database using fileId and gameId
+        // Update file name in database using fileId
         const renamedFile = await prisma.gameFile.update({
           where: {
             id: fileId,

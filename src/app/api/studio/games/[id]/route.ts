@@ -52,7 +52,7 @@ export async function GET(
             );
         }
 
-// Find game with ownership verification and soft-delete check
+        // Find game with ownership verification and soft-delete check
         const game = await prisma.game.findFirst({
             where: {
                 id: params.id,

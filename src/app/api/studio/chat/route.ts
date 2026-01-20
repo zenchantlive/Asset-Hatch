@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { createGameTools } from '@/lib/studio/game-tools';
+import { createSharedDocTools } from '@/lib/studio/shared-doc-tools';
 import { getBabylonSystemPrompt } from '@/lib/studio/babylon-system-prompt';
 import { getDefaultModel } from '@/lib/model-registry';
 import type { UnifiedProjectContext } from '@/lib/types/shared-context';
@@ -71,7 +72,6 @@ export async function POST(req: NextRequest) {
         console.warn('Failed to parse projectContext:', error);
       }
     }
-
     // Fetch linked assets for system prompt
     let linkedAssets: Array<{ key: string; type: string; name: string; metadata: Record<string, unknown> }> = [];
 
@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
           manifestKey: true,
           assetType: true,
           assetName: true,
+          assetId: true,
         },
       });
 
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       const [gen3dAssets, gen2dAssets] = await Promise.all([
         prisma.generated3DAsset.findMany({
           where: { id: { in: assetIds } },
-          select: { id: true, promptUsed: true, animatedModelUrls: true },
+          select: { id: true, promptUsed: true, animatedModelUrls: true, isRiggable: true },
         }),
         prisma.generatedAsset.findMany({
           where: { id: { in: assetIds } },
@@ -103,21 +104,25 @@ export async function POST(req: NextRequest) {
       const metadataMap = new Map<string, Record<string, unknown>>();
 
       for (const asset of gen3dAssets) {
-        const metadata: Record<string, unknown> = {
-          prompt: asset.promptUsed || undefined,
-        };
+        const metadata: Record<string, unknown> = {};
+        if (asset.promptUsed) metadata.prompt = asset.promptUsed;
+        if (asset.isRiggable) metadata.rigged = asset.isRiggable;
         if (asset.animatedModelUrls) {
           try {
-            metadata.animations = Object.keys(JSON.parse(asset.animatedModelUrls));
-          } catch {}
+            const parsed = JSON.parse(asset.animatedModelUrls);
+            if (parsed && typeof parsed === 'object') {
+              metadata.animations = Object.keys(parsed);
+            }
+          } catch {
+            // Not valid JSON, or not an object
+          }
         }
         metadataMap.set(asset.id, metadata);
       }
 
       for (const asset of gen2dAssets) {
-        const metadata: Record<string, unknown> = {
-          prompt: asset.promptUsed || undefined,
-        };
+        const metadata: Record<string, unknown> = {};
+        if (asset.promptUsed) metadata.prompt = asset.promptUsed;
         if (asset.metadata) {
           try {
             const meta = JSON.parse(asset.metadata);
@@ -162,13 +167,22 @@ export async function POST(req: NextRequest) {
     // Get game tools
     const gameTools = createGameTools(gameId);
 
+    // Get shared document tools (Phase 7b - these let AI read/write game-design.md, asset-inventory.md, etc.)
+    const sharedDocTools = createSharedDocTools(gameId);
+
+    // Combine all tools
+    const allTools = {
+      ...gameTools,
+      ...sharedDocTools,
+    };
+
     // Stream response with tools
     const result = streamText({
       model: openrouter(chatModel.id),
       messages: modelMessages,
       system: systemPrompt,
       stopWhen: stepCountIs(15), // Allow up to 15 tool calls per request
-      tools: gameTools,
+      tools: allTools,
     });
 
     // CRITICAL: Use toUIMessageStreamResponse()

@@ -1,23 +1,11 @@
 # Active State
 
-## Current Session (2026-01-17)
+## Current Session (2026-01-19)
 
-### PR-06 Merge (Asset Loading Hardening)
-Merged `pr/06-asset-loading-hardening` into `base/hatch-studios` after resolving conflicts locally and pushing to remote.
+### PR-07 (pr/07-sync) Merge Prep
+Rebased `pr/07-sync` onto `base/hatch-studios` and resolved all conflicts locally.
 
-**Highlights:**
-- Hardened asset loader with resolver handshakes + PhotoDome skybox support.
-- Unified project creation with `startWith: assets | game | both`.
-- Asset sync pipeline creates `GameAssetRef` and updates manifest.
-- Studio chat includes `projectContext` and linked asset metadata.
-- Asset listing resolves R2 URLs and auto-links skybox.
-
-**Merge Commit:** `250ee54` on `base/hatch-studios`
-
-### PR-07 (pr/07-sync) Pending
-User rebased `pr/07-sync` onto `base/hatch-studios`; conflicts still need resolution.
-
-**Conflict Set:**
+**Resolved Conflicts:**
 - `src/app/api/projects/[id]/assets/sync/route.ts`
 - `src/app/api/studio/assets/route.ts`
 - `src/app/api/studio/chat/route.ts`
@@ -33,18 +21,18 @@ User rebased `pr/07-sync` onto `base/hatch-studios`; conflicts still need resolu
 - `src/tests/integration/studio-games.test.ts`
 - `src/tests/integration/studio-scenes.test.ts`
 
-**PR-07 Goal Summary:**
-- R2 storage integration for GLB data + migration script.
-- Enhanced asset list/tooling with `includeGlbData` and richer metadata.
-- Asset sync + approval flow uploads GLB to R2 and creates `GameAssetRef`.
-- Shared doc tools added to chat API.
-- Adds chat storage utility (IndexedDB + localStorage fallback).
-- Adds AWS SDK deps; normalizes CRLF → LF.
+**Review Items (from PR suggestions):**
+- ✅ Switched `gameAssetRef` lookup to `gameId` in game tools.
+- ✅ Removed `includeGlbData` from tool schema to avoid oversized responses.
+- ✅ Added JSON guards for `animatedModelUrls` and 2D metadata parsing.
+- ✅ Guarded `resolveR2AssetUrl` calls when URL is null.
+- ✅ Fixed chat storage timestamp handling + quota reduction.
+- ⏳ Decide whether to remove `includeGlbData` support from `/api/studio/assets`.
 
 ---
 
 ## Branch Status
-- **Current:** `base/hatch-studios`
+- **Current:** `pr/07-sync`
 - **Main:** `main`
 
 ---
@@ -138,6 +126,15 @@ OPENROUTER_API_KEY="sk-or-v1-..."
 AUTH_GITHUB_ID="..."
 AUTH_GITHUB_SECRET="..."
 TRIPO_API_KEY="..."
+
+# Storage (R2)
+R2_ACCOUNT_ID="..."
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_BUCKET_NAME="..."
+R2_PUBLIC_BASE_URL="..."
+R2_SIGNED_URL_TTL="..."
+ASSET_PROXY_SECRET="..."
 ```
 
 ---

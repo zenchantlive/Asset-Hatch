@@ -103,36 +103,28 @@ describe('/api/studio/games', () => {
             expect(res.status).toBe(400);
         });
 
-        it('creates game with default scene', async () => {
+        it('creates game with initial file (no default scene)', async () => {
             authMock.mockImplementation(() => Promise.resolve({
-                user: { id: 'user-1', email: 'test@example.com' }
+                user: { id: 'user-1', email: 'test@example.com' },
             }));
 
             // Mock user exists check
             prismaMock.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' }));
 
-            // Mock game creation with scene
+            // Mock game creation with empty scenes list
             const mockGame = {
                 id: 'new-game-id',
                 name: 'New Game',
                 userId: 'user-1',
                 description: null,
-                activeSceneId: 'scene-1',
+                activeSceneId: null,
                 deletedAt: null,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                scenes: [{
-                    id: 'scene-1',
-                    gameId: 'new-game-id',
-                    name: 'Main Scene',
-                    orderIndex: 0,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                }],
+                scenes: [],
             };
 
             prismaMock.game.create.mockImplementation(() => Promise.resolve(mockGame));
-            prismaMock.game.update.mockImplementation(() => Promise.resolve(mockGame));
 
             const req = new NextRequest('http://localhost/api/studio/games', {
                 method: 'POST',
@@ -145,8 +137,7 @@ describe('/api/studio/games', () => {
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
             expect(body.game!.name).toBe('New Game');
-            expect(body.game!.scenes).toHaveLength(1);
-            expect(body.game!.scenes![0].name).toBe('Main Scene');
+            expect(body.game!.scenes).toHaveLength(0);
             expect(prismaMock.game.create).toHaveBeenCalled();
         });
     });
@@ -197,6 +188,7 @@ describe('/api/studio/games/[id]', () => {
                 deletedAt: null,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
+                project: { id: 'project-1' },
                 scenes: [
                     { id: 'scene-1', name: 'Scene 1', orderIndex: 0 },
                     { id: 'scene-2', name: 'Scene 2', orderIndex: 1 },

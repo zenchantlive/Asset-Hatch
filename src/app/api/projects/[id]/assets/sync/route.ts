@@ -110,10 +110,12 @@ export async function POST(
       where: { id: projectId },
       data: { syncStatus: "syncing" },
     });
-
     // Build sync changes array
     const changes: SyncAssetsResponse["changes"] = [];
     const syncedAssetKeys: string[] = [];
+
+    // Get the game ID for creating GameAssetRef records
+    const gameId = project.game?.id;
 
     // Process each pending asset
     for (const assetKey of pendingAssets) {
@@ -139,20 +141,41 @@ export async function POST(
         continue;
       }
 
-      // Create GameAssetRef record for the synced asset
-      await prisma.gameAssetRef.create({
-        data: {
+      const lockedVersionId = asset.lockedVersion ? String(asset.lockedVersion) : null;
+      const lockedAt = lockedVersionId ? new Date() : null;
+
+      // Create or update GameAssetRef for AI access + sync tracking
+      await prisma.gameAssetRef.upsert({
+        where: {
+          gameId_assetId: {
+            gameId: project.game.id,
+            assetId: asset.id,
+          },
+        },
+        update: {
+          projectId: project.id,
+          assetType: asset.type,
+          assetName: asset.name,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
+          manifestKey: assetKey,
+        },
+        create: {
           gameId: project.game.id,
           projectId: project.id,
           assetType: asset.type,
           assetId: asset.id,
           assetName: asset.name,
-          lockedVersionId: asset.lockedVersion ? String(asset.lockedVersion) : null,
-          lockedAt: new Date(),
-          thumbnailUrl: asset.urls.thumbnail,
-          modelUrl: asset.urls.model,
-          glbUrl: asset.urls.glb,
+          lockedVersionId,
+          lockedAt,
+          thumbnailUrl: asset.urls.thumbnail || null,
+          modelUrl: asset.urls.model || null,
+          glbUrl: asset.urls.glb || null,
           manifestKey: assetKey,
+          createdAt: new Date(),
         },
       });
 

@@ -227,7 +227,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
     });
 
     describe('PATCH - Update Scene', () => {
-        it('updates scene name and code', async () => {
+        it('updates scene name', async () => {
             authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1' } }));
 
             prismaMock.game.findFirst.mockImplementation(() => Promise.resolve({
