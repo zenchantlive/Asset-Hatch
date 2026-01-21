@@ -13,13 +13,13 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 // =============================================================================
 
 type ParentRoute = (
-    req: Request,
-    props: { params: { id: string } }
+    req: NextRequest,
+    props: { params: Promise<{ id: string }> }
 ) => Promise<Response>;
 
 type NestedRoute = (
-    req: Request,
-    props: { params: { id: string; sceneId: string } }
+    req: NextRequest,
+    props: { params: Promise<{ id: string; sceneId: string }> }
 ) => Promise<Response>;
 
 describe('/api/studio/games/[id]/scenes', () => {
@@ -40,7 +40,7 @@ describe('/api/studio/games/[id]/scenes', () => {
             authMock.mockImplementation(() => Promise.resolve(null));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes');
-            const res = await GET(req, { params: { id: 'game-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1' }) });
 
             expect(res.status).toBe(401);
         });
@@ -50,7 +50,7 @@ describe('/api/studio/games/[id]/scenes', () => {
             prismaMock.game.findFirst.mockImplementation(() => Promise.resolve(null));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes');
-            const res = await GET(req, { params: { id: 'game-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1' }) });
 
             expect(res.status).toBe(404);
         });
@@ -72,7 +72,7 @@ describe('/api/studio/games/[id]/scenes', () => {
             ]));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes');
-            const res = await GET(req, { params: { id: 'game-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1' }) });
             const body = await res.json() as SceneListResponse;
 
             expect(res.status).toBe(200);
@@ -89,7 +89,7 @@ describe('/api/studio/games/[id]/scenes', () => {
                 method: 'POST',
                 body: JSON.stringify({ name: 'New Scene' }),
             });
-            const res = await POST(req, { params: { id: 'game-1' } });
+            const res = await POST(req,  { params: Promise.resolve({ id: 'game-1' }) });
 
             expect(res.status).toBe(401);
         });
@@ -102,7 +102,7 @@ describe('/api/studio/games/[id]/scenes', () => {
                 method: 'POST',
                 body: JSON.stringify({ name: 'New Scene' }),
             });
-            const res = await POST(req, { params: { id: 'game-1' } });
+            const res = await POST(req,  { params: Promise.resolve({ id: 'game-1' }) });
 
             expect(res.status).toBe(404);
         });
@@ -119,7 +119,7 @@ describe('/api/studio/games/[id]/scenes', () => {
                 method: 'POST',
                 body: JSON.stringify({ name: '' }), // Empty name
             });
-            const res = await POST(req, { params: { id: 'game-1' } });
+            const res = await POST(req,  { params: Promise.resolve({ id: 'game-1' }) });
 
             expect(res.status).toBe(400);
         });
@@ -147,7 +147,7 @@ describe('/api/studio/games/[id]/scenes', () => {
                 method: 'POST',
                 body: JSON.stringify({ name: 'New Scene' }),
             });
-            const res = await POST(req, { params: { id: 'game-1' } });
+            const res = await POST(req,  { params: Promise.resolve({ id: 'game-1' }) });
             const body = await res.json() as SceneResponse;
 
             expect(res.status).toBe(200);
@@ -176,7 +176,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
             authMock.mockImplementation(() => Promise.resolve(null));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1');
-            const res = await GET(req, { params: { id: 'game-1', sceneId: 'scene-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
 
             expect(res.status).toBe(401);
         });
@@ -195,7 +195,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
             prismaMock.gameScene.findFirst.mockImplementation(() => Promise.resolve(null));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1');
-            const res = await GET(req, { params: { id: 'game-1', sceneId: 'scene-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
 
             expect(res.status).toBe(404);
         });
@@ -217,7 +217,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
             }));
 
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1');
-            const res = await GET(req, { params: { id: 'game-1', sceneId: 'scene-1' } });
+            const res = await GET(req,  { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
             const body = await res.json() as SceneResponse;
 
             expect(res.status).toBe(200);
@@ -254,7 +254,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
                 method: 'PATCH',
                 body: JSON.stringify({ name: 'New Name' }),
             });
-            const res = await PATCH(req, { params: { id: 'game-1', sceneId: 'scene-1' } });
+            const res = await PATCH(req,  { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
             const body = await res.json() as SceneResponse;
 
             expect(res.status).toBe(200);
@@ -286,7 +286,7 @@ describe('/api/studio/games/[id]/scenes/[sceneId]', () => {
             const req = new NextRequest('http://localhost/api/studio/games/game-1/scenes/scene-1', {
                 method: 'DELETE',
             });
-            const res = await DELETE(req, { params: { id: 'game-1', sceneId: 'scene-1' } });
+            const res = await DELETE(req,  { params: Promise.resolve({ id: 'game-1', sceneId: 'scene-1' }) });
             const body = await res.json() as { success: boolean };
 
             expect(res.status).toBe(200);
