@@ -143,15 +143,13 @@ const extractImageUrlFromContent = (
     }
 
     if (typeof content === "string") {
-        // Check if it's a data URL
-        if (content.startsWith("data:image/")) {
-            return content;
+        const trimmed = content.trim();
+        if (trimmed.startsWith("data:image/")) {
+            return trimmed;
         }
-        
-        // Check if it's a raw base64 string (common with Gemini models)
-        // Base64 strings are typically long and contain only base64 characters
-        if (content.length > 100 && /^[A-Za-z0-9+/=]+$/.test(content)) {
-            return `data:image/png;base64,${content}`;
+        // Detect valid Base64 (length ≥ 128, only valid chars, ends with up to two '=')
+        if (trimmed.length >= 128 && /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)) {
+            return `data:image/png;base64,${trimmed}`;
         }
     }
 
