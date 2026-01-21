@@ -15,6 +15,7 @@ export interface AssetLoaderScriptOptions {
   gameId?: string;
   timeoutMs?: number;
   resolveTimeoutMs?: number;
+  debug?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export function generateAssetLoaderScript(
       timeoutMs: options.timeoutMs ?? 8000,
       resolveTimeoutMs: options.resolveTimeoutMs ?? 6000,
       parentOrigin: parentOrigin,
+      debug: options.debug ?? false,
     },
     null,
     2
@@ -41,16 +43,26 @@ export function generateAssetLoaderScript(
   return `
 (function() {
   'use strict';
-  
+
   // Asset registry - populated from parent
   const ASSET_REGISTRY = new Map();
   const ASSET_CONFIG = ${configJson};
   const RESOLVE_REQUESTS = new Map();
-  
+
   // Initialize registry with assets
   ${assetsJson}.forEach(function(asset) {
     ASSET_REGISTRY.set(asset.key, asset);
   });
+
+  // Debug logging helper - only logs when debug mode is enabled
+  function debugLog(stage, message, data) {
+    if (!ASSET_CONFIG.debug) return;
+    if (data !== undefined) {
+      console.log('[ASSETS:DEBUG] [' + stage + '] ' + message, data);
+    } else {
+      console.log('[ASSETS:DEBUG] [' + stage + '] ' + message);
+    }
+  }
 
   function createRequestId(prefix) {
     const stamp = Date.now().toString(36);
@@ -78,6 +90,7 @@ export function generateAssetLoaderScript(
       assetType: error.assetType,
       source: error.source
     });
+    debugLog('error', 'Full error details:', error);
 
     if (window.parent && window.parent.postMessage) {
       window.parent.postMessage({
@@ -101,6 +114,7 @@ export function generateAssetLoaderScript(
       const timer = setTimeout(function() {
         if (settled) return;
         settled = true;
+        debugLog('timeout', 'Operation timed out after ' + timeoutMs + 'ms');
         reject(onTimeout());
       }, timeoutMs);
 
@@ -134,19 +148,31 @@ export function generateAssetLoaderScript(
   function registerResolveListener() {
     if (registerResolveListener.initialized) return;
     registerResolveListener.initialized = true;
+    debugLog('init', 'Registering postMessage listener for asset resolution');
 
     window.addEventListener('message', function(event) {
       const data = event.data;
       if (event.source !== window.parent) return;
-      
+
       // Validate origin - must match our own origin
       if (event.origin !== window.location.origin && event.origin !== 'null') return;
-      
+
       if (!data || data.type !== 'asset-resolve-response') return;
       const requestId = data.requestId;
       if (!requestId) return;
+
+      debugLog('resolve', 'Received postMessage response for requestId: ' + requestId, {
+        success: data.success,
+        url: data.url ? (data.url.substring(0, 80) + '...') : null,
+        source: data.source,
+        error: data.error
+      });
+
       const resolver = RESOLVE_REQUESTS.get(requestId);
-      if (!resolver) return;
+      if (!resolver) {
+        debugLog('resolve', 'No pending resolver found for requestId: ' + requestId);
+        return;
+      }
       RESOLVE_REQUESTS.delete(requestId);
       if (data.success && data.url) {
         resolver.resolve(data);
@@ -158,15 +184,20 @@ export function generateAssetLoaderScript(
 
   function requestResolveFromParent(key, requestId) {
     registerResolveListener();
+    debugLog('resolve', 'Requesting URL from parent for key: ' + key, { requestId: requestId });
+
     return new Promise(function(resolve, reject) {
       RESOLVE_REQUESTS.set(requestId, { resolve: resolve, reject: reject });
       if (window.parent && window.parent.postMessage) {
-        window.parent.postMessage({
+        var message = {
           type: 'asset-resolve-request',
           requestId: requestId,
           key: key
-        }, ASSET_CONFIG.parentOrigin);
+        };
+        debugLog('resolve', 'Sending postMessage to parent', message);
+        window.parent.postMessage(message, ASSET_CONFIG.parentOrigin);
       } else {
+        debugLog('resolve', 'Parent window unavailable - cannot resolve asset');
         RESOLVE_REQUESTS.delete(requestId);
         reject({
           success: false,
@@ -178,19 +209,31 @@ export function generateAssetLoaderScript(
 
   function resolveAssetUrl(key, asset, requestId, fallbackCandidate) {
     const candidate = fallbackCandidate || asset.urls.glb || asset.urls.model;
+
+    debugLog('resolve', 'Starting URL resolution for key: ' + key, {
+      hasCandidate: !!candidate,
+      isDataUrl: candidate ? candidate.startsWith('data:') : false,
+      hasGameId: !!ASSET_CONFIG.gameId
+    });
+
     if (candidate && candidate.startsWith('data:')) {
+      debugLog('resolve', 'Using data URL directly (no parent resolution needed)');
       return Promise.resolve({ url: candidate, source: 'data' });
     }
 
     if (!ASSET_CONFIG.gameId) {
+      debugLog('resolve', 'No gameId configured - using manifest URL', { url: candidate });
       return Promise.resolve({ url: candidate || null, source: 'manifest' });
     }
+
+    debugLog('resolve', 'Requesting URL from parent (gameId: ' + ASSET_CONFIG.gameId + ')');
 
     return withTimeout(
       requestResolveFromParent(key, requestId),
       ASSET_CONFIG.resolveTimeoutMs,
       function() {
         RESOLVE_REQUESTS.delete(requestId);
+        debugLog('resolve', 'Resolution request timed out after ' + ASSET_CONFIG.resolveTimeoutMs + 'ms');
         return {
           success: false,
           error: 'RESOLVE_TIMEOUT'
@@ -198,6 +241,10 @@ export function generateAssetLoaderScript(
       }
     ).then(function(response) {
       if (response && response.url) {
+        debugLog('resolve', 'Got resolved URL', {
+          url: response.url.substring(0, 80) + '...',
+          source: response.source || 'resolver'
+        });
         return { url: response.url, source: response.source || 'resolver' };
       }
 
@@ -223,7 +270,7 @@ export function generateAssetLoaderScript(
       });
     });
   }
-  
+
   /**
    * ASSETS global helper for loading linked assets in preview
    */
@@ -238,7 +285,17 @@ export function generateAssetLoaderScript(
     load: function(key, scene, options) {
       var requestId = createRequestId('asset');
       var asset = ASSET_REGISTRY.get(key);
+
+      debugLog('load', 'Loading asset: ' + key, {
+        type: asset ? asset.type : 'unknown',
+        requestId: requestId,
+        hasScene: !!scene
+      });
+
       if (!asset) {
+        debugLog('load', 'Asset not found in registry: ' + key, {
+          availableKeys: Array.from(ASSET_REGISTRY.keys())
+        });
         var notFoundError = buildAssetError({
           code: 'ASSET_NOT_FOUND',
           stage: 'registry',
@@ -266,6 +323,7 @@ export function generateAssetLoaderScript(
       // Handle 3D models (both regular URLs and data URLs)
       if (asset.type === '3d' || asset.metadata.animations) {
         var timeoutMs = (options && options.timeoutMs) ? options.timeoutMs : ASSET_CONFIG.timeoutMs;
+        debugLog('load', 'Loading 3D asset with timeout: ' + timeoutMs + 'ms');
 
         return withTimeout(
           resolveAssetUrl(key, asset, requestId).then(function(resolved) {
@@ -287,6 +345,7 @@ export function generateAssetLoaderScript(
             var loadPromise;
 
             if (isDataUrl) {
+              debugLog('babylon', 'Importing mesh from data URL (length: ' + resolved.url.length + ')');
               loadPromise = BABYLON.SceneLoader.ImportMeshAsync(
                 '',
                 '',
@@ -297,6 +356,10 @@ export function generateAssetLoaderScript(
               );
             } else {
               var urlParts = parseUrlParts(resolved.url);
+              debugLog('babylon', 'Importing mesh from URL', {
+                root: urlParts.root,
+                file: urlParts.file
+              });
               loadPromise = BABYLON.SceneLoader.ImportMeshAsync(
                 '',
                 urlParts.root,
@@ -308,11 +371,16 @@ export function generateAssetLoaderScript(
             }
 
             return loadPromise.then(function(result) {
+              debugLog('load', 'Successfully loaded 3D asset: ' + key, {
+                meshCount: result.meshes ? result.meshes.length : 0,
+                hasAnimations: !!(asset.metadata && asset.metadata.animations)
+              });
               console.log('[ASSETS] Loaded 3D asset: ' + key);
-              
+
               // Guard against missing meshes
               if (!result.meshes || result.meshes.length === 0) {
                 console.warn('[ASSETS] GLB loaded but contains no meshes: ' + key);
+                debugLog('load', 'Warning: GLB contains no meshes');
                 return null;
               }
 
@@ -324,7 +392,7 @@ export function generateAssetLoaderScript(
                 rootNode.metadata = rootNode.metadata || {};
                 rootNode.metadata.animations = asset.metadata.animations;
               }
-              
+
               return rootNode;
             });
           }),
@@ -340,6 +408,10 @@ export function generateAssetLoaderScript(
             });
           }
         ).catch(function(error) {
+          debugLog('load', 'Failed to load 3D asset: ' + key, {
+            errorCode: error && error.code,
+            errorMessage: error && error.message
+          });
           var loadError = error && error.code ? error : buildAssetError({
             code: 'LOAD_FAILED',
             stage: 'load',
@@ -356,6 +428,7 @@ export function generateAssetLoaderScript(
       // Handle skyboxes (equirectangular panorama images)
       if (asset.type === 'skybox') {
         var skyboxTimeout = (options && options.timeoutMs) ? options.timeoutMs : ASSET_CONFIG.timeoutMs;
+        debugLog('load', 'Loading skybox asset with timeout: ' + skyboxTimeout + 'ms');
 
         return withTimeout(
           resolveAssetUrl(key, asset, requestId).then(function(resolved) {
@@ -373,6 +446,9 @@ export function generateAssetLoaderScript(
               throw skyUrlError;
             }
 
+            debugLog('babylon', 'Creating PhotoDome for skybox: ' + key, {
+              url: resolved.url.substring(0, 80) + '...'
+            });
             var dome = new BABYLON.PhotoDome(
               key + '_skybox',
               resolved.url,
@@ -380,6 +456,7 @@ export function generateAssetLoaderScript(
               scene
             );
             dome.imageMode = BABYLON.PhotoDome.MODE_MONOSCOPIC;
+            debugLog('load', 'Successfully loaded skybox asset: ' + key);
             console.log('[ASSETS] Loaded skybox asset: ' + key);
             return dome;
           }),
@@ -395,6 +472,10 @@ export function generateAssetLoaderScript(
             });
           }
         ).catch(function(error) {
+          debugLog('load', 'Failed to load skybox asset: ' + key, {
+            errorCode: error && error.code,
+            errorMessage: error && error.message
+          });
           var skyboxLoadError = error && error.code ? error : buildAssetError({
             code: 'LOAD_FAILED',
             stage: 'load',
@@ -410,6 +491,8 @@ export function generateAssetLoaderScript(
 
       // Handle 2D textures
       if (asset.type === '2d') {
+        debugLog('load', 'Loading 2D texture asset: ' + key);
+
         return withTimeout(
           resolveAssetUrl(key, asset, requestId, asset.urls.model || asset.urls.thumbnail).then(function(resolved) {
             if (!resolved.url) {
@@ -426,6 +509,9 @@ export function generateAssetLoaderScript(
               throw textureError;
             }
 
+            debugLog('babylon', 'Creating Texture for 2D asset: ' + key, {
+              url: resolved.url.substring(0, 80) + '...'
+            });
             return new Promise(function(resolve, reject) {
               var texture = new BABYLON.Texture(
                 resolved.url,
@@ -434,10 +520,12 @@ export function generateAssetLoaderScript(
                 false,
                 BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
                 function() {
+                  debugLog('load', 'Successfully loaded 2D asset: ' + key);
                   console.log('[ASSETS] Loaded 2D asset: ' + key);
                   resolve(texture);
                 },
                 function(message) {
+                  debugLog('load', 'Failed to load 2D asset: ' + key, { message: message });
                   reject(buildAssetError({
                     code: 'LOAD_FAILED',
                     stage: 'load',
@@ -462,6 +550,10 @@ export function generateAssetLoaderScript(
             });
           }
         ).catch(function(error) {
+          debugLog('load', 'Failed to load 2D asset: ' + key, {
+            errorCode: error && error.code,
+            errorMessage: error && error.message
+          });
           var textureLoadError = error && error.code ? error : buildAssetError({
             code: 'LOAD_FAILED',
             stage: 'load',
@@ -475,6 +567,7 @@ export function generateAssetLoaderScript(
         });
       }
 
+      debugLog('load', 'Unsupported asset type: ' + asset.type);
       var typeError = buildAssetError({
         code: 'UNSUPPORTED_TYPE',
         stage: 'load',
@@ -486,7 +579,7 @@ export function generateAssetLoaderScript(
       reportAssetError(typeError);
       return Promise.reject(typeError);
     },
-    
+
     /**
      * Get asset metadata by key
      * @param key - Asset manifest key
@@ -495,7 +588,7 @@ export function generateAssetLoaderScript(
     getInfo: function(key) {
       return ASSET_REGISTRY.get(key);
     },
-    
+
     /**
      * List all available asset keys
      * @returns Array of asset keys
@@ -503,7 +596,7 @@ export function generateAssetLoaderScript(
     list: function() {
       return Array.from(ASSET_REGISTRY.keys());
     },
-    
+
     /**
      * Get all assets as array
      * @returns Array of AssetInfo
@@ -512,7 +605,8 @@ export function generateAssetLoaderScript(
       return Array.from(ASSET_REGISTRY.values());
     }
   };
-  
+
+  debugLog('init', 'Debug mode enabled - verbose logging active');
   console.log('[ASSETS] Initialized with ' + ASSET_REGISTRY.size + ' assets');
 })();
   `.trim();

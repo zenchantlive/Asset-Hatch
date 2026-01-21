@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { AssetBrowser } from '../AssetBrowser';
 import { AssetCounter } from '../AssetCounter';
 import { AssetLimitWarning } from '../AssetLimitModal';
@@ -25,41 +25,31 @@ export function AssetsTab() {
     const [assetType, setAssetType] = useState<'all' | '2d' | '3d'>('all');
     const [syncing, setSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
-    const [stored3DCount, setStored3DCount] = useState(0); console.log("ASSET_THRESHOLDS", ASSET_THRESHOLDS);
-    const { game } = useStudio();
+    const [stored3DCount, setStored3DCount] = useState(0);
+    const { game, assetManifest } = useStudio();
 
     // Get projectId from game (1:1 relation)
     const projectId = game?.projectId;
     const limit = ASSET_THRESHOLDS.SAFE;
 
-    // Fetch count of 3D assets with permanent storage
-    const fetchStoredCount = useCallback(async () => {
-        if (!game?.id) return;
-
-        try {
-            const response = await fetch(`/api/studio/games/${game.id}/assets`);
-            if (response.ok) {
-                const manifest = await response.json();
-                const assets = manifest.assets || {};
-                // Count 3D assets that have glbData stored
-                const assetArray = Object.values(assets) as Array<{
-                    type: string;
-                    urls?: { glbData?: string };
-                }>;
-                const count = assetArray.filter(
-                    (a) =>
-                        (a.type === '3d' || a.type === 'model') && a.urls?.glbData
-                ).length;
-                setStored3DCount(count);
-            }
-        } catch (err) {
-            console.warn('Failed to fetch asset storage count:', err);
-        }
-    }, [game?.id]);
-
+    // Calculate count of 3D assets with permanent storage from shared manifest
     useEffect(() => {
-        fetchStoredCount();
-    }, [fetchStoredCount]);
+        if (!assetManifest) {
+            setStored3DCount(0);
+            return;
+        }
+
+        const assets = assetManifest.assets || {};
+        const assetArray = Object.values(assets) as Array<{
+            type: string;
+            urls?: { glbData?: string };
+        }>;
+        const count = assetArray.filter(
+            (a) =>
+                (a.type === '3d' || a.type === 'model') && a.urls?.glbData
+        ).length;
+        setStored3DCount(count);
+    }, [assetManifest]);
 
     // Handle sync button click
     const handleSync = async () => {
@@ -81,10 +71,10 @@ export function AssetsTab() {
 
             // Clear result after 3 seconds
             setTimeout(() => setSyncResult(null), 3000);
-            } catch (error) {
-                console.error('❌ Asset sync failed:', error);
-                setSyncResult({ success: false, message: 'Network error' });
-            } finally {
+        } catch (error) {
+            console.error('❌ Asset sync failed:', error);
+            setSyncResult({ success: false, message: 'Network error' });
+        } finally {
             setSyncing(false);
         }
     };

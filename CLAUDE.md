@@ -79,3 +79,8 @@ Humorous, narrative-driven, technically honest. Admit mistakes. Highlight "loops
 | Multi-concept query ("auth + error handling") | **Airweave** |
 | Design docs, decisions, patterns | **Airweave** |
 | Github Querey | **Airweave** |
+
+### Skills and Agents
+
+- always use your skills.md which are essentially tools an script  with instructions. they help a lot. reccomend new ones when needed. 
+- Always use parralel agents with detailed system prrompts (see subagent driven development and dispatching paralel agent skills )

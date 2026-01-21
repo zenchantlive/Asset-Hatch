@@ -45,6 +45,12 @@ export interface StudioContextValue {
     // Game metadata actions
     updateGameName: (name: string) => void;
 
+    // Asset Manifest State & Actions
+    assetManifest: import('../types/unified-project').AssetManifest | null;
+    manifestLoading: boolean;
+    manifestError: string | null;
+    fetchAssets: () => Promise<void>;
+
     // Game data sync actions (for AI tool callbacks)
     setGame: (game: GameData) => void;
     refreshGame: () => Promise<void>;

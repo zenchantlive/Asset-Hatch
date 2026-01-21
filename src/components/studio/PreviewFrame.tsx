@@ -24,11 +24,12 @@ import { IFRAME_SCRIPTS } from '@/lib/studio/preview-libraries';
 interface ErrorInfo {
     message: string;
     line?: number;
-    kind: 'runtime' | 'asset';
+    kind: 'runtime' | 'asset' | 'script';
     code?: string;
     stage?: string;
     requestId?: string;
     key?: string;
+    script?: string;
 }
 
 /**
@@ -61,6 +62,32 @@ function concatenateFiles(files: GameFileData[]): string {
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map((f) => f.content)
         .join('\n\n');
+}
+
+/**
+ * Extract filename from a CDN URL for display purposes
+ */
+function getScriptName(url: string): string {
+    const parts = url.split('/');
+    return parts[parts.length - 1] || url;
+}
+
+/**
+ * Generate script tags with onload/onerror handlers for error detection
+ * Each script reports its loading status via window.__scriptStatus
+ */
+function generateScriptTags(scripts: string[]): string {
+    return scripts.map((src, index) => {
+        const scriptName = getScriptName(src);
+        // Use data attributes to safely pass script info without XSS concerns
+        return `  <script
+    src="${src}"
+    data-script-name="${scriptName}"
+    data-script-index="${index}"
+    onload="window.__scriptStatus && window.__scriptStatus.loaded('${scriptName}')"
+    onerror="window.__scriptStatus && window.__scriptStatus.failed('${scriptName}', '${src}')"
+  ></script>`;
+    }).join('\n');
 }
 
 /**
@@ -114,10 +141,9 @@ export function PreviewFrame({
         )
       : '// No assets available';
 
-    // Generate script tags from library manifest
-    const scriptTags = IFRAME_SCRIPTS
-        .map((src) => `  <script src="${src}"></script>`)
-        .join('\n');
+    // Generate script tags with error handling from library manifest
+    const scriptTags = generateScriptTags(IFRAME_SCRIPTS);
+    const totalScripts = IFRAME_SCRIPTS.length;
 
     // Build the HTML document for the iframe with concatenated files
     const iframeContent = `
@@ -139,44 +165,96 @@ export function PreviewFrame({
     }
     #error-overlay.show { display: flex; }
   </style>
+  <script>
+    // Script loading status tracker - initialized before any external scripts load
+    const PARENT_ORIGIN = typeof window !== 'undefined' ? (window.location.origin === 'null' ? '*' : window.location.origin) : '*';
+    const TOTAL_SCRIPTS = ${totalScripts};
+
+    window.__scriptStatus = {
+      loadedCount: 0,
+      failedScripts: [],
+
+      loaded: function(name) {
+        this.loadedCount++;
+        console.log('[Script] Loaded: ' + name + ' (' + this.loadedCount + '/' + TOTAL_SCRIPTS + ')');
+      },
+
+      failed: function(name, url) {
+        this.failedScripts.push({ name: name, url: url });
+        console.error('[Script] Failed to load: ' + name);
+
+        // Show error in overlay using safe DOM manipulation (textContent, not innerHTML)
+        var errorEl = document.getElementById('error-overlay');
+        if (errorEl) {
+          errorEl.textContent = 'Script Load Error: Failed to load ' + name;
+          errorEl.classList.add('show');
+        }
+
+        // Report to parent frame
+        window.parent.postMessage({
+          type: 'script-error',
+          script: name,
+          url: url,
+          message: 'Failed to load external script: ' + name
+        }, PARENT_ORIGIN);
+      },
+
+      allLoaded: function() {
+        return this.loadedCount === TOTAL_SCRIPTS && this.failedScripts.length === 0;
+      }
+    };
+  </script>
 ${scriptTags}
 </head>
 <body>
   <canvas id="renderCanvas"></canvas>
   <div id="error-overlay"></div>
   <script>
-    const PARENT_ORIGIN = typeof window !== 'undefined' ? (window.location.origin === 'null' ? '*' : window.location.origin) : '*';
     // Error handling - capture and send to parent
     window.addEventListener('error', function(e) {
-      const errorEl = document.getElementById('error-overlay');
-      errorEl.textContent = 'Error: ' + e.message + '\\n\\nLine: ' + e.lineno;
-      errorEl.classList.add('show');
+      var errorEl = document.getElementById('error-overlay');
+      if (errorEl) {
+        errorEl.textContent = 'Error: ' + e.message + '\\n\\nLine: ' + e.lineno;
+        errorEl.classList.add('show');
+      }
       window.parent.postMessage({ type: 'error', message: e.message, line: e.lineno }, PARENT_ORIGIN);
     });
 
-    // Ready signal
+    // Ready signal - only fires if no script errors occurred
     window.addEventListener('load', function() {
+      // Check if any scripts failed to load
+      if (window.__scriptStatus && window.__scriptStatus.failedScripts.length > 0) {
+        console.warn('[Preview] Not sending ready signal due to script load failures');
+        return;
+      }
       window.parent.postMessage({ type: 'ready' }, PARENT_ORIGIN);
     });
 
     // Execute user code (concatenated from multiple files)
-    try {
-      // ASSETS global injected before user code
-      ${assetScript}
-      
-      // User code executes after ASSETS is available
-      ${concatenatedCode}
-    } catch (error) {
-      const errorEl = document.getElementById('error-overlay');
-      errorEl.textContent = 'Runtime Error: ' + error.message;
-      errorEl.classList.add('show');
-      window.parent.postMessage({ type: 'error', message: error.message }, PARENT_ORIGIN);
+    // Only execute if all scripts loaded successfully
+    if (window.__scriptStatus && window.__scriptStatus.failedScripts.length === 0) {
+      try {
+        // ASSETS global injected before user code
+        ${assetScript}
+
+        // User code executes after ASSETS is available
+        ${concatenatedCode}
+      } catch (error) {
+        var errorEl = document.getElementById('error-overlay');
+        if (errorEl) {
+          errorEl.textContent = 'Runtime Error: ' + error.message;
+          errorEl.classList.add('show');
+        }
+        window.parent.postMessage({ type: 'error', message: error.message }, PARENT_ORIGIN);
+      }
+    } else {
+      console.warn('[Preview] Skipping user code execution due to script load failures');
     }
 
     // FPS counter (send to parent every second)
     if (typeof engine !== 'undefined') {
       setInterval(function() {
-        const fps = engine.getFps().toFixed(0);
+        var fps = engine.getFps().toFixed(0);
         window.parent.postMessage({ type: 'fps', value: fps }, PARENT_ORIGIN);
       }, 1000);
     }
@@ -200,6 +278,15 @@ ${scriptTags}
                     message: data.message,
                     line: data.line,
                     kind: 'runtime',
+                };
+                setErrorState({ key: currentKey, error: errorInfo });
+                onError?.(data.message);
+            } else if (data?.type === 'script-error') {
+                // Handle script loading failures
+                const errorInfo: ErrorInfo = {
+                    message: data.message,
+                    kind: 'script',
+                    script: data.script,
                 };
                 setErrorState({ key: currentKey, error: errorInfo });
                 onError?.(data.message);
@@ -250,6 +337,16 @@ ${scriptTags}
         return () => window.removeEventListener('message', handleMessage);
     }, [currentKey, gameId, onReady, onError]);
 
+    // Helper function to get error type display name
+    const getErrorTypeName = (kind: ErrorInfo['kind']): string => {
+        switch (kind) {
+            case 'script': return 'Script Load Error';
+            case 'asset': return 'Asset Error';
+            case 'runtime': return 'Runtime Error';
+            default: return 'Error';
+        }
+    };
+
     return (
         <div className="relative w-full h-full">
             {/* Iframe */}
@@ -270,7 +367,7 @@ ${scriptTags}
                         <div className="flex items-center gap-3 text-red-400">
                             <AlertTriangle className="w-6 h-6 shrink-0" />
                             <h3 className="font-semibold text-lg">
-                                {activeError.kind === 'asset' ? 'Asset Error' : 'Runtime Error'}
+                                {getErrorTypeName(activeError.kind)}
                             </h3>
                         </div>
 
@@ -279,6 +376,11 @@ ${scriptTags}
                             <code className="text-sm text-red-300 font-mono break-all">
                                 {activeError.message}
                             </code>
+                            {activeError.script && (
+                                <p className="text-xs text-red-400/70 mt-2">
+                                    Script: {activeError.script}
+                                </p>
+                            )}
                             {activeError.code && (
                                 <p className="text-xs text-red-400/70 mt-2">
                                     Code: {activeError.code}
@@ -302,6 +404,12 @@ ${scriptTags}
                             {activeError.line && activeError.kind === 'runtime' && (
                                 <p className="text-xs text-red-400/70 mt-2">
                                     Line: {activeError.line}
+                                </p>
+                            )}
+                            {/* Script-specific help message */}
+                            {activeError.kind === 'script' && (
+                                <p className="text-xs text-amber-400/80 mt-3">
+                                    This may be a network issue or CDN outage. Try refreshing the page.
                                 </p>
                             )}
                         </div>

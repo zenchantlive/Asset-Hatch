@@ -503,6 +503,14 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   ```
 * **Why:** Supports multi-file editing without reloading entire scene
 
+### Centralized Asset Manifest Pattern
+* **Pattern:** Lift asset manifest fetching and state to `StudioProvider` instead of fetching in individual tabs.
+* **Why:** 
+  - Prevents redundant API calls across `PreviewTab`, `AssetsTab`, and header indicators.
+  - Ensures a single source of truth for asset data.
+  - Simplifies error and loading state management.
+* **Implementation:** Expose `assetManifest`, `manifestLoading`, and `manifestError` through `StudioContext`.
+
 ### AI Tool Integration for Multi-File
 * **Pattern:** ChatPanel's `onToolCall` handler must call `loadFiles()` after file operations
 * **Tools:** `createFile`, `updateFile`, `deleteFile`, `listFiles`, `reorderFiles`

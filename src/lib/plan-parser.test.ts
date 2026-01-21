@@ -120,7 +120,52 @@ describe('parsePlan', () => {
         expect(assets[0].variant.frameCount).toBe(8);
     });
 
-    test('handles empty or malformed input', () => {
+    test('Edge Case: Very large plan with dozens of assets', () => {
+        const largeMarkdown = Array.from({ length: 50 }, (_, i) => `## Category ${i}\n- Asset ${i}`).join('\n');
+        const assets = parsePlan(largeMarkdown, { mode: 'composite', projectId });
+        expect(assets.length).toBe(50);
+        expect(assets[49].name).toBe('Asset 49');
+    });
+
+    test('Edge Case: Unusual characters and deep nesting', () => {
+        const complexMarkdown = `
+## Character-!@#$%^&*()
+- Asset with [Brackets]
+  - Variant / with | slashes
+    `;
+        const assets = parsePlan(complexMarkdown, { mode: 'composite', projectId });
+        expect(assets.length).toBe(1);
+        expect(assets[0].name).toBe('Asset with [Brackets]');
+        expect(assets[0].variant.name).toBe('Variant / with | slashes');
+    });
+
+    test('Failure Path: Malformed mobility tags', () => {
+        const malformedMarkdown = `
+## Characters
+- [MOVEABLE:INVALID] Bad Tag
+- [MOVEABLE:] Empty Tag
+- [STATIONARY:4] Incorrect Param
+        `;
+        const assets = parsePlan(malformedMarkdown, { mode: 'composite', projectId });
+
+        // Should gracefully fall back or handle - currently parser is permissive
+        expect(assets.length).toBe(3);
+        // We check that it doesn't crash and returns reasonable defaults
+        expect(assets[0].mobility.type).toBe('moveable');
+    });
+
+    test('Failure Path: Completely malformed markdown structure', () => {
+        const chaos = `
+---
+Not a header
+* bullet without header
+> quote
+        `;
+        const assets = parsePlan(chaos, { mode: 'composite', projectId });
+        expect(assets).toEqual([]);
+    });
+
+    test('handles empty or malformed input (Regression)', () => {
         expect(parsePlan('', { mode: 'composite', projectId })).toEqual([]);
         expect(parsePlan('# Title Only', { mode: 'composite', projectId })).toEqual([]);
         expect(parsePlan('Just some text', { mode: 'composite', projectId })).toEqual([]);

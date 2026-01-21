@@ -7,11 +7,12 @@
 
 'use client';
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { StudioContext } from '@/lib/studio/context';
 import type { StudioContextValue } from '@/lib/studio/context';
 import type { GameData } from '@/lib/studio/types';
 import type { GameFileData } from '@/lib/studio/types';
+import type { AssetManifest } from '@/lib/types/unified-project';
 import type { ActivityEntry, ActivityFilter } from '@/lib/studio/activity-types';
 
 /**
@@ -37,13 +38,13 @@ export function StudioProvider({
 }: StudioProviderProps) {
     // Game state
     const [game, setGame] = useState<GameData>(initialGame);
-    
+
     // UI state
     const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'assets'>('preview');
     const [isPlaying, setIsPlaying] = useState<boolean>(true);
     const [previewKey, setPreviewKey] = useState<number>(0);
     const [pendingFixRequest, setPendingFixRequest] = useState<{ id: string; message: string; line?: number; fileName?: string; stack?: string } | null>(null);
-    
+
     // Multi-file state - replaces single code string
     const [files, setFiles] = useState<GameFileData[]>(initialFiles);
     const [activeFileId, setActiveFileId] = useState<string | null>(
@@ -57,6 +58,11 @@ export function StudioProvider({
         }
         return [];
     });
+
+    // Asset Manifest state
+    const [assetManifest, setAssetManifest] = useState<AssetManifest | null>(null);
+    const [manifestLoading, setManifestLoading] = useState(false);
+    const [manifestError, setManifestError] = useState<string | null>(null);
 
     // Activity log state
     const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
@@ -87,6 +93,37 @@ export function StudioProvider({
             console.error('Failed to refresh game:', error);
         }
     }, [game.id]);
+
+    // Fetch asset manifest
+    const fetchAssets = useCallback(async () => {
+        if (!game?.id) return;
+
+        setManifestLoading(true);
+        setManifestError(null);
+
+        try {
+            const response = await fetch(`/api/studio/games/${game.id}/assets`);
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => 'Unknown error');
+                throw new Error(`Failed to load assets (${response.status}): ${errorText}`);
+            }
+            const manifest = await response.json();
+            setAssetManifest(manifest);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch asset manifest';
+            console.warn('[StudioProvider] Failed to fetch asset manifest:', error);
+            setManifestError(errorMessage);
+        } finally {
+            setManifestLoading(false);
+        }
+    }, [game?.id]);
+
+    // Initial fetch of assets when game ID changes
+    useEffect(() => {
+        if (game?.id) {
+            fetchAssets();
+        }
+    }, [game?.id, fetchAssets]);
 
     // Load files from API - called after file tools execute
     const loadFiles = useCallback(async () => {
@@ -132,7 +169,7 @@ export function StudioProvider({
             const index = prev.indexOf(fileId);
             if (index === -1) return prev;
             const newOpenFiles = prev.filter((id) => id !== fileId);
-            
+
             // If we just closed the active file, switch to another open file
             if (activeFileId === fileId && newOpenFiles.length > 0) {
                 // If there are files before the closed one, use the previous one
@@ -144,7 +181,7 @@ export function StudioProvider({
                 // No files left, clear active file
                 setTimeout(() => setActiveFileId(null), 0);
             }
-            
+
             return newOpenFiles;
         });
     }, [activeFileId]);
@@ -165,8 +202,8 @@ export function StudioProvider({
     const requestErrorFix = useCallback((error: { message: string; line?: number; fileName?: string; stack?: string }) => {
         console.log('🔧 Error fix requested:', error.message);
         // Generate unique ID with cross-browser compatibility fallback
-        const id = `fix-${typeof crypto !== 'undefined' && crypto.randomUUID 
-            ? crypto.randomUUID() 
+        const id = `fix-${typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
             : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`}`;
         setPendingFixRequest({ ...error, id });
     }, []);
@@ -223,6 +260,10 @@ export function StudioProvider({
             closeFile,
             closeOtherFiles,
             closeAllFiles,
+            assetManifest,
+            manifestLoading,
+            manifestError,
+            fetchAssets,
         }),
         [
             game,
@@ -249,6 +290,10 @@ export function StudioProvider({
             closeAllFiles,
             addActivity,
             clearActivityLog,
+            assetManifest,
+            manifestLoading,
+            manifestError,
+            fetchAssets,
         ]
     );
 

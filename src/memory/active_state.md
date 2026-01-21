@@ -1,6 +1,26 @@
 # Active State
 
-## Current Session (2026-01-20)
+## Current Session (2026-01-21)
+
+### Centralized Asset Manifest Error Handling
+Centralized the fetching and error handling of the game asset manifest in the `StudioProvider`. This resolves redundant API calls and ensures UI consistency across `PreviewTab`, `AssetsTab`, and the `StudioHeader`.
+
+**Implementation:**
+- Added `assetManifest`, `manifestLoading`, and `manifestError` to `StudioProvider` / `StudioContext`.
+- Refactored `PreviewTab` to use shared state and added explicit error/empty states with retry capability.
+- Optimized `AssetsTab` to use the shared manifest for its asset counter.
+- Created ADR-027 to document the architectural decision.
+
+**Files Modified:**
+- `src/lib/studio/context.ts`
+- `src/components/studio/StudioProvider.tsx`
+- `src/components/studio/tabs/PreviewTab.tsx`
+- `src/components/studio/tabs/AssetsTab.tsx`
+- `src/memory/adr/027-centralized-asset-manifest-handling.md`
+
+**Stage:** ✅ Completed (Ready for PR)
+
+## Previous Session (2026-01-20)
 
 ### Chat Model Switcher
 Added a model switcher dropdown to all chat interfaces (Planning, Studio, Game Planning). Users can now select from multiple AI models (MiniMax, Gemini, etc.) directly from the chat input area.
