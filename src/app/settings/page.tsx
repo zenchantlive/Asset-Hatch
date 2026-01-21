@@ -1,5 +1,5 @@
 // Settings page for managing user preferences and API keys
-// Allows users to add their own OpenRouter API key (BYOK)
+// Allows users to add their own OpenRouter and Tripo API keys (BYOK)
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -32,7 +32,7 @@ export default async function SettingsPage({
                     </h1>
                     <p className="text-white/60 mt-1">
                         {isWelcome
-                            ? "Let's get you set up with your OpenRouter API key to start generating assets"
+                            ? "Let's get you set up with your API keys to start generating assets"
                             : "Manage your account and API configuration"}
                     </p>
                 </div>
@@ -48,8 +48,9 @@ export default async function SettingsPage({
                                 🚀 Quick Start
                             </h3>
                             <p className="text-white/80 text-sm mb-4">
-                                To generate your own game assets, you&apos;ll need an OpenRouter API key.
-                                Add your key below to get started, or you can skip this step and add it later.
+                                To generate your own game assets, you&apos;ll need an OpenRouter API key for 2D images
+                                and optionally a Tripo API key for 3D models. Add your keys below to get started,
+                                or you can skip this step and add them later.
                             </p>
                             <Link
                                 href="/dashboard"
@@ -61,14 +62,14 @@ export default async function SettingsPage({
                         </div>
                     )}
 
-                    {/* API Key Section */}
+                    {/* API Keys Section */}
                     <section className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">
-                            OpenRouter API Key
+                            API Keys (BYOK)
                         </h2>
                         <p className="text-white/60 text-sm mb-6">
-                            Add your own OpenRouter API key to use your own credits for image generation.
-                            This is optional — the demo uses shared credits, but adding your own key
+                            Add your own API keys to use your own credits for asset generation.
+                            This is optional — the demo uses shared credits, but adding your own keys
                             gives you unlimited generations.
                         </p>
 
@@ -76,19 +77,35 @@ export default async function SettingsPage({
                         <ApiKeySettings isWelcome={isWelcome} />
                     </section>
 
-                    {/* Get API Key Info */}
+                    {/* OpenRouter Instructions */}
                     <section className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">
-                            How to Get an API Key
+                            How to Get an OpenRouter API Key
                         </h2>
                         <ol className="list-decimal list-inside text-white/60 text-sm space-y-2">
                             <li>Go to <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">openrouter.ai</a></li>
                             <li>Create an account or sign in</li>
                             <li>Navigate to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">API Keys</a></li>
-                            <li>Create a new key and copy it here</li>
+                            <li>Create a new key and copy it here (starts with sk-or-)</li>
                         </ol>
                         <p className="text-white/40 text-xs mt-4">
                             Pricing: ~$0.04 per image generation (Flux 2 Pro)
+                        </p>
+                    </section>
+
+                    {/* Tripo Instructions */}
+                    <section className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">
+                            How to Get a Tripo3D API Key
+                        </h2>
+                        <ol className="list-decimal list-inside text-white/60 text-sm space-y-2">
+                            <li>Go to <a href="https://platform.tripo3d.ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">platform.tripo3d.ai</a></li>
+                            <li>Create an account or sign in</li>
+                            <li>Navigate to your dashboard or API section</li>
+                            <li>Create a new API key and copy it here (starts with tsk-)</li>
+                        </ol>
+                        <p className="text-white/40 text-xs mt-4">
+                            Pricing: ~$0.20 per 3D model generation
                         </p>
                     </section>
 

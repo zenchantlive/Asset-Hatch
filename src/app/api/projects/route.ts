@@ -155,8 +155,12 @@ export async function POST(
       },
     };
 
-    // Always create both project and game in a transaction
-    const { project, gameId } = await prisma.$transaction(async (tx) => {
+    let project;
+    let gameId: string | undefined;
+
+    // Always create project and game together - they are always linked
+    // The startWith parameter only affects initial view, not creation
+    project = await prisma.$transaction(async (tx) => {
       const newProject = await tx.project.create({
         data: {
           name,
@@ -176,17 +180,16 @@ export async function POST(
           projectId: newProject.id,
         },
       });
+      gameId = newGame.id;
 
-      // Update project with game reference and set to building phase
-      const updatedProject = await tx.project.update({
+      // Update project with game reference and correct phase
+      return tx.project.update({
         where: { id: newProject.id },
         data: {
           gameId: newGame.id,
-          phase: "building",
+          phase: initialPhase,
         },
       });
-
-      return { project: updatedProject, gameId: newGame.id };
     });
 
     console.log(
