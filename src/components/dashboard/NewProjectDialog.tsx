@@ -62,11 +62,17 @@ export function NewProjectDialog({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create project");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create project");
       }
 
-      const { projectId } = await response.json();
+      // Redirect based on user's choice
+      // "Assets First" goes to the planning/generation interface
+      // "Game First" goes directly to the studio (if gameId is available from response)
+      const data = await response.json();
+      const { projectId: createdProjectId, gameId } = data;
+
+      console.log("🚀 Project created:", { createdProjectId, gameId, startWith });
 
       // Reset form
       setName("");
@@ -74,11 +80,15 @@ export function NewProjectDialog({
       setStartWith("assets");
       setIsOpen(false);
 
-      // Always redirect to unified project view with selected tab
-      // Both project and game are always created together
-      const tabParam = startWith === "game" ? "game" : "assets";
-      router.push(`/project/${projectId}?tab=${tabParam}`);
-      router.refresh();
+      // Route based on what the user selected
+      if (startWith === "game" && gameId) {
+        console.log("➡️ Navigating to studio:", `/studio/${gameId}`);
+        router.push(`/studio/${gameId}`);
+      } else {
+        console.log("➡️ Navigating to planning:", `/project/${createdProjectId}/planning`);
+        router.push(`/project/${createdProjectId}/planning`);
+      }
+      // Note: router.refresh() removed - can cause race condition with router.push()
     } catch (error) {
       console.error("Failed to create project:", error);
     } finally {

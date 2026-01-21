@@ -25,18 +25,24 @@ export default async function ProjectLayout({
   // Get project ID from params
   const { id } = await params;
 
+  console.log("🔍 Layout: Looking up project:", id, "for user:", session.user.id);
+
   // Verify project exists and belongs to user (or has no owner for legacy projects)
   const project = await prisma.project.findUnique({
     where: { id },
     select: { id: true, userId: true, name: true, phase: true },
   });
 
+  console.log("🔍 Layout: Project found:", project);
+
   if (!project) {
+    console.log("❌ Layout: Project not found, redirecting to dashboard");
     redirect("/dashboard");
   }
 
   // Check ownership: project must have a userId and it must match the session user's id.
   if (!project.userId || project.userId !== session.user.id) {
+    console.log("❌ Layout: Ownership mismatch", { projectUserId: project.userId, sessionUserId: session.user.id });
     redirect("/dashboard");
   }
 

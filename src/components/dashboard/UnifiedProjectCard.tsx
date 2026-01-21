@@ -107,7 +107,7 @@ function formatRelativeTime(date: Date | string): string {
  */
 export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   return (
-    <Link href={`/project/${project.id}`} className="block">
+    <Link href={`/project/${project.id}/planning`} className="block">
       <div className="glass-interactive rounded-lg p-6 hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer">
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
@@ -138,7 +138,7 @@ export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
         {/* Last updated */}
         <div className="flex items-center gap-1 mt-4 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
-          <span>Updated {formatRelativeTime(project.updatedAt)}</span>
+          <span suppressHydrationWarning>Updated {formatRelativeTime(project.updatedAt)}</span>
         </div>
       </div>
     </Link>

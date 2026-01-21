@@ -1,0 +1,38 @@
+fix(routing): Fix project creation flow redirects and lint errors
+
+Story of Collaboration:
+User reported that clicking 'Assets First' or 'Game First' in the New Project 
+dialog was redirecting to a stub page instead of the actual planning interface.
+Through systematic debugging using the roster.md personas (Red Team, Practical
+Implementer, Unintended Consequences), we identified multiple cascading issues:
+
+1. UnifiedProjectCard was linking to /project/[id] (stub) instead of /project/[id]/planning
+2. The /project/[id]/page.tsx was a stub with 'Assets Tab' placeholder
+3. router.refresh() after router.push() may have caused race conditions
+4. A Turbopack bundler crash was masking the actual navigation success
+
+Decisions Made:
+- Converted /project/[id]/page.tsx from stub to a simple redirect to /project/[id]/planning
+- Updated UnifiedProjectCard to link directly to the planning page
+- Removed router.refresh() after router.push() to prevent race conditions
+- Added debug console logging to layout.tsx and NewProjectDialog.tsx
+- Fixed hydration mismatch by adding suppressHydrationWarning to relative time
+
+Challenges:
+- Turbopack bundler crash (Failed to write app endpoint) obscured the real issue
+- Had to trace logs to confirm 200 OK responses before crash
+- Required prisma generate after cache clear to restore @prisma/client
+
+Files Changed:
+- src/components/dashboard/NewProjectDialog.tsx
+- src/components/dashboard/UnifiedProjectCard.tsx
+- src/app/project/[id]/page.tsx
+- src/app/project/[id]/layout.tsx
+- src/components/planning/ChatInterface.tsx
+- src/components/settings/ApiKeySettings.tsx
+- src/components/studio/ChatPanel.tsx
+- src/components/studio/planning/GamePlanChat.tsx
+- src/lib/chat/message-utils.ts
+- src/tests/integration/harness-mocks.ts
+- src/tests/integration/projects.test.ts
+- src/app/api/projects/route.ts
