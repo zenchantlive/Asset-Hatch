@@ -87,7 +87,7 @@ These routes will use the existing `Generated3DAsset` Prisma model (already in s
   - Specific section: Task submission and polling patterns
   - Why: Core API integration patterns
 - [Tripo3D Authentication](https://platform.tripo3d.ai/docs/quick-start)
-  - Specific section: Bearer token authentication (`Authorization: Bearer tsk_***`)
+  - Specific section: Bearer token authentication (`Authorization: Bearer tsk-***`)
   - Why: Required for all API requests
 - [Tripo3D Generation Endpoint](https://platform.tripo3d.ai/docs/generation)
   - Specific section: `text_to_model` task type and parameters
@@ -102,7 +102,7 @@ These routes will use the existing `Generated3DAsset` Prisma model (already in s
 https://api.tripo3d.ai/v2/openapi/task
 
 # Authentication
-Authorization: Bearer tsk_***
+Authorization: Bearer tsk-***
 
 # Example: Text-to-model task
 curl https://api.tripo3d.ai/v2/openapi/task \
@@ -247,7 +247,7 @@ IMPORTANT: Execute every task in order, top to bottom. Each task is atomic and i
 - **IMPLEMENT**: Tripo3D API client utility with authentication and error handling
 - **PATTERN**: Mirror `lib/openrouter-image.ts:84-212` structure (authentication, fetch, error handling)
 - **IMPORTS**: None (this is a base utility)
-- **GOTCHA**: API key starts with "tsk_" prefix (from web search), validate this in code
+- **GOTCHA**: API key starts with "tsk-" prefix (from web search), validate this in code
 - **VALIDATE**: `bun run typecheck` (no errors)
 
 **Implementation Details**:
@@ -274,14 +274,14 @@ headers: { 'Authorization': `Bearer ${apiKey}` }
 - **IMPLEMENT**: Add TRIPO_API_KEY environment variable
 - **PATTERN**: Follow existing OpenRouter pattern in `.env.example`
 - **IMPORTS**: N/A
-- **GOTCHA**: Document that key starts with "tsk_" prefix
+- **GOTCHA**: Document that key starts with "tsk-" prefix
 - **VALIDATE**: Manual inspection (check key is documented)
 
 **Add this line**:
 ```bash
 # Tripo3D API Key (get from https://platform.tripo3d.ai)
-# Key format: tsk_***
-TRIPO_API_KEY="tsk_your_api_key_here"
+# Key format: tsk-***
+TRIPO_API_KEY="tsk-your_api_key_here"
 ```
 
 ### Task 3: CREATE `app/api/generate-3d/route.ts`

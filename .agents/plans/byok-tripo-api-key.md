@@ -165,7 +165,7 @@ tripoApiKey       String?   // User's own Tripo API key for BYOK 3D generation
 - **IMPLEMENT**: Add Tripo key to schema and update handlers
 - **PATTERN**: `src/app/api/settings/route.ts:10-12` - updateSettingsSchema
 - **IMPORTS**: Add Tripo validation function
-- **GOTCHA**: Tripo keys start with `tsk_` - validate format
+- **GOTCHA**: Tripo keys start with `tsk-` - validate format
 - **VALIDATE**: `cd src && bun run typecheck`
 
 ```typescript
@@ -238,7 +238,7 @@ return NextResponse.json({
 
 - **IMPLEMENT**: Add Tripo API key management section
 - **PATTERN**: Mirror OpenRouter section (lines 65-77)
-- **GOTCHA**: Tripo keys start with `tsk_` - validate format
+- **GOTCHA**: Tripo keys start with `tsk-` - validate format
 - **VALIDATE**: `cd src && bun run lint`
 
 ```typescript
@@ -273,7 +273,7 @@ const handleSaveTripo = async () => {
     </h2>
     <p className="text-white/60 text-sm mb-6">
         Add your own Tripo API key for 3D model generation.
-        Key format: tsk_xxxxx
+        Key format: tsk-xxxxx
     </p>
     {/* Tripo key status, input, buttons - mirror OpenRouter pattern */}
 </section>
@@ -307,7 +307,7 @@ const handleSaveTripo = async () => {
         <li>Go to <a href="https://platform.tripo3d.ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">platform.tripo3d.ai</a></li>
         <li>Create an account or sign in</li>
         <li>Navigate to API Keys or your dashboard</li>
-        <li>Create a new key and copy it here (starts with tsk_)</li>
+        <li>Create a new key and copy it here (starts with tsk-)</li>
     </ol>
     <p className="text-white/40 text-xs mt-4">
         Pricing: ~$0.20 per 3D model generation

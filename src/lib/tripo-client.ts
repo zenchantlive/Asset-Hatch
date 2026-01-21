@@ -42,7 +42,7 @@ export interface TripoTaskRequest {
  * Creates a new generation, rigging, or animation task and returns the task ID.
  * The task will be queued and must be polled for status updates.
  *
- * @param apiKey - Tripo API key (starts with "tsk_")
+ * @param apiKey - Tripo API key (starts with "tsk-")
  * @param request - Task request parameters
  * @returns Promise resolving to the created task
  * @throws Error if API key is invalid or request fails
@@ -61,8 +61,8 @@ export async function submitTripoTask(
   request: TripoTaskRequest
 ): Promise<TripoTask> {
   // Validate API key format
-  if (!apiKey || !apiKey.startsWith('tsk_')) {
-    throw new Error('Invalid Tripo API key format (must start with "tsk_")');
+  if (!apiKey || !apiKey.startsWith('tsk-')) {
+    throw new Error('Invalid Tripo API key format (must start with "tsk-")');
   }
 
   console.log('🎨 Submitting Tripo task:', {
@@ -110,7 +110,7 @@ export async function submitTripoTask(
  * - Then every 5 seconds until complete
  * - Max total wait time: 120 seconds
  *
- * @param apiKey - Tripo API key (starts with "tsk_")
+ * @param apiKey - Tripo API key (starts with "tsk-")
  * @param taskId - Tripo task ID to check
  * @returns Promise resolving to the task status
  * @throws Error if API key is invalid or request fails
@@ -128,8 +128,8 @@ export async function pollTripoTaskStatus(
   taskId: string
 ): Promise<TripoTask> {
   // Validate API key format
-  if (!apiKey || !apiKey.startsWith('tsk_')) {
-    throw new Error('Invalid Tripo API key format (must start with "tsk_")');
+  if (!apiKey || !apiKey.startsWith('tsk-')) {
+    throw new Error('Invalid Tripo API key format (must start with "tsk-")');
   }
 
   // Call Tripo API to check status

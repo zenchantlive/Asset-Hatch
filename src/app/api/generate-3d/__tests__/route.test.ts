@@ -39,7 +39,7 @@ describe('POST /api/generate-3d', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Set environment variable for tests
-    process.env.TRIPO_API_KEY = 'tsk_test_key';
+    process.env.TRIPO_API_KEY = 'tsk-test_key';
   });
 
   it('returns 400 if projectId is missing', async () => {
@@ -122,7 +122,7 @@ describe('POST /api/generate-3d', () => {
     expect(data.error).toContain('Tripo API key not configured');
 
     // Restore env var
-    process.env.TRIPO_API_KEY = 'tsk_test_key';
+    process.env.TRIPO_API_KEY = 'tsk-test_key';
   });
 
   it('successfully submits task and creates database record', async () => {
@@ -174,7 +174,7 @@ describe('POST /api/generate-3d', () => {
     expect(data.status).toBe('queued');
 
     // Verify submitTripoTask was called with correct params
-    expect(submitTripoTask).toHaveBeenCalledWith('tsk_test_key', {
+    expect(submitTripoTask).toHaveBeenCalledWith('tsk-test_key', {
       type: 'text_to_model',
       prompt: 'a knight character in T-pose',
     });

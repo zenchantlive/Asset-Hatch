@@ -277,9 +277,9 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
             return;
         }
 
-        // Basic validation - Tripo keys start with tsk_
-        if (!tripoApiKey.startsWith("tsk_")) {
-            setTripoError("Invalid key format. Tripo keys start with 'tsk_'");
+        // Basic validation - Tripo keys start with tsk-
+        if (!tripoApiKey.startsWith("tsk-")) {
+            setTripoError("Invalid key format. Tripo keys start with 'tsk-'");
             return;
         }
 
@@ -379,8 +379,8 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
             {/* Tripo API Key */}
             <ApiKeyInput
                 label="Tripo3D API key"
-                placeholder="tsk_xxxxxxxxxxxxxxxxxxxxxxxx"
-                keyPrefix="tsk_"
+                placeholder="tsk-xxxxxxxxxxxxxxxxxxxxxxxx"
+                keyPrefix="tsk-"
                 description="Add your own Tripo API key to use your own credits for 3D model generation."
                 hasKey={settings?.hasTripoKey ?? false}
                 keyPreview={settings?.tripoKeyPreview ?? null}
