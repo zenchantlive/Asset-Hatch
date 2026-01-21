@@ -1,14 +1,3 @@
----
-name: trello
-type: knowledge
-version: 1.0.0
-agent: CodeActAgent
-triggers:
-- trello
-- board
-- card
----
-
 # Trello Board Management System for Autonomous Agents
 
 <system_spec version="1.0">
@@ -26,7 +15,6 @@ Your Trello updates are your primary communication channel with the human develo
 <!-- ═══════════════════════════════════════════════════════════════════════════
      BOARD STRUCTURE
      ═══════════════════════════════════════════════════════════════════════════ -->
-
 <board_name>Asset Hatch</board_name>
 
 <board_structure>

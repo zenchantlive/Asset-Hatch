@@ -4,7 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useEffect, useRef } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
-import { Pencil, Send, Sparkles, Square, Trash2 } from 'lucide-react';
+import { Pencil, Send, Sparkles, Square, Trash2, Wrench, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useStudio } from '@/lib/studio/context';
@@ -13,7 +13,6 @@ import chatStorage from '@/lib/storage/chat-storage';
 import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
 import { PromptChips } from '@/components/chat/PromptChips';
 import { PinnedContext } from '@/components/chat/PinnedContext';
-import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar';
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
 
@@ -45,6 +44,7 @@ interface StudioToolCallPayload {
 export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [queuedPrompts, setQueuedPrompts] = useState<string[]>([]);
+  const [isPresetsExpanded, setIsPresetsExpanded] = useState(false);
   const isQueueSendingRef = useRef(false);
   const hasRestoredMessages = useRef(false);
   const lastProcessedFixIdRef = useRef<string>('');
@@ -311,6 +311,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     }
   }, [messages.length, isLoading]);
 
+  // Process queued prompts
   useEffect(() => {
     if (status === "submitted" || status === "streaming") {
       return;
@@ -318,21 +319,26 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     if (queuedPrompts.length === 0 || isQueueSendingRef.current) {
       return;
     }
+
     const [nextPrompt, ...rest] = queuedPrompts;
-    
-    // Defer state update to avoid synchronous setState in effect
-    const timerId = window.setTimeout(() => {
-      isQueueSendingRef.current = true;
+    isQueueSendingRef.current = true;
+
+    // Update queue state in next tick to avoid sync effect update warning
+    setTimeout(() => {
       setQueuedPrompts(rest);
-      const messageBody: { gameId: string; projectContext?: string } = { gameId };
-      if (projectContext) {
-        messageBody.projectContext = JSON.stringify(projectContext);
-      }
-      sendMessage({ text: nextPrompt }, { body: messageBody });
+    }, 0);
+
+    const messageBody: { gameId: string; projectContext?: string } = { gameId };
+    if (projectContext) {
+      messageBody.projectContext = JSON.stringify(projectContext);
+    }
+    sendMessage({ text: nextPrompt }, { body: messageBody });
+
+    const timer = window.setTimeout(() => {
       isQueueSendingRef.current = false;
     }, 0);
     
-    return () => window.clearTimeout(timerId);
+    return () => window.clearTimeout(timer);
   }, [queuedPrompts, status, sendMessage, gameId, projectContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -357,6 +363,25 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     prompt: preset.prompt,
     tone: "neutral" as const,
   }));
+
+  // Add contextual presets if messages exist
+  // We don't want these to be "QuickFixBar" style anymore, just standard presets
+  if (hasMessages) {
+    presets.push(
+      {
+        id: "studio-show-changes",
+        label: "Show changes",
+        prompt: "List the latest changes you made to the game files.",
+        tone: "neutral",
+      },
+      {
+        id: "studio-optimize",
+        label: "Optimize performance",
+        prompt: "Analyze the current scene code and suggest performance optimizations.",
+        tone: "neutral",
+      },
+    );
+  }
 
   const buildMessageBody = () => {
     const messageBody: { gameId: string; projectContext?: string } = { gameId };
@@ -440,32 +465,15 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   const pinnedItems = projectContext
     ? [
-        { label: "Audience", value: projectContext.targetAudience },
-        {
-          label: "Features",
-          value: projectContext.keyFeatures.slice(0, 3).join(", ") || "None yet",
-        },
-      ].filter((item) => item.value.length > 0)
+      { label: "Audience", value: projectContext.targetAudience },
+      {
+        label: "Features",
+        value: projectContext.keyFeatures.slice(0, 3).join(", ") || "None yet",
+      },
+    ].filter((item) => item.value.length > 0)
     : [];
 
-  const quickFixActions: QuickFixAction[] = [
-    {
-      id: "studio-fix-blank",
-      label: "Fix blank screen",
-      prompt:
-        "The preview is blank. Diagnose the issue and update the scene so something renders.",
-    },
-    {
-      id: "studio-explain-errors",
-      label: "Explain errors",
-      prompt: "Summarize any preview errors and propose fixes.",
-    },
-    {
-      id: "studio-show-changes",
-      label: "Show changes",
-      prompt: "List the latest changes you made to the game files.",
-    },
-  ];
+
 
   return (
     <div className="flex flex-col h-full">
@@ -483,74 +491,88 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
         >
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
-            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
-              <Sparkles className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
-              What are we building?
-            </h3>
-            <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
-              Describe your game idea. I&apos;ll help you create scenes, add assets, set up physics, and generate all the code.
-            </p>
-          </div>
-        ) : (
-          messages.map((message, index) => {
-            const extracted = extractMessageParts(message);
-            if (!extracted.hasTextContent && !extracted.hasToolCalls) {
-              return null;
-            }
-
-            return (
-              <ChatMessageRow
-                key={`${message.id ?? "msg"}-${index}`}
-                message={message}
-                extracted={extracted}
-                isStreaming={
-                  isLoading &&
-                  message.role === "assistant" &&
-                  index === messages.length - 1
-                }
-                onQuote={buildQuote}
-                onEdit={handleEdit}
-                onRegenerate={() => handleRegenerateFromIndex(index)}
-              />
-            );
-          })
-        )}
-        {showLoading && (
-          <div className="flex justify-start">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
-              <div className="flex gap-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
+              <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
+                <Sparkles className="w-8 h-8 text-primary" />
               </div>
-              <p className="opacity-70">Generating...</p>
+              <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
+                What are we building?
+              </h3>
+              <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
+                Describe your game idea. I&apos;ll help you create scenes, add assets, set up physics, and generate all the code.
+              </p>
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          ) : (
+            messages.map((message, index) => {
+              const extracted = extractMessageParts(message);
+              if (!extracted.hasTextContent && !extracted.hasToolCalls) {
+                return null;
+              }
+
+              return (
+                <ChatMessageRow
+                  key={`${message.id ?? "msg"}-${index}`}
+                  message={message}
+                  extracted={extracted}
+                  isStreaming={
+                    isLoading &&
+                    message.role === "assistant" &&
+                    index === messages.length - 1
+                  }
+                  onQuote={buildQuote}
+                  onEdit={handleEdit}
+                  onRegenerate={() => handleRegenerateFromIndex(index)}
+                />
+              );
+            })
+          )}
+          {showLoading && (
+            <div className="flex justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+                <div className="flex gap-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+                <p className="opacity-70">Generating...</p>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input area - floating style */}
       <div className="p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
         {!isLoading && (
-          <PromptChips
-            presets={presets}
-            onSelect={setInput}
-            className="mb-3 max-w-3xl mx-auto w-full"
-          />
+          <div className="mb-3 max-w-3xl mx-auto w-full">
+            <button
+              type="button"
+              onClick={() => setIsPresetsExpanded(!isPresetsExpanded)}
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-white transition-colors mb-2 ml-1"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              Quick fixes
+              <span className="bg-white/10 text-white/70 px-1.5 py-0.5 rounded text-[10px]">
+                {presets.length}
+              </span>
+              {isPresetsExpanded ? (
+                <ChevronUp className="w-3 h-3 opacity-50" />
+              ) : (
+                <ChevronDown className="w-3 h-3 opacity-50" />
+              )}
+            </button>
+            {isPresetsExpanded && (
+              <PromptChips
+                presets={presets}
+                onSelect={setInput}
+                className="animate-in fade-in slide-in-from-top-2 duration-200"
+              />
+            )}
+          </div>
         )}
-        {hasMessages && (
-          <QuickFixBar
-            actions={quickFixActions}
-            onSelect={setInput}
-            className="mb-3 max-w-3xl mx-auto w-full"
-          />
-        )}
+
         {queuedPrompts.length > 0 && (
           <div className="mb-2 max-w-3xl mx-auto w-full">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">

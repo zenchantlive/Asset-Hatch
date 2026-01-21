@@ -202,15 +202,9 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     },
     {
         id: 'studio-camera',
-        label: 'Improve camera',
+        label: 'Fix camera',
         prompt:
             'Update the camera to frame the scene properly, add smooth controls, and ensure the player or focal object is visible.',
-    },
-    {
-        id: 'studio-controls',
-        label: 'Add controls',
-        prompt:
-            'Add simple player controls (WASD or arrows) and make sure input feels responsive.',
     },
     {
         id: 'studio-physics',
@@ -219,16 +213,22 @@ export const STUDIO_PRESETS: StudioPreset[] = [
             'Review the physics/collision setup and correct any issues with gravity, ground, or colliders.',
     },
     {
+        id: 'studio-control',
+        label: 'Add controls',
+        prompt:
+            'Add simple player controls (WASD or arrows) and make sure input feels responsive.',
+    },
+    {
         id: 'studio-lighting',
-        label: 'Improve lighting',
+        label: 'Fix lighting',
         prompt:
             'Improve lighting to make the scene readable and polished. Use balanced key/fill lights and soft shadows where possible.',
     },
     {
-        id: 'studio-errors',
-        label: 'Explain errors',
+        id: 'studio-error',
+        label: 'Fix error',
         prompt:
-            'Summarize any preview errors, explain what caused them, and outline the fix before applying changes.',
+            'I am seeing this error: [PASTE ERROR HERE]. Please analyze the cause and fix it.',
     },
 ]
 
@@ -275,3 +275,4 @@ export function getPresetById(id: string): PresetPrompt | undefined {
 export function is3DPreset(id: string): boolean {
     return PLAN_3D_PRESETS.some(preset => preset.id === id)
 }
+
