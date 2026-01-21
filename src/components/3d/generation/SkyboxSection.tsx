@@ -66,7 +66,7 @@ interface SkyboxSectionProps {
 const DEFAULT_PROMPT = "a vibrant sunset sky with orange and purple clouds";
 
 /** Default model for skybox generation */
-const DEFAULT_MODEL = "google/gemini-3-pro-image-preview";
+const DEFAULT_MODEL = "google/gemini-2.5-flash-image";
 
 // =============================================================================
 // Main Component
