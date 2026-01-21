@@ -13,8 +13,6 @@ import chatStorage from '@/lib/storage/chat-storage';
 import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
 import { PromptChips } from '@/components/chat/PromptChips';
 import { PinnedContext } from '@/components/chat/PinnedContext';
-import { PromptChips } from '@/components/chat/PromptChips';
-import { PinnedContext } from '@/components/chat/PinnedContext';
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
 
