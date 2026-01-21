@@ -100,7 +100,13 @@ const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
     }
 
     if (part.image?.data) {
-        return `data:image/png;base64,${part.image.data}`;
+        // Check if data already has a prefix
+        if (part.image.data.startsWith("data:image/")) {
+            return part.image.data;
+        }
+        // Use mime_type if available, otherwise default to png
+        const mimeType = part.image.mime_type || "image/png";
+        return `data:${mimeType};base64,${part.image.data}`;
     }
 
     if (part.data) {
@@ -108,7 +114,8 @@ const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
     }
 
     if (part.image?.b64_json) {
-        return `data:image/png;base64,${part.image.b64_json}`;
+        const mimeType = part.image.mime_type || "image/png";
+        return `data:${mimeType};base64,${part.image.b64_json}`;
     }
 
     if (part.b64_json) {
@@ -135,8 +142,17 @@ const extractImageUrlFromContent = (
         return getImageUrlFromPart(content);
     }
 
-    if (typeof content === "string" && content.startsWith("data:image/")) {
-        return content;
+    if (typeof content === "string") {
+        // Check if it's a data URL
+        if (content.startsWith("data:image/")) {
+            return content;
+        }
+        
+        // Check if it's a raw base64 string (common with Gemini models)
+        // Base64 strings are typically long and contain only base64 characters
+        if (content.length > 100 && /^[A-Za-z0-9+/=]+$/.test(content)) {
+            return `data:image/png;base64,${content}`;
+        }
     }
 
     return "";
@@ -249,10 +265,24 @@ export async function generateFluxImage(
             imageUrl = firstImage.url;
         } else if (firstImage.data) {
             // Format: { data: "base64..." }
-            imageUrl = `data:image/png;base64,${firstImage.data}`;
+            // Use mime_type if available, otherwise default to png
+            const mimeType = firstImage.mime_type || "image/png";
+            imageUrl = `data:${mimeType};base64,${firstImage.data}`;
         } else if (firstImage.b64_json) {
             // Format: { b64_json: "base64..." }
-            imageUrl = `data:image/png;base64,${firstImage.b64_json}`;
+            const mimeType = firstImage.mime_type || "image/png";
+            imageUrl = `data:${mimeType};base64,${firstImage.b64_json}`;
+        } else if (firstImage.image) {
+            // Format: { image: { url: "data:..." } } or { image: { data: "base64..." } }
+            if (firstImage.image.url) {
+                imageUrl = firstImage.image.url;
+            } else if (firstImage.image.data) {
+                const mimeType = firstImage.image.mime_type || "image/png";
+                imageUrl = `data:${mimeType};base64,${firstImage.image.data}`;
+            } else if (firstImage.image.b64_json) {
+                const mimeType = firstImage.image.mime_type || "image/png";
+                imageUrl = `data:${mimeType};base64,${firstImage.image.b64_json}`;
+            }
         }
     }
 
