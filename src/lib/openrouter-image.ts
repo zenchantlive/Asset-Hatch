@@ -110,7 +110,13 @@ const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
     }
 
     if (part.data) {
-        return `data:image/png;base64,${part.data}`;
+        const rawData = part.data.trim();
+        if (rawData.startsWith("data:image/")) {
+            return rawData;
+        }
+        // Use mime_type if available, otherwise default to png
+        const mimeType = (part as any).mime_type || "image/png";
+        return `data:${mimeType};base64,${rawData}`;
     }
 
     if (part.image?.b64_json) {
