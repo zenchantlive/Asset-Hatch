@@ -269,13 +269,10 @@ export async function generateFluxImage(
             imageUrl = firstImage.url;
         } else if (firstImage.data) {
             // Format: { data: "base64..." }
-            // Use mime_type if available, otherwise default to png
-            const mimeType = firstImage.mime_type || "image/png";
-            imageUrl = `data:${mimeType};base64,${firstImage.data}`;
+            imageUrl = `data:image/png;base64,${firstImage.data}`;
         } else if (firstImage.b64_json) {
             // Format: { b64_json: "base64..." }
-            const mimeType = firstImage.mime_type || "image/png";
-            imageUrl = `data:${mimeType};base64,${firstImage.b64_json}`;
+            imageUrl = `data:image/png;base64,${firstImage.b64_json}`;
         } else if (firstImage.image) {
             // Format: { image: { url: "data:..." } } or { image: { data: "base64..." } }
             if (firstImage.image.url) {
