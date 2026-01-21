@@ -17,6 +17,7 @@ import type { CreateProjectData } from "@/lib/types/unified-project";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
+  startWith: z.enum(["assets", "game"]).default("assets"),
 });
 
 // =============================================================================
@@ -111,9 +112,12 @@ export async function POST(
       );
     }
 
-    const { name, mode } = parsed.data as CreateProjectData;
+    const { name, mode, startWith } = parsed.data as CreateProjectData & { startWith: "assets" | "game" };
     const userId = session.user.id;
     const userEmail = session.user.email;
+
+    // Define initial phase based on what the user wants to start with
+    const initialPhase = startWith === "game" ? "game" : "assets";
 
     // Verify user exists in DB to prevent Foreign Key errors (P2003)
     // This handles cases where the DB was reset but the user has a valid session cookie
@@ -155,12 +159,11 @@ export async function POST(
       },
     };
 
-    let project;
     let gameId: string | undefined;
 
     // Always create project and game together - they are always linked
     // The startWith parameter only affects initial view, not creation
-    project = await prisma.$transaction(async (tx) => {
+    const project = await prisma.$transaction(async (tx) => {
       const newProject = await tx.project.create({
         data: {
           name,

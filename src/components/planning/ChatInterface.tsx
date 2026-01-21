@@ -47,31 +47,7 @@ export interface ChatInterfaceHandle {
   sendMessage: (message: string) => void;
 }
 
-interface ToolCallPayload {
-  toolName: string;
-  input?: {
-    qualityKey?: string;
-    value?: string;
-    planMarkdown?: string;
-    markdown?: string;
-    prompt?: string;
-    meshStyle?: string;
-    textureQuality?: string;
-    defaultShouldRig?: boolean;
-    defaultAnimations?: string[];
-    [key: string]:
-      | string
-      | boolean
-      | string[]
-      | undefined;
-  };
-  result?: {
-    success?: boolean;
-    imageUrl?: string;
-    styleAnchorId?: string;
-    prompt?: string;
-  };
-}
+
 
 interface ToolResultShape {
   success?: boolean;
@@ -373,7 +349,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       return;
     }
     const [nextPrompt, ...rest] = queuedPrompts;
-    
+
     // Defer state update to avoid synchronous setState in effect
     const timerId = window.setTimeout(() => {
       isQueueSendingRef.current = true;
@@ -389,7 +365,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
       );
       isQueueSendingRef.current = false;
     }, 0);
-    
+
     return () => window.clearTimeout(timerId);
   }, [queuedPrompts, status, sendMessage, qualities, projectId]);
 
@@ -549,9 +525,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
 
   const pinnedSummary = qualityItems.length
     ? qualityItems
-        .slice(0, 3)
-        .map((item) => item.value)
-        .join(" · ")
+      .slice(0, 3)
+      .map((item) => item.value)
+      .join(" · ")
     : "Set your game vision to guide the plan.";
 
   const quickFixActions: QuickFixAction[] = [
@@ -588,56 +564,56 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
         >
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
-            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
-              <Sparkles className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
-              What are we building?
-            </h3>
-            <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
-              Describe your game idea, style, or specific assets. I&apos;ll help you plan and generate everything.
-            </p>
-          </div>
-        ) : (
-          messages.map((message, index) => {
-            const extracted = extractMessageParts(message);
-            if (!extracted.hasTextContent && !extracted.hasToolCalls) {
-              return null;
-            }
-
-            return (
-              <ChatMessageRow
-                key={`${message.id ?? "msg"}-${index}`}
-                message={message}
-                extracted={extracted}
-                isStreaming={
-                  isLoading &&
-                  message.role === "assistant" &&
-                  index === messages.length - 1
-                }
-                onQuote={buildQuote}
-                onEdit={handleEdit}
-                onRegenerate={() => handleRegenerateFromIndex(index)}
-              />
-            );
-          })
-        )}
-        {showLoading && (
-          <div className="flex justify-start">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
-              <div className="flex gap-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
+              <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
+                <Sparkles className="w-8 h-8 text-primary" />
               </div>
-              <p className="opacity-70">Thinking...</p>
+              <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
+                What are we building?
+              </h3>
+              <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
+                Describe your game idea, style, or specific assets. I&apos;ll help you plan and generate everything.
+              </p>
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          ) : (
+            messages.map((message, index) => {
+              const extracted = extractMessageParts(message);
+              if (!extracted.hasTextContent && !extracted.hasToolCalls) {
+                return null;
+              }
+
+              return (
+                <ChatMessageRow
+                  key={`${message.id ?? "msg"}-${index}`}
+                  message={message}
+                  extracted={extracted}
+                  isStreaming={
+                    isLoading &&
+                    message.role === "assistant" &&
+                    index === messages.length - 1
+                  }
+                  onQuote={buildQuote}
+                  onEdit={handleEdit}
+                  onRegenerate={() => handleRegenerateFromIndex(index)}
+                />
+              );
+            })
+          )}
+          {showLoading && (
+            <div className="flex justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+                <div className="flex gap-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+                <p className="opacity-70">Thinking...</p>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input area - floating style */}

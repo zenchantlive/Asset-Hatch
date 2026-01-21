@@ -23,22 +23,15 @@ import { getStudioPresets } from '@/lib/preset-prompts';
  * Type definitions for GamePlanChat component props
  */
 interface GamePlanChatProps {
-  gameId: string;
-  gameName: string;
-  onPlanUpdate: (content: string) => void;
+    gameId: string;
+    gameName: string;
+    onPlanUpdate: (content: string) => void;
 }
 
 /**
  * Type definition for studio plan tool calls
  */
-interface StudioPlanToolCall {
-  toolName: string;
-  args?: {
-    content?: string;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
+
 
 /**
  * GamePlanChat - AI chat for game planning phase
@@ -67,7 +60,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         }),
         onToolCall: ({ toolCall }) => {
             console.log('📝 Plan tool called:', toolCall.toolName);
-            
+
             // Handle plan updates
             // Use type assertion since toolCall.input is typed generically in SDK v6
             const input = toolCall.input as Record<string, unknown> | undefined;
@@ -154,7 +147,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
             return;
         }
         const [nextPrompt, ...rest] = queuedPrompts;
-        
+
         // Defer state update to avoid synchronous setState in effect
         const timerId = window.setTimeout(() => {
             isQueueSendingRef.current = true;
@@ -170,7 +163,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
             );
             isQueueSendingRef.current = false;
         }, 0);
-        
+
         return () => window.clearTimeout(timerId);
     }, [queuedPrompts, status, sendMessage, gameId]);
 
@@ -302,61 +295,61 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                     onScroll={handleScroll}
                     className="flex-1 overflow-y-auto p-6 pt-4 space-y-4"
                 >
-                {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
-                        <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
-                            <Sparkles className="w-8 h-8 text-primary" />
-                        </div>
-                        <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
-                            Let&apos;s plan {gameName}
-                        </h3>
-                        <p className="text-muted-foreground max-w-sm text-base leading-relaxed mb-6">
-                            Describe your game idea. I&apos;ll help you plan the features and files needed to build it.
-                        </p>
-                        <div className="flex flex-col gap-2 text-sm text-muted-foreground/80">
-                            <p>Try saying:</p>
-                            <p className="italic">&quot;I want to make a flight simulator game&quot;</p>
-                            <p className="italic">&quot;A platformer with a knight character&quot;</p>
-                        </div>
-                    </div>
-                ) : (
-                    messages.map((message, index) => {
-                        const extracted = extractMessageParts(message);
-                        if (!extracted.hasTextContent && !extracted.hasToolCalls) {
-                            return null;
-                        }
-
-                        return (
-                            <ChatMessageRow
-                                key={`${message.id ?? 'msg'}-${index}`}
-                                message={message}
-                                extracted={extracted}
-                                isStreaming={
-                                    isLoading &&
-                                    message.role === 'assistant' &&
-                                    index === messages.length - 1
-                                }
-                                onQuote={buildQuote}
-                                onEdit={handleEdit}
-                                onRegenerate={() => handleRegenerateFromIndex(index)}
-                            />
-                        );
-                    })
-                )}
-                {showLoading && (
-                    <div className="flex justify-start">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
-                            <div className="flex gap-1">
-                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                    {messages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center opacity-90">
+                            <div className="p-4 rounded-full bg-primary/10 mb-6 ring-1 ring-primary/20 shadow-[0_0_1.875rem_-0.625rem_var(--color-primary)]">
+                                <Sparkles className="w-8 h-8 text-primary" />
                             </div>
-                            <p className="opacity-70">Planning...</p>
+                            <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
+                                Let&apos;s plan {gameName}
+                            </h3>
+                            <p className="text-muted-foreground max-w-sm text-base leading-relaxed mb-6">
+                                Describe your game idea. I&apos;ll help you plan the features and files needed to build it.
+                            </p>
+                            <div className="flex flex-col gap-2 text-sm text-muted-foreground/80">
+                                <p>Try saying:</p>
+                                <p className="italic">&quot;I want to make a flight simulator game&quot;</p>
+                                <p className="italic">&quot;A platformer with a knight character&quot;</p>
+                            </div>
                         </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
+                    ) : (
+                        messages.map((message, index) => {
+                            const extracted = extractMessageParts(message);
+                            if (!extracted.hasTextContent && !extracted.hasToolCalls) {
+                                return null;
+                            }
+
+                            return (
+                                <ChatMessageRow
+                                    key={`${message.id ?? 'msg'}-${index}`}
+                                    message={message}
+                                    extracted={extracted}
+                                    isStreaming={
+                                        isLoading &&
+                                        message.role === 'assistant' &&
+                                        index === messages.length - 1
+                                    }
+                                    onQuote={buildQuote}
+                                    onEdit={handleEdit}
+                                    onRegenerate={() => handleRegenerateFromIndex(index)}
+                                />
+                            );
+                        })
+                    )}
+                    {showLoading && (
+                        <div className="flex justify-start">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">
+                                <div className="flex gap-1">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-1)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-2)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <div className="h-1.5 w-1.5 rounded-full bg-[var(--aurora-3)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                                <p className="opacity-70">Planning...</p>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
             {/* Input area */}

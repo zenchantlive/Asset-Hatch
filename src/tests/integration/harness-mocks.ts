@@ -36,7 +36,7 @@ interface PrismaMock {
     gameAssetRef: MockModel;
     assetPlacement: MockModel;
     gameChatMessage: MockModel;
-    $transaction: Mock<(callback: any) => Promise<any>>;
+    $transaction: Mock<(arg: unknown) => Promise<unknown>>;
 }
 
 const createMockModel = (): MockModel => ({
@@ -76,7 +76,12 @@ export const prismaMock: PrismaMock = {
     gameAssetRef: createMockModel(),
     assetPlacement: createMockModel(),
     gameChatMessage: createMockModel(),
-    $transaction: mock((callback: any) => Promise.resolve(callback(prismaMock))),
+    $transaction: mock((callback: unknown) => {
+        if (typeof callback === 'function') {
+            return Promise.resolve(callback(prismaMock));
+        }
+        return Promise.resolve(callback);
+    }),
 };
 
 // Auth Mock - returns session with user object
@@ -228,10 +233,10 @@ export const resetAllMocks = () => {
             model.mockReset();
         }
     });
-    
+
     // Reset $transaction mock
     prismaMock.$transaction.mockReset();
-    prismaMock.$transaction.mockImplementation((arg: any) => {
+    prismaMock.$transaction.mockImplementation((arg: unknown) => {
         if (typeof arg === 'function') {
             return Promise.resolve(arg(prismaMock));
         }
@@ -254,6 +259,32 @@ export const resetAllMocks = () => {
 
     // Reset and restore cost tracker
     fetchGenerationCostWithRetryMock.mockReset();
+    // Mock individual model methods
+    prismaMock.project.create.mockImplementation(() => Promise.resolve({
+        id: 'new-project-id',
+        name: 'New Project',
+        phase: 'assets',
+        userId: 'user-1'
+    }));
+
+    prismaMock.project.update.mockImplementation(() => Promise.resolve({
+        id: 'new-project-id',
+        name: 'New Project',
+        phase: 'building',
+        userId: 'user-1',
+        gameId: 'new-game-id'
+    }));
+
+    prismaMock.game.create.mockImplementation(() => Promise.resolve({
+        id: 'new-game-id',
+        name: 'New Project Game',
+        phase: 'planning',
+        userId: 'user-1',
+        projectId: 'new-project-id'
+    }));
+
+    // The default transaction implementation in resetAllMocks handles the callback correctly
+    // by passing the prismaMock itself.
     fetchGenerationCostWithRetryMock.mockImplementation((id: string) => Promise.resolve({
         status: 'success',
         cost: {

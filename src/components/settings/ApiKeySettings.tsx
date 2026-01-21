@@ -26,8 +26,7 @@ interface ApiKeySettingsProps {
 interface ApiKeyInputProps {
     label: string;
     placeholder: string;
-    keyPrefix: string;
-    description: string;
+
     hasKey: boolean;
     keyPreview: string | null;
     isSaving: boolean;
@@ -39,7 +38,6 @@ interface ApiKeyInputProps {
     onShowKeyToggle: () => void;
     onSave: () => void;
     onRemove: () => void;
-    onSuccessChange: (value: boolean) => void;
     onErrorChange: (value: string | null) => void;
     isWelcome?: boolean;
 }
@@ -47,8 +45,7 @@ interface ApiKeyInputProps {
 function ApiKeyInput({
     label,
     placeholder,
-    keyPrefix,
-    description,
+
     hasKey,
     keyPreview,
     isSaving,
@@ -60,7 +57,6 @@ function ApiKeyInput({
     onShowKeyToggle,
     onSave,
     onRemove,
-    onSuccessChange,
     onErrorChange,
     isWelcome = false,
 }: ApiKeyInputProps) {
@@ -355,8 +351,6 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
             <ApiKeyInput
                 label="OpenRouter API key"
                 placeholder="sk-or-xxxxxxxxxxxxxxxxxxxxxxxx"
-                keyPrefix="sk-or-"
-                description="Add your own OpenRouter API key to use your own credits for image generation."
                 hasKey={settings?.hasOpenRouterKey ?? false}
                 keyPreview={settings?.openRouterKeyPreview ?? null}
                 isSaving={isSavingOpenRouter}
@@ -368,7 +362,6 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
                 onShowKeyToggle={() => setShowOpenRouterKey(!showOpenRouterKey)}
                 onSave={handleSaveOpenRouter}
                 onRemove={handleRemoveOpenRouter}
-                onSuccessChange={setOpenRouterSuccess}
                 onErrorChange={setOpenRouterError}
                 isWelcome={isWelcome}
             />
@@ -380,8 +373,6 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
             <ApiKeyInput
                 label="Tripo3D API key"
                 placeholder="tsk_xxxxxxxxxxxxxxxxxxxxxxxx"
-                keyPrefix="tsk_"
-                description="Add your own Tripo API key to use your own credits for 3D model generation."
                 hasKey={settings?.hasTripoKey ?? false}
                 keyPreview={settings?.tripoKeyPreview ?? null}
                 isSaving={isSavingTripo}
@@ -393,7 +384,6 @@ export function ApiKeySettings({ isWelcome = false }: ApiKeySettingsProps) {
                 onShowKeyToggle={() => setShowTripoKey(!showTripoKey)}
                 onSave={handleSaveTripo}
                 onRemove={handleRemoveTripo}
-                onSuccessChange={setTripoSuccess}
                 onErrorChange={setTripoError}
             />
         </div>

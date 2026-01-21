@@ -68,36 +68,37 @@ describe('/api/projects', () => {
         it('creates a new project with game', async () => {
             authMock.mockImplementation(() => Promise.resolve({ user: { id: 'user-1', email: 'test@example.com' } }));
             prismaMock.user.findUnique.mockImplementation(() => Promise.resolve({ id: 'user-1' } as { id: string }));
-            
+
             // Mock the transaction to return both project and game
-            prismaMock.$transaction.mockImplementation(async (callback: any) => {
-                return await callback({
-                    project: {
-                        create: () => Promise.resolve({
-                            id: 'new-project-id',
-                            name: 'New Project',
-                            phase: 'assets',
-                            userId: 'user-1'
-                        }),
-                        update: () => Promise.resolve({
-                            id: 'new-project-id',
-                            name: 'New Project',
-                            phase: 'building',
-                            userId: 'user-1',
-                            gameId: 'new-game-id'
-                        })
-                    },
-                    game: {
-                        create: () => Promise.resolve({
-                            id: 'new-game-id',
-                            name: 'New Project Game',
-                            phase: 'planning',
-                            userId: 'user-1',
-                            projectId: 'new-project-id'
-                        })
-                    }
-                });
-            });
+            // Mock individual model methods
+            prismaMock.project.create.mockImplementation((data) => Promise.resolve({
+                id: 'new-project-id',
+                name: 'New Project',
+                phase: 'assets',
+                userId: 'user-1',
+                ...data
+            }));
+
+            prismaMock.project.update.mockImplementation((data) => Promise.resolve({
+                id: 'new-project-id',
+                name: 'New Project',
+                phase: 'building',
+                userId: 'user-1',
+                gameId: 'new-game-id',
+                ...data
+            }));
+
+            prismaMock.game.create.mockImplementation((data) => Promise.resolve({
+                id: 'new-game-id',
+                name: 'New Project Game',
+                phase: 'planning',
+                userId: 'user-1',
+                projectId: 'new-project-id',
+                ...data
+            }));
+
+            // The default transaction implementation in resetAllMocks handles the callback correctly
+            // by passing the prismaMock itself.
 
             const req = new NextRequest('http://localhost/api/projects', {
                 method: 'POST',

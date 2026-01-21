@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/ui/ModeToggle";
-import { Loader2, Plus, Sparkles, Gamepad2, Layers } from "lucide-react";
+import { Loader2, Plus, Gamepad2, Layers } from "lucide-react";
 
 interface NewProjectDialogProps {
   variant?: "default" | "outline" | "ghost" | "secondary";
@@ -46,7 +46,7 @@ export function NewProjectDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"2d" | "3d" | "hybrid">("3d");
-  const [startWith, setStartWith] = useState<"assets" | "game" | "both">("both");
+  const [startWith, setStartWith] = useState<"assets" | "game">("assets");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -66,12 +66,12 @@ export function NewProjectDialog({
         throw new Error(data.error || "Failed to create project");
       }
 
-      const { projectId, gameId } = await response.json();
+      const { projectId } = await response.json();
 
       // Reset form
       setName("");
       setMode("3d");
-      setStartWith("both");
+      setStartWith("assets");
       setIsOpen(false);
 
       // Always redirect to unified project view with selected tab
@@ -131,17 +131,16 @@ export function NewProjectDialog({
           {/* Start with selection - KEY FEATURE */}
           <div>
             <label className="text-sm font-medium mb-3 block">Start with</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setStartWith("assets")}
                 disabled={isLoading}
                 className={`
                   flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "assets"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
+                  ${startWith === "assets"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50 hover:bg-muted"
                   }
                 `}
               >
@@ -154,40 +153,22 @@ export function NewProjectDialog({
                 disabled={isLoading}
                 className={`
                   flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "game"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
+                  ${startWith === "game"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50 hover:bg-muted"
                   }
                 `}
               >
                 <Gamepad2 className="h-6 w-6" />
                 <span className="text-sm font-medium">Game First</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setStartWith("both")}
-                disabled={isLoading}
-                className={`
-                  flex flex-col items-center py-4 h-auto gap-2 rounded-lg border-2 transition-all
-                  ${
-                    startWith === "both"
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted"
-                  }
-                `}
-              >
-                <Sparkles className="h-6 w-6" />
-                <span className="text-sm font-medium">Both Together</span>
-              </button>
+
             </div>
             <p className="text-sm text-muted-foreground mt-3">
               {startWith === "assets" &&
                 "Generate assets first, then build your game with them"}
               {startWith === "game" &&
                 "Start building your game, add assets later as needed"}
-              {startWith === "both" &&
-                "Create assets and game side by side in the same project"}
             </p>
           </div>
         </div>

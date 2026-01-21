@@ -6,36 +6,9 @@ export interface ExtractedMessageParts {
   createdAt: Date | null;
 }
 
-// Type for individual message parts with extended properties
-type MessagePart = {
-  type: string;
-  text?: string;
-  toolCallId?: string;
-  toolName?: string;
-  [key: string]: unknown;
-};
 
-const isTextPart = (part: MessagePart): part is Extract<MessagePart, { type: "text" | "reasoning"; text?: string }> =>
-  part.type === "text" || part.type === "reasoning";
 
-const isToolPart = (part: MessagePart): boolean =>
-  part.type === "tool-call" || part.type.startsWith("tool-");
 
-const getToolLabel = (part: MessagePart): string => {
-  if ("toolCallId" in part && "toolName" in part) {
-    return part.toolName || "tool";
-  }
-  
-  if (part.type === "tool-call") {
-    return "tool";
-  }
-
-  if (part.type.startsWith("tool-")) {
-    return part.type.replace("tool-", "");
-  }
-
-  return "tool";
-};
 
 // Helper to safely extract string values from unknown types
 const safeToString = (value: unknown): string => {
@@ -55,15 +28,15 @@ export const extractMessageParts = (message: unknown): ExtractedMessageParts => 
   // Initialize empty result
   let textContent = "";
   const toolLabels: string[] = [];
-  
+
   // Safely access parts property
   const msg = message as { parts?: Array<Record<string, unknown>> } | null | undefined;
   const parts = msg?.parts;
-  
+
   if (parts && Array.isArray(parts)) {
     for (const part of parts) {
       const type = safeToString(part.type);
-      
+
       if (type === "text" || type === "reasoning") {
         textContent += safeToString(part.text);
       } else if (type === "tool-call" || type.startsWith("tool-")) {
@@ -78,7 +51,7 @@ export const extractMessageParts = (message: unknown): ExtractedMessageParts => 
       }
     }
   }
-  
+
   // createdAt is not part of UIMessage in SDK v6, always null
   const createdAt = null;
 

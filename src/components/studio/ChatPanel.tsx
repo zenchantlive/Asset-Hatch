@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { UIMessage } from '@ai-sdk/react';
 import { Pencil, Send, Sparkles, Square, Trash2, Wrench, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -248,13 +248,13 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const isLoading = status === 'submitted' || status === 'streaming';
 
   // Build message body helper (must be defined before effects that use it)
-  const buildMessageBody = () => {
+  const buildMessageBody = useCallback(() => {
     const messageBody: { gameId: string; projectContext?: string } = { gameId };
     if (projectContext) {
       messageBody.projectContext = JSON.stringify(projectContext);
     }
     return messageBody;
-  };
+  }, [gameId, projectContext]);
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
@@ -347,7 +347,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     const timer = window.setTimeout(() => {
       isQueueSendingRef.current = false;
     }, 0);
-    
+
     return () => window.clearTimeout(timer);
   }, [queuedPrompts, status, sendMessage, gameId, projectContext]);
 
