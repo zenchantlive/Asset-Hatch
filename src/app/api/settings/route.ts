@@ -114,12 +114,20 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Update user settings
+        const updateData: Record<string, string | null> = {};
+
+        // Only update keys that are explicitly present in the request body
+        if ("openRouterApiKey" in body) {
+            updateData.openRouterApiKey = openRouterApiKey ?? null;
+        }
+
+        if ("tripoApiKey" in body) {
+            updateData.tripoApiKey = tripoApiKey ?? null;
+        }
+
         await prisma.user.update({
             where: { id: session.user.id },
-            data: {
-                openRouterApiKey: openRouterApiKey ?? null,
-                tripoApiKey: tripoApiKey ?? null,
-            },
+            data: updateData,
         });
 
         return NextResponse.json({
