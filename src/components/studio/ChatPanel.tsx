@@ -13,7 +13,8 @@ import chatStorage from '@/lib/storage/chat-storage';
 import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
 import { PromptChips } from '@/components/chat/PromptChips';
 import { PinnedContext } from '@/components/chat/PinnedContext';
-import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar';
+import { PromptChips } from '@/components/chat/PromptChips';
+import { PinnedContext } from '@/components/chat/PinnedContext';
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
 
@@ -332,6 +333,25 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     tone: "neutral" as const,
   }));
 
+  // Add contextual presets if messages exist
+  // We don't want these to be "QuickFixBar" style anymore, just standard presets
+  if (hasMessages) {
+    presets.push(
+      {
+        id: "studio-show-changes",
+        label: "Show changes",
+        prompt: "List the latest changes you made to the game files.",
+        tone: "neutral",
+      },
+      {
+        id: "studio-optimize",
+        label: "Optimize performance",
+        prompt: "Analyze the current scene code and suggest performance optimizations.",
+        tone: "neutral",
+      },
+    );
+  }
+
   const buildMessageBody = () => {
     const messageBody: { gameId: string; projectContext?: string } = { gameId };
     if (projectContext) {
@@ -422,18 +442,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
     ].filter((item) => item.value.length > 0)
     : [];
 
-  const quickFixActions: QuickFixAction[] = [
-    {
-      id: "studio-show-changes",
-      label: "Show changes",
-      prompt: "List the latest changes you made to the game files.",
-    },
-    {
-      id: "studio-optimize",
-      label: "Optimize performance",
-      prompt: "Analyze the current scene code and suggest performance optimizations.",
-    },
-  ];
+
 
   return (
     <div className="flex flex-col h-full">
@@ -532,13 +541,7 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             )}
           </div>
         )}
-        {hasMessages && (
-          <QuickFixBar
-            actions={quickFixActions}
-            onSelect={setInput}
-            className="mb-3 max-w-3xl mx-auto w-full"
-          />
-        )}
+
         {queuedPrompts.length > 0 && (
           <div className="mb-2 max-w-3xl mx-auto w-full">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground">

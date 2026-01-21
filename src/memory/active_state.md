@@ -5,9 +5,26 @@
 ### Chat UX Polish + Shared Components
 Unified message rendering, actions, prompt chips, pinned context, and quick-fix bars across Planning, Studio, and Studio planning chats. Added shared message parsing utilities and auto-scroll behavior that pauses when users scroll mid-stream.
 
-**Stage:** In Progress
+**StageRecent progress: added chat prompt queueing:** In Progress
 
-Recent progress: added chat prompt queueing during streaming, reset-chat history action (preserving context), retry behavior to remove last user+assistant before resending, and queued message visibility with edit/delete controls across Planning, Studio, and Studio planning chats.
+ during streaming, reset-chat history action (preserving context), retry behavior to remove last user+assistant before resending, and queued message visibility with edit/delete controls across Planning, Studio, and Studio planning chats.
+
+### Project-Game Linking Bug Fix
+Fixed regression where "Go to Game" button showed "No Game Yet" even after creating project with "Both Together" option.
+
+**Root Cause:** Conditional game creation logic broke the invariant that project and game should always be linked.
+
+**Fix Applied:**
+- Backend: Removed conditional game creation. Now ALWAYS creates project + game in single atomic transaction
+- API: Added explicit `select` for `gameId` in `/api/projects/[id]` GET route
+- Frontend: Changed redirect to unified project page with tab param
+
+**Files Modified:**
+- `src/app/api/projects/route.ts`
+- `src/app/api/projects/[id]/route.ts`
+- `src/components/dashboard/NewProjectDialog.tsx`
+
+**Stage:** ✅ Completed (pushed to `feat/byok-tripo-api-key`)
 
 ### Skybox Generation Reliability
 Expanded OpenRouter image parsing to read image data from `message.content`/`annotations` and blocked 3D generation from running on skybox assets.
@@ -41,14 +58,19 @@ Added "Bring Your Own Key" support for Tripo3D API, mirroring the existing OpenR
 - Preview screenshot capture (user + AI flow) (`Chat Backlog`) — scheduled for the session after next
 - Auto-fix game preview errors (`Gen Backlog`)
 - Skybox generation quality tuning (`Gen Backlog`)
-- ✅ BYOK expansion: Tripo API key + settings (`In Progress` → Manual Test)
+- ✅ BYOK expansion: Tripo API key + settings (`Manual Test` → Done)
+- ✅ Project-Game linking: "Go to Game" button always works (`Manual Test` → Done)
 
 ---
 
 ## Branch Status
-- **Current:** `feat/chat-ux`
+- **Current:** `feat/byok-tripo-api-key`
 - **Base:** `base/hatch-studios`
 - **Main:** `main`
+
+**Recent Commits:**
+- `ab6f184` - fix: always create project and game together
+- `bf6ac23` - fix: include gameId in GET /api/projects/[id] response
 
 ---
 
