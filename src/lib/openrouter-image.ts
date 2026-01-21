@@ -115,6 +115,11 @@ const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
         return `data:image/png;base64,${part.b64_json}`;
     }
 
+    // Additional check: sometimes text field contains a data URL
+    if (part.text && typeof part.text === 'string' && part.text.startsWith('data:image/')) {
+        return part.text;
+    }
+
     return "";
 };
 
@@ -224,12 +229,27 @@ export async function generateFluxImage(
 
     // Log response structure for debugging
     console.log('📦 OpenRouter response keys:', Object.keys(responseData));
+    
+    // Log full response for debugging intermittent failures
+    if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Full OpenRouter response:', JSON.stringify(responseData, null, 2));
+    }
 
     // Extract message from response
     const message = responseData.choices?.[0]?.message as OpenRouterImageMessage | undefined;
     if (!message) {
         console.error('❌ No message in response:', responseData);
         throw new Error('No message in OpenRouter response');
+    }
+    
+    // Log message structure for debugging
+    console.log('📦 Message keys:', Object.keys(message));
+    console.log('📦 Message.content type:', typeof message.content);
+    if (message.images) {
+        console.log('📦 Message.images length:', message.images.length);
+    }
+    if (message.annotations) {
+        console.log('📦 Message.annotations length:', message.annotations.length);
     }
 
     // Extract image from message.images array
@@ -264,15 +284,47 @@ export async function generateFluxImage(
         for (const part of message.annotations) {
             imageUrl = getImageUrlFromPart(part);
             if (imageUrl) {
+                console.log('✅ Found image in annotations');
                 break;
             }
         }
     }
 
+    // Additional fallback: Check if content is directly a base64 string
+    if (!imageUrl && typeof message.content === 'string') {
+        // Sometimes the response might just be a base64 string
+        if (message.content.startsWith('data:image/')) {
+            imageUrl = message.content;
+            console.log('✅ Found image as direct base64 string in content');
+        } else if (message.content.match(/^[A-Za-z0-9+/]+=*$/)) {
+            // Looks like raw base64 without data URL prefix
+            imageUrl = `data:image/png;base64,${message.content}`;
+            console.log('✅ Found raw base64 in content, added data URL prefix');
+        }
+    }
+
+    // Additional fallback: Check response data directly for common image fields
+    if (!imageUrl && responseData.data) {
+        if (typeof responseData.data === 'string' && responseData.data.startsWith('data:image/')) {
+            imageUrl = responseData.data;
+            console.log('✅ Found image in responseData.data');
+        }
+    }
+
+    // Additional fallback: Check for `url` or `image` at top level
+    if (!imageUrl && responseData.url && typeof responseData.url === 'string') {
+        imageUrl = responseData.url;
+        console.log('✅ Found image in responseData.url');
+    }
+
     // Validate we got an image
     if (!imageUrl) {
         console.error('❌ No image in response. Message keys:', Object.keys(message));
-        throw new Error('No image data in OpenRouter response');
+        console.error('❌ Message.content:', JSON.stringify(message.content));
+        console.error('❌ Message.images:', JSON.stringify(message.images));
+        console.error('❌ Message.annotations:', JSON.stringify(message.annotations));
+        console.error('❌ Full message structure:', JSON.stringify(message, null, 2));
+        throw new Error(`No image data in OpenRouter response. Model: ${modelId}, Message keys: ${Object.keys(message).join(', ')}`);
     }
 
     console.log('✅ Image generated:', {
