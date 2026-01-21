@@ -70,15 +70,17 @@ describe('Skybox Generation - Integration Tests', () => {
         // Import the route handler
         const { POST } = await import('@/app/api/generate-skybox/route');
 
+        // Import the route handler
+        const { POST } = await import('@/app/api/generate-skybox/route');
+        const { auth } = await import('@/auth');
+
         // Mock the auth function to return our test user
-        jest.mock('@/auth', () => ({
-            auth: jest.fn().mockResolvedValue({
-                user: {
-                    id: testUserId,
-                    email: 'test-skybox@example.com'
-                }
-            })
-        }));
+        (auth as jest.Mock).mockResolvedValue({
+            user: {
+                id: testUserId,
+                email: 'test-skybox@example.com'
+            }
+        });
 
         // Create a mock request
         const request = new NextRequest('http://localhost:3000/api/generate-skybox', {
