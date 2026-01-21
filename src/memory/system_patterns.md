@@ -597,3 +597,21 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **Pattern:** Snapshot asset URLs at time of linking
 * **Fields:** `lockedVersionId`, `lockedAt` on GameAssetRef
 * **Why:** Prevents "moving target" problem where regenerated assets break existing games
+
+### OpenRouter Response Parsing with Fallbacks (2026-01-21)
+* **Pattern:** Defensive multi-path image extraction from OpenRouter responses
+* **Problem:** Different AI models (Gemini, Flux) return image data in varying formats, causing intermittent failures
+* **Solution:** Sequential fallback checks for image data location:
+  1. `message.images[]` array (primary path for Flux)
+  2. `message.content` (string or structured)
+  3. `message.annotations[]` array
+  4. Direct base64 string detection (with auto-prefixing)
+  5. `responseData.data` field
+  6. `responseData.url` field
+* **Security:** Sanitize logs in development mode (structure only, no sensitive data)
+* **Image Format Detection:** Use magic numbers (first 4-12 bytes) to detect PNG/JPEG/WebP instead of hardcoding
+* **Base64 Validation:** Use strict regex `/^[A-Za-z0-9+/]{4,}={0,2}$/` to reduce false positives
+* **Why:** AI provider APIs are non-deterministic and may change response formats without notice
+* **Trade-off:** More checks = slightly slower, but adds resilience to API variability
+* **Implementation:** See `src/lib/openrouter-image.ts` - `generateFluxImage()` and `detectImageMimeType()`
+

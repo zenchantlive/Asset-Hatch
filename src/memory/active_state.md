@@ -40,10 +40,33 @@ Fixed regression where "Go to Game" button showed "No Game Yet" even after creat
 
 **Stage:** ✅ Completed (pushed to `feat/byok-tripo-api-key`)
 
-### Skybox Generation Reliability
-Expanded OpenRouter image parsing to read image data from `message.content`/`annotations` and blocked 3D generation from running on skybox assets.
+### Skybox Generation Reliability (2026-01-21)
+Fixed intermittent "No image data in OpenRouter response" errors by enhancing image extraction logic with comprehensive fallback patterns.
 
-**Stage:** In Progress
+**Root Cause:** OpenRouter's Gemini 2.5 Flash Image model returns image data in various formats. Previous code only checked `message.images` array, missing alternative formats.
+
+**Solution Implemented:**
+- Enhanced `generateFluxImage()` with 8+ fallback patterns for image extraction
+- Added `detectImageMimeType()` helper to identify PNG/JPEG/WebP from base64 magic numbers
+- Improved base64 validation regex: `/^[A-Za-z0-9+/]{4,}={0,2}$/`
+- Sanitized debug logging to prevent exposure of sensitive data
+- Enhanced error messages with full diagnostic information
+
+**Files Modified:**
+- `src/lib/openrouter-image.ts` - Enhanced image extraction and logging
+
+**Code Review & Security:**
+- ✅ All code review comments addressed (3/3)
+- ✅ CodeQL security scan passed (0 vulnerabilities)
+- ✅ Roster consultation completed with approval
+
+**Follow-up Tasks (deferred to separate issues):**
+- Add unit tests for each fallback pattern
+- Add metrics/monitoring for extraction path tracking
+- Document expected response formats in code comments
+- Consider retry mechanism if transient failures persist
+
+**Stage:** ✅ Completed
 
 ### BYOK Expansion: Tripo API Key
 Added "Bring Your Own Key" support for Tripo3D API, mirroring the existing OpenRouter BYOK pattern.
