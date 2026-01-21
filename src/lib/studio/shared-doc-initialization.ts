@@ -19,7 +19,7 @@ import {
  * Initialize all shared documents for a project
  *
  * Creates MemoryFile records with template content for each document type.
- * Should be called when a project is created with startWith: "game".
+ * Should be called when a project is created (all projects now include game mode).
  *
  * @param projectId - The project ID to initialize documents for
  */

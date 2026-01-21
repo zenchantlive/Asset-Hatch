@@ -3,7 +3,7 @@
 // POST /api/projects/[id]/assets/sync - Syncs pending assets into the game
 // -----------------------------------------------------------------------------
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -44,10 +44,11 @@ interface LocalAssetManifest {
 // =============================================================================
 
 export async function POST(
-  request: Request,
-  props: { params: { id: string } }
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<SyncAssetsResponse>> {
-  const { id: projectId } = props.params;
+  const { params } = props;
+  const { id: projectId } = await params;
   try {
     // Get current session
     const session = await auth();

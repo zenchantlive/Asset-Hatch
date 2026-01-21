@@ -49,7 +49,7 @@ export function ChatMessageRow({
   }
 
   const isAssistant = message.role === "assistant";
-  const timestampLabel = formatMessageTimestamp(details.createdAt);
+  const timestampLabel = details.createdAt ? formatMessageTimestamp(details.createdAt) : null;
   const toolCountLabel = details.hasToolCalls
     ? `${details.toolLabels.length} tool${details.toolLabels.length > 1 ? "s" : ""}`
     : null;
@@ -124,7 +124,7 @@ export function ChatMessageRow({
         </div>
       )}
       <ChatMessageActions
-        role={message.role}
+        role={message.role === 'system' ? 'assistant' : message.role as "user" | "assistant"}
         textContent={details.textContent}
         onQuote={onQuote}
         onEdit={onEdit}

@@ -14,8 +14,6 @@ export interface CreateProjectData {
   name: string;
   /** Project mode: 2D, 3D, or hybrid */
   mode: "2d" | "3d" | "hybrid";
-  /** Start path option (deprecated - projects now always create both modes) */
-  startWith?: "assets" | "game" | "both";
 }
 
 /**
@@ -126,8 +124,8 @@ export interface ProjectStatus {
 export interface CreateProjectResponse {
   /** The created project ID */
   projectId: string;
-  /** The created game ID (only if startWith includes "game") */
-  gameId?: string;
+  /** The created game ID (always created as of unified project refactor) */
+  gameId: string;
 }
 
 /**

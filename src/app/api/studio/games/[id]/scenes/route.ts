@@ -4,7 +4,7 @@
 // Nested route: /api/studio/games/[id]/scenes
 // -----------------------------------------------------------------------------
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -24,7 +24,7 @@ const createSceneSchema = z.object({
 // =============================================================================
 
 interface RouteContext {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 // =============================================================================
@@ -48,12 +48,12 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 // =============================================================================
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = context.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -102,12 +102,12 @@ export async function GET(
 // =============================================================================
 
 export async function POST(
-    request: Request,
+    request: NextRequest,
     context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract game ID from route params
-        const params = context.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session

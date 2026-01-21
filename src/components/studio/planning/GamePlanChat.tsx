@@ -20,6 +20,27 @@ import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
 
 /**
+ * Type definitions for GamePlanChat component props
+ */
+interface GamePlanChatProps {
+  gameId: string;
+  gameName: string;
+  onPlanUpdate: (content: string) => void;
+}
+
+/**
+ * Type definition for studio plan tool calls
+ */
+interface StudioPlanToolCall {
+  toolName: string;
+  args?: {
+    content?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/**
  * GamePlanChat - AI chat for game planning phase
  *
  * When AI calls updatePlan tool, we update the plan preview.
@@ -39,18 +60,19 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         sendMessage,
         status,
         stop,
-         
     } = useChat({
         id: chatId,
         transport: new DefaultChatTransport({
             api: '/api/studio/chat',
         }),
-        onToolCall: ({ toolCall }: { toolCall: StudioPlanToolCall }) => {
-            console.log('📝 Plan tool called:', toolCall.toolName, 'Args:', toolCall.args);
-
+        onToolCall: ({ toolCall }) => {
+            console.log('📝 Plan tool called:', toolCall.toolName);
+            
             // Handle plan updates
-            if (toolCall.toolName === 'updatePlan' && toolCall.args?.content) {
-                onPlanUpdate(toolCall.args.content);
+            // Use type assertion since toolCall.input is typed generically in SDK v6
+            const input = toolCall.input as Record<string, unknown> | undefined;
+            if (toolCall.toolName === 'updatePlan' && typeof input?.content === 'string') {
+                onPlanUpdate(input.content);
             }
         },
     });
@@ -132,21 +154,24 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
             return;
         }
         const [nextPrompt, ...rest] = queuedPrompts;
-        isQueueSendingRef.current = true;
-        setQueuedPrompts(rest);
-        sendMessage(
-            { text: nextPrompt },
-            {
-                body: {
-                    gameId,
-                    mode: 'planning',
-                },
-            }
-        );
-        const timer = window.setTimeout(() => {
+        
+        // Defer state update to avoid synchronous setState in effect
+        const timerId = window.setTimeout(() => {
+            isQueueSendingRef.current = true;
+            setQueuedPrompts(rest);
+            sendMessage(
+                { text: nextPrompt },
+                {
+                    body: {
+                        gameId,
+                        mode: 'planning',
+                    },
+                }
+            );
             isQueueSendingRef.current = false;
         }, 0);
-        return () => window.clearTimeout(timer);
+        
+        return () => window.clearTimeout(timerId);
     }, [queuedPrompts, status, sendMessage, gameId]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -176,7 +201,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
         id: preset.id,
         label: preset.label,
         prompt: preset.prompt,
-        tone: 'neutral',
+        tone: 'neutral' as const,
     }));
 
     const buildQuote = (text: string) => {

@@ -58,9 +58,10 @@ interface SkyboxGenerateResponse {
 
 /**
  * Default model for skybox generation.
- * Gemini 3 Pro Image produces high-quality results with good prompt following.
+ * Gemini 2.5 Flash Image provides ~50% cost reduction ($0.02 vs $0.04) with ~2x faster generation
+ * and minimal quality reduction, making it ideal for skybox generation.
  */
-const DEFAULT_SKYBOX_MODEL = "google/gemini-3-pro-image-preview";
+const DEFAULT_SKYBOX_MODEL = "google/gemini-2.5-flash-image";
 
 // =============================================================================
 // Route Handler

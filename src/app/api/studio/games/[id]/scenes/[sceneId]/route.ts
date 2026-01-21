@@ -4,7 +4,7 @@
 // Nested route: /api/studio/games/[id]/scenes/[sceneId]
 // -----------------------------------------------------------------------------
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +26,7 @@ const updateSceneSchema = z.object({
 // =============================================================================
 
 interface RouteContext {
-    params: { id: string; sceneId: string };
+    params: Promise<{ id: string; sceneId: string }>;
 }
 
 // =============================================================================
@@ -50,12 +50,12 @@ async function verifyGameOwnership(gameId: string, userId: string) {
 // =============================================================================
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = context.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -114,12 +114,12 @@ export async function GET(
 // =============================================================================
 
 export async function PATCH(
-    request: Request,
+    request: NextRequest,
     context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = context.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session
@@ -210,12 +210,12 @@ export async function PATCH(
 // =============================================================================
 
 export async function DELETE(
-    request: Request,
+    request: NextRequest,
     context: RouteContext
 ): Promise<NextResponse> {
     try {
         // Extract route params
-        const params = context.params;
+        const params = await context.params;
         const session = await auth();
 
         // Return 401 if no valid session

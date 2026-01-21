@@ -17,7 +17,6 @@ import type { CreateProjectData } from "@/lib/types/unified-project";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   mode: z.enum(["2d", "3d", "hybrid"]).default("2d"),
-  startWith: z.enum(["assets", "game", "both"]).default("assets"),
 });
 
 // =============================================================================
@@ -82,7 +81,7 @@ export async function GET(): Promise<
 }
 
 // =============================================================================
-// POST - Create a new project (unified with optional game creation)
+// POST - Create a new project (unified - always creates both project and game)
 // =============================================================================
 
 export async function POST(
@@ -112,7 +111,7 @@ export async function POST(
       );
     }
 
-    const { name, mode, startWith } = parsed.data as CreateProjectData;
+    const { name, mode } = parsed.data as CreateProjectData;
     const userId = session.user.id;
     const userEmail = session.user.email;
 
@@ -143,9 +142,6 @@ export async function POST(
         );
       }
     }
-
-    // Set initial phase based on startWith
-    const initialPhase = startWith === "game" || startWith === "both" ? "building" : "assets";
 
     // Create initial asset manifest
     const initialManifest = {
@@ -197,7 +193,7 @@ export async function POST(
     });
 
     console.log(
-      `✅ Created unified project: ${project.id}${gameId ? ` with game: ${gameId}` : ""}`
+      `✅ Created unified project: ${project.id} with game: ${gameId}`
     );
 
     return NextResponse.json({
