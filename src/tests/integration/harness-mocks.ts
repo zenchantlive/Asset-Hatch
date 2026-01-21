@@ -231,7 +231,15 @@ export const resetAllMocks = () => {
     
     // Reset $transaction mock
     prismaMock.$transaction.mockReset();
-    prismaMock.$transaction.mockImplementation((callback: any) => Promise.resolve(callback(prismaMock)));
+    prismaMock.$transaction.mockImplementation((arg: any) => {
+        if (typeof arg === 'function') {
+            return Promise.resolve(arg(prismaMock));
+        }
+        if (Array.isArray(arg)) {
+            return Promise.all(arg);
+        }
+        return Promise.resolve(arg);
+    });
 
     // Reset and restore auth mock
     authMock.mockReset();
