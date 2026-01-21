@@ -86,6 +86,46 @@ interface OpenRouterContentPart {
     };
 }
 
+/**
+ * Detect image MIME type from base64 data
+ * Returns the MIME type (e.g., 'image/png', 'image/jpeg') or 'image/png' as default
+ */
+const detectImageMimeType = (base64Data: string): string => {
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    
+    // Decode first few bytes to check magic numbers
+    try {
+        const binaryString = atob(cleanBase64.substring(0, 20));
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Check for PNG signature (89 50 4E 47)
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+            return 'image/png';
+        }
+        
+        // Check for JPEG signature (FF D8 FF)
+        if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+            return 'image/jpeg';
+        }
+        
+        // Check for WebP signature (52 49 46 46 ... 57 45 42 50)
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+            if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+                return 'image/webp';
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Failed to detect image format, defaulting to PNG:', error);
+    }
+    
+    // Default to PNG if detection fails
+    return 'image/png';
+};
+
 const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
     if (part.image_url?.url) {
         return part.image_url.url;
@@ -230,9 +270,22 @@ export async function generateFluxImage(
     // Log response structure for debugging
     console.log('📦 OpenRouter response keys:', Object.keys(responseData));
     
-    // Log full response for debugging intermittent failures
+    // Log sanitized response for debugging intermittent failures (avoid exposing sensitive data)
     if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Full OpenRouter response:', JSON.stringify(responseData, null, 2));
+        const sanitizedResponse = {
+            id: responseData.id,
+            model: responseData.model,
+            choices: responseData.choices?.map((choice: { message?: OpenRouterImageMessage }) => ({
+                message: choice.message ? {
+                    role: choice.message.role,
+                    hasContent: !!choice.message.content,
+                    contentType: typeof choice.message.content,
+                    hasImages: Array.isArray(choice.message.images) ? choice.message.images.length : 0,
+                    hasAnnotations: Array.isArray(choice.message.annotations) ? choice.message.annotations.length : 0,
+                } : null,
+            })),
+        };
+        console.log('🔍 Sanitized OpenRouter response structure:', JSON.stringify(sanitizedResponse, null, 2));
     }
 
     // Extract message from response
@@ -296,10 +349,12 @@ export async function generateFluxImage(
         if (message.content.startsWith('data:image/')) {
             imageUrl = message.content;
             console.log('✅ Found image as direct base64 string in content');
-        } else if (message.content.match(/^[A-Za-z0-9+/]+=*$/)) {
-            // Looks like raw base64 without data URL prefix
-            imageUrl = `data:image/png;base64,${message.content}`;
-            console.log('✅ Found raw base64 in content, added data URL prefix');
+        } else if (message.content.match(/^[A-Za-z0-9+/]{4,}={0,2}$/)) {
+            // Looks like raw base64 without data URL prefix (improved validation)
+            // Detect the actual image format from the base64 data
+            const mimeType = detectImageMimeType(message.content);
+            imageUrl = `data:${mimeType};base64,${message.content}`;
+            console.log(`✅ Found raw base64 in content, added data URL prefix with ${mimeType}`);
         }
     }
 
