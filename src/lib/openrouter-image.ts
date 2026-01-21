@@ -62,8 +62,15 @@ interface OpenRouterImageMessage {
         url?: string;
         data?: string;
         b64_json?: string;
+        mime_type?: string;
         image_url?: {
             url: string;
+        };
+        image?: {
+            url?: string;
+            data?: string;
+            b64_json?: string;
+            mime_type?: string;
         };
     }>;
     annotations?: OpenRouterContentPart[];
@@ -153,8 +160,8 @@ const extractImageUrlFromContent = (
         if (trimmed.startsWith("data:image/")) {
             return trimmed;
         }
-        // Detect valid Base64 (length ≥ 128, only valid chars, ends with up to two '=')
-        if (trimmed.length >= 128 && /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)) {
+        // Detect valid Base64 (length ≥ 1000 for realistic image data, only valid chars, ends with up to two '=')
+        if (trimmed.length >= 1000 && /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)) {
             return `data:image/png;base64,${trimmed}`;
         }
     }
@@ -248,7 +255,11 @@ export async function generateFluxImage(
     // Extract message from response
     const message = responseData.choices?.[0]?.message as OpenRouterImageMessage | undefined;
     if (!message) {
-        console.error('❌ No message in response:', responseData);
+        console.error('❌ No message in response:', {
+            id: responseData.id,
+            topLevelKeys: Object.keys(responseData),
+            choicesLength: Array.isArray(responseData.choices) ? responseData.choices.length : undefined,
+        });
         throw new Error('No message in OpenRouter response');
     }
 
@@ -312,7 +323,7 @@ export async function generateFluxImage(
     });
 
     // Convert to buffer for database storage
-    const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+    const base64Data = imageUrl.replace(/^data:image\/[^;]+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
     // Extract seed if available

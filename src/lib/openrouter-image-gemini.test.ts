@@ -28,7 +28,7 @@ describe('OpenRouter Image Generation - Gemini Model Response Formats', () => {
 
     afterAll(() => {
         process.env.OPENROUTER_API_KEY = originalEnv.OPENROUTER_API_KEY;
-        mockFetch.mockRestore();
+        mockFetch.mockReset();
     });
 
     beforeEach(() => {

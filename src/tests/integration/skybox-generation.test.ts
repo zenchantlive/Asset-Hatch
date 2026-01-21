@@ -52,6 +52,9 @@ describe('Skybox Generation - Integration Tests', () => {
     afterAll(async () => {
         // Clean up test data
         if (testProjectId) {
+            await prisma.styleAnchor.deleteMany({
+                where: { projectId: testProjectId }
+            });
             await prisma.generated3DAsset.deleteMany({
                 where: { projectId: testProjectId }
             });
@@ -67,20 +70,19 @@ describe('Skybox Generation - Integration Tests', () => {
     });
 
     it('should generate a skybox through the API endpoint', async () => {
-        // Import the route handler
-        const { POST } = await import('@/app/api/generate-skybox/route');
+        // Clear module cache and set up mock before importing
+        jest.resetModules();
+        jest.doMock('@/auth', () => ({
+            auth: jest.fn().mockResolvedValue({
+                user: {
+                    id: testUserId,
+                    email: 'test-skybox@example.com'
+                }
+            })
+        }));
 
-        // Import the route handler
+        // Import after mock is set up
         const { POST } = await import('@/app/api/generate-skybox/route');
-        const { auth } = await import('@/auth');
-
-        // Mock the auth function to return our test user
-        (auth as jest.Mock).mockResolvedValue({
-            user: {
-                id: testUserId,
-                email: 'test-skybox@example.com'
-            }
-        });
 
         // Create a mock request
         const request = new NextRequest('http://localhost:3000/api/generate-skybox', {
@@ -138,9 +140,9 @@ describe('Skybox Generation - Integration Tests', () => {
             }
         });
 
-        const { POST } = await import('@/app/api/generate-skybox/route');
-
-        jest.mock('@/auth', () => ({
+        // Clear module cache and set up mock before importing
+        jest.resetModules();
+        jest.doMock('@/auth', () => ({
             auth: jest.fn().mockResolvedValue({
                 user: {
                     id: testUserId,
@@ -148,6 +150,9 @@ describe('Skybox Generation - Integration Tests', () => {
                 }
             })
         }));
+
+        // Import after mock is set up
+        const { POST } = await import('@/app/api/generate-skybox/route');
 
         const request = new NextRequest('http://localhost:3000/api/generate-skybox', {
             method: 'POST',
@@ -173,12 +178,14 @@ describe('Skybox Generation - Integration Tests', () => {
     }, 60000);
 
     it('should handle authentication errors', async () => {
-        const { POST } = await import('@/app/api/generate-skybox/route');
-
-        // Mock auth to return null (unauthenticated)
-        jest.mock('@/auth', () => ({
+        // Clear module cache and set up mock before importing
+        jest.resetModules();
+        jest.doMock('@/auth', () => ({
             auth: jest.fn().mockResolvedValue(null)
         }));
+
+        // Import after mock is set up
+        const { POST } = await import('@/app/api/generate-skybox/route');
 
         const request = new NextRequest('http://localhost:3000/api/generate-skybox', {
             method: 'POST',
@@ -199,9 +206,9 @@ describe('Skybox Generation - Integration Tests', () => {
     }, 30000);
 
     it('should handle missing project errors', async () => {
-        const { POST } = await import('@/app/api/generate-skybox/route');
-
-        jest.mock('@/auth', () => ({
+        // Clear module cache and set up mock before importing
+        jest.resetModules();
+        jest.doMock('@/auth', () => ({
             auth: jest.fn().mockResolvedValue({
                 user: {
                     id: testUserId,
@@ -209,6 +216,9 @@ describe('Skybox Generation - Integration Tests', () => {
                 }
             })
         }));
+
+        // Import after mock is set up
+        const { POST } = await import('@/app/api/generate-skybox/route');
 
         const request = new NextRequest('http://localhost:3000/api/generate-skybox', {
             method: 'POST',

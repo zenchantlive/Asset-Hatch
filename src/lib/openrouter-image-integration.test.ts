@@ -11,6 +11,9 @@
 
 import type { FluxGenerationOptions } from './openrouter-image';
 
+// Mock process.env
+const originalEnv = process.env;
+
 describe('OpenRouter Image Generation - Integration Tests (Real API Calls)', () => {
     // Only run these tests if OPENROUTER_API_KEY is available
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -31,10 +34,8 @@ describe('OpenRouter Image Generation - Integration Tests (Real API Calls)', () 
     });
 
     afterAll(() => {
-        // Clean up
-        if (process.env.OPENROUTER_API_KEY === apiKey) {
-            delete process.env.OPENROUTER_API_KEY;
-        }
+        // Restore original environment
+        process.env.OPENROUTER_API_KEY = originalEnv.OPENROUTER_API_KEY;
     });
 
     it('should generate an image with Gemini 2.5 Flash Image model', async () => {
