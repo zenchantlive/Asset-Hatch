@@ -1,0 +1,6 @@
+ M src/lib/cost-tracker.test.ts
+ M src/lib/model-registry.test.ts
+ M src/tests/regression/critical_suite.test.ts
+?? branch.txt
+?? log.txt
+?? status.txt

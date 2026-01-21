@@ -12,8 +12,12 @@ import {
   modelSupports,
   estimateCost,
   formatCost,
+  discoverModels,
   type RegisteredModel,
 } from './model-registry';
+
+// Mock global fetch for API tests
+const originalFetch = global.fetch;
 
 describe('model-registry', () => {
   describe('CURATED_MODELS', () => {
@@ -358,6 +362,68 @@ describe('model-registry', () => {
       chatModels.forEach(model => {
         expect(model.capabilities.outputModalities).toContain('text');
       });
+    });
+  });
+
+  describe('discoverModels (API Integration)', () => {
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    test('Happy Path: successfully discovers models from API', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            data: [{
+              id: 'new-model',
+              name: 'New Model',
+              architecture: { input_modalities: ['text'], output_modalities: ['image'] },
+              pricing: { prompt: '0.001', completion: '0.002' }
+            }]
+          })
+        })
+      );
+
+      const models = await discoverModels(true);
+      expect(models.find(m => m.id === 'new-model')).toBeDefined();
+    });
+
+    test('Failure Path: handles API 500 error gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({ ok: false, status: 500 })
+      );
+
+      // Should fall back to curated models
+      const models = await discoverModels(true);
+      expect(models).toEqual(CURATED_MODELS);
+    });
+
+    test('Edge Case: handles malformed JSON response', async () => {
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new Error('SyntaxError'))
+        })
+      );
+
+      const models = await discoverModels(true);
+      expect(models).toEqual(CURATED_MODELS);
+    });
+  });
+
+  describe('Edge Cases: Pricing and Categories', () => {
+    test('handles extreme pricing values', () => {
+      const hugeCost = estimateCost('google/gemini-2.5-flash-image', 1000000, 100);
+      expect(hugeCost).toBeGreaterThan(0);
+      expect(Number.isFinite(hugeCost)).toBe(true);
+    });
+
+    test('formatCost handles rounding of sub-cent values', () => {
+      expect(formatCost(0.00001)).toBe('$0.0000');
+      expect(formatCost(0.00009)).toBe('$0.0001');
     });
   });
 });
