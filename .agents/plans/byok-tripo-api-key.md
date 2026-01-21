@@ -229,7 +229,7 @@ return NextResponse.json({
         : null,
     hasTripoKey: !!user.tripoApiKey,
     tripoKeyPreview: user.tripoApiKey
-        ? `tsk-...${user.tripoApiKey.slice(-4)}`
+        ? `tsk_...${user.tripoApiKey.slice(-4)}`
         : null,
 });
 ```
@@ -257,8 +257,8 @@ const handleSaveTripo = async () => {
         setError("Please enter a Tripo API key");
         return;
     }
-    if (!tripoApiKey.startsWith("tsk-")) {
-        setError("Invalid key format. Tripo keys start with 'tsk-'");
+    if (!tripoApiKey.startsWith("tsk_")) {
+        setError("Invalid key format. Tripo keys start with 'tsk_'");
         return;
     }
     // Similar to handleSave but PATCH { tripoApiKey }
@@ -367,7 +367,7 @@ const tripoApiKey = userTripoApiKey || process.env.TRIPO_API_KEY;
 
 - User with existing env var TRIPO_API_KEY adds their own - user key takes precedence
 - User removes their Tripo key - falls back to env var
-- Invalid Tripo key format (doesn't start with tsk-) - rejected with helpful error
+- Invalid Tripo key format (doesn't start with tsk_) - rejected with helpful error
 - Network error during validation - shows appropriate error
 
 ---
@@ -404,7 +404,7 @@ bun run test:ci  # If tests exist for settings
 1. Navigate to `/settings`
 2. Verify OpenRouter section still works
 3. Verify Tripo section appears with empty state
-4. Enter invalid key (not starting with tsk-) → should reject
+4. Enter invalid key (not starting with tsk_) → should reject
 5. Enter valid Tripo key → should save and show preview
 6. Click remove → should clear key
 7. Navigate to 3D project → generate model → should use your key
@@ -455,7 +455,7 @@ R2 keys provide full bucket access which is a significant security risk if expos
 ### Key Format Validation
 
 - OpenRouter: `sk-or-xxxxx` (starts with `sk-or-`)
-- Tripo: `tsk-xxxxx` (starts with `tsk-`)
+- Tripo: `tsk_xxxxx` (starts with `tsk_`)
 
 ### Future Considerations (Out of Scope)
 

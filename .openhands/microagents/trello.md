@@ -269,7 +269,7 @@ Use these exact headers for consistency:
 4. Update `/api/generate-3d` to use user key with env fallback
 
 **Key Decisions:**
-- Keys start with `tsk-` prefix (validate on save)
+- Keys start with `tsk_` prefix (validate on save)
 - User key takes priority over env var
 - No R2 keys exposed to users (server-side only for security)
 
@@ -300,8 +300,8 @@ Use these exact headers for consistency:
 3. Scroll to Tripo3D section (below OpenRouter)
 
 **Test Cases:**
-- [ ] Enter invalid key (no `tsk-` prefix) → should show error
-- [ ] Enter valid key (`tsk-...xxxx`) → should save and show masked
+- [ ] Enter invalid key (no `tsk_` prefix) → should show error
+- [ ] Enter valid key (`tsk_...xxxx`) → should save and show masked
 - [ ] Click remove → should clear key
 - [ ] Generate 3D asset → should use your key (check network tab)
 
@@ -545,8 +545,8 @@ cd src && bun dev
 
 | # | Action | Expected Result |
 |---|--------|-----------------|
-| 1 | Enter key without `tsk-` prefix | Error: "Invalid format" |
-| 2 | Enter valid key `tsk-test123` | Saves, shows `tsk-...t123` |
+| 1 | Enter key without `tsk_` prefix | Error: "Invalid format" |
+| 2 | Enter valid key `tsk_test123` | Saves, shows `tsk_...t123` |
 | 3 | Refresh page | Key persists (masked) |
 | 4 | Click "Remove" | Key cleared |
 | 5 | Generate 3D with key set | Network shows key in request |

@@ -102,7 +102,7 @@ export default async function SettingsPage({
                             <li>Go to <a href="https://platform.tripo3d.ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">platform.tripo3d.ai</a></li>
                             <li>Create an account or sign in</li>
                             <li>Navigate to your dashboard or API section</li>
-                            <li>Create a new API key and copy it here (starts with tsk-)</li>
+                            <li>Create a new API key and copy it here (starts with tsk_)</li>
                         </ol>
                         <p className="text-white/40 text-xs mt-4">
                             Pricing: ~$0.20 per 3D model generation
