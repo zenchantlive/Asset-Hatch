@@ -213,7 +213,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
             'Review the physics/collision setup and correct any issues with gravity, ground, or colliders.',
     },
     {
-        id: 'studio-controls',
+        id: 'studio-control',
         label: 'Add controls',
         prompt:
             'Add simple player controls (WASD or arrows) and make sure input feels responsive.',
@@ -275,3 +275,4 @@ export function getPresetById(id: string): PresetPrompt | undefined {
 export function is3DPreset(id: string): boolean {
     return PLAN_3D_PRESETS.some(preset => preset.id === id)
 }
+
