@@ -50,11 +50,26 @@ Added "Bring Your Own Key" support for Tripo3D API, mirroring the existing OpenR
 
 **Completed:**
 - Added `tripoApiKey` field to User model in schema.prisma
-- Added Tripo key validation in `/api/settings` (validates tsk- prefix)
+- Added Tripo key validation in `/api/settings` (validates tsk_ prefix)
 - Extended API response to include `hasTripoKey` and `tripoKeyPreview`
 - Refactored ApiKeySettings.tsx to support both OpenRouter and Tripo keys
 - Updated settings page with Tripo section and instructions
 - Enabled BYOK in `/api/generate-3d` route (user key → env fallback)
+
+**Debug Session (2026-01-20):**
+User reported 3D generation failing with 500 error. Root cause analysis:
+
+1. **Initial misdirection**: User said Tripo keys start with `tsk-` (hyphen) - we changed all validation to match
+2. **Still failing**: Key saved but Tripo API returned 401 Authentication failed
+3. **Added debug logging**: Traced BYOK retrieval chain (session → user → key source)
+4. **Discovered real issue**: Tripo docs confirm keys start with `tsk_` (UNDERSCORE), not `tsk-` (hyphen)
+5. **User had wrong key**: Was copying Client ID (`tsk-...`) instead of API Key (`tsk_...`)
+6. **Fixed validation order**: Reverted to `tsk_` prefix, ensured BYOK takes priority over env var
+
+**Key Learnings:**
+- Always verify API documentation before trusting user assumptions
+- Tripo API keys: `tsk_***` (underscore) | Client IDs: `tcli_***`
+- Old validation was creating actual tasks to test keys (wasteful!) - now uses `/user/balance` endpoint
 
 **Files Modified:**
 - `src/prisma/schema.prisma`
@@ -62,8 +77,9 @@ Added "Bring Your Own Key" support for Tripo3D API, mirroring the existing OpenR
 - `src/components/settings/ApiKeySettings.tsx`
 - `src/app/settings/page.tsx`
 - `src/app/api/generate-3d/route.ts`
+- `src/lib/tripo-client.ts`
 
-**Stage:** ✅ Completed (needs manual testing)
+**Stage:** ✅ Completed and tested
 
 **Trello MCP (Next Session Requirement):**
 - Use Trello MCP (if available) to manage tasks throughout the next session (pull next tasks, update progress, move cards, add labels).

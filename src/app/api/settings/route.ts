@@ -54,7 +54,7 @@ export async function GET() {
             hasTripoKey: !!user.tripoApiKey,
             // Show last 4 characters if key exists
             tripoKeyPreview: user.tripoApiKey
-                ? `tsk-...${user.tripoApiKey.slice(-4)}`
+                ? `tsk_•••${user.tripoApiKey.slice(-4)}`
                 : null,
         });
     } catch (error) {
@@ -68,6 +68,7 @@ export async function GET() {
 
 // PATCH: Update user settings
 export async function PATCH(request: NextRequest) {
+    console.log("🔧 [Settings PATCH] Request received");
     try {
         // Get authenticated session
         const session = await auth();
@@ -102,15 +103,16 @@ export async function PATCH(request: NextRequest) {
             }
         }
 
-        // If Tripo API key is provided, validate it with Tripo
+        // If Tripo API key is provided, just validate format (not API call)
         if (tripoApiKey) {
-            const isValid = await validateTripoKey(tripoApiKey);
-            if (!isValid) {
+            console.log("🔧 [Settings PATCH] Validating Tripo key format, prefix:", tripoApiKey.slice(0, 8));
+            if (!tripoApiKey.startsWith("tsk_")) {
                 return NextResponse.json(
-                    { error: "Invalid Tripo API key" },
+                    { error: "Invalid Tripo API key format (must start with 'tsk_')" },
                     { status: 400 }
                 );
             }
+            console.log("🔧 [Settings PATCH] Tripo key format valid, saving");
         }
 
         // Update user settings
@@ -160,20 +162,37 @@ async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
     }
 }
 
-// Validate Tripo API key by making a test request
+// Validate Tripo API key by checking balance (non-destructive)
 async function validateTripoKey(apiKey: string): Promise<boolean> {
     try {
-        const response = await fetch("https://api.tripo3d.ai/v2/openapi/task", {
-            method: "POST",
+        // First check format
+        if (!apiKey.startsWith("tsk_")) {
+            console.log("[Tripo Validation] Invalid format - must start with tsk_");
+            return false;
+        }
+
+        // Use balance endpoint to validate key without creating tasks
+        const response = await fetch("https://api.tripo3d.ai/v2/openapi/user/balance", {
+            method: "GET",
             headers: {
                 Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
             },
-            body: JSON.stringify({ type: "text_to_model", prompt: "test" }),
         });
-        // 401 = unauthorized (valid key format), 400+ = invalid
-        return response.status !== 401;
-    } catch {
+
+        console.log("[Tripo Validation] Response status:", response.status);
+
+        // 200 = valid key, 401 = invalid key
+        if (response.ok) {
+            const data = await response.json();
+            console.log("[Tripo Validation] Balance check succeeded:", data);
+            return true;
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        console.log("[Tripo Validation] Failed:", errorData);
+        return false;
+    } catch (error) {
+        console.error("[Tripo Validation] Error:", error);
         return false;
     }
 }

@@ -60,7 +60,7 @@ export async function submitTripoTask(
   apiKey: string,
   request: TripoTaskRequest
 ): Promise<TripoTask> {
-  // Validate API key format
+  // Validate API key format (Tripo keys start with "tsk_")
   if (!apiKey || !apiKey.startsWith('tsk_')) {
     throw new Error('Invalid Tripo API key format (must start with "tsk_")');
   }
@@ -69,6 +69,10 @@ export async function submitTripoTask(
     type: request.type,
     hasPrompt: !!request.prompt,
     hasModelUrl: !!request.model_url,
+    keyLength: apiKey.length,
+    keyPrefix: apiKey.slice(0, 8),
+    keySuffix: apiKey.slice(-4),
+    hasWhitespace: apiKey !== apiKey.trim(),
   });
 
   // Call Tripo API
@@ -127,7 +131,7 @@ export async function pollTripoTaskStatus(
   apiKey: string,
   taskId: string
 ): Promise<TripoTask> {
-  // Validate API key format
+  // Validate API key format (Tripo keys start with "tsk_")
   if (!apiKey || !apiKey.startsWith('tsk_')) {
     throw new Error('Invalid Tripo API key format (must start with "tsk_")');
   }

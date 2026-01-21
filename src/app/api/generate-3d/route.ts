@@ -56,12 +56,22 @@ export async function POST(request: NextRequest) {
     let userTripoApiKey: string | null = null;
 
     // Check if user has their own Tripo API key configured (BYOK)
+    console.log('🔑 BYOK Debug - Session:', {
+      hasSession: !!session,
+      userId: session?.user?.id || 'none'
+    });
+
     if (session?.user?.id) {
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: { tripoApiKey: true },
       });
       userTripoApiKey = user?.tripoApiKey || null;
+      console.log('🔑 BYOK Debug - User key:', {
+        hasKey: !!userTripoApiKey,
+        keyPrefix: userTripoApiKey?.slice(0, 8) || 'none',
+        keyLength: userTripoApiKey?.length || 0
+      });
     }
 
     // Parse and validate request body
@@ -103,8 +113,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Get Tripo API key (user's key or environment fallback)
-    const tripoApiKey = userTripoApiKey || process.env.TRIPO_API_KEY;
+    // 2. Get Tripo API key (user's BYOK key takes priority over environment)
+    const envKey = process.env.TRIPO_API_KEY;
+    const tripoApiKey = userTripoApiKey || envKey;
+    console.log('🔑 BYOK - Key source:', {
+      usingSource: userTripoApiKey ? 'USER_BYOK' : (envKey ? 'ENV_VAR' : 'NONE'),
+      keyPrefix: tripoApiKey?.slice(0, 8) || 'none',
+    });
 
     if (!tripoApiKey) {
       return NextResponse.json(
