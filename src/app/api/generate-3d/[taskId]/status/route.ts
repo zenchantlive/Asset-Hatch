@@ -194,15 +194,18 @@ export async function GET(
 
     // Get authenticated session
     const session = await auth();
-    const userTripoApiKey: string | null = null;
+    let userTripoApiKey: string | null = null;
 
-    // TODO: Add tripoApiKey field to User model
-    // if (session?.user?.id) {
-    //   const user = await prisma.user.findUnique({ ... });
-    //   userTripoApiKey = user?.tripoApiKey || null;
-    // }
+    // Check if user has their own Tripo API key configured (BYOK)
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { tripoApiKey: true },
+      });
+      userTripoApiKey = user?.tripoApiKey || null;
+    }
 
-    // Get Tripo API key (user's key or environment fallback)
+    // Get Tripo API key (user's BYOK key takes priority over environment)
     const tripoApiKey = userTripoApiKey || process.env.TRIPO_API_KEY;
 
     if (!tripoApiKey) {

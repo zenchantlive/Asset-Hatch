@@ -61,7 +61,8 @@
       "Bash(git ls-tree:*)",
       "Bash(bunx tsc:*)",
       "mcp__plugin_context7_context7__query-docs",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(whereis:*)"
     ]
   }
 }

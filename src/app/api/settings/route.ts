@@ -162,37 +162,3 @@ async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
     }
 }
 
-// Validate Tripo API key by checking balance (non-destructive)
-async function validateTripoKey(apiKey: string): Promise<boolean> {
-    try {
-        // First check format
-        if (!apiKey.startsWith("tsk_")) {
-            console.log("[Tripo Validation] Invalid format - must start with tsk_");
-            return false;
-        }
-
-        // Use balance endpoint to validate key without creating tasks
-        const response = await fetch("https://api.tripo3d.ai/v2/openapi/user/balance", {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${apiKey}`,
-            },
-        });
-
-        console.log("[Tripo Validation] Response status:", response.status);
-
-        // 200 = valid key, 401 = invalid key
-        if (response.ok) {
-            const data = await response.json();
-            console.log("[Tripo Validation] Balance check succeeded:", data);
-            return true;
-        }
-
-        const errorData = await response.json().catch(() => ({}));
-        console.log("[Tripo Validation] Failed:", errorData);
-        return false;
-    } catch (error) {
-        console.error("[Tripo Validation] Error:", error);
-        return false;
-    }
-}
