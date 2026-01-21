@@ -15,6 +15,8 @@ import { PromptChips } from '@/components/chat/PromptChips';
 import { PinnedContext } from '@/components/chat/PinnedContext';
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
+import { ChatModelSwitcher } from '@/components/ui/ChatModelSwitcher';
+import { getDefaultModel } from '@/lib/model-registry';
 
 interface ChatPanelProps {
   gameId: string;
@@ -48,6 +50,11 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
   const isQueueSendingRef = useRef(false);
   const hasRestoredMessages = useRef(false);
   const lastProcessedFixIdRef = useRef<string>('');
+
+  // Model selection state - defaults from registry
+  const [selectedModel, setSelectedModel] = useState<string>(() =>
+    getDefaultModel("chat").id
+  );
 
   // Get studio context to update code/preview when tools execute
   // Multi-file: Use loadFiles instead of setCode/loadSceneCode
@@ -249,12 +256,15 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
 
   // Build message body helper (must be defined before effects that use it)
   const buildMessageBody = useCallback(() => {
-    const messageBody: { gameId: string; projectContext?: string } = { gameId };
+    const messageBody: { gameId: string; projectContext?: string; model: string } = {
+      gameId,
+      model: selectedModel,
+    };
     if (projectContext) {
       messageBody.projectContext = JSON.stringify(projectContext);
     }
     return messageBody;
-  }, [gameId, projectContext]);
+  }, [gameId, projectContext, selectedModel]);
 
   // Auto-fix: Watch for pendingFixRequest and auto-send fix prompt
   useEffect(() => {
@@ -597,6 +607,14 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
             </div>
           </div>
         )}
+        {/* Model switcher - always visible above input */}
+        <div className="flex justify-start max-w-3xl mx-auto w-full mb-2">
+          <ChatModelSwitcher
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            compact={true}
+          />
+        </div>
         <form
           onSubmit={handleSubmit}
           className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"

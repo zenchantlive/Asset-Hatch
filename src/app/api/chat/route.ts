@@ -31,7 +31,11 @@ const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, qualities, projectId } = await req.json();
+    const { messages, qualities, projectId, model: requestModel } = await req.json();
+
+    // Use model from request if provided, otherwise fall back to default
+    const selectedModelId = requestModel || chatModel.id;
+    console.log('🤖 Using chat model:', selectedModelId);
 
     // Validate projectId is present
     console.log('🔧 Chat API received projectId:', projectId);
@@ -172,8 +176,8 @@ export async function POST(req: NextRequest) {
     const tools3D = is3DMode ? create3DChatTools(projectId) : {};
 
     const result = streamText({
-      // Use chat model from registry instead of hardcoded model ID
-      model: openrouter(chatModel.id),
+      // Use chat model from registry or request override
+      model: openrouter(selectedModelId),
       messages: modelMessages,
       stopWhen: stepCountIs(10),
       system: systemPrompt,
@@ -374,11 +378,11 @@ export async function POST(req: NextRequest) {
               return { success: false, error: 'Database update failed' };
             }
           },
-          }),
-          // Shared document tools (game-design.md, asset-inventory.md, etc.)
-          ...createSharedDocToolsByProject(projectId),
-          // Spread 3D tools if in 3D mode (these override 2D equivalents)
-          ...tools3D,
+        }),
+        // Shared document tools (game-design.md, asset-inventory.md, etc.)
+        ...createSharedDocToolsByProject(projectId),
+        // Spread 3D tools if in 3D mode (these override 2D equivalents)
+        ...tools3D,
       },
     });
 

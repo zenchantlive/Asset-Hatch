@@ -165,8 +165,73 @@ export const CURATED_MODELS: RegisteredModel[] = [
     // Used for planning phase conversations
     // =========================================================================
     {
+        id: 'minimax/minimax-m2.1',
+        displayName: 'MiniMax M2.1',
+        provider: 'openrouter',
+        capabilities: {
+            inputModalities: ['text', 'image'],
+            outputModalities: ['text'],
+        },
+        pricing: {
+            promptPerToken: 0.0001,
+            completionPerToken: 0.0003,
+        },
+        category: 'chat',
+        isDefault: true,
+        description: 'Fast and capable chat model, great balance of speed and quality',
+        source: 'curated',
+    },
+    {
+        id: 'google/gemini-3-flash-preview',
+        displayName: 'Gemini 3 Flash',
+        provider: 'openrouter',
+        capabilities: {
+            inputModalities: ['text', 'image'],
+            outputModalities: ['text'],
+        },
+        pricing: {
+            promptPerToken: 0.00025,
+            completionPerToken: 0.001,
+        },
+        category: 'chat',
+        description: 'Google\'s fastest Gemini model, good for quick responses',
+        source: 'curated',
+    },
+    {
+        id: 'xiaomi/mimo-v2-flash:free',
+        displayName: 'MiMo V2 Flash (Free)',
+        provider: 'openrouter',
+        capabilities: {
+            inputModalities: ['text'],
+            outputModalities: ['text'],
+        },
+        pricing: {
+            promptPerToken: 0,
+            completionPerToken: 0,
+        },
+        category: 'chat',
+        description: 'Free model from Xiaomi, good for experimentation',
+        source: 'curated',
+    },
+    {
+        id: 'z-ai/glm-4.7-flash',
+        displayName: 'GLM 4.7 Flash',
+        provider: 'openrouter',
+        capabilities: {
+            inputModalities: ['text'],
+            outputModalities: ['text'],
+        },
+        pricing: {
+            promptPerToken: 0.0001,
+            completionPerToken: 0.0002,
+        },
+        category: 'chat',
+        description: 'Fast Chinese language model, efficient for chat',
+        source: 'curated',
+    },
+    {
         id: 'google/gemini-3-pro-preview',
-        displayName: 'Gemini 3 Pro (Chat)',
+        displayName: 'Gemini 3 Pro',
         provider: 'openrouter',
         capabilities: {
             inputModalities: ['text', 'image'],
@@ -177,8 +242,7 @@ export const CURATED_MODELS: RegisteredModel[] = [
             completionPerToken: 0.005,
         },
         category: 'chat',
-        isDefault: true,
-        description: 'Powerful chat model for planning and conversation',
+        description: 'Powerful chat model for complex planning (higher cost)',
         source: 'curated',
     },
 ];

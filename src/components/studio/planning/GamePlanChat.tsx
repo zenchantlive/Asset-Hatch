@@ -18,6 +18,8 @@ import { PinnedContext } from '@/components/chat/PinnedContext';
 import { QuickFixBar, type QuickFixAction } from '@/components/chat/QuickFixBar';
 import { extractMessageParts } from '@/lib/chat/message-utils';
 import { getStudioPresets } from '@/lib/preset-prompts';
+import { ChatModelSwitcher } from '@/components/ui/ChatModelSwitcher';
+import { getDefaultModel } from '@/lib/model-registry';
 
 /**
  * Type definitions for GamePlanChat component props
@@ -43,6 +45,11 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
     const [queuedPrompts, setQueuedPrompts] = useState<string[]>([]);
     const isQueueSendingRef = useRef(false);
     const hasRestoredMessages = useRef(false);
+
+    // Model selection state - defaults from registry
+    const [selectedModel, setSelectedModel] = useState<string>(() =>
+        getDefaultModel("chat").id
+    );
 
     // Unique chat ID for planning
     const chatId = `studio-plan-${gameId}`;
@@ -184,6 +191,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                 body: {
                     gameId,
                     mode: 'planning', // Tell API we're in planning mode
+                    model: selectedModel,
                 },
             }
         );
@@ -303,7 +311,7 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                             <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
                                 Let&apos;s plan {gameName}
                             </h3>
-                            <p className="text-muted-foreground max-w-sm text-base leading-relaxed mb-6">
+                            <p className="text-muted-foreground max-w-sm text-base leading-relaxed mb-4">
                                 Describe your game idea. I&apos;ll help you plan the features and files needed to build it.
                             </p>
                             <div className="flex flex-col gap-2 text-sm text-muted-foreground/80">
@@ -409,6 +417,14 @@ export function GamePlanChat({ gameId, gameName, onPlanUpdate }: GamePlanChatPro
                         </div>
                     </div>
                 )}
+                {/* Model switcher - always visible above input */}
+                <div className="flex justify-start max-w-3xl mx-auto w-full mb-2">
+                    <ChatModelSwitcher
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
+                        compact={true}
+                    />
+                </div>
                 <form
                     onSubmit={handleSubmit}
                     className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"

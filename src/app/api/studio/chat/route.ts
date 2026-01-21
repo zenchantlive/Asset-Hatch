@@ -17,7 +17,11 @@ const chatModel = getDefaultModel('chat');
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, gameId, projectContext: projectContextJson } = await req.json();
+    const { messages, gameId, projectContext: projectContextJson, model: requestModel } = await req.json();
+
+    // Use model from request if provided, otherwise fall back to default
+    const selectedModelId = requestModel || chatModel.id;
+    console.log('🤖 Using chat model:', selectedModelId);
     if (!Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: 'messages must be an array' }),
@@ -126,7 +130,7 @@ export async function POST(req: NextRequest) {
           try {
             const meta = JSON.parse(asset.metadata);
             metadata.style = meta.style || meta.artStyle;
-          } catch {}
+          } catch { }
         }
         metadataMap.set(asset.id, metadata);
       }
@@ -175,9 +179,9 @@ export async function POST(req: NextRequest) {
       ...sharedDocTools,
     };
 
-    // Stream response with tools
     const result = streamText({
-      model: openrouter(chatModel.id),
+      // Use chat model from registry or request override
+      model: openrouter(selectedModelId),
       messages: modelMessages,
       system: systemPrompt,
       stopWhen: stepCountIs(15), // Allow up to 15 tool calls per request

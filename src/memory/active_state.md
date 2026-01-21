@@ -2,10 +2,24 @@
 
 ## Current Session (2026-01-20)
 
+### Chat Model Switcher
+Added a model switcher dropdown to all chat interfaces (Planning, Studio, Game Planning). Users can now select from multiple AI models (MiniMax, Gemini, etc.) directly from the chat input area.
+
+**Implementation:**
+- Created `ChatModelSwitcher.tsx` component with compact dropdown UI
+- Integrated into `ChatInterface.tsx`, `ChatPanel.tsx`, `GamePlanChat.tsx`
+- Updated `model-registry.ts` with 5 chat models (MiniMax M2.1 as default)
+- Updated API routes to accept `model` parameter in request body
+- Dropdown opens upward (bottom-full) to avoid clipping at screen bottom
+
+**Debug Journey:** Component wasn't visible initially due to Turbopack cache corruption. Fixed by clearing `.next` and regenerating Prisma client.
+
+**Stage:** ✅ Completed
+
 ### Chat UX Polish + Shared Components
 Unified message rendering, actions, prompt chips, pinned context, and quick-fix bars across Planning, Studio, and Studio planning chats. Added shared message parsing utilities and auto-scroll behavior that pauses when users scroll mid-stream.
 
-**StageRecent progress: added chat prompt queueing:** In Progress
+**Stage:** Completed
 
  during streaming, reset-chat history action (preserving context), retry behavior to remove last user+assistant before resending, and queued message visibility with edit/delete controls across Planning, Studio, and Studio planning chats.
 

@@ -28,6 +28,8 @@ import { PromptChips } from "@/components/chat/PromptChips";
 import { PinnedContext } from "@/components/chat/PinnedContext";
 import { QuickFixBar, type QuickFixAction } from "@/components/chat/QuickFixBar";
 import { extractMessageParts } from "@/lib/chat/message-utils";
+import { ChatModelSwitcher } from "@/components/ui/ChatModelSwitcher";
+import { getDefaultModel } from "@/lib/model-registry";
 
 interface ChatInterfaceProps {
   qualities: ProjectQualities;
@@ -106,6 +108,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
   const isQueueSendingRef = useRef(false);
   const chatId = `chat-${projectId}`;
   const hasRestoredMessages = useRef(false);
+
+  // Model selection state - defaults from registry
+  const [selectedModel, setSelectedModel] = useState<string>(() =>
+    getDefaultModel("chat").id
+  );
 
   // Debug: Log projectId and check AI SDK's localStorage
   console.log('🔧 ChatInterface projectId:', projectId);
@@ -299,6 +306,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
           body: {
             qualities,
             projectId,
+            model: selectedModel,
           },
         }
       );
@@ -434,6 +442,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
         body: {
           qualities,
           projectId,
+          model: selectedModel,
         },
       }
     );
@@ -675,6 +684,14 @@ export const ChatInterface = forwardRef<ChatInterfaceHandle, ChatInterfaceProps>
             </div>
           </div>
         )}
+        {/* Model switcher - always visible above input */}
+        <div className="flex justify-start max-w-3xl mx-auto w-full mb-2">
+          <ChatModelSwitcher
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            compact={true}
+          />
+        </div>
         <form
           onSubmit={handleSubmit}
           className="flex gap-3 relative max-w-3xl mx-auto w-full items-end"
