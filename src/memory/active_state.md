@@ -2,23 +2,44 @@
 
 ## Current Session (2026-01-21)
 
+### Dev Server Hang Debugging
+Debugged critical dev server hang issue that prevented the app from loading. Multiple overlapping issues found:
+
+**Issues Fixed:**
+1. **Auth.js duplicate session config** - Removed duplicate `session: { strategy: "jwt" }` block in `auth.ts` (was declared twice)
+2. **Prisma 7 schema URL error** - Prisma 7 no longer supports `url` in schema.prisma datasource; it's handled by `prisma.config.ts`
+3. **WSL + Windows mount issues** - Running `bun install` on `/mnt/c/...` caused broken symlinks in `.bin`; fixed by using `npm install` instead
+
+**Root Cause Chain:**
+- User switched from Windows to WSL for dev environment
+- bun install on NTFS mount created broken Linux symlinks
+- This caused "next: command not found" errors
+- Solution: Use npm instead of bun for cross-filesystem installs
+
+**Key Learning:**
+- Prisma 7 breaking change: datasource `url` must be in `prisma.config.ts`, not `schema.prisma`
+- WSL2 + /mnt/c/ filesystem = broken symlinks for node_modules/.bin
+
+### Asset Resolution Investigation
+Investigating intermittent `RESOLVE_FAILED` errors for game assets in preview.
+
+**Symptom:** Some asset resolve requests succeed, others fail (different requestIds for same asset)
+
+**Architecture:** 
+- Iframe sends `asset-resolve-request` via postMessage
+- Parent (`PreviewFrame.tsx`) receives, calls `/api/studio/assets/resolve`
+- API returns proxy URL or data URL
+- Parent sends `asset-resolve-response` back to iframe
+- 6 second client-side timeout on resolution
+
+**Possible causes under investigation:**
+- Race condition between multiple resolve requests
+- postMessage origin validation failing intermittently
+- Timeout too short for slow first-load compilations
+
+**Stage:** 🔄 In Progress
+
 ### Centralized Asset Manifest Error Handling
-Centralized the fetching and error handling of the game asset manifest in the `StudioProvider`. This resolves redundant API calls and ensures UI consistency across `PreviewTab`, `AssetsTab`, and the `StudioHeader`.
-
-**Implementation:**
-- Added `assetManifest`, `manifestLoading`, and `manifestError` to `StudioProvider` / `StudioContext`.
-- Refactored `PreviewTab` to use shared state and added explicit error/empty states with retry capability.
-- Optimized `AssetsTab` to use the shared manifest for its asset counter.
-- Created ADR-027 to document the architectural decision.
-
-**Files Modified:**
-- `src/lib/studio/context.ts`
-- `src/components/studio/StudioProvider.tsx`
-- `src/components/studio/tabs/PreviewTab.tsx`
-- `src/components/studio/tabs/AssetsTab.tsx`
-- `src/memory/adr/027-centralized-asset-manifest-handling.md`
-
-**Stage:** ✅ Completed (Ready for PR)
 
 ## Previous Session (2026-01-20)
 
@@ -230,7 +251,7 @@ ASSET_PROXY_SECRET="..."
 
 1. **Token Limits:** Never return base64 in tool results - return ID, fetch separately
 2. **AI SDK v6:** Use `useRef(new Set())` for processed IDs to prevent infinite loops
-3. **WSL2 Split:** User runs `bun` in PowerShell, Claude operates in WSL2
+3. **WSL2 Environment:** User runs `bun` in WSL2, Claude also operates in WSL2
 4. **CI/CD:** Check BOTH `vercel.json` AND `package.json` for build commands
 
 ---
