@@ -82,6 +82,9 @@ interface OpenRouterContentPart {
     url?: string;
     data?: string;
     b64_json?: string;
+    // MIME type for the data (camelCase and snake_case variants)
+    mimeType?: string;
+    mime_type?: string;
     image_url?: {
         url?: string;
     };
@@ -90,6 +93,15 @@ interface OpenRouterContentPart {
         data?: string;
         b64_json?: string;
         mime_type?: string;
+    };
+    // Gemini native format: inline_data (REST) or inlineData (SDK)
+    inline_data?: {
+        data: string;
+        mime_type: string;
+    };
+    inlineData?: {
+        data: string;
+        mimeType: string;
     };
 }
 
@@ -116,13 +128,25 @@ const getImageUrlFromPart = (part: OpenRouterContentPart): string => {
         return `data:${mimeType};base64,${part.image.data}`;
     }
 
+    // Gemini native format: inline_data (REST API)
+    if (part.inline_data?.data) {
+        const mimeType = part.inline_data.mime_type || "image/png";
+        return `data:${mimeType};base64,${part.inline_data.data}`;
+    }
+
+    // Gemini native format: inlineData (SDK/TypeScript)
+    if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || "image/png";
+        return `data:${mimeType};base64,${part.inlineData.data}`;
+    }
+
     if (part.data) {
         const rawData = part.data.trim();
         if (rawData.startsWith("data:image/")) {
             return rawData;
         }
-        // Use mime_type if available, otherwise default to png
-        const mimeType = (part as any).mime_type || "image/png";
+        // Use mimeType or mime_type if available, otherwise default to png
+        const mimeType = part.mimeType || part.mime_type || "image/png";
         return `data:${mimeType};base64,${rawData}`;
     }
 
@@ -252,69 +276,107 @@ export async function generateFluxImage(
     // Log response structure for debugging
     console.log('📦 OpenRouter response keys:', Object.keys(responseData));
 
-    // Extract message from response
-    const message = responseData.choices?.[0]?.message as OpenRouterImageMessage | undefined;
-    if (!message) {
-        console.error('❌ No message in response:', {
-            id: responseData.id,
-            topLevelKeys: Object.keys(responseData),
-            choicesLength: Array.isArray(responseData.choices) ? responseData.choices.length : undefined,
-        });
-        throw new Error('No message in OpenRouter response');
-    }
-
-    // Extract image from message.images array
-    // This is the correct format for OpenRouter Flux models
+    // Try to extract image URL from multiple possible formats
     let imageUrl = '';
 
-    if (message.images && Array.isArray(message.images) && message.images.length > 0) {
-        const firstImage = message.images[0];
-        console.log('📦 Image object keys:', Object.keys(firstImage));
+    // ==========================================================================
+    // FORMAT 1: Gemini native format - candidates[].content.parts[].inline_data
+    // OpenRouter may pass through Gemini's native response structure
+    // ==========================================================================
+    const candidates = responseData.candidates as Array<{
+        content?: {
+            parts?: Array<OpenRouterContentPart>;
+        };
+    }> | undefined;
 
-        // Handle various possible response formats
-        if (firstImage.image_url?.url) {
-            // Format: { image_url: { url: "data:..." } }
-            imageUrl = firstImage.image_url.url;
-        } else if (firstImage.url) {
-            // Format: { url: "data:..." }
-            imageUrl = firstImage.url;
-        } else if (firstImage.data) {
-            // Format: { data: "base64..." }
-            imageUrl = `data:image/png;base64,${firstImage.data}`;
-        } else if (firstImage.b64_json) {
-            // Format: { b64_json: "base64..." }
-            imageUrl = `data:image/png;base64,${firstImage.b64_json}`;
-        } else if (firstImage.image) {
-            // Format: { image: { url: "data:..." } } or { image: { data: "base64..." } }
-            if (firstImage.image.url) {
-                imageUrl = firstImage.image.url;
-            } else if (firstImage.image.data) {
-                const mimeType = firstImage.image.mime_type || "image/png";
-                imageUrl = `data:${mimeType};base64,${firstImage.image.data}`;
-            } else if (firstImage.image.b64_json) {
-                const mimeType = firstImage.image.mime_type || "image/png";
-                imageUrl = `data:${mimeType};base64,${firstImage.image.b64_json}`;
+    if (candidates && Array.isArray(candidates) && candidates.length > 0) {
+        console.log('📦 Found Gemini candidates format');
+        const parts = candidates[0]?.content?.parts;
+        if (parts && Array.isArray(parts)) {
+            for (const part of parts) {
+                imageUrl = getImageUrlFromPart(part);
+                if (imageUrl) {
+                    console.log('✅ Extracted image from Gemini candidates.parts');
+                    break;
+                }
             }
         }
     }
 
-    if (!imageUrl) {
-        imageUrl = extractImageUrlFromContent(message.content);
-    }
+    // ==========================================================================
+    // FORMAT 2: OpenAI/OpenRouter normalized format - choices[].message
+    // ==========================================================================
+    const message = responseData.choices?.[0]?.message as OpenRouterImageMessage | undefined;
 
-    if (!imageUrl && message.annotations && Array.isArray(message.annotations)) {
-        for (const part of message.annotations) {
-            imageUrl = getImageUrlFromPart(part);
-            if (imageUrl) {
-                break;
+    if (!imageUrl && message) {
+        // Try message.images array (Flux/OpenAI style)
+        if (message.images && Array.isArray(message.images) && message.images.length > 0) {
+            const firstImage = message.images[0];
+            console.log('📦 Image object keys:', Object.keys(firstImage));
+
+            // Handle various possible response formats
+            if (firstImage.image_url?.url) {
+                imageUrl = firstImage.image_url.url;
+            } else if (firstImage.url) {
+                imageUrl = firstImage.url;
+            } else if (firstImage.data) {
+                imageUrl = `data:image/png;base64,${firstImage.data}`;
+            } else if (firstImage.b64_json) {
+                imageUrl = `data:image/png;base64,${firstImage.b64_json}`;
+            } else if (firstImage.image) {
+                if (firstImage.image.url) {
+                    imageUrl = firstImage.image.url;
+                } else if (firstImage.image.data) {
+                    const mimeType = firstImage.image.mime_type || "image/png";
+                    imageUrl = `data:${mimeType};base64,${firstImage.image.data}`;
+                } else if (firstImage.image.b64_json) {
+                    const mimeType = firstImage.image.mime_type || "image/png";
+                    imageUrl = `data:${mimeType};base64,${firstImage.image.b64_json}`;
+                }
+            }
+        }
+
+        // Try message.content (may contain image as data URL or array of parts)
+        if (!imageUrl) {
+            imageUrl = extractImageUrlFromContent(message.content);
+        }
+
+        // Try message.annotations
+        if (!imageUrl && message.annotations && Array.isArray(message.annotations)) {
+            for (const part of message.annotations) {
+                imageUrl = getImageUrlFromPart(part);
+                if (imageUrl) {
+                    break;
+                }
             }
         }
     }
 
-    // Validate we got an image
+    // ==========================================================================
+    // VALIDATION: Ensure we got an image from one of the formats
+    // ==========================================================================
     if (!imageUrl) {
-        console.error('❌ No image in response. Message keys:', Object.keys(message));
-        throw new Error('No image data in OpenRouter response');
+        // Build detailed debug info for error message
+        const debugInfo = {
+            hasCandidates: !!candidates,
+            candidatesLength: candidates?.length || 0,
+            hasMessage: !!message,
+            messageKeys: message ? Object.keys(message) : [],
+            hasImages: !!message?.images,
+            imagesLength: message?.images?.length || 0,
+            contentType: message ? typeof message.content : 'N/A',
+            contentPreview: message
+                ? (typeof message.content === 'string'
+                    ? message.content.substring(0, 200)
+                    : Array.isArray(message.content)
+                        ? `array[${message.content.length}]`
+                        : 'object')
+                : 'N/A',
+            hasAnnotations: !!message?.annotations,
+            topLevelKeys: Object.keys(responseData),
+        };
+        console.error('❌ No image in response:', debugInfo);
+        throw new Error(`No image data in OpenRouter response: ${JSON.stringify(debugInfo)}`);
     }
 
     console.log('✅ Image generated:', {

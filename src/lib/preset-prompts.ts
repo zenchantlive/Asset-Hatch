@@ -139,7 +139,7 @@ export const STYLE_PRESETS: PresetPrompt[] = [
         id: 'style-infer',
         label: 'Infer from plan',
         prompt:
-            'Based on the asset plan we created, analyze the game genre, theme, and mood to automatically suggest an appropriate visual style with matching colors, lighting, and art direction.',
+            'Based on the asset plan we created, analyze the game genre, theme, and mood to automatically suggest an appropriate visual style with matching colors, lighting, and art direction. and crete the style details now',
         mode: 'style',
     },
     {
