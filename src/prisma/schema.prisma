@@ -10,7 +10,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // No url needed - connection handled by Neon adapter in lib/prisma.ts
 }
 
 // =============================================================================

@@ -44,7 +44,7 @@ export default function PlanningPage() {
 
 
 
-// Style phase state
+  // Style phase state
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
   const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
@@ -54,7 +54,7 @@ export default function PlanningPage() {
   useEffect(() => {
     const fetchGameId = async () => {
       if (!params.id || typeof params.id !== 'string') return;
-      
+
       try {
         const response = await fetch(`/api/projects/${params.id}`);
         if (response.ok) {
@@ -401,7 +401,7 @@ export default function PlanningPage() {
             </div>
           </div>
 
-{/* RIGHT: Game & Files only (Parameters moved to bar below) */}
+          {/* RIGHT: Game & Files only (Parameters moved to bar below) */}
           <div className="flex items-center gap-3">
             {gameId ? (
               <Link
@@ -415,6 +415,12 @@ export default function PlanningPage() {
                 No Game Yet
               </span>
             )}
+            <button
+              onClick={() => setAssetsMenuOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
+            >
+              Assets
+            </button>
             <button
               onClick={() => setFilesMenuOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
