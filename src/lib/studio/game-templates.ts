@@ -16,7 +16,7 @@ export interface GameTemplate {
     description: string;
     category: 'platformer' | 'shooter' | 'puzzle' | 'exploration' | 'racing';
     difficulty: 'beginner' | 'intermediate' | 'advanced';
-    files: GameFileData[];
+    files: Partial<GameFileData>[];
     tags: string[];
 }
 
@@ -687,5 +687,5 @@ export function getTemplateById(id: string): GameTemplate | undefined {
  * Generate game files from a template
  */
 export function useTemplate(template: GameTemplate): GameFileData[] {
-    return template.files as any[];
+    return template.files as GameFileData[];
 }
