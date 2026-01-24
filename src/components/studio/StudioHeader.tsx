@@ -86,6 +86,9 @@ export function StudioHeader() {
                             </span>
                             Engine Alpha
                         </div>
+                        <span className="text-[10px] text-white/30 italic font-medium hidden md:inline-block border-l border-white/10 pl-2">
+                            "Hatching... proceed with extreme curiosity."
+                        </span>
                     </div>
                 )}
             </div>
@@ -136,25 +139,6 @@ export function StudioHeader() {
                     Export
                 </Button>
             </div>
-
-            {/* Floating WIP Notice */}
-            <div className="absolute top-[100%] left-0 right-0 h-6 bg-yellow-500/5 border-b border-yellow-500/10 flex items-center justify-center pointer-events-none overflow-hidden">
-                <div className="flex items-center gap-4 animate-[marquee_20s_linear_infinite] whitespace-nowrap">
-                    <span className="text-[10px] text-yellow-500/40 uppercase font-bold tracking-widest">
-                        ⚠️ Experimental Engine Phase — Asset Generation is Ready — Game Runtime is Hatching — Proceed with Caution ⚠️
-                    </span>
-                    <span className="text-[10px] text-yellow-500/40 uppercase font-bold tracking-widest">
-                        ⚠️ Experimental Engine Phase — Asset Generation is Ready — Game Runtime is Hatching — Proceed with Caution ⚠️
-                    </span>
-                </div>
-            </div>
-
-            <style jsx>{`
-                @keyframes marquee {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
-                }
-            `}</style>
         </header>
     );
 }
