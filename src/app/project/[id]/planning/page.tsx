@@ -19,7 +19,7 @@ import { StylePanel } from "@/components/ui/StylePanel"
 import { applyModeTheme, resetModeTheme } from "@/lib/theme-utils"
 import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
 import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
-import { useTransition } from "@/components/ui/TransitionProvider"
+import { useAppTransition } from "@/components/ui/TransitionProvider"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -27,7 +27,7 @@ export default function PlanningPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { stopTransition } = useTransition()
+  const { stopTransition } = useAppTransition()
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)

@@ -22,10 +22,10 @@ const TransitionContext = createContext<TransitionContextType | undefined>(undef
 /**
  * Hook to use the transition context
  */
-export function useTransition() {
+export function useAppTransition() {
   const context = useContext(TransitionContext);
   if (!context) {
-    throw new Error("useTransition must be used within a TransitionProvider");
+    throw new Error("useAppTransition must be used within a TransitionProvider");
   }
   return context;
 }
