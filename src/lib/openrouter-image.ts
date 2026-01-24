@@ -224,9 +224,13 @@ export async function generateFluxImage(
     // Defensive cleaning: trim whitespace and remove potential accidental quotes
     OPENROUTER_API_KEY = OPENROUTER_API_KEY.trim().replace(/^["']|["']$/g, '');
 
+    if (!OPENROUTER_API_KEY) {
+        throw new Error('OPENROUTER_API_KEY is empty after sanitization');
+    }
+
     // Mask API key for logging
     const maskedKey = `${OPENROUTER_API_KEY.substring(0, 8)}...${OPENROUTER_API_KEY.substring(OPENROUTER_API_KEY.length - 4)}`;
-    console.log('🎨 Using OpenRouter API key:', maskedKey);
+    console.log('🎨 Using OpenRouter API key:', maskedKey, `(length: ${OPENROUTER_API_KEY.length})`);
 
     // Build messages array with the prompt
     const messages: Array<{ role: string; content: string }> = [

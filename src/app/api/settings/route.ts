@@ -91,10 +91,14 @@ export async function PATCH(request: NextRequest) {
         }
 
         const { openRouterApiKey, tripoApiKey } = result.data;
+        
+        // Clean keys before validation and saving
+        const cleanOpenRouterKey = openRouterApiKey?.trim().replace(/^["']|["']$/g, '');
+        const cleanTripoKey = tripoApiKey?.trim().replace(/^["']|["']$/g, '');
 
         // If API key is provided, validate it with OpenRouter
-        if (openRouterApiKey) {
-            const isValid = await validateOpenRouterKey(openRouterApiKey);
+        if (cleanOpenRouterKey) {
+            const isValid = await validateOpenRouterKey(cleanOpenRouterKey);
             if (!isValid) {
                 return NextResponse.json(
                     { error: "Invalid OpenRouter API key" },
@@ -104,9 +108,9 @@ export async function PATCH(request: NextRequest) {
         }
 
         // If Tripo API key is provided, just validate format (not API call)
-        if (tripoApiKey) {
-            console.log("🔧 [Settings PATCH] Validating Tripo key format, prefix:", tripoApiKey.slice(0, 8));
-            if (!tripoApiKey.startsWith("tsk_")) {
+        if (cleanTripoKey) {
+            console.log("🔧 [Settings PATCH] Validating Tripo key format, prefix:", cleanTripoKey.slice(0, 8));
+            if (!cleanTripoKey.startsWith("tsk_")) {
                 return NextResponse.json(
                     { error: "Invalid Tripo API key format (must start with 'tsk_')" },
                     { status: 400 }
@@ -120,11 +124,11 @@ export async function PATCH(request: NextRequest) {
 
         // Only update keys that are explicitly present in the request body
         if ("openRouterApiKey" in body) {
-            updateData.openRouterApiKey = openRouterApiKey ?? null;
+            updateData.openRouterApiKey = cleanOpenRouterKey ?? null;
         }
 
         if ("tripoApiKey" in body) {
-            updateData.tripoApiKey = tripoApiKey ?? null;
+            updateData.tripoApiKey = cleanTripoKey ?? null;
         }
 
         await prisma.user.update({

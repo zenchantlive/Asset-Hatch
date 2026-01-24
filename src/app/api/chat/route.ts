@@ -98,10 +98,6 @@ export async function POST(req: NextRequest) {
     const provider = userApiKey !== null 
       ? createOpenRouter({ 
           apiKey: userApiKey.trim().replace(/^["']|["']$/g, ''),
-          headers: {
-            'HTTP-Referer': 'https://asset-hatch.app',
-            'X-Title': 'Asset Hatch',
-          }
         })
       : openrouter;
 
