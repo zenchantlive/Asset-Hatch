@@ -77,6 +77,20 @@ export function StudioHeader() {
                         >
                             <Edit2 className="h-3 w-3" />
                         </Button>
+
+                        {/* Contribution Note */}
+                        <a 
+                            href="https://github.com/zenchantlive/Asset-Hatch" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary hover:bg-primary/20 transition-all animate-pulse ml-1"
+                        >
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                            </span>
+                            Want to contribute?
+                        </a>
                     </div>
                 )}
             </div>
