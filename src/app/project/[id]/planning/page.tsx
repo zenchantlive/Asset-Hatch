@@ -224,7 +224,7 @@ export default function PlanningPage() {
     return () => {
       resetModeTheme();
     };
-  }, [params.id]);
+  }, [params.id, stopTransition]);
 
   // Handle mode switching with persistence
   const handleModeChange = async (newMode: PlanningMode) => {

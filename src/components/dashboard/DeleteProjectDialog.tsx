@@ -102,7 +102,7 @@ export function DeleteProjectDialog({
             <DialogTitle>Delete Project</DialogTitle>
           </div>
           <DialogDescription className="text-white/60">
-            Are you sure you want to delete <span className="text-white font-medium">"{projectName}"</span>? 
+            Are you sure you want to delete <span className="text-white font-medium">&quot;{projectName}&quot;</span>? 
             This action cannot be undone and will permanently remove all associated assets and game data.
           </DialogDescription>
         </DialogHeader>

@@ -28,6 +28,7 @@ export function FullPageTransition({ isActive, message }: FullPageTransitionProp
   // Handle animation out
   useEffect(() => {
     if (isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldRender(true);
       // Disable scrolling when active
       document.body.style.overflow = "hidden";

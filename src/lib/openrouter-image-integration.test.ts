@@ -9,7 +9,9 @@
  * and are prepared to pay for the API calls.
  */
 
-import type { FluxGenerationOptions } from './openrouter-image';
+import {
+    generateFluxImage,
+} from './openrouter-image';
 
 // Mock process.env
 const originalEnv = process.env;

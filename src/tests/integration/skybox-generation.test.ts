@@ -43,7 +43,6 @@ describe('Skybox Generation - Integration Tests', () => {
             data: {
                 name: 'Test Skybox Project',
                 userId: testUserId,
-                description: 'Test project for skybox generation',
             }
         });
         testProjectId = project.id;
@@ -137,6 +136,9 @@ describe('Skybox Generation - Integration Tests', () => {
                 styleKeywords: 'cyberpunk, neon, futuristic',
                 lightingKeywords: 'dramatic, high contrast',
                 colorPalette: JSON.stringify(['#00ff00', '#ff00ff', '#00ffff']),
+                referenceImageName: 'test-image.png',
+                referenceImageBlob: Buffer.from(''),
+                fluxModel: 'black-forest-labs/flux.2-pro',
             }
         });
 

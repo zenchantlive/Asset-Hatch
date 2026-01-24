@@ -345,7 +345,7 @@ ${scriptTags}
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [currentKey, gameId, onReady, onError]);
+    }, [currentKey, gameId, onReady, onError, assetManifest]);
 
     // Helper function to get error type display name
     const getErrorTypeName = (kind: ErrorInfo['kind']): string => {

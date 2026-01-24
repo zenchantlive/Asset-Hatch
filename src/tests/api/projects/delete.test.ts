@@ -1,7 +1,6 @@
 import { DELETE } from "@/app/api/projects/[id]/route";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { NextResponse } from "next/server";
 
 // Mock prisma and auth
 jest.mock("@/lib/prisma", () => ({

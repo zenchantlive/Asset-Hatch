@@ -12,7 +12,9 @@
  * 4. We need comprehensive fallback mechanisms
  */
 
-import type { FluxGenerationOptions } from './openrouter-image';
+import {
+    generateFluxImage,
+} from './openrouter-image';
 
 // Mock process.env
 const originalEnv = process.env;
