@@ -2,23 +2,18 @@
 
 ## Current Session (2026-01-21)
 
-### Dev Server Hang Debugging
-Debugged critical dev server hang issue that prevented the app from loading. Multiple overlapping issues found:
+### Dev Server & Auth Stability (WSL)
+Debugged critical sign-in blocking issue where `CredentialsSignin` occurred in WSL.
 
 **Issues Fixed:**
-1. **Auth.js duplicate session config** - Removed duplicate `session: { strategy: "jwt" }` block in `auth.ts` (was declared twice)
-2. **Prisma 7 schema URL error** - Prisma 7 no longer supports `url` in schema.prisma datasource; it's handled by `prisma.config.ts`
-3. **WSL + Windows mount issues** - Running `bun install` on `/mnt/c/...` caused broken symlinks in `.bin`; fixed by using `npm install` instead
-
-**Root Cause Chain:**
-- User switched from Windows to WSL for dev environment
-- bun install on NTFS mount created broken Linux symlinks
-- This caused "next: command not found" errors
-- Solution: Use npm instead of bun for cross-filesystem installs
+1. **WSL Auth Trust** - Added `AUTH_TRUST_HOST=true` to `.env.local` to allow Auth.js v5 to function in WSL networked environments.
+2. **Demo Account Password Fix** - Resolved `[Auth] User has no password hash` by re-running the seed script. The demo user existed but lacked a credentials hash.
+3. **Case-Insensitive Auth** - Updated `auth.ts` to lowercase emails during authorize, matching the registration logic.
+4. **Standalone Script DB Access** - Created `check-users.ts` with explicit `dotenv` loading to bypass SASL errors in standalone Node/Bun environments.
 
 **Key Learning:**
-- Prisma 7 breaking change: datasource `url` must be in `prisma.config.ts`, not `schema.prisma`
-- WSL2 + /mnt/c/ filesystem = broken symlinks for node_modules/.bin
+- `AUTH_TRUST_HOST` is mandatory for Auth.js v5 in WSL.
+- Prisma 7 scripts must explicitly load `.env.local` using `dotenv` if they are to access Neon DB outside of the Next.js runtime context.
 
 ### Asset Resolution Investigation
 Investigating intermittent `RESOLVE_FAILED` errors for game assets in preview.
@@ -40,6 +35,42 @@ Investigating intermittent `RESOLVE_FAILED` errors for game assets in preview.
 **Stage:** 🔄 In Progress
 
 ### Centralized Asset Manifest Error Handling
+
+## Current Session (2026-01-21) - Issues Resolved
+
+### 1. Asset Approval API Error
+**Error:** `Failed to approve asset` in `GenerationQueue3D.tsx:630`
+
+**Cause:** API `/api/generate-3d/approve` returned non-ok status without descriptive error
+
+**Status:** ✅ Already has try-catch, returns generic error message
+
+### 2. Sync Memory Files TypeError  
+**Error:** `projectData.memoryFiles is not iterable` in `sync.ts:128`
+
+**Cause:** Code checks `if (projectData.memoryFiles)` but doesn't validate it's an array before iterating
+
+**Status:** ✅ Fixed - code at line 128 already checks `Array.isArray(projectData.memoryFiles)` before iterating
+
+### 3. Studio Chat DB Timeout (CRITICAL)
+**Error:** `ETIMEDOUT` on `prisma.game.findFirst()` in `/api/studio/chat/route.ts:52`
+
+**Cause:** Neon PostgreSQL serverless connection timeout during idle periods
+
+**Fix Applied:**
+- Added retry logic with exponential backoff (2 retries)
+- Returns 503 "Database temporarily unavailable" instead of 500 crash
+- Improved user experience during transient DB issues
+
+### 4. Babylon.js Code Generation Safety Improvements
+Completed full overhaul:
+- System prompt with defensive programming patterns
+- Code validator with 6 crash-detection rules  
+- CONTROLS helper for bulletproof input handling
+- Game templates (platformer, space shooter)
+- verifyGame quality gate tool
+
+### 5. Dev Server Hang Debugging
 
 ## Previous Session (2026-01-20)
 

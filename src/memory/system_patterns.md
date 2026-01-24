@@ -78,8 +78,20 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 * **WSL2 Environment**
   - User runs `bun` in WSL2 (Linux)
   - AI also runs in WSL2 (Linux)
+  - **Auth.js Rule:** MUST set `AUTH_TRUST_HOST=true` in `.env.local` for WSL environments to prevent `CredentialsSignin` errors.
   - **Solution:** Both user and AI can run `bun` commands directly
   - **Symptom:** OOM issues are rare since both are in same environment
+
+* **SASL / Connection Errors in Scripts**
+  - **Issue:** `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string`
+  - **Symptom:** Standalone scripts (like seeds or checks) fail to connect to Neon.
+  - **Cause:** `process.env.DATABASE_URL` is undefined because `.env.local` isn't loaded by default.
+  - **Solution:** Explicitly load `dotenv` with `path` resolve at the very top of scripts.
+    ```typescript
+    import { config } from "dotenv";
+    import path from "path";
+    config({ path: path.resolve(process.cwd(), ".env.local") });
+    ```
 
 * **Bun vs npm**
   - Project uses Bun for package management (`bun.lock` exists)

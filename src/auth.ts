@@ -53,40 +53,56 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             // Authorize function validates credentials and returns user
             async authorize(credentials) {
+                console.log("[Auth] Authorize attempt for:", credentials?.email);
+                
                 // Validate input with Zod schema
                 const parsed = signInSchema.safeParse(credentials);
                 if (!parsed.success) {
+                    console.error("[Auth] Validation failed:", parsed.error.format());
                     return null;
                 }
 
-                const { email, password } = parsed.data;
+                // Lowercase email to match registration logic
+                const email = parsed.data.email.toLowerCase();
+                const { password } = parsed.data;
 
-                // Find user by email
-                const user = await prisma.user.findUnique({
-                    where: { email },
-                });
+                try {
+                    // Find user by email
+                    const user = await prisma.user.findUnique({
+                        where: { email },
+                    });
 
-                // Check if user exists and has a password (credentials user)
-                if (!user?.hashedPassword) {
+                    console.log("[Auth] User found:", user ? "Yes" : "No");
+
+                    // Check if user exists and has a password (credentials user)
+                    if (!user?.hashedPassword) {
+                        console.error("[Auth] User has no password hash or does not exist");
+                        return null;
+                    }
+
+                    // Verify password with bcrypt
+                    const isValidPassword = await bcrypt.compare(
+                        password,
+                        user.hashedPassword
+                    );
+                    
+                    console.log("[Auth] Password valid:", isValidPassword ? "Yes" : "No");
+                    
+                    if (!isValidPassword) {
+                        return null;
+                    }
+
+                    // Return user object for session
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        image: user.image,
+                    };
+                } catch (error) {
+                    console.error("[Auth] Database error during authorization:", error);
                     return null;
                 }
-
-                // Verify password with bcrypt
-                const isValidPassword = await bcrypt.compare(
-                    password,
-                    user.hashedPassword
-                );
-                if (!isValidPassword) {
-                    return null;
-                }
-
-                // Return user object for session
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    image: user.image,
-                };
             },
         }),
     ],
