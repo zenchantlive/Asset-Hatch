@@ -16,6 +16,10 @@ Debugged critical sign-in blocking issue where `CredentialsSignin` occurred in W
     - Created `DeleteProjectDialog.tsx` using Radix Dialog.
     - Integrated with `UnifiedProjectCard.tsx` with hover visibility and event bubbling prevention.
     - Verified via unit tests in `src/tests/api/projects/delete.test.ts`.
+- **Skybox Prompt Optimization** - Refined skybox generation prompts to ensure background-only content.
+    - Added `BACKGROUND_FOCUS_KEYWORDS` for unobstructed far-horizon vistas.
+    - Updated all presets (space, clouds, etc.) to specify distant elements like tiny stars and far-away planets.
+    - Adhered to FLUX2 positive-framing principles to avoid midground objects.
 
 **Key Learning:**
 - `AUTH_TRUST_HOST` is mandatory for Auth.js v5 in WSL.

@@ -47,25 +47,37 @@ export type SkyboxPreset =
 
 /**
  * FLUX2-optimized preset descriptions for common skybox types.
- * Each preset includes color, lighting, and atmospheric details.
+ * Each preset emphasizes far-horizon atmospheric and celestial elements.
  */
 export const SKYBOX_PRESETS: Record<SkyboxPreset, string> = {
-    sunset: "warm orange and pink sunset gradient transitioning to deep purple twilight, golden hour lighting with soft atmospheric glow",
-    noon: "bright midday sky with intense blue zenith fading to pale horizon, harsh direct sunlight with high contrast",
-    night: "deep indigo night sky with visible stars and subtle nebula clouds, moonlight ambient illumination",
-    cloudy: "overcast sky with varied gray cloud formations and diffused sunlight, soft even lighting throughout",
-    desert: "harsh desert environment with heat haze and dusty atmosphere, intense warm lighting with orange tint",
-    space: "deep space with distant stars, colorful nebulae, and cosmic dust, zero-gravity environment lighting",
-    forest: "forest canopy gaps showing sky filtered through dense foliage, dappled green-tinted lighting",
-    underwater: "underwater environment with caustic light patterns and depth gradient, blue-green filtered lighting",
-    storm: "dramatic storm clouds with lightning illumination and dark atmosphere, dynamic high-contrast lighting",
-    alien: "otherworldly alien sky with unusual colors and atmospheric phenomena, surreal alien world lighting",
+    sunset: "unobstructed warm orange and pink sunset gradient transitioning to deep purple twilight, far-horizon atmospheric glow",
+    noon: "expansive midday sky with intense blue zenith fading to pale horizon, pure atmospheric background vista",
+    night: "deep indigo night sky backdrop with tiny distant stars and subtle nebula formations, pure celestial atmosphere",
+    cloudy: "unobstructed expansive overcast sky with distant gray cloud formations, far-horizon atmospheric perspective",
+    desert: "far-horizon desert sky vista with distant heat haze and dusty atmosphere, pure background sky backdrop",
+    space: "deep space celestial backdrop with tiny distant stars, far away planets, and cosmic nebulae, unobstructed infinity vista",
+    forest: "distant forest canopy skyline gaps showing pure atmospheric sky, far-horizon background lighting",
+    underwater: "deep underwater background gradient with distant caustic light patterns, far-horizon aqueous atmosphere",
+    storm: "unobstructed dramatic storm clouds backdrop, far-horizon atmospheric lightning illumination",
+    alien: "otherworldly alien sky backdrop with distant celestial phenomena, far-horizon atmospheric perspective",
     custom: "" // User provides full description
 };
 
 // =============================================================================
-// Seamlessness Keywords
+// Seamlessness and Composition Keywords
 // =============================================================================
+
+/**
+ * Compositional keywords to ensure skybox-only content (no midground objects).
+ * Framed positively for FLUX2.
+ */
+const BACKGROUND_FOCUS_KEYWORDS = [
+    "pure skybox backdrop",
+    "unobstructed far-horizon atmospheric vista",
+    "distant background elements only",
+    "unobstructed infinity-focus perspective",
+    "far-horizon celestial formations",
+] as const;
 
 /**
  * Critical keywords for ensuring perfect 360-degree seamlessness.
@@ -130,7 +142,10 @@ export function buildSkyboxPrompt(options: SkyboxPromptOptions): string {
     // 1. HIGHEST PRIORITY: Asset type specification (first 5 words)
     parts.push(SEAMLESSNESS_KEYWORDS[0]); // "seamless equirectangular 360-degree panorama"
 
-    // 2. PRIORITY #2: Scene description
+    // 2. PRIORITY #2: Scene description and background focus
+    parts.push(BACKGROUND_FOCUS_KEYWORDS[0]); // "pure skybox backdrop"
+    parts.push(BACKGROUND_FOCUS_KEYWORDS[1]); // "unobstructed far-horizon atmospheric vista"
+
     if (preset !== 'custom' && SKYBOX_PRESETS[preset]) {
         // Use preset description
         parts.push(SKYBOX_PRESETS[preset]);
@@ -141,6 +156,8 @@ export function buildSkyboxPrompt(options: SkyboxPromptOptions): string {
     }
 
     // 3. Technical seamlessness specifications
+    parts.push(BACKGROUND_FOCUS_KEYWORDS[2]); // "distant background elements only"
+    parts.push(BACKGROUND_FOCUS_KEYWORDS[3]); // "unobstructed infinity-focus perspective"
     parts.push(SEAMLESSNESS_KEYWORDS[1]); // 2:1 aspect ratio
     parts.push(SEAMLESSNESS_KEYWORDS[2]); // mathematically seamless edges
     parts.push(SEAMLESSNESS_KEYWORDS[3]); // no visible seams
