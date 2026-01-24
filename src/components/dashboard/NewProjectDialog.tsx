@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/ui/ModeToggle";
 import { Loader2, Plus, Gamepad2, Layers } from "lucide-react";
+import { useTransition } from "@/components/ui/TransitionProvider";
 
 interface NewProjectDialogProps {
   variant?: "default" | "outline" | "ghost" | "secondary";
@@ -49,13 +50,14 @@ export function NewProjectDialog({
   const [startWith, setStartWith] = useState<"assets" | "game">("assets");
   const [isLoading, setIsLoading] = useState(false);
 
+  const { startTransition } = useTransition();
+
   const handleCreate = async () => {
     if (!name.trim()) return;
 
     try {
       setIsLoading(true);
-
-      const response = await fetch("/api/projects", {
+      startTransition(`Hatching ${name.trim()}...`);
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), mode, startWith }),

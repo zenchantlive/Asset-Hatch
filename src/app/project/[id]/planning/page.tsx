@@ -19,6 +19,7 @@ import { StylePanel } from "@/components/ui/StylePanel"
 import { applyModeTheme, resetModeTheme } from "@/lib/theme-utils"
 import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
 import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
+import { useTransition } from "@/components/ui/TransitionProvider"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -26,6 +27,7 @@ export default function PlanningPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { stopTransition } = useTransition()
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
@@ -169,6 +171,9 @@ export default function PlanningPage() {
           setProjectMode(serverProject.mode === '3d' ? '3d' : '2d');
           applyModeTheme(serverProject.mode === '3d' ? '3d' : '2d');
           console.log(`🎨 Applied ${serverProject.mode} mode theme from server`);
+          
+          // Data is loaded and theme applied, stop the transition
+          stopTransition();
         } else {
           // Fallback to Dexie
           const project = await db.projects.get(params.id);
