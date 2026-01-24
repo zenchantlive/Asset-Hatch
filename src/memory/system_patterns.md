@@ -75,6 +75,15 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 ## ⚠️ Known "Gotchas" / Edge Cases
 
 ### Development Environment
+* **Asset Resolution Deduplication**
+  - **Issue:** Parallel `ASSETS.load()` calls for the same key trigger multiple `postMessage` requests, causing some to timeout or fail origin validation.
+  - **Pattern:** Use a `PENDING_RESOLVES` Map in the loader script to store and reuse the same promise for identical keys.
+  - **File:** `src/lib/studio/asset-loader.ts`
+
+* **Strict BYOK Overrides**
+  - **Pattern:** When using user-provided API keys (BYOK), ensure they strictly override system keys even if they are empty strings. This prevents silent billing on the system key when a user's key is broken.
+  - **Implementation:** Check for `userApiKey !== null` instead of truthiness.
+
 * **WSL2 Environment**
   - User runs `bun` in WSL2 (Linux)
   - AI also runs in WSL2 (Linux)

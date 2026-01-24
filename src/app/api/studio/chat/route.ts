@@ -48,14 +48,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user owns the game
-    const game = await prisma.game.findFirst({
-      where: {
-        id: gameId,
-        userId: session.user.id,
-        deletedAt: null,
-      },
-    });
+    // Verify user owns the game (with retry for transient DB issues)
+    let game = null;
+    let dbRetries = 0;
+    const maxDbRetries = 2;
+
+    while (dbRetries <= maxDbRetries) {
+      try {
+        game = await prisma.game.findFirst({
+          where: {
+            id: gameId,
+            userId: session.user.id,
+            deletedAt: null,
+          },
+        });
+        break;
+      } catch (error) {
+        dbRetries++;
+        console.warn(`DB connection attempt ${dbRetries} failed:`, error instanceof Error ? error.message : 'Unknown error');
+
+        if (dbRetries > maxDbRetries) {
+          console.error('All DB connection attempts failed');
+          return new Response(
+            JSON.stringify({ error: 'Database temporarily unavailable. Please try again.' }),
+            { status: 503, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, dbRetries) * 100));
+      }
+    }
 
     if (!game) {
       return new Response(

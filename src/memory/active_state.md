@@ -2,30 +2,35 @@
 
 ## Current Session (2026-01-21)
 
-### Dev Server & Auth Stability (WSL)
-Debugged critical sign-in blocking issue where `CredentialsSignin` occurred in WSL.
-
-**Issues Fixed:**
-1. **WSL Auth Trust** - Added `AUTH_TRUST_HOST=true` to `.env.local` to allow Auth.js v5 to function in WSL networked environments.
-2. **Demo Account Password Fix** - Resolved `[Auth] User has no password hash` by re-running the seed script.
-3. **Case-Insensitive Auth** - Updated `auth.ts` to lowercase emails during authorize.
-4. **Standalone Script DB Access** - Created `check-users.ts` with explicit `dotenv` loading.
+### UI & DX Polish
+Implemented high-quality visual transitions and improved onboarding feedback.
 
 **Features Implemented:**
-- **Project Deletion** - Added ability to delete projects from the dashboard with a confirmation dialog.
-    - Created `DeleteProjectDialog.tsx` using Radix Dialog.
-    - Integrated with `UnifiedProjectCard.tsx` with hover visibility and event bubbling prevention.
-    - Verified via unit tests in `src/tests/api/projects/delete.test.ts`.
-- **Skybox Prompt Optimization** - Refined skybox generation prompts to ensure background-only content.
-    - Added `BACKGROUND_FOCUS_KEYWORDS` for unobstructed far-horizon vistas.
-    - Updated all presets (space, clouds, etc.) to specify distant elements like tiny stars and far-away planets.
-    - Adhered to FLUX2 positive-framing principles to avoid midground objects.
+- **Aurora Hatching Transition** - Added a global `FullPageTransition.tsx` that provides a seamless visual bridge during project creation and initial 3D generation.
+- **Strict BYOK Enforcement** - Unified Chat, Image, and 3D API routes to strictly prioritize user-provided API keys, preventing silent fallbacks to system keys and ensuring consistent security.
+- **API Key Sanitization** - Implemented automatic trimming and quote-removal for all OpenRouter and Tripo keys at both usage and storage points.
+- **Project Deletion** - Added a secure deletion flow with confirmation prompts and cascading database cleanup.
+- **Skybox Prompt Optimization** - Refined prompt building to prioritize background-only content and unobstructed far-horizon vistas.
+- **Contributor Onboarding** - Added a pulsing 'Want to contribute?' CTA in the Studio chat empty state linked to the GitHub repo.
+
+### Studio Runtime Resilience
+Hardened the Babylon.js preview environment and code generation pipeline.
+
+**Improvements:**
+- **Deduplicated Asset Resolution** - Added a `PENDING_RESOLVES` map to `asset-loader.ts` to prevent race conditions when multiple parallel requests are made for the same asset.
+- **Enhanced Error Detection** - Improved `PreviewFrame.tsx` with better runtime error parsing and a streamlined 'Ask AI to Fix' workflow.
+- **DB Connection Resilience** - Added exponential backoff retry logic to the Studio Chat API to handle transient Neon serverless timeouts.
+- **Validated Code Generation** - Implemented a quality gate (`verifyGame`) that agents must call before completion to ensure generated code is crash-resistant.
+
+### Asset Resolution Investigation
+Intermittent `RESOLVE_FAILED` issues were traced to race conditions and origin mismatches in the iframe bridge.
+
+**Status:** ✅ Resolved via deduplication and origin validation logic in `asset-loader.ts`.
 
 **Key Learning:**
 - `AUTH_TRUST_HOST` is mandatory for Auth.js v5 in WSL.
-- Prisma 7 scripts must explicitly load `.env.local` using `dotenv` if they are to access Neon DB outside of the Next.js runtime context.
-
-### Asset Resolution Investigation
+- Direct `fetch` calls to OpenRouter are more sensitive to malformed header strings than the AI SDK.
+- Multi-file code generation requires strict global-scope management since ES modules are not used in the sandboxed preview.
 Investigating intermittent `RESOLVE_FAILED` errors for game assets in preview.
 
 **Symptom:** Some asset resolve requests succeed, others fail (different requestIds for same asset)

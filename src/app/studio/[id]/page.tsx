@@ -60,53 +60,66 @@ export default async function GameEditorPage({ params }: PageProps) {
         redirect('/auth/signin');
     }
 
-    // Fetch game with ownership verification
-    const game = await prisma.game.findFirst({
-        where: {
-            id,
-            userId: session.user.id,
-            deletedAt: null,
-        },
-        include: {
-            scenes: {
-                orderBy: { orderIndex: 'asc' },
-                select: {
-                    id: true,
-                    name: true,
-                    orderIndex: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
-            },
-        },
+    // Verify params and session
+    console.log('[GameEditorPage] Debug:', {
+        id,
+        userId: session.user.id,
+        hasSession: !!session,
     });
 
-    // Return 404 if game not found or user doesn't own it
-    if (!game) {
-        notFound();
+    try {
+        // Fetch game with ownership verification
+        const game = await prisma.game.findFirst({
+            where: {
+                id,
+                userId: session.user.id,
+                deletedAt: null,
+            },
+            include: {
+                scenes: {
+                    orderBy: { orderIndex: 'asc' },
+                    select: {
+                        id: true,
+                        name: true,
+                        orderIndex: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+
+        // Return 404 if game not found or user doesn't own it
+        if (!game) {
+            console.log('[GameEditorPage] Game not found or access denied');
+            notFound();
+        }
+
+        // Fetch files for this game (multi-file support)
+        const files = await fetchGameFiles(id);
+
+        // Serialize game data for client (convert Dates to ISO strings)
+        const serializedGame: GameData = {
+            ...game,
+            createdAt: game.createdAt.toISOString(),
+            updatedAt: game.updatedAt.toISOString(),
+            deletedAt: game.deletedAt?.toISOString() || null,
+            scenes: game.scenes.map((scene) => ({
+                ...scene,
+                gameId: game.id,
+                code: '', // Add missing code property
+                createdAt: scene.createdAt.toISOString(),
+                updatedAt: scene.updatedAt.toISOString(),
+            })),
+        };
+
+        return (
+            <StudioProvider initialGame={serializedGame} initialFiles={files}>
+                <StudioLayout gameId={game.id} />
+            </StudioProvider>
+        );
+    } catch (error) {
+        console.error('[GameEditorPage] Prisma/Render Error:', error);
+        throw error; // Re-throw to show error page
     }
-
-    // Fetch files for this game (multi-file support)
-    const files = await fetchGameFiles(id);
-
-    // Serialize game data for client (convert Dates to ISO strings)
-    const serializedGame: GameData = {
-        ...game,
-        createdAt: game.createdAt.toISOString(),
-        updatedAt: game.updatedAt.toISOString(),
-        deletedAt: game.deletedAt?.toISOString() || null,
-        scenes: game.scenes.map((scene) => ({
-            ...scene,
-            gameId: game.id,
-            code: '', // Add missing code property
-            createdAt: scene.createdAt.toISOString(),
-            updatedAt: scene.updatedAt.toISOString(),
-        })),
-    };
-
-    return (
-        <StudioProvider initialGame={serializedGame} initialFiles={files}>
-            <StudioLayout gameId={game.id} />
-        </StudioProvider>
-    );
 }

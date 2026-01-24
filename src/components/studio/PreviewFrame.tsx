@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertTriangle, Wrench, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { GameFileData } from '@/lib/studio/types';
-import { generateAssetLoaderScript } from '@/lib/studio/asset-loader';
+import { generateCombinedHelperScript } from '@/lib/studio/asset-loader';
 import { manifestEntryToAssetInfo } from '@/lib/studio/types';
 import type { AssetManifest } from '@/lib/types/unified-project';
 import type { AssetInfo } from '@/lib/studio/types';
@@ -99,9 +99,9 @@ function generateScriptTags(scripts: string[]): string {
  * Convert AssetManifest to AssetInfo array for iframe
  */
 function convertManifestToAssetInfo(manifest: AssetManifest): AssetInfo[] {
-  return Object.entries(manifest.assets).map(([key, entry]) =>
-    manifestEntryToAssetInfo(key, entry)
-  );
+    return Object.entries(manifest.assets).map(([key, entry]) =>
+        manifestEntryToAssetInfo(key, entry)
+    );
 }
 
 export function PreviewFrame({
@@ -132,14 +132,14 @@ export function PreviewFrame({
         }
     }, [activeError, onRequestFix]);
 
-    // Generate asset loader script if manifest provided
+    // Generate combined ASSETS + CONTROLS helper script if manifest provided
     const assetScript = assetManifest
-      ? generateAssetLoaderScript(
-          convertManifestToAssetInfo(assetManifest),
-          { gameId },
-          (typeof window !== 'undefined' && window.location.origin !== 'null') ? window.location.origin : '*'
+        ? generateCombinedHelperScript(
+            convertManifestToAssetInfo(assetManifest),
+            { gameId, debug: true },  // Enable debug mode for troubleshooting
+            (typeof window !== 'undefined' && window.location.origin !== 'null') ? window.location.origin : '*'
         )
-      : '// No assets available';
+        : '// No assets available';
 
     // Generate script tags with error handling from library manifest
     const scriptTags = generateScriptTags(IFRAME_SCRIPTS);
