@@ -101,6 +101,9 @@ export function GamePlanningLayout({ game }: GamePlanningLayoutProps) {
                                 Plan Accepted
                             </span>
                         )}
+                        <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] rounded bg-yellow-500/10 text-yellow-500/70 border border-yellow-500/20 font-bold uppercase tracking-tighter">
+                            Experimental Engine
+                        </span>
                     </div>
 
                     {/* Right: Phase indicator */}

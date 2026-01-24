@@ -77,6 +77,15 @@ export function StudioHeader() {
                         >
                             <Edit2 className="h-3 w-3" />
                         </Button>
+                        
+                        {/* WIP Badge */}
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[10px] font-bold text-yellow-500/80 uppercase tracking-tight animate-pulse ml-1 cursor-help group/wip" title="Game engine is experimental! Expect creative bugs.">
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500"></span>
+                            </span>
+                            Engine Alpha
+                        </div>
                     </div>
                 )}
             </div>
@@ -127,6 +136,25 @@ export function StudioHeader() {
                     Export
                 </Button>
             </div>
+
+            {/* Floating WIP Notice */}
+            <div className="absolute top-[100%] left-0 right-0 h-6 bg-yellow-500/5 border-b border-yellow-500/10 flex items-center justify-center pointer-events-none overflow-hidden">
+                <div className="flex items-center gap-4 animate-[marquee_20s_linear_infinite] whitespace-nowrap">
+                    <span className="text-[10px] text-yellow-500/40 uppercase font-bold tracking-widest">
+                        ⚠️ Experimental Engine Phase — Asset Generation is Ready — Game Runtime is Hatching — Proceed with Caution ⚠️
+                    </span>
+                    <span className="text-[10px] text-yellow-500/40 uppercase font-bold tracking-widest">
+                        ⚠️ Experimental Engine Phase — Asset Generation is Ready — Game Runtime is Hatching — Proceed with Caution ⚠️
+                    </span>
+                </div>
+            </div>
+
+            <style jsx>{`
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+            `}</style>
         </header>
     );
 }
