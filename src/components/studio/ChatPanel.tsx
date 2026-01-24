@@ -496,27 +496,24 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
                 Describe your game idea. I&apos;ll help you create scenes, add assets, set up physics, and generate all the code.
               </p>
 
-              <div className="flex flex-col items-center gap-3">
-                {/* Engine Alpha Badge */}
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[10px] font-bold text-yellow-500/80 uppercase tracking-tight animate-pulse cursor-help" title="Game engine is experimental! Expect creative bugs.">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500"></span>
-                  </span>
-                  Engine Alpha
+              <div className="flex flex-col items-center gap-4">
+                <div className="glass-panel p-4 rounded-xl border-yellow-500/20 bg-yellow-500/5 max-w-xs animate-pulse">
+                  <p className="text-xs text-yellow-200/80 leading-relaxed font-medium">
+                    ⚠️ <span className="text-yellow-400 font-bold uppercase tracking-wider">Note:</span> Game engine is still in the "egg" phase. Asset gen is rock solid, but the game logic might have some... creative bugs.
+                  </p>
                 </div>
 
                 <a
                   href="https://github.com/zenchantlive/Asset-Hatch"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group/contribute flex items-center gap-2 px-4 py-2 rounded-xl glass-panel border-white/5 hover:border-primary/30 transition-all active:scale-95"
+                  className="group/contribute flex items-center gap-2 px-4 py-2 rounded-xl glass-panel border-white/5 hover:border-primary/30 transition-all active:scale-95 shadow-lg"
                 >
                   <span className="text-xs text-white/40 group-hover/contribute:text-white/70 transition-colors">
-                    Encountered a "creative bug"?
+                    Want to help us hatch?
                   </span>
                   <span className="text-xs font-bold text-primary group-hover/contribute:underline">
-                    Want to contribute?
+                    Contribute on GitHub
                   </span>
                 </a>
               </div>
