@@ -1,4 +1,4 @@
-import { openrouter } from '@openrouter/ai-sdk-provider';
+import { openrouter, createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, tool, convertToModelMessages, stepCountIs } from 'ai';
 
 import { NextRequest } from 'next/server';
@@ -81,14 +81,23 @@ export async function POST(req: NextRequest) {
         where: { id: session.user.id },
         select: { openRouterApiKey: true },
       });
-      userApiKey = user?.openRouterApiKey || null;
-      if (userApiKey) {
+      
+      // If the field is not null, the user has "opted-in" to BYOK
+      if (user && user.openRouterApiKey !== null) {
+        userApiKey = user.openRouterApiKey;
         console.log('🔑 Using user\'s own API key (BYOK)');
       }
     }
 
     // Convert UIMessages to ModelMessages for streamText
     const modelMessages = await convertToModelMessages(messages);
+
+    // Create a dynamic provider if using BYOK
+    // We check for !== null specifically so that even an empty string is used (and will fail)
+    // instead of silently falling back to the system key.
+    const provider = userApiKey !== null 
+      ? createOpenRouter({ apiKey: userApiKey })
+      : openrouter;
 
     // Fetch shared documents for context (game-design.md, asset-inventory.md, etc.)
     let sharedDocsFormatted = '';
@@ -177,7 +186,7 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       // Use chat model from registry or request override
-      model: openrouter(selectedModelId),
+      model: provider(selectedModelId),
       messages: modelMessages,
       stopWhen: stepCountIs(10),
       system: systemPrompt,

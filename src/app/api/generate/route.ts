@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
         where: { id: session.user.id },
         select: { openRouterApiKey: true },
       });
-      userApiKey = user?.openRouterApiKey || null;
+      
+      // If the field is not null, the user has "opted-in" to BYOK
+      if (user && user.openRouterApiKey !== null) {
+        userApiKey = user.openRouterApiKey;
+      }
     }
 
     const body: GenerateRequest = await request.json();
@@ -181,7 +185,7 @@ export async function POST(request: NextRequest) {
       referenceImageBase64, // Uses character reference OR style anchor
       width: genSize.width,
       height: genSize.height,
-      apiKey: userApiKey || undefined, // BYOK: use user's key if available
+      apiKey: userApiKey !== null ? userApiKey : undefined, // BYOK: use user's key if available
     });
 
     // Use seed from result or generate random fallback

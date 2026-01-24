@@ -212,13 +212,18 @@ export async function generateFluxImage(
     const { modelId, prompt, referenceImageBase64, apiKey } = options;
     const startTime = Date.now();
 
-    // Use provided API key (BYOK) or fall back to environment variable
-    const OPENROUTER_API_KEY = apiKey || process.env.OPENROUTER_API_KEY;
+    // Use provided API key (BYOK) if it was passed (even if empty string)
+    // Only fall back to env var if apiKey is undefined
+    const OPENROUTER_API_KEY = apiKey !== undefined ? apiKey : process.env.OPENROUTER_API_KEY;
 
     // Validate API key
     if (!OPENROUTER_API_KEY) {
         throw new Error('OPENROUTER_API_KEY not configured');
     }
+
+    // Mask API key for logging
+    const maskedKey = `${OPENROUTER_API_KEY.substring(0, 8)}...${OPENROUTER_API_KEY.substring(OPENROUTER_API_KEY.length - 4)}`;
+    console.log('🎨 Using OpenRouter API key:', maskedKey);
 
     // Build messages array with the prompt
     const messages: Array<{ role: string; content: string }> = [
