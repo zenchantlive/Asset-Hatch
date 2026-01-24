@@ -49,7 +49,17 @@ export async function GET(
                 userId: true,
                 createdAt: true,
                 updatedAt: true,
-                // Don't include memoryFiles, styleAnchors, generatedAssets
+                memoryFiles: {
+                    select: {
+                        id: true,
+                        projectId: true,
+                        type: true,
+                        content: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+                // Don't include styleAnchors, generatedAssets
                 // These should be fetched separately via dedicated endpoints
                 // to prevent huge payloads and server crashes
             },

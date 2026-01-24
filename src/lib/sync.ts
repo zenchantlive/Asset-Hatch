@@ -22,6 +22,7 @@ type MemoryFileType =
     | "project.json"
     | "entities.json"
     | "style-anchor.json"
+    | "style-draft.json"
     | "generation-log.json"
     | "conversation.json";
 
@@ -54,7 +55,7 @@ interface PrismaMemoryFile {
 
 // Full project with relations
 interface ProjectWithRelations extends PrismaProject {
-    memoryFiles: PrismaMemoryFile[];
+    memoryFiles?: PrismaMemoryFile[];
 }
 
 // =============================================================================
@@ -73,6 +74,7 @@ export function isValidMemoryFileType(type: string): type is MemoryFileType {
         "project.json",
         "entities.json",
         "style-anchor.json",
+        "style-draft.json",
         "generation-log.json",
         "conversation.json",
     ].includes(type);
@@ -125,27 +127,29 @@ export async function syncProjectToClient(
     await db.projects.put(dexieProject);
 
     // Sync memory files
-    for (const file of projectData.memoryFiles) {
-        // Only sync files with valid types
-        if (isValidMemoryFileType(file.type)) {
-            const dexieFile: DexieMemoryFile = {
-                id: file.id,
-                project_id: file.projectId,
-                type: file.type,
-                content: file.content,
-                // Handle both Date objects and ISO strings (from JSON API)
-                created_at: file.createdAt
-                    ? (typeof file.createdAt === 'string'
-                        ? file.createdAt
-                        : file.createdAt.toISOString())
-                    : new Date().toISOString(),
-                updated_at: file.updatedAt
-                    ? (typeof file.updatedAt === 'string'
-                        ? file.updatedAt
-                        : file.updatedAt.toISOString())
-                    : new Date().toISOString(),
-            };
-            await db.memory_files.put(dexieFile);
+    if (projectData.memoryFiles && Array.isArray(projectData.memoryFiles)) {
+        for (const file of projectData.memoryFiles) {
+            // Only sync files with valid types
+            if (isValidMemoryFileType(file.type)) {
+                const dexieFile: DexieMemoryFile = {
+                    id: file.id,
+                    project_id: file.projectId,
+                    type: file.type,
+                    content: file.content,
+                    // Handle both Date objects and ISO strings (from JSON API)
+                    created_at: file.createdAt
+                        ? (typeof file.createdAt === 'string'
+                            ? file.createdAt
+                            : file.createdAt.toISOString())
+                        : new Date().toISOString(),
+                    updated_at: file.updatedAt
+                        ? (typeof file.updatedAt === 'string'
+                            ? file.updatedAt
+                            : file.updatedAt.toISOString())
+                        : new Date().toISOString(),
+                };
+                await db.memory_files.put(dexieFile);
+            }
         }
     }
 }

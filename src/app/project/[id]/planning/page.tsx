@@ -127,10 +127,22 @@ export default function PlanningPage() {
           setPlanMarkdown(savedPlan);
         }
 
-        // Load project qualities from Dexie
+        // Load style draft from style-draft.json
+        const savedStyleDraft = await loadMemoryFile(params.id, 'style-draft.json');
+        if (savedStyleDraft) {
+          try {
+            const parsedDraft = JSON.parse(savedStyleDraft);
+            console.log('📂 Loaded saved style draft from style-draft.json');
+            setStyleDraft(parsedDraft);
+          } catch (e) {
+            console.error('Failed to parse style draft:', e);
+          }
+        }
+
+        // Load project qualities and generated anchor from Dexie
         const project = await db.projects.get(params.id);
         if (project) {
-          console.log('📂 Loaded project qualities from Dexie');
+          console.log('📂 Loaded project data from Dexie');
           const loadedQualities: ProjectQualities = {};
           if (project.art_style) loadedQualities.art_style = project.art_style;
           if (project.base_resolution) loadedQualities.base_resolution = project.base_resolution;
@@ -141,6 +153,23 @@ export default function PlanningPage() {
           if (project.color_palette) loadedQualities.color_palette = project.color_palette;
           setQualities(loadedQualities);
           setProjectName(project.name);
+        }
+
+        // Load generated anchor (image) from Dexie
+        const anchors = await db.style_anchors
+          .where('project_id')
+          .equals(params.id)
+          .reverse()
+          .sortBy('created_at');
+        
+        if (anchors && anchors.length > 0) {
+          const latest = anchors[0];
+          console.log('📂 Loaded latest style anchor from Dexie');
+          setGeneratedAnchor({
+            id: latest.id,
+            imageUrl: latest.reference_image_base64 || '',
+            prompt: latest.style_keywords // Simplified mapping
+          });
         }
       } catch (error) {
         console.error('Failed to load saved state:', error);
