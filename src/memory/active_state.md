@@ -7,9 +7,15 @@ Debugged critical sign-in blocking issue where `CredentialsSignin` occurred in W
 
 **Issues Fixed:**
 1. **WSL Auth Trust** - Added `AUTH_TRUST_HOST=true` to `.env.local` to allow Auth.js v5 to function in WSL networked environments.
-2. **Demo Account Password Fix** - Resolved `[Auth] User has no password hash` by re-running the seed script. The demo user existed but lacked a credentials hash.
-3. **Case-Insensitive Auth** - Updated `auth.ts` to lowercase emails during authorize, matching the registration logic.
-4. **Standalone Script DB Access** - Created `check-users.ts` with explicit `dotenv` loading to bypass SASL errors in standalone Node/Bun environments.
+2. **Demo Account Password Fix** - Resolved `[Auth] User has no password hash` by re-running the seed script.
+3. **Case-Insensitive Auth** - Updated `auth.ts` to lowercase emails during authorize.
+4. **Standalone Script DB Access** - Created `check-users.ts` with explicit `dotenv` loading.
+
+**Features Implemented:**
+- **Project Deletion** - Added ability to delete projects from the dashboard with a confirmation dialog.
+    - Created `DeleteProjectDialog.tsx` using Radix Dialog.
+    - Integrated with `UnifiedProjectCard.tsx` with hover visibility and event bubbling prevention.
+    - Verified via unit tests in `src/tests/api/projects/delete.test.ts`.
 
 **Key Learning:**
 - `AUTH_TRUST_HOST` is mandatory for Auth.js v5 in WSL.

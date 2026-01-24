@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
 /**
  * Props for UnifiedProjectCard
@@ -107,12 +108,22 @@ function formatRelativeTime(date: Date | string): string {
  */
 export function UnifiedProjectCard({ project }: UnifiedProjectCardProps) {
   return (
-    <Link href={`/project/${project.id}/planning`} className="block">
-      <div className="glass-interactive rounded-lg p-6 hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer">
+    <Link href={`/project/${project.id}/planning`} className="block group">
+      <div className="glass-interactive rounded-lg p-6 hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer relative">
+        {/* Actions - Hidden by default, shown on group hover */}
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <DeleteProjectDialog 
+            projectId={project.id} 
+            projectName={project.name} 
+          />
+        </div>
+
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start mb-4 pr-8">
           <h3 className="text-xl font-semibold truncate pr-4">{project.name}</h3>
-          <ProjectModeBadge mode={project.mode} />
+          <div className="flex-shrink-0">
+            <ProjectModeBadge mode={project.mode} />
+          </div>
         </div>
 
         {/* Status indicators */}
