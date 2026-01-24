@@ -214,12 +214,15 @@ export async function generateFluxImage(
 
     // Use provided API key (BYOK) if it was passed (even if empty string)
     // Only fall back to env var if apiKey is undefined
-    const OPENROUTER_API_KEY = apiKey !== undefined ? apiKey : process.env.OPENROUTER_API_KEY;
+    let OPENROUTER_API_KEY = apiKey !== undefined ? apiKey : process.env.OPENROUTER_API_KEY;
 
     // Validate API key
     if (!OPENROUTER_API_KEY) {
         throw new Error('OPENROUTER_API_KEY not configured');
     }
+
+    // Defensive cleaning: trim whitespace and remove potential accidental quotes
+    OPENROUTER_API_KEY = OPENROUTER_API_KEY.trim().replace(/^["']|["']$/g, '');
 
     // Mask API key for logging
     const maskedKey = `${OPENROUTER_API_KEY.substring(0, 8)}...${OPENROUTER_API_KEY.substring(OPENROUTER_API_KEY.length - 4)}`;

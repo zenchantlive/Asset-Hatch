@@ -96,7 +96,13 @@ export async function POST(req: NextRequest) {
     // We check for !== null specifically so that even an empty string is used (and will fail)
     // instead of silently falling back to the system key.
     const provider = userApiKey !== null 
-      ? createOpenRouter({ apiKey: userApiKey })
+      ? createOpenRouter({ 
+          apiKey: userApiKey.trim().replace(/^["']|["']$/g, ''),
+          headers: {
+            'HTTP-Referer': 'https://asset-hatch.app',
+            'X-Title': 'Asset Hatch',
+          }
+        })
       : openrouter;
 
     // Fetch shared documents for context (game-design.md, asset-inventory.md, etc.)

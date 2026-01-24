@@ -149,10 +149,15 @@ export async function PATCH(request: NextRequest) {
 // Validate OpenRouter API key by making a test request
 async function validateOpenRouterKey(apiKey: string): Promise<boolean> {
     try {
+        // Clean key before validation
+        const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
+        
         // Use the models endpoint to validate the key
         const response = await fetch("https://openrouter.ai/api/v1/models", {
             headers: {
-                Authorization: `Bearer ${apiKey}`,
+                Authorization: `Bearer ${cleanKey}`,
+                'HTTP-Referer': 'https://asset-hatch.app',
+                'X-Title': 'Asset Hatch',
             },
         });
 
