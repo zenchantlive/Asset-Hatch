@@ -75,11 +75,6 @@ export function PreviewTab() {
                             {fps || '60'} FPS
                         </div>
                     )}
-
-                    {/* WIP Badge */}
-                    <div className="px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-[10px] font-bold uppercase tracking-tighter text-yellow-500/80 animate-pulse">
-                        Engine WIP
-                    </div>
                 </div>
 
                 {/* Status indicators */}

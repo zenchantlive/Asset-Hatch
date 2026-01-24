@@ -492,15 +492,9 @@ export function ChatPanel({ gameId, projectContext }: ChatPanelProps) {
               <h3 className="text-3xl font-heading font-bold mb-3 tracking-tight text-gradient-primary">
                 What are we building?
               </h3>
-              <p className="text-muted-foreground max-w-sm text-base leading-relaxed mb-6">
+              <p className="text-muted-foreground max-w-sm text-base leading-relaxed">
                 Describe your game idea. I&apos;ll help you create scenes, add assets, set up physics, and generate all the code.
               </p>
-              
-              <div className="glass-panel p-4 rounded-xl border-yellow-500/20 bg-yellow-500/5 max-w-xs animate-pulse">
-                <p className="text-xs text-yellow-200/80 leading-relaxed font-medium">
-                  ⚠️ <span className="text-yellow-400 font-bold uppercase tracking-wider">Note:</span> Game engine is still in the "egg" phase. Asset gen is rock solid, but the game logic might have some... creative bugs.
-                </p>
-              </div>
             </div>
           ) : (
             messages.map((message, index) => {
