@@ -306,6 +306,16 @@ ${scriptTags}
                 const requestId = data.requestId;
                 const key = data.key;
                 if (!requestId || !key) return;
+
+                console.log('[PreviewFrame] Received resolve request:', { 
+                    requestId, 
+                    key, 
+                    gameId,
+                    iframeExists: !!iframeRef.current?.contentWindow,
+                    hasManifest: !!assetManifest,
+                    assetCount: assetManifest ? Object.keys(assetManifest.assets || {}).length : 0
+                });
+
                 void fetch('/api/studio/assets/resolve', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
