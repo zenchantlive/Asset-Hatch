@@ -61,7 +61,8 @@ async function initGame() {
     ground.receiveShadows = true;
 
     // Add some platforms
-    createPlatforms();
+    const physicsReady = !!scene.getPhysicsEngine();
+    createPlatforms(physicsReady);
 
     // Initialize physics on ground and platforms
     if (scene.getPhysicsEngine()) {
