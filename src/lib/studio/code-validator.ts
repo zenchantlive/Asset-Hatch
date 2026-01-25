@@ -110,11 +110,11 @@ const VALIDATION_RULES: ValidationRule[] = [
     // Rule 6: Using undefined variables from other files
     {
         id: 'cross-file-dependency',
-        pattern: /^(?!.*typeof\s+scene\s*[!=]==)(?!.*\/\/\s*Dependencies:).*\bscene\./m,
+        pattern: /^(?!.*typeof\s+scene\s*[!=]==).*\bscene\./m,
         severity: 'warning',
         message: 'Using "scene" without checking it exists - may fail if main.js has errors',
         suggestion: 'Add at top of file: if (typeof scene === "undefined") throw new Error("scene required");',
-        safePattern: /typeof\s+scene\s*[!=]==/,
+        safePattern: /(typeof\s+scene\s*[!=]==)|(\/\/\s*Dependencies:.*scene)/,
     },
 ];
 
