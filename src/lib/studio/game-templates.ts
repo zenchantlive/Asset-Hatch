@@ -464,16 +464,10 @@ function shootBullet() {
 
     const bulletMat = new BABYLON.StandardMaterial('bulletMat', scene);
     bulletMat.emissiveColor = new BABYLON.Color3(1, 1, 0);
-    bullet.material = bulletMat;
 
-    bullets.push({ mesh: bullet, speed: 1 });
+    // Add createdAt timestamp for lifetime management in game loop
+    bullets.push({ mesh: bullet, speed: 1, createdAt: now });
 
-    // Cleanup bullet after 3 seconds
-    setTimeout(() => {
-        if (bullet && !bullet.isDisposed()) {
-            bullet.dispose();
-        }
-    }, 3000);
 
     console.log('💥 Bullet fired');
 }
