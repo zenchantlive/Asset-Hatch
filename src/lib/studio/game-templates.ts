@@ -85,7 +85,7 @@ async function initGame() {
     console.log('✅ Game initialized');
 }
 
-function createPlatforms() {
+function createPlatforms(addPhysics) {
     const platformMat = new BABYLON.StandardMaterial('platMat', scene);
     platformMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
 
@@ -104,7 +104,7 @@ function createPlatforms() {
         platform.material = platformMat;
 
         // Add physics if ready
-        if (scene.getPhysicsEngine()) {
+        if (addPhysics) {
             new BABYLON.PhysicsAggregate(platform, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
         }
     });
