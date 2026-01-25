@@ -51,9 +51,8 @@ and mechanics      editor + tools      Live playtest
 
 ### Current Status
 
-- **Asset Hatch 2D**: Planning + style + generation flows are functional; export phase functional.
-- **Asset Hatch 3D**: Text-to-3D generation, preview, and export are live; rigging/animation completed.
-- **Hatch Studios**: Unified Assets/Game UI and shared context are live; asset loading in preview is C.
+- **Asset Hatch (2D & 3D)**: Fully functional. Generate high-quality sprites, tiles, and 3D models with rigging and animations.
+- **Hatch Studios (Game Engine)**: **[WIP]** The multi-file editor and shared context are live, but the Babylon.js game runtime is still being hatched. It's more of a "look but don't touch" situation for now, unless you enjoy debugging iframe race conditions.
 
 ---
 

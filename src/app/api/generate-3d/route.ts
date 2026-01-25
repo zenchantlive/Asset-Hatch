@@ -66,9 +66,14 @@ export async function POST(request: NextRequest) {
         where: { id: session.user.id },
         select: { tripoApiKey: true },
       });
-      userTripoApiKey = user?.tripoApiKey || null;
+      
+      // If the field is not null, the user has "opted-in" to BYOK
+      if (user && user.tripoApiKey !== null) {
+        userTripoApiKey = user.tripoApiKey;
+      }
+      
       console.log('🔑 BYOK Debug - User key:', {
-        hasKey: !!userTripoApiKey,
+        hasKey: userTripoApiKey !== null,
         keyPrefix: userTripoApiKey?.slice(0, 8) || 'none',
         keyLength: userTripoApiKey?.length || 0
       });
@@ -115,9 +120,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Get Tripo API key (user's BYOK key takes priority over environment)
     const envKey = process.env.TRIPO_API_KEY;
-    const tripoApiKey = userTripoApiKey || envKey;
+    const tripoApiKey = userTripoApiKey !== null ? userTripoApiKey : envKey;
     console.log('🔑 BYOK - Key source:', {
-      usingSource: userTripoApiKey ? 'USER_BYOK' : (envKey ? 'ENV_VAR' : 'NONE'),
+      usingSource: userTripoApiKey !== null ? 'USER_BYOK' : (envKey ? 'ENV_VAR' : 'NONE'),
       keyPrefix: tripoApiKey?.slice(0, 8) || 'none',
     });
 

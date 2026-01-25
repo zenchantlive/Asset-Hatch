@@ -19,6 +19,7 @@ import { StylePanel } from "@/components/ui/StylePanel"
 import { applyModeTheme, resetModeTheme } from "@/lib/theme-utils"
 import { QualitiesBar3D } from "@/components/3d/planning/QualitiesBar3D"
 import { GenerationQueue3D } from "@/components/3d/generation/GenerationQueue3D"
+import { useAppTransition } from "@/components/ui/TransitionProvider"
 
 type PlanningMode = 'planning' | 'style' | 'generation' | 'export'
 
@@ -26,6 +27,7 @@ export default function PlanningPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { stopTransition } = useAppTransition()
   const [qualities, setQualities] = useState<ProjectQualities>({})
   const [planMarkdown, setPlanMarkdown] = useState("")
   const [isApproving, setIsApproving] = useState(false)
@@ -44,7 +46,7 @@ export default function PlanningPage() {
 
 
 
-// Style phase state
+  // Style phase state
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(emptyStyleDraft)
   const [generatedAnchor, setGeneratedAnchor] = useState<GeneratedStyleAnchor | null>(null)
   const [isGeneratingStyle, setIsGeneratingStyle] = useState(false)
@@ -54,7 +56,7 @@ export default function PlanningPage() {
   useEffect(() => {
     const fetchGameId = async () => {
       if (!params.id || typeof params.id !== 'string') return;
-      
+
       try {
         const response = await fetch(`/api/projects/${params.id}`);
         if (response.ok) {
@@ -125,10 +127,22 @@ export default function PlanningPage() {
           setPlanMarkdown(savedPlan);
         }
 
-        // Load project qualities from Dexie
+        // Load style draft from style-draft.json
+        const savedStyleDraft = await loadMemoryFile(params.id, 'style-draft.json');
+        if (savedStyleDraft) {
+          try {
+            const parsedDraft = JSON.parse(savedStyleDraft);
+            console.log('📂 Loaded saved style draft from style-draft.json');
+            setStyleDraft(parsedDraft);
+          } catch (e) {
+            console.error('Failed to parse style draft:', e);
+          }
+        }
+
+        // Load project qualities and generated anchor from Dexie
         const project = await db.projects.get(params.id);
         if (project) {
-          console.log('📂 Loaded project qualities from Dexie');
+          console.log('📂 Loaded project data from Dexie');
           const loadedQualities: ProjectQualities = {};
           if (project.art_style) loadedQualities.art_style = project.art_style;
           if (project.base_resolution) loadedQualities.base_resolution = project.base_resolution;
@@ -139,6 +153,23 @@ export default function PlanningPage() {
           if (project.color_palette) loadedQualities.color_palette = project.color_palette;
           setQualities(loadedQualities);
           setProjectName(project.name);
+        }
+
+        // Load generated anchor (image) from Dexie
+        const anchors = await db.style_anchors
+          .where('project_id')
+          .equals(params.id)
+          .reverse()
+          .sortBy('created_at');
+        
+        if (anchors && anchors.length > 0) {
+          const latest = anchors[0];
+          console.log('📂 Loaded latest style anchor from Dexie');
+          setGeneratedAnchor({
+            id: latest.id,
+            imageUrl: latest.reference_image_base64 || '',
+            prompt: latest.style_keywords // Simplified mapping
+          });
         }
       } catch (error) {
         console.error('Failed to load saved state:', error);
@@ -169,6 +200,9 @@ export default function PlanningPage() {
           setProjectMode(serverProject.mode === '3d' ? '3d' : '2d');
           applyModeTheme(serverProject.mode === '3d' ? '3d' : '2d');
           console.log(`🎨 Applied ${serverProject.mode} mode theme from server`);
+          
+          // Data is loaded and theme applied, stop the transition
+          stopTransition();
         } else {
           // Fallback to Dexie
           const project = await db.projects.get(params.id);
@@ -190,7 +224,7 @@ export default function PlanningPage() {
     return () => {
       resetModeTheme();
     };
-  }, [params.id]);
+  }, [params.id, stopTransition]);
 
   // Handle mode switching with persistence
   const handleModeChange = async (newMode: PlanningMode) => {
@@ -401,7 +435,7 @@ export default function PlanningPage() {
             </div>
           </div>
 
-{/* RIGHT: Game & Files only (Parameters moved to bar below) */}
+          {/* RIGHT: Game & Files only (Parameters moved to bar below) */}
           <div className="flex items-center gap-3">
             {gameId ? (
               <Link
@@ -415,6 +449,12 @@ export default function PlanningPage() {
                 No Game Yet
               </span>
             )}
+            <button
+              onClick={() => setAssetsMenuOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"
+            >
+              Assets
+            </button>
             <button
               onClick={() => setFilesMenuOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all text-white/70 hover:text-white"

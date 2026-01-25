@@ -89,6 +89,7 @@ export async function GET(request: Request) {
     }
 
     if (assetRef.glbData) {
+      console.log("🎨 Proxy: Serving from glbData (base64), size:", assetRef.glbData.length);
       const buffer = Buffer.from(assetRef.glbData, "base64");
       return withCorsHeaders(
         new NextResponse(buffer, {
@@ -102,7 +103,9 @@ export async function GET(request: Request) {
     }
 
     const storedUrl = assetRef.glbUrl || assetRef.modelUrl || null;
+    console.log("🎨 Proxy: No glbData, fetching from URL:", { storedUrl, hasGlbUrl: !!assetRef.glbUrl, hasModelUrl: !!assetRef.modelUrl });
     const resolvedUrl = await resolveR2AssetUrl(storedUrl);
+    console.log("🎨 Proxy: Resolved URL:", resolvedUrl ? resolvedUrl.substring(0, 100) + "..." : null);
 
     if (!resolvedUrl) {
       return withCorsHeaders(new NextResponse("Asset URL missing", { status: 422 }));

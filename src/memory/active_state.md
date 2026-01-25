@@ -2,23 +2,90 @@
 
 ## Current Session (2026-01-21)
 
+### UI & DX Polish
+Implemented high-quality visual transitions and improved onboarding feedback.
+
+**Features Implemented:**
+- **Aurora Hatching Transition** - Added a global `FullPageTransition.tsx` that provides a seamless visual bridge during project creation and initial 3D generation.
+- **Strict BYOK Enforcement** - Unified Chat, Image, and 3D API routes to strictly prioritize user-provided API keys, preventing silent fallbacks to system keys and ensuring consistent security.
+- **API Key Sanitization** - Implemented automatic trimming and quote-removal for all OpenRouter and Tripo keys at both usage and storage points.
+- **Project Deletion** - Added a secure deletion flow with confirmation prompts and cascading database cleanup.
+- **Skybox Prompt Optimization** - Refined prompt building to prioritize background-only content and unobstructed far-horizon vistas.
+- **Contributor Onboarding** - Added a pulsing 'Want to contribute?' CTA in the Studio chat empty state linked to the GitHub repo.
+
+### Studio Runtime Resilience
+Hardened the Babylon.js preview environment and code generation pipeline.
+
+**Improvements:**
+- **Deduplicated Asset Resolution** - Added a `PENDING_RESOLVES` map to `asset-loader.ts` to prevent race conditions when multiple parallel requests are made for the same asset.
+- **Enhanced Error Detection** - Improved `PreviewFrame.tsx` with better runtime error parsing and a streamlined 'Ask AI to Fix' workflow.
+- **DB Connection Resilience** - Added exponential backoff retry logic to the Studio Chat API to handle transient Neon serverless timeouts.
+- **Validated Code Generation** - Implemented a quality gate (`verifyGame`) that agents must call before completion to ensure generated code is crash-resistant.
+
+### Asset Resolution Investigation
+Intermittent `RESOLVE_FAILED` issues were traced to race conditions and origin mismatches in the iframe bridge.
+
+**Status:** ✅ Resolved via deduplication and origin validation logic in `asset-loader.ts`.
+
+**Key Learning:**
+- `AUTH_TRUST_HOST` is mandatory for Auth.js v5 in WSL.
+- Direct `fetch` calls to OpenRouter are more sensitive to malformed header strings than the AI SDK.
+- Multi-file code generation requires strict global-scope management since ES modules are not used in the sandboxed preview.
+Investigating intermittent `RESOLVE_FAILED` errors for game assets in preview.
+
+**Symptom:** Some asset resolve requests succeed, others fail (different requestIds for same asset)
+
+**Architecture:** 
+- Iframe sends `asset-resolve-request` via postMessage
+- Parent (`PreviewFrame.tsx`) receives, calls `/api/studio/assets/resolve`
+- API returns proxy URL or data URL
+- Parent sends `asset-resolve-response` back to iframe
+- 6 second client-side timeout on resolution
+
+**Possible causes under investigation:**
+- Race condition between multiple resolve requests
+- postMessage origin validation failing intermittently
+- Timeout too short for slow first-load compilations
+
+**Stage:** 🔄 In Progress
+
 ### Centralized Asset Manifest Error Handling
-Centralized the fetching and error handling of the game asset manifest in the `StudioProvider`. This resolves redundant API calls and ensures UI consistency across `PreviewTab`, `AssetsTab`, and the `StudioHeader`.
 
-**Implementation:**
-- Added `assetManifest`, `manifestLoading`, and `manifestError` to `StudioProvider` / `StudioContext`.
-- Refactored `PreviewTab` to use shared state and added explicit error/empty states with retry capability.
-- Optimized `AssetsTab` to use the shared manifest for its asset counter.
-- Created ADR-027 to document the architectural decision.
+## Current Session (2026-01-21) - Issues Resolved
 
-**Files Modified:**
-- `src/lib/studio/context.ts`
-- `src/components/studio/StudioProvider.tsx`
-- `src/components/studio/tabs/PreviewTab.tsx`
-- `src/components/studio/tabs/AssetsTab.tsx`
-- `src/memory/adr/027-centralized-asset-manifest-handling.md`
+### 1. Asset Approval API Error
+**Error:** `Failed to approve asset` in `GenerationQueue3D.tsx:630`
 
-**Stage:** ✅ Completed (Ready for PR)
+**Cause:** API `/api/generate-3d/approve` returned non-ok status without descriptive error
+
+**Status:** ✅ Already has try-catch, returns generic error message
+
+### 2. Sync Memory Files TypeError  
+**Error:** `projectData.memoryFiles is not iterable` in `sync.ts:128`
+
+**Cause:** Code checks `if (projectData.memoryFiles)` but doesn't validate it's an array before iterating
+
+**Status:** ✅ Fixed - code at line 128 already checks `Array.isArray(projectData.memoryFiles)` before iterating
+
+### 3. Studio Chat DB Timeout (CRITICAL)
+**Error:** `ETIMEDOUT` on `prisma.game.findFirst()` in `/api/studio/chat/route.ts:52`
+
+**Cause:** Neon PostgreSQL serverless connection timeout during idle periods
+
+**Fix Applied:**
+- Added retry logic with exponential backoff (2 retries)
+- Returns 503 "Database temporarily unavailable" instead of 500 crash
+- Improved user experience during transient DB issues
+
+### 4. Babylon.js Code Generation Safety Improvements
+Completed full overhaul:
+- System prompt with defensive programming patterns
+- Code validator with 6 crash-detection rules  
+- CONTROLS helper for bulletproof input handling
+- Game templates (platformer, space shooter)
+- verifyGame quality gate tool
+
+### 5. Dev Server Hang Debugging
 
 ## Previous Session (2026-01-20)
 
@@ -230,7 +297,7 @@ ASSET_PROXY_SECRET="..."
 
 1. **Token Limits:** Never return base64 in tool results - return ID, fetch separately
 2. **AI SDK v6:** Use `useRef(new Set())` for processed IDs to prevent infinite loops
-3. **WSL2 Split:** User runs `bun` in PowerShell, Claude operates in WSL2
+3. **WSL2 Environment:** User runs `bun` in WSL2, Claude also operates in WSL2
 4. **CI/CD:** Check BOTH `vercel.json` AND `package.json` for build commands
 
 ---

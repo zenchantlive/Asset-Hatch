@@ -64,7 +64,18 @@
       "Bash(git log:*)",
       "Bash(whereis:*)",
       "Bash(gh issue view:*)",
-      "Skill(dispatching-parallel-agents)"
+      "Skill(dispatching-parallel-agents)",
+      "Bash(git diff:*)",
+      "Bash(node -e:*)",
+      "Bash(kill:*)",
+      "Bash(curl:*)",
+      "Bash(node /tmp/test-db.mjs:*)",
+      "Bash(pgrep:*)",
+      "Bash(killall:*)",
+      "Bash(bun dev)",
+      "Bash(lsof:*)",
+      "Bash(git stash:*)",
+      "Bash(export DATABASE_URL=\"postgresql://neondb_owner:npg_GmF0cZUArJ7z@ep-young-scene-ahcd3bj8-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require\")"
     ]
   }
 }

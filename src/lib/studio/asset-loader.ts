@@ -10,6 +10,7 @@
  */
 
 import type { AssetInfo } from "./types";
+import { generateControlsHelperScript } from "./controls-helper";
 
 export interface AssetLoaderScriptOptions {
   gameId?: string;
@@ -48,6 +49,8 @@ export function generateAssetLoaderScript(
   const ASSET_REGISTRY = new Map();
   const ASSET_CONFIG = ${configJson};
   const RESOLVE_REQUESTS = new Map();
+  // Deduplication map: key -> Promise to prevent multiple parallel requests for same asset
+  const PENDING_RESOLVES = new Map();
 
   // Initialize registry with assets
   ${assetsJson}.forEach(function(asset) {
@@ -154,8 +157,20 @@ export function generateAssetLoaderScript(
       const data = event.data;
       if (event.source !== window.parent) return;
 
-      // Validate origin - must match our own origin
-      if (event.origin !== window.location.origin && event.origin !== 'null') return;
+      // Validate origin - accept messages from the configured parent origin
+      // For srcdoc iframes, window.location.origin is 'null' but event.origin 
+      // is the PARENT's origin (e.g., 'http://localhost:3000').
+      // We must accept messages from parentOrigin, not the iframe's own origin.
+      var parentOrigin = ASSET_CONFIG.parentOrigin;
+      var isValidOrigin = (
+        parentOrigin === '*' ||  // Wildcard allows any origin
+        event.origin === parentOrigin ||  // Exact match with configured parent
+        event.origin === 'null'  // Allow 'null' origin for edge cases
+      );
+      if (!isValidOrigin) {
+        debugLog('resolve', 'Rejected message from unexpected origin: ' + event.origin + ' (expected: ' + parentOrigin + ')');
+        return;
+      }
 
       if (!data || data.type !== 'asset-resolve-response') return;
       const requestId = data.requestId;
@@ -213,22 +228,34 @@ export function generateAssetLoaderScript(
     debugLog('resolve', 'Starting URL resolution for key: ' + key, {
       hasCandidate: !!candidate,
       isDataUrl: candidate ? candidate.startsWith('data:') : false,
-      hasGameId: !!ASSET_CONFIG.gameId
+      hasGameId: !!ASSET_CONFIG.gameId,
+      hasPendingResolve: PENDING_RESOLVES.has(key)
     });
 
+    // Fast path: data URLs don't need resolution
     if (candidate && candidate.startsWith('data:')) {
       debugLog('resolve', 'Using data URL directly (no parent resolution needed)');
       return Promise.resolve({ url: candidate, source: 'data' });
     }
 
+    // Fast path: no gameId means use manifest URL directly
     if (!ASSET_CONFIG.gameId) {
       debugLog('resolve', 'No gameId configured - using manifest URL', { url: candidate });
       return Promise.resolve({ url: candidate || null, source: 'manifest' });
     }
 
+    // DEDUPLICATION: If a resolve request is already in flight for this asset key,
+    // reuse that promise instead of creating a new request.
+    // This prevents race conditions where multiple parallel requests result in some timing out.
+    if (PENDING_RESOLVES.has(key)) {
+      debugLog('resolve', 'Reusing pending resolve promise for key: ' + key);
+      return PENDING_RESOLVES.get(key);
+    }
+
     debugLog('resolve', 'Requesting URL from parent (gameId: ' + ASSET_CONFIG.gameId + ')');
 
-    return withTimeout(
+    // Create the actual resolve promise
+    var resolvePromise = withTimeout(
       requestResolveFromParent(key, requestId),
       ASSET_CONFIG.resolveTimeoutMs,
       function() {
@@ -268,7 +295,16 @@ export function generateAssetLoaderScript(
         requestId: requestId,
         assetType: asset.type
       });
+    }).finally(function() {
+      // Clean up the pending resolve map when done (success or failure)
+      PENDING_RESOLVES.delete(key);
+      debugLog('resolve', 'Cleaned up pending resolve for key: ' + key);
     });
+
+    // Store in pending map so other callers can reuse this promise
+    PENDING_RESOLVES.set(key, resolvePromise);
+
+    return resolvePromise;
   }
 
   /**
@@ -625,3 +661,41 @@ export function validateAssetInfo(asset: unknown): asset is AssetInfo {
     (a.type === '2d' || a.type === '3d' || a.type === 'skybox')
   );
 }
+
+/**
+ * Generate combined ASSETS + CONTROLS helper script for iframe injection
+ * 
+ * This is the preferred method - includes bulletproof input handling
+ * so agents don't need to write input code from scratch.
+ * 
+ * @param assets - Asset manifest entries
+ * @param options - Configuration options
+ * @param parentOrigin - Parent window origin for postMessage
+ * @returns Combined JavaScript code string for iframe injection
+ */
+export function generateCombinedHelperScript(
+  assets: AssetInfo[],
+  options: AssetLoaderScriptOptions = {},
+  parentOrigin: string = '*'
+): string {
+  // Generate ASSETS helper
+  const assetsScript = generateAssetLoaderScript(assets, options, parentOrigin);
+
+  // Generate CONTROLS helper
+  const controlsScript = generateControlsHelperScript();
+
+  // Combine both scripts
+  return `
+// =============================================================================
+// HATCH STUDIOS RUNTIME HELPERS
+// Includes: ASSETS (asset loading) + CONTROLS (input handling)
+// =============================================================================
+
+${assetsScript}
+
+${controlsScript}
+
+console.log('✅ Hatch Studios helpers loaded: ASSETS + CONTROLS');
+  `.trim();
+}
+

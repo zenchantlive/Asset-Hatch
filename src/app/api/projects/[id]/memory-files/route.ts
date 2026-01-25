@@ -99,7 +99,7 @@ const memoryFileSchema = z.object({
     'style-anchor.json',
     'generation-log.json',
     'conversation.json',
-    'style-draft',
+    'style-draft.json',
   ]),
   content: z.string()
     .min(1, 'Content cannot be empty')

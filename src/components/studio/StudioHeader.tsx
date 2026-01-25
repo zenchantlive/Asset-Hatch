@@ -77,6 +77,15 @@ export function StudioHeader() {
                         >
                             <Edit2 className="h-3 w-3" />
                         </Button>
+
+                        {/* Engine Alpha Badge */}
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[10px] font-bold text-yellow-500/80 uppercase tracking-tight animate-pulse ml-1 cursor-help" title="Game engine is experimental! Expect creative bugs.">
+                            <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500"></span>
+                            </span>
+                            Engine Alpha
+                        </div>
                     </div>
                 )}
             </div>

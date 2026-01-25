@@ -75,16 +75,45 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
 ## ⚠️ Known "Gotchas" / Edge Cases
 
 ### Development Environment
-* **WSL + Windows Hybrid**
-  - User runs `bun` in PowerShell (native Windows)
-  - AI runs in WSL (Linux)
-  - **Solution:** User manually runs `bun` commands, AI uses `npm` for system checks
-  - **Symptom:** `npm install` fails with exit code 137 (OOM in WSL)
+* **Asset Resolution Deduplication**
+  - **Issue:** Parallel `ASSETS.load()` calls for the same key trigger multiple `postMessage` requests, causing some to timeout or fail origin validation.
+  - **Pattern:** Use a `PENDING_RESOLVES` Map in the loader script to store and reuse the same promise for identical keys.
+  - **File:** `src/lib/studio/asset-loader.ts`
+
+* **Strict BYOK Overrides**
+  - **Pattern:** When using user-provided API keys (BYOK), ensure they strictly override system keys even if they are empty strings. This prevents silent billing on the system key when a user's key is broken.
+  - **Implementation:** Check for `userApiKey !== null` instead of truthiness.
+
+* **WSL2 Environment**
+  - User runs `bun` in WSL2 (Linux)
+  - AI also runs in WSL2 (Linux)
+  - **Auth.js Rule:** MUST set `AUTH_TRUST_HOST=true` in `.env.local` for WSL environments to prevent `CredentialsSignin` errors.
+  - **Solution:** Both user and AI can run `bun` commands directly
+  - **Symptom:** OOM issues are rare since both are in same environment
+
+* **SASL / Connection Errors in Scripts**
+  - **Issue:** `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string`
+  - **Symptom:** Standalone scripts (like seeds or checks) fail to connect to Neon.
+  - **Cause:** `process.env.DATABASE_URL` is undefined because `.env.local` isn't loaded by default.
+  - **Solution:** Explicitly load `dotenv` with `path` resolve at the very top of scripts.
+    ```typescript
+    import { config } from "dotenv";
+    import path from "path";
+    config({ path: path.resolve(process.cwd(), ".env.local") });
+    ```
 
 * **Bun vs npm**
   - Project uses Bun for package management (`bun.lock` exists)
   - WSL may not have Bun in PATH
   - **Solution:** Check if Bun available, fallback to npm, or ask user to run command
+
+* **WSL Cross-Filesystem Mount Issues**
+  - **Issue:** Installing node_modules on Windows mount (`/mnt/c/...`) from WSL creates broken symlinks
+  - **Symptom:** `next: command not found` even though `node_modules/next` exists
+  - **Cause:** NTFS cannot store Linux-style symlinks; `.bin` symlinks are empty/broken
+  - **Solution 1:** Use `npm install` instead of `bun install` (npm works around this)
+  - **Solution 2:** Clone project to native WSL filesystem (`~/project`) and develop there
+  - **Solution 3:** Run directly via node: `node node_modules/next/dist/bin/next dev`
 
 ### Vercel AI SDK Integration
 * **System Prompt Location**
@@ -142,6 +171,27 @@ User Input → React State → Vercel AI SDK (stream) → OpenRouter API → AI 
   - **Why:** Prevents runtime `TypeError` on unexpected JSON (e.g., string/array/null).
 
 ### Prisma 7 / PostgreSQL Adapter
+
+* **Datasource URL Breaking Change (Prisma 7)**
+  - **Issue:** Prisma 7 no longer supports `url = env("DATABASE_URL")` in `schema.prisma`
+  - **Symptom:** `P1012` error: "The datasource property `url` is no longer supported in schema files"
+  - **Solution:** Move URL to `prisma.config.ts`:
+    ```typescript
+    // prisma.config.ts
+    export default defineConfig({
+      datasource: {
+        url: process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL,
+      },
+    });
+    ```
+  - **Schema:** Leave datasource block with only `provider`:
+    ```prisma
+    datasource db {
+      provider = "postgresql"
+    }
+    ```
+  - **Why:** Prisma 7 prefers config file for runtime connection management
+
 * **Seed Script Adapter Mismatch**
   - **Issue:** Seed scripts using `new PrismaClient()` directly fail when the project uses `PrismaPg` adapter
   - **Symptom:** `TypeError: Cannot destructure property` or connection errors during `bunx prisma db seed`

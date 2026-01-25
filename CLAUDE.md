@@ -25,7 +25,7 @@ Next.js 16 + React 19 + TypeScript strict | Tailwind v4 + shadcn/ui | Vercel AI 
 - **AI Tools**: Chat calls `streamText()` with tools → tool executes → streams back via SSE
 
 ## Critical Gotchas
-1. **WSL2 Split**: User runs `bun` in Windows PowerShell, Claude operates in WSL2 - user runs commands manually
+1. **WSL2 Environment**: User runs `bun` in WSL2, Claude also operates in WSL2
 2. **AI SDK v6 Tool Detection**: Use `useRef` for `processedIds` Set to prevent infinite loops
 3. **Token Limits**: Never return base64 in tool results - return ID, fetch image separately
 4. **Prisma ↔ Client**: Map `art_style` → `artStyle` between layers

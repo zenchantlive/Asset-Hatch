@@ -6,10 +6,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StudioHeader } from './StudioHeader';
 import { ChatPanel } from './ChatPanel';
 import { WorkspacePanel } from './WorkspacePanel';
+import { useAppTransition } from '@/components/ui/TransitionProvider';
 
 interface StudioLayoutProps {
     gameId: string;
@@ -23,6 +24,12 @@ interface StudioLayoutProps {
 export function StudioLayout({ gameId }: StudioLayoutProps) {
     // Panel width as percentage (for future resize functionality)
     const [chatWidth] = useState(35);
+    const { stopTransition } = useAppTransition();
+
+    // Stop transition on mount
+    useEffect(() => {
+        stopTransition();
+    }, [stopTransition]);
 
     return (
         // Fill the remaining viewport height (100vh - 64px header)

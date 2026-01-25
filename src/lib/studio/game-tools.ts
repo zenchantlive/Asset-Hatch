@@ -9,6 +9,7 @@
  */
 
 import { tool } from 'ai';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import {
   createSceneSchema,
@@ -37,6 +38,7 @@ import {
   type RenameFileInput,
 } from '@/lib/studio/schemas';
 import { resolveR2AssetUrl } from '@/lib/studio/r2-storage';
+import { validateGameCode, formatValidationResult } from '@/lib/studio/code-validator';
 
 // =============================================================================
 // CREATE SCENE TOOL
@@ -112,7 +114,7 @@ export const switchSceneTool = (gameId: string, userId?: string) => {
 
         // Update game's active scene with ownership check
         const updateResult = await prisma.game.updateMany({
-          where: { 
+          where: {
             id: gameId,
             ...(userId ? { userId } : {})
           },
@@ -157,8 +159,8 @@ export const placeAssetTool = (gameId: string, userId?: string) => {
 
         // Verify asset exists in GameAssetRef and user owns the game
         const assetRef = await prisma.gameAssetRef.findFirst({
-          where: { 
-            gameId, 
+          where: {
+            gameId,
             assetId,
             ...(userId ? { game: { userId } } : {})
           },
@@ -234,7 +236,7 @@ export const listUserAssetsTool = (gameId: string, userId?: string) => {
 
         // Get game to verify ownership and get projectId
         const game = await prisma.game.findFirst({
-          where: { 
+          where: {
             id: gameId,
             ...(userId ? { userId } : {})
           },
@@ -263,47 +265,47 @@ export const listUserAssetsTool = (gameId: string, userId?: string) => {
         const [assets3D, assets2D] = await Promise.all([
           type === '3d' || type === 'all'
             ? prisma.generated3DAsset.findMany({
-                where: {
-                  projectId,
-                  approvalStatus: 'approved',
-                  ...(search && {
-                    OR: [
-                      { name: { contains: search, mode: 'insensitive' } },
-                      { assetId: { contains: search, mode: 'insensitive' } },
-                    ],
-                  }),
-                },
-                take: limit,
-                orderBy: { updatedAt: 'desc' },
-              })
+              where: {
+                projectId,
+                approvalStatus: 'approved',
+                ...(search && {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { assetId: { contains: search, mode: 'insensitive' } },
+                  ],
+                }),
+              },
+              take: limit,
+              orderBy: { updatedAt: 'desc' },
+            })
             : Promise.resolve([]),
           type === '2d' || type === 'all'
             ? prisma.generatedAsset.findMany({
-                where: {
-                  projectId,
-                  status: 'completed',
-                  ...(search && {
-                    OR: [{ assetId: { contains: search, mode: 'insensitive' } }],
-                  }),
-                },
-                take: limit,
-                orderBy: { updatedAt: 'desc' },
-              })
+              where: {
+                projectId,
+                status: 'completed',
+                ...(search && {
+                  OR: [{ assetId: { contains: search, mode: 'insensitive' } }],
+                }),
+              },
+              take: limit,
+              orderBy: { updatedAt: 'desc' },
+            })
             : Promise.resolve([]),
         ]);
 
         const gameAssetRefs = assets3D.length
           ? await prisma.gameAssetRef.findMany({
-              where: {
-                gameId,
-                assetType: '3d',
-                assetId: { in: assets3D.map((asset) => asset.id) },
-              },
-              select: {
-                assetId: true,
-                glbUrl: true,
-              },
-            })
+            where: {
+              gameId,
+              assetType: '3d',
+              assetId: { in: assets3D.map((asset) => asset.id) },
+            },
+            select: {
+              assetId: true,
+              glbUrl: true,
+            },
+          })
           : [];
 
         const assetRefMap = new Map<string, { glbUrl: string | null }>();
@@ -411,7 +413,7 @@ export const createAssetTool = (gameId: string, userId?: string) => {
         console.log('➕ Creating asset:', type, 'name:', name);
 
         const game = await prisma.game.findFirst({
-          where: { 
+          where: {
             id: gameId,
             ...(userId ? { userId } : {})
           },
@@ -504,12 +506,25 @@ export const createFileTool = (gameId: string, userId?: string) => {
 
         console.log('✅ File created:', file.id);
 
+        // Run validation on the created file content
+        const validation = validateGameCode(content, name);
+        const validationMessage = validation.isValid
+          ? ''
+          : `\n\n${formatValidationResult(validation)}`;
+
         return {
           success: true,
-          message: `Created file "${name}" (order: ${finalOrderIndex})`,
+          message: `Created file "${name}" (order: ${finalOrderIndex})${validationMessage}`,
           fileId: file.id,
           name,
           orderIndex: finalOrderIndex,
+          // Include validation results so agent sees issues immediately
+          validation: {
+            isValid: validation.isValid,
+            errorCount: validation.errors.length,
+            warningCount: validation.warnings.length,
+            issues: [...validation.errors, ...validation.warnings],
+          },
         };
       } catch (error) {
         console.error('❌ Failed to create file:', error);
@@ -539,8 +554,8 @@ export const updateFileTool = (gameId: string, userId?: string) => {
 
         // First, get the file and verify ownership
         const file = await prisma.gameFile.findFirst({
-          where: { 
-            id: fileId, 
+          where: {
+            id: fileId,
             gameId,
             ...(userId ? { game: { userId } } : {})
           },
@@ -575,12 +590,25 @@ export const updateFileTool = (gameId: string, userId?: string) => {
 
         console.log('✅ File updated:', updatedFile.id);
 
+        // Run validation on the updated file content
+        const validation = validateGameCode(content, file.name);
+        const validationMessage = validation.isValid
+          ? ''
+          : `\n\n${formatValidationResult(validation)}`;
+
         return {
           success: true,
-          message: `Updated file "${file.name}"`,
+          message: `Updated file "${file.name}"${validationMessage}`,
           fileId: updatedFile.id,
           name: file.name,
-          content,
+          // NOTE: content intentionally omitted to prevent token explosion in chat history
+          // Each tool result is stored in messages - returning full code accumulates megabytes
+          validation: {
+            isValid: validation.isValid,
+            errorCount: validation.errors.length,
+            warningCount: validation.warnings.length,
+            issues: [...validation.errors, ...validation.warnings],
+          },
         };
       } catch (error) {
         console.error('❌ Failed to update file:', error);
@@ -606,8 +634,8 @@ export const deleteFileTool = (gameId: string, userId?: string) => {
 
         // First, get the file and verify ownership
         const file = await prisma.gameFile.findFirst({
-          where: { 
-            id: fileId, 
+          where: {
+            id: fileId,
             gameId,
             ...(userId ? { game: { userId } } : {})
           },
@@ -656,8 +684,8 @@ export const renameFileTool = (gameId: string, userId?: string) => {
 
         // First, get the old file and verify ownership
         const oldFile = await prisma.gameFile.findFirst({
-          where: { 
-            id: fileId, 
+          where: {
+            id: fileId,
             gameId,
             ...(userId ? { game: { userId } } : {})
           },
@@ -937,6 +965,139 @@ export const getPlanTool = (gameId: string, userId?: string) => {
 };
 
 // =============================================================================
+// VERIFY GAME TOOL (QUALITY GATE)
+// =============================================================================
+
+/**
+ * Schema for verifyGame tool (no parameters needed)
+ */
+const verifyGameSchema = z.object({});
+
+/**
+ * Verify game tool - quality gate that MUST be called before completion
+ * 
+ * Validates all game files and reports any issues that need to be fixed.
+ * Agents are instructed to call this before saying a game is complete.
+ * 
+ * @param gameId - Current game ID
+ * @returns AI SDK tool for verifying game quality
+ */
+export const verifyGameTool = (gameId: string, userId?: string) => {
+  return tool({
+    description: 'MANDATORY: Call this before saying the game is complete. Validates all game files and reports any issues that need fixing.',
+    inputSchema: verifyGameSchema,
+    execute: async () => {
+      try {
+        console.log('🔍 Verifying game:', gameId);
+
+        // Get all files for this game
+        const files = await prisma.gameFile.findMany({
+          where: {
+            gameId,
+            ...(userId ? { game: { userId } } : {})
+          },
+          orderBy: { orderIndex: 'asc' },
+        });
+
+        if (files.length === 0) {
+          return {
+            success: false,
+            ready: false,
+            message: '❌ No game files found. Create at least main.js first.',
+            fileCount: 0,
+            issues: [],
+          };
+        }
+
+        // Validate each file and collect issues
+        const allIssues: Array<{
+          fileName: string;
+          fileId: string;
+          severity: 'error' | 'warning';
+          message: string;
+          line?: number;
+          suggestion?: string;
+        }> = [];
+
+        const fileResults = [];
+        for (const file of files) {
+          const validation = validateGameCode(file.content, file.name);
+
+          // Add file context to each issue
+          for (const error of validation.errors) {
+            allIssues.push({
+              fileName: file.name,
+              fileId: file.id,
+              ...error,
+            });
+          }
+          for (const warning of validation.warnings) {
+            allIssues.push({
+              fileName: file.name,
+              fileId: file.id,
+              ...warning,
+            });
+          }
+
+          fileResults.push({
+            name: file.name,
+            isValid: validation.isValid,
+            errorCount: validation.errors.length,
+            warningCount: validation.warnings.length,
+          });
+        }
+
+        const totalErrors = allIssues.filter(i => i.severity === 'error').length;
+        const totalWarnings = allIssues.filter(i => i.severity === 'warning').length;
+        const isReady = totalErrors === 0;
+
+        let message: string;
+        if (isReady && totalWarnings === 0) {
+          message = `✅ Game is ready! All ${files.length} files validated successfully.`;
+        } else if (isReady) {
+          message = `⚠️ Game can run but has ${totalWarnings} warning(s) that should be reviewed.`;
+        } else {
+          message = `❌ Game has ${totalErrors} error(s) and ${totalWarnings} warning(s). Fix errors before the game will work.`;
+        }
+
+        // Format issues for display
+        let issuesReport = '';
+        if (allIssues.length > 0) {
+          issuesReport = '\n\n## Issues Found:\n';
+          for (const issue of allIssues.slice(0, 10)) { // Limit to first 10
+            const lineInfo = issue.line ? ` (line ${issue.line})` : '';
+            const icon = issue.severity === 'error' ? '❌' : '⚠️';
+            issuesReport += `\n${icon} **${issue.fileName}**${lineInfo}: ${issue.message}`;
+            if (issue.suggestion) {
+              issuesReport += `\n   → ${issue.suggestion}`;
+            }
+          }
+          if (allIssues.length > 10) {
+            issuesReport += `\n\n...and ${allIssues.length - 10} more issues`;
+          }
+        }
+
+        console.log(isReady ? '✅ Game verified successfully' : `⚠️ Game has ${totalErrors} errors`);
+
+        return {
+          success: true,
+          ready: isReady,
+          message: message + issuesReport,
+          fileCount: files.length,
+          files: fileResults,
+          errorCount: totalErrors,
+          warningCount: totalWarnings,
+          issues: allIssues.slice(0, 20), // Return first 20 issues
+        };
+      } catch (error) {
+        console.error('❌ Failed to verify game:', error);
+        return { success: false, ready: false, error: 'Failed to verify game' };
+      }
+    },
+  });
+};
+
+// =============================================================================
 // EXPORT FACTORY FUNCTION
 // =============================================================================
 
@@ -968,5 +1129,8 @@ export function createGameTools(gameId: string, userId?: string) {
     // Planning
     updatePlan: updatePlanTool(gameId, userId),
     getPlan: getPlanTool(gameId, userId),
+
+    // Quality gate
+    verifyGame: verifyGameTool(gameId, userId),
   };
 }

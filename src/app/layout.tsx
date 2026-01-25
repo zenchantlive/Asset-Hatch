@@ -5,6 +5,7 @@ import "./globals.css";
 import "./globals-3d.css";
 import { Header } from "@/components/layout/Header";
 import { PostHogProvider } from "./providers";
+import { TransitionProvider } from "@/components/ui/TransitionProvider";
 
 // =============================================================================
 // FONT CONFIGURATION
@@ -60,10 +61,12 @@ export default function RootLayout({
         <PostHogProvider>
           {/* SessionProvider enables useSession hook in client components */}
           <SessionProvider>
-            <Header />
-            <main className="flex-1 relative">
-              {children}
-            </main>
+            <TransitionProvider>
+              <Header />
+              <main className="flex-1 relative">
+                {children}
+              </main>
+            </TransitionProvider>
           </SessionProvider>
         </PostHogProvider>
       </body>

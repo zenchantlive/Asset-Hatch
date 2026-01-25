@@ -20,7 +20,7 @@ export interface Project {
 export interface MemoryFile {
     id: string;
     project_id: string;
-    type: 'project.json' | 'entities.json' | 'style-anchor.json' | 'generation-log.json' | 'conversation.json';
+    type: 'project.json' | 'entities.json' | 'style-anchor.json' | 'style-draft.json' | 'generation-log.json' | 'conversation.json';
     content: string;
     created_at: string;
     updated_at: string;

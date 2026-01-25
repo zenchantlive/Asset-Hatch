@@ -18,7 +18,7 @@
  * @see SkyboxViewer.tsx for 360 preview component
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     Cloud,
     Play,
@@ -104,6 +104,17 @@ export function SkyboxSection({
 
     // Generated skybox URL
     const [generatedUrl, setGeneratedUrl] = useState<string | null>(initialUrl || null);
+
+    // Sync generatedUrl when initialUrl prop changes (e.g., when navigating back to skybox)
+    // This is necessary because useState only uses initialUrl on first render
+    // Note: generatedUrl is deliberately NOT in the dependency array to avoid infinite loops -
+    // we only want to update when the external prop changes, not when local state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        if (initialUrl && initialUrl !== generatedUrl) {
+            setGeneratedUrl(initialUrl);
+        }
+    }, [initialUrl]);
 
     // Error state
     const [error, setError] = useState<string | null>(null);
