@@ -25,18 +25,22 @@ interface FullPageTransitionProps {
 export function FullPageTransition({ isActive, message }: FullPageTransitionProps) {
   const [shouldRender, setShouldRender] = useState(isActive);
 
-  // Handle animation out
+  // Handle animation out and cleanup
   useEffect(() => {
     if (isActive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldRender(true);
       // Disable scrolling when active
       document.body.style.overflow = "hidden";
+      // Return a cleanup function to restore scrolling on unmount
+      return () => {
+        document.body.style.overflow = "auto";
+      };
     } else {
       const timer = setTimeout(() => {
         setShouldRender(false);
-        document.body.style.overflow = "auto";
       }, 500); // Match transition duration
+      // The cleanup for the `isActive=false` case is handled by the `isActive=true` case's cleanup.
+      // However, we still need to clear the timer.
       return () => clearTimeout(timer);
     }
   }, [isActive]);
