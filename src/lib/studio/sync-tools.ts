@@ -244,7 +244,23 @@ function generateAssetLoadingCode(
   switch (assetRef.assetType) {
     case "model":
     case "3d":
-      return `
+      // For proxy URLs with query parameters, use empty root and file
+      // to avoid SceneLoader appending .glb to query params
+      const hasQueryParams = modelUrl.includes('?');
+      const modelLoadCode = hasQueryParams
+        ? `
+// Load 3D model for ${assetRef.assetName}
+// Note: Using empty root/file for proxy URL with query params
+BABYLON.SceneLoader.ImportMeshAsync("", "", "${modelUrl}", scene)
+  .then((mesh) => {
+    ${assetRef.assetName} = mesh;
+    ${assetRef.assetName}.position = new BABYLON.Vector3(0, 0, 0);
+    ${assetRef.assetName}.scaling = new BABYLON.Vector3(1, 1, 1);
+  })
+  .catch((error) => {
+    console.error("Failed to load ${assetRef.assetName}:", error);
+  });`
+        : `
 // Load 3D model for ${assetRef.assetName}
 BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
   .then((mesh) => {
@@ -254,8 +270,8 @@ BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
   })
   .catch((error) => {
     console.error("Failed to load ${assetRef.assetName}:", error);
-  });
-`;
+  });`;
+      return modelLoadCode;
 
     case "skybox":
     case "2d":
