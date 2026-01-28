@@ -20,12 +20,18 @@ export function hasQueryParams(url: string): boolean {
  * Parse a URL into root (directory) and file components for Babylon.js SceneLoader
  * 
  * CRITICAL: Handles proxy URLs with query parameters correctly.
- * SceneLoader.ImportMeshAsync(root, file, scene, null, ".glb") constructs:
- *   finalUrl = root + file + ".glb"
+ * Babylon.js SceneLoader.ImportMeshAsync(rootUrl, sceneFilename, scene, onSuccess, extensions, fileFormat)
+ * constructs: finalUrl = rootUrl + sceneFilename + fileFormat
  * 
- * For URLs with query parameters, we cannot split at the last '/'
- * because SceneLoader would append '.glb' to the query string.
+ * For URLs with query parameters (e.g., proxy URLs with auth tokens), splitting at '/'
+ * causes the extension to be appended AFTER the query string:
+ *   "proxy?token=abc" + ".glb" = "proxy?token=abc.glb" ❌ WRONG
  * 
+ * By returning an empty root and full URL as file for query URLs:
+ *   "" + "proxy?token=abc" + ".glb" = "proxy?token=abc" ✅ CORRECT
+ * 
+ * For regular URLs, SceneLoader correctly treats them as absolute paths when root is empty.
+ *
  * @param url - The URL to parse
  * @returns Object with root and file components
  * 

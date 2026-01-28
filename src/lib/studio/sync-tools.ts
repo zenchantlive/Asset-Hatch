@@ -242,6 +242,12 @@ function generateAssetLoadingCode(
   console.log(sceneName); // Use sceneName to satisfy lint
   const modelUrl = assetRef.glbUrl || assetRef.modelUrl || "";
 
+  // Guard against empty URL
+  if (!modelUrl) {
+    console.error("No modelUrl provided for asset:", assetRef.assetName);
+    return '';
+  }
+
   switch (assetRef.assetType) {
     case "model":
     case "3d":
@@ -251,7 +257,7 @@ function generateAssetLoadingCode(
         ? `
 // Load 3D model for ${assetRef.assetName}
 // Note: Using empty root/file for proxy URL with query params
-BABYLON.SceneLoader.ImportMeshAsync("", "", "${modelUrl}", scene)
+BABYLON.SceneLoader.ImportMeshAsync("", "", ${JSON.stringify(modelUrl)}, scene)
   .then((mesh) => {
     ${assetRef.assetName} = mesh;
     ${assetRef.assetName}.position = new BABYLON.Vector3(0, 0, 0);
@@ -262,7 +268,7 @@ BABYLON.SceneLoader.ImportMeshAsync("", "", "${modelUrl}", scene)
   });`
         : `
 // Load 3D model for ${assetRef.assetName}
-BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
+BABYLON.SceneLoader.ImportMeshAsync("", ${JSON.stringify(modelUrl)}, scene)
   .then((mesh) => {
     ${assetRef.assetName} = mesh;
     ${assetRef.assetName}.position = new BABYLON.Vector3(0, 0, 0);
@@ -271,7 +277,7 @@ BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
   .catch((error) => {
     console.error("Failed to load ${assetRef.assetName}:", error);
   });`;
-      return modelLoadCode;
+      return modelLoadCode.trim();
 
     case "skybox":
     case "2d":
