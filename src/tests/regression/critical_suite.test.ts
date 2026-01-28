@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'bun:test'
 import { parsePlan } from '../../lib/plan-parser'
+import { getDefaultModel, getModelById } from '../../lib/model-registry'
+import { formatCostDisplay } from '../../lib/cost-tracker'
 
 /**
  * CRITICAL REGRESSION SUITE
@@ -48,6 +50,30 @@ describe('Core User Flow: Asset Plan Parsing (CRITICAL)', () => {
 })
 
 describe('Core User Flow: Model Registry (CRITICAL)', () => {
-    // To be expanded as we map more critical flows
-    test.todo('resolves default models correctly', () => { })
-})
+    test('resolves default models for all categories', () => {
+        const chatDefault = getDefaultModel('chat');
+        const multimodalDefault = getDefaultModel('multimodal');
+        const imageGenDefault = getDefaultModel('image-gen');
+
+        expect(chatDefault).toBeDefined();
+        expect(multimodalDefault).toBeDefined();
+        expect(imageGenDefault).toBeDefined();
+
+        expect(chatDefault.category).toBe('chat');
+        expect(multimodalDefault.category).toBe('multimodal');
+    });
+
+    test('retrieves known curated models by ID', () => {
+        const gemini = getModelById('google/gemini-2.5-flash-image');
+        expect(gemini).toBeDefined();
+        expect(gemini?.displayName).toContain('Gemini');
+    });
+});
+
+describe('Core User Flow: Cost Tracker (CRITICAL)', () => {
+    test('formats cost display consistently', () => {
+        expect(formatCostDisplay(0.01)).toBe('$0.0100');
+        expect(formatCostDisplay(0.01, { isEstimate: true })).toBe('~$0.0100');
+        expect(formatCostDisplay(1.50)).toBe('$1.50');
+    });
+});

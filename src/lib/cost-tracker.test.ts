@@ -8,9 +8,14 @@ import {
   summarizeCosts,
   estimateGenerationCost,
   estimateBatchCost,
+  fetchGenerationCost,
+  fetchGenerationCostWithRetry,
   type GenerationCost,
 } from './cost-tracker';
 import { CURATED_MODELS, type RegisteredModel } from './model-registry';
+
+// Mock global fetch for API tests
+const originalFetch = global.fetch;
 
 describe('cost-tracker', () => {
   describe('formatCostDisplay', () => {
@@ -305,6 +310,85 @@ describe('cost-tracker', () => {
     test('returns 0 for unknown model', () => {
       const result = estimateBatchCost('unknown-model', 10, 500);
       expect(result).toBe(0);
+    });
+  });
+
+  describe('fetchGenerationCost (API Integration)', () => {
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    test('Happy Path: successfully fetches cost for a generation', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            data: {
+              id: 'gen-123',
+              model: 'test-model',
+              total_cost: 0.1234,
+              native_tokens_prompt: 100,
+              native_tokens_completion: 200
+            }
+          })
+        })
+      );
+
+      const cost = await fetchGenerationCost('gen-123');
+      expect(cost.generationId).toBe('gen-123');
+      expect(cost.totalCost).toBe(0.1234);
+    });
+
+    test('Failure Path: handles API 404 error gracefully', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({ ok: false, status: 404 })
+      );
+
+      await expect(fetchGenerationCost('gen-missing')).rejects.toThrow('Failed to fetch generation cost: 404');
+    });
+
+    test('Edge Case: handles invalid JSON response', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global.fetch as any) = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new Error('SyntaxError'))
+        })
+      );
+
+      await expect(fetchGenerationCost('gen-bad-json')).rejects.toThrow('SyntaxError');
+    });
+  });
+
+  describe('fetchGenerationCostWithRetry (Edge Cases)', () => {
+    test('Happy Path: succeeds on second attempt', async () => {
+      let attempts = 0;
+      global.fetch = jest.fn().mockImplementation(() => {
+        attempts++;
+        if (attempts === 1) return Promise.resolve({ ok: false, status: 503 });
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            data: { id: 'gen-retry', model: 'test-model', total_cost: 0.01 }
+          })
+        });
+      });
+
+      const result = await fetchGenerationCostWithRetry('gen-retry', 2, 0);
+      expect(result.status).toBe('success');
+      expect(attempts).toBe(2);
+    });
+
+    test('Failure Path: fails after all retries', async () => {
+      global.fetch = jest.fn().mockImplementation(() =>
+        Promise.resolve({ ok: false, status: 500 })
+      );
+
+      const result = await fetchGenerationCostWithRetry('gen-fail', 2, 0);
+      expect(result.status).toBe('error');
+      expect(result.error).toContain('500');
     });
   });
 });
