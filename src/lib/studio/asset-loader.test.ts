@@ -8,6 +8,7 @@
  */
 
 import { generateAssetLoaderScript, validateAssetInfo } from './asset-loader';
+import { parseUrlParts, hasQueryParams } from './url-utils';
 
 // =============================================================================
 // URL PARSING TESTS (These test the critical bug fix)
@@ -27,21 +28,7 @@ describe('asset-loader URL parsing', () => {
    */
 
   describe('parseUrlParts with proxy URLs (query parameters)', () => {
-    // Extract the parseUrlParts function logic for testing
-    const parseUrlParts = (url: string) => {
-      if (url.includes('?')) {
-        return { root: '', file: url };
-      }
-      const lastSlash = url.lastIndexOf('/');
-      if (lastSlash === -1) {
-        return { root: '', file: url };
-      }
-      return {
-        root: url.slice(0, lastSlash + 1),
-        file: url.slice(lastSlash + 1)
-      };
-    };
-
+    // Use shared utility
     it('should handle proxy URLs with query parameters correctly', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&key=knight&token=xyz123';
       const parts = parseUrlParts(proxyUrl);
@@ -72,20 +59,7 @@ describe('asset-loader URL parsing', () => {
   });
 
   describe('parseUrlParts with regular URLs (no query parameters)', () => {
-    const parseUrlParts = (url: string) => {
-      if (url.includes('?')) {
-        return { root: '', file: url };
-      }
-      const lastSlash = url.lastIndexOf('/');
-      if (lastSlash === -1) {
-        return { root: '', file: url };
-      }
-      return {
-        root: url.slice(0, lastSlash + 1),
-        file: url.slice(lastSlash + 1)
-      };
-    };
-
+    // Use shared utility
     it('should parse regular URLs with paths correctly', () => {
       const glbUrl = 'https://cdn.example.com/assets/knight.glb';
       const parts = parseUrlParts(glbUrl);
@@ -115,58 +89,35 @@ describe('asset-loader URL parsing', () => {
       const parts = parseUrlParts(dataUrl);
       
       // Data URLs contain ':' and may contain '/' but not '?', so they go to regular parsing
-      // The last '/' is in "application/" - this is fine since data URLs are handled
-      // separately before SceneLoader is called (see isDataUrl check in asset-loader.ts)
       expect(parts.file).toBe('octet-stream;base64,abc123');
     });
   });
 
   describe('SceneLoader URL construction verification', () => {
-    /**
-     * Test the parseUrlParts function directly.
-     * 
-     * The key insight is:
-     * - For proxy URLs with '?', parseUrlParts returns {root: '', file: URL}
-     * - SceneLoader.ImportMeshAsync(root, file, scene, null, '.glb') uses root + file + '.glb'
-     * - For proxy: '' + URL + '.glb' = URL (no duplication)
-     * - For regular: root + file + '.glb' = URL (normal behavior)
-     */
-    const parseUrlParts = (url: string) => {
-      if (url.includes('?')) {
-        return { root: '', file: url };
-      }
-      const lastSlash = url.lastIndexOf('/');
-      if (lastSlash === -1) {
-        return { root: '', file: url };
-      }
-      return {
-        root: url.slice(0, lastSlash + 1),
-        file: url.slice(lastSlash + 1)
-      };
-    };
-
-    it('should NOT corrupt proxy URLs with query params', () => {
+    // For proxy URLs, the iframe uses: ImportMeshAsync("", "", proxyUrl, scene, null, ".glb")
+    // So parseUrlParts should return {root: '', file: proxyUrl}
+    // And SceneLoader will use: "" + proxyUrl + ".glb" = proxyUrl (correct!)
+    
+    it('should return empty root for proxy URLs', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&key=knight&token=xyz';
       const parts = parseUrlParts(proxyUrl);
       
-      // THE CRITICAL FIX: For proxy URLs, root is empty and file is the full URL
-      // SceneLoader.ImportMeshAsync('', '', proxyUrl, scene, null, '.glb') 
-      //   → loads: proxyUrl (correct!)
+      // For proxy URLs, root is empty and file is the full URL
+      // SceneLoader.ImportMeshAsync("", "", proxyUrl, scene) will use proxyUrl directly
       expect(parts.root).toBe('');
       expect(parts.file).toBe(proxyUrl);
     });
 
-    it('should preserve query params in proxy URLs with multiple parameters', () => {
-      const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=test&key=asset&token=abc&extra=value';
-      const parts = parseUrlParts(proxyUrl);
+    it('should return correct path components for regular URLs', () => {
+      const regularUrl = 'https://cdn.example.com/assets/knight.glb';
+      const parts = parseUrlParts(regularUrl);
       
-      expect(parts.root).toBe('');
-      expect(parts.file).toBe(proxyUrl);
-      expect(parts.file).toContain('gameId=test');
-      expect(parts.file).toContain('token=abc');
+      // For regular URLs, SceneLoader.ImportMeshAsync("", root, file, scene) works
+      expect(parts.root).toBe('https://cdn.example.com/assets/');
+      expect(parts.file).toBe('knight.glb');
     });
 
-    it('should handle proxy URLs with encoded characters', () => {
+    it('should handle URLs with encoded characters', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=test%20123&key=asset%20name';
       const parts = parseUrlParts(proxyUrl);
       
@@ -174,20 +125,38 @@ describe('asset-loader URL parsing', () => {
       expect(parts.file).toBe(proxyUrl);
     });
 
-    it('should correctly parse regular URLs (no query params)', () => {
-      const regularUrl = 'https://cdn.example.com/assets/knight.glb';
-      const parts = parseUrlParts(regularUrl);
+    it('should correctly parse CDN URLs', () => {
+      const cdnUrl = 'https://cdn.example.com/models/character.glb';
+      const parts = parseUrlParts(cdnUrl);
       
-      expect(parts.root).toBe('https://cdn.example.com/assets/');
-      expect(parts.file).toBe('knight.glb');
+      expect(parts.root).toBe('https://cdn.example.com/models/');
+      expect(parts.file).toBe('character.glb');
     });
 
-    it('should handle URLs without slashes', () => {
+    it('should handle URLs without any path', () => {
       const url = 'knight.glb';
       const parts = parseUrlParts(url);
       
       expect(parts.root).toBe('');
       expect(parts.file).toBe('knight.glb');
+    });
+  });
+
+  describe('hasQueryParams utility', () => {
+    it('should return true for proxy URLs', () => {
+      expect(hasQueryParams('http://localhost:3000/api/proxy?token=abc')).toBe(true);
+    });
+
+    it('should return false for regular URLs', () => {
+      expect(hasQueryParams('https://cdn.example.com/model.glb')).toBe(false);
+    });
+
+    it('should return false for R2 URLs', () => {
+      expect(hasQueryParams('https://account.r2.cloudflarestorage.com/bucket/model.glb')).toBe(false);
+    });
+
+    it('should return false for data URLs', () => {
+      expect(hasQueryParams('data:application/octet-stream;base64,abc')).toBe(false);
     });
   });
 });
@@ -267,7 +236,6 @@ describe('asset-loader', () => {
       ]);
 
       expect(script).toContain(proxyUrl);
-      // The script should include logic to handle this URL correctly
       expect(script).toContain('resolveAssetUrl');
     });
 

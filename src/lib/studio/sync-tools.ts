@@ -11,6 +11,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import type { AssetManifest } from "@/lib/types/unified-project";
+import { hasQueryParams } from "./url-utils";
 
 // =============================================================================
 // SYNC ASSET TOOL
@@ -246,8 +247,7 @@ function generateAssetLoadingCode(
     case "3d":
       // For proxy URLs with query parameters, use empty root and file
       // to avoid SceneLoader appending .glb to query params
-      const hasQueryParams = modelUrl.includes('?');
-      const modelLoadCode = hasQueryParams
+      const modelLoadCode = hasQueryParams(modelUrl)
         ? `
 // Load 3D model for ${assetRef.assetName}
 // Note: Using empty root/file for proxy URL with query params

@@ -11,6 +11,7 @@
 
 import type { AssetInfo } from "./types";
 import { generateControlsHelperScript } from "./controls-helper";
+import { generateParseUrlPartsCode } from "./url-utils";
 
 export interface AssetLoaderScriptOptions {
   gameId?: string;
@@ -137,36 +138,9 @@ export function generateAssetLoaderScript(
     });
   }
 
-  /**
-   * Parse a URL into root (directory) and file components for Babylon.js SceneLoader
-   *
-   * CRITICAL: Handles proxy URLs with query parameters correctly.
-   * For URLs containing '?', we cannot split at the last '/' because
-   * SceneLoader appends the extension AFTER the file portion.
-   *
-   * @param url - The URL to parse
-   * @returns Object with root and file components
-   */
-  function parseUrlParts(url) {
-    // URLs with query parameters must be handled specially
-    // SceneLoader.ImportMeshAsync(root, file, ...) appends '.glb' to file
-    // If we split proxy URLs incorrectly, we get: proxy?gameId=...&token=...glb
-    if (url.includes('?')) {
-      // For proxy URLs with query params, use empty root and full URL as file
-      // SceneLoader will use: root="" + file=URL + extension=".glb"
-      // This correctly produces: http://host/api/proxy?gameId=...&token=...
-      return { root: '', file: url };
-    }
+  // Use shared parseUrlParts from url-utils
+  ${generateParseUrlPartsCode()}
 
-    const lastSlash = url.lastIndexOf('/');
-    if (lastSlash === -1) {
-      return { root: '', file: url };
-    }
-    return {
-      root: url.slice(0, lastSlash + 1),
-      file: url.slice(lastSlash + 1)
-    };
-  }
 
   function registerResolveListener() {
     if (registerResolveListener.initialized) return;

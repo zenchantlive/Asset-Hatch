@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { hasQueryParams, parseUrlParts } from './url-utils';
 
 // =============================================================================
 // GENERATED CODE URL TESTS
@@ -27,9 +28,7 @@ describe('sync-tools generated code URL handling', () => {
    */
 
   describe('generateAssetLoadingCode URL handling', () => {
-    // Extract the URL check logic for testing
-    const hasQueryParams = (url: string) => url.includes('?');
-
+    // Use shared utility
     it('should detect proxy URLs with query parameters', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&key=knight&token=xyz';
       expect(hasQueryParams(proxyUrl)).toBe(true);
@@ -63,28 +62,26 @@ describe('sync-tools generated code URL handling', () => {
 
     it('should generate correct code pattern for proxy URLs', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&key=knight&token=xyz';
-      const hasQuery = proxyUrl.includes('?');
+      const hasQuery = hasQueryParams(proxyUrl);
       
       // The fix generates different code for proxy URLs
       if (hasQuery) {
-        // Should use: ImportMeshAsync("", "", proxyUrl, scene)
         expect(proxyUrl.includes('?')).toBe(true);
       }
     });
 
     it('should generate correct code pattern for R2 URLs', () => {
       const r2Url = 'https://account.r2.cloudflarestorage.com/bucket/knight.glb';
-      const hasQuery = r2Url.includes('?');
+      const hasQuery = hasQueryParams(r2Url);
       
       if (!hasQuery) {
-        // Should use: ImportMeshAsync("", r2Url, scene)
         expect(r2Url).toContain('https://account.r2.cloudflarestorage.com/bucket/knight.glb');
       }
     });
 
     it('should generate correct code pattern for CDN URLs', () => {
       const cdnUrl = 'https://cdn.example.com/assets/knight.glb';
-      const hasQuery = cdnUrl.includes('?');
+      const hasQuery = hasQueryParams(cdnUrl);
       
       if (!hasQuery) {
         expect(cdnUrl).toContain('https://cdn.example.com/assets/knight.glb');
@@ -93,20 +90,7 @@ describe('sync-tools generated code URL handling', () => {
   });
 
   describe('parseUrlParts behavior (same as asset-loader)', () => {
-    const parseUrlParts = (url: string) => {
-      if (url.includes('?')) {
-        return { root: '', file: url };
-      }
-      const lastSlash = url.lastIndexOf('/');
-      if (lastSlash === -1) {
-        return { root: '', file: url };
-      }
-      return {
-        root: url.slice(0, lastSlash + 1),
-        file: url.slice(lastSlash + 1)
-      };
-    };
-
+    // Use shared utility - ensures both files use the same logic
     it('should correctly parse proxy URLs with query params', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&token=xyz';
       const parts = parseUrlParts(proxyUrl);
@@ -143,7 +127,7 @@ describe('sync-tools integration', () => {
     it('should generate loading code that compiles (syntax check)', () => {
       // This is a basic syntax check - the generated code should be valid JavaScript
       const modelUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=abc&token=xyz';
-      const hasQuery = modelUrl.includes('?');
+      const hasQuery = hasQueryParams(modelUrl);
       
       let generatedCode: string;
       if (hasQuery) {
@@ -176,7 +160,7 @@ BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
 
     it('should handle special characters in proxy URLs', () => {
       const proxyUrl = 'http://localhost:3000/api/studio/assets/proxy?gameId=test%20123&key=asset%2Fname';
-      const hasQuery = proxyUrl.includes('?');
+      const hasQuery = hasQueryParams(proxyUrl);
       
       // Should generate valid code even with encoded characters
       if (hasQuery) {
