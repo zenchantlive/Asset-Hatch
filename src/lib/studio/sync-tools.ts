@@ -11,6 +11,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import type { AssetManifest } from "@/lib/types/unified-project";
+import { hasQueryParams } from "./url-utils";
 
 // =============================================================================
 // SYNC ASSET TOOL
@@ -241,12 +242,22 @@ function generateAssetLoadingCode(
   console.log(sceneName); // Use sceneName to satisfy lint
   const modelUrl = assetRef.glbUrl || assetRef.modelUrl || "";
 
+  // Guard against empty URL
+  if (!modelUrl) {
+    console.error("No modelUrl provided for asset:", assetRef.assetName);
+    return '';
+  }
+
   switch (assetRef.assetType) {
     case "model":
     case "3d":
-      return `
+      // For proxy URLs with query parameters, use empty root and file
+      // to avoid SceneLoader appending .glb to query params
+      const modelLoadCode = hasQueryParams(modelUrl)
+        ? `
 // Load 3D model for ${assetRef.assetName}
-BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
+// Note: Using empty root/file for proxy URL with query params
+BABYLON.SceneLoader.ImportMeshAsync("", "", ${JSON.stringify(modelUrl)}, scene)
   .then((mesh) => {
     ${assetRef.assetName} = mesh;
     ${assetRef.assetName}.position = new BABYLON.Vector3(0, 0, 0);
@@ -254,8 +265,19 @@ BABYLON.SceneLoader.ImportMeshAsync("", "${modelUrl}", scene)
   })
   .catch((error) => {
     console.error("Failed to load ${assetRef.assetName}:", error);
-  });
-`;
+  });`
+        : `
+// Load 3D model for ${assetRef.assetName}
+BABYLON.SceneLoader.ImportMeshAsync("", ${JSON.stringify(modelUrl)}, scene)
+  .then((mesh) => {
+    ${assetRef.assetName} = mesh;
+    ${assetRef.assetName}.position = new BABYLON.Vector3(0, 0, 0);
+    ${assetRef.assetName}.scaling = new BABYLON.Vector3(1, 1, 1);
+  })
+  .catch((error) => {
+    console.error("Failed to load ${assetRef.assetName}:", error);
+  });`;
+      return modelLoadCode.trim();
 
     case "skybox":
     case "2d":

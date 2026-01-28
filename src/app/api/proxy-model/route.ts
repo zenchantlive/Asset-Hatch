@@ -45,7 +45,13 @@ export async function GET(request: NextRequest) {
     console.log('📥 Proxying model from:', url);
 
     // Fetch the GLB file from Tripo
-    const response = await fetch(url);
+    // Forward headers that Tripo's CDN may check (Referer, User-Agent)
+    const response = await fetch(url, {
+      headers: {
+        'Referer': request.headers.get('referer') || 'https://asset-hatch.com',
+        'User-Agent': request.headers.get('user-agent') || 'Mozilla/5.0',
+      }
+    });
 
     if (!response.ok) {
       console.error('❌ Tripo fetch failed:', response.status);

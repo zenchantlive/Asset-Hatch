@@ -11,6 +11,7 @@
 
 import type { AssetInfo } from "./types";
 import { generateControlsHelperScript } from "./controls-helper";
+import { generateParseUrlPartsCode } from "./url-utils";
 
 export interface AssetLoaderScriptOptions {
   gameId?: string;
@@ -137,16 +138,9 @@ export function generateAssetLoaderScript(
     });
   }
 
-  function parseUrlParts(url) {
-    const lastSlash = url.lastIndexOf('/');
-    if (lastSlash === -1) {
-      return { root: '', file: url };
-    }
-    return {
-      root: url.slice(0, lastSlash + 1),
-      file: url.slice(lastSlash + 1)
-    };
-  }
+  // Use shared parseUrlParts from url-utils
+  ${generateParseUrlPartsCode()}
+
 
   function registerResolveListener() {
     if (registerResolveListener.initialized) return;
